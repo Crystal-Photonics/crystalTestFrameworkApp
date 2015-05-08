@@ -1,0 +1,50 @@
+Backend:
+	connects com modul with com port
+	loads test script, which defines which com modul is to be used
+
+
+report:
+	report engine eg. http://sourceforge.net/projects/qtrpt/
+	script defines which report template to use
+	scrip can write values to report engine
+		report.setField(string name, string value)
+		report.setField(string name, string float)
+		report.setField(string name, string int)
+		
+	report can be printed later from report view
+	script ca save pdf
+
+COM Modul:
+	called from script:
+		getCOMField(name): value,timestamp
+		setCOMField(name,value)
+
+	called by Backend
+		pushByte(uint8_t)
+
+	implemented in backend
+		pushByte(uint8_t)
+		openAsociatedCOMPort()
+
+
+Testscript:
+	calls:
+		loadcommodul
+			#opens Com port
+		getCOMField(name): value,timestamp
+		setCOMField(name,value)
+		assert function colors gui status bar red or green
+		newReportDataset
+		setReportDatasetField
+
+
+gui:
+	quickview
+		a list of scripts. Each script one Icon. Quickaccess
+
+	report view
+		a list of report data sets for each script execution. Can be added with extra data like custumer, serial etc. Can be printed from there. 
+		
+	developer view
+		some of recent scripts available with one click
+		gui which can show each content of each field, plot it, save it to file. could be a tree with com modul as root. can show traffic for each modul in communication plot(sends this, receive that in timeline)
