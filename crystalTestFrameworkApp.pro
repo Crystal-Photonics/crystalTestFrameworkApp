@@ -12,8 +12,8 @@ SUBDIRS = src
 SUBDIRS += app
 SUBDIRS += tests
 
-#comModules/mocklayer/appPlugin
+SUBDIRS += comModules/mocklayer/appPlugin
 
-#src.depends = comModules/mocklayer
+src.depends = comModules/mocklayer/appPlugin
 app.depends = src
 tests.depends = src
