@@ -1,20 +1,16 @@
-#include "scriptengine.h"
-#include <QtTest/QtTest>
+#include "testscriptengine.h"
 
-#include <QtTest/QtTest>
 
-class TestQString: public QObject
-{
-    Q_OBJECT
-private slots:
-    void toUpper();
-};
+void TestScriptEngine::initTestCase(){
 
-void TestQString::toUpper()
+}
+
+void TestScriptEngine::cleanupTestCase(){
+
+}
+
+void TestScriptEngine::toUpper()
 {
     QString str = "Hello";
     QCOMPARE(str.toUpper(), QString("HELLO"));
 }
-
-QTEST_MAIN(TestQString)
-#include "testScriptEngine.moc"
