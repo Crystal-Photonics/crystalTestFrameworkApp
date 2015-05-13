@@ -4,13 +4,18 @@ TARGET = crystalTestFrameworkApp
 
 TEMPLATE = lib
 
-#warning(qt = $$QT)
+SOURCES += mainwindow.cpp \
+    scriptengine.cpp
 
-
-SOURCES += mainwindow.cpp
-
-HEADERS += mainwindow.h
+HEADERS += mainwindow.h \
+    scriptengine.h
 HEADERS += commodulinterface.h
 
 
 FORMS    += mainwindow.ui
+
+INCLUDEPATH += $$(PYTHON_PATH)/include
+
+!exists( $$(PYTHON_PATH)/include/python.h ) {
+    error (Python directory needs to be configured in environment variable PYTHON_PATH. eg. C:/Python27 )
+}

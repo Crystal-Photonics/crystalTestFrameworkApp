@@ -1,6 +1,8 @@
 libs/PythonQt3.0
 libs/QtRptProject1.5.1
 builds/
+comModules/mocklayer/*
+
 *.zip
 
 # Object files

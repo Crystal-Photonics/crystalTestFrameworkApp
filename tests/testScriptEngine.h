@@ -3,14 +3,19 @@
 
 #include "autotest.h"
 #include "scriptengine.h"
+#include <QObject>
 
 class TestScriptEngine: public QObject
 {
     Q_OBJECT
+public:
+    explicit TestScriptEngine( QObject *parent = 0);
+    ~TestScriptEngine();
+
 private slots:
     void initTestCase();
     void cleanupTestCase();
-    void toUpper();
+    void getFilesInDirectory();
 };
 DECLARE_TEST(TestScriptEngine)
 
