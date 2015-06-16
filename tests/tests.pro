@@ -14,7 +14,8 @@ SOURCES += testScriptEngine.cpp
 HEADERS += testScriptEngine.h
 
 
-
+LIBS += -lgmock
+LIBS += -lgtest
 
 
 CONFIG( debug, debug|release ) {
@@ -28,11 +29,22 @@ CONFIG( debug, debug|release ) {
 COPY_DIR = "$$(UNIXTOOLS)cp -r"
 
 #copies scripts into builds
+runtests.commands = $$RUNTEST
+runtests.depends = copydata
+
 copydata.commands = $$COPY_DIR $$PWD/scripts $$OUT_PWD/
-first.depends = $(first) copydata
+
+
+
+
 export(first.depends)
 export(copydata.commands)
+
+
+
 QMAKE_EXTRA_TARGETS +=   first copydata
 
 LIBS +=  -lcrystalTestFrameworkApp
+
+
 #

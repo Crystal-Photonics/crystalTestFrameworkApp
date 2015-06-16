@@ -5,10 +5,12 @@ TARGET = crystalTestFrameworkApp
 TEMPLATE = lib
 
 SOURCES += mainwindow.cpp \
-    scriptengine.cpp
+    scriptengine.cpp \
+    pysys.cpp
 
 HEADERS += mainwindow.h \
-    scriptengine.h
+    scriptengine.h \
+    pysys.h
 HEADERS += commodulinterface.h
 
 

@@ -1,6 +1,8 @@
 #include "testqstring.h"
 
 
+
+
 void TestQString::initTestCase(){
 
 }

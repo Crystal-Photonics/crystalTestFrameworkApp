@@ -6,6 +6,13 @@ SRC_DIR = $$PWD
 
 INCLUDEPATH += $$PWD/src
 
+INCLUDEPATH += $$PWD/libs/gmock-1.7.0/include
+INCLUDEPATH += $$PWD/libs/gmock-1.7.0/gtest/include
+
+LIBS += -L$$PWD/libs/gmock-1.7.0/
+LIBS += -L$$PWD/libs/gmock-1.7.0/gtest
+
+
 exists( $$PWD/libs/PythonQt3.0/src/PythonQt.h ) {
     #message(found python windows)
     INCLUDEPATH += $$PWD/libs/PythonQt3.0/src/

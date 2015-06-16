@@ -12,10 +12,13 @@ public:
     explicit TestScriptEngine( QObject *parent = 0);
     ~TestScriptEngine();
 
+
 private slots:
     void initTestCase();
     void cleanupTestCase();
     void getFilesInDirectory();
+    void runScriptGettingStarted();
+    void mockTest();
 };
 DECLARE_TEST(TestScriptEngine)
 

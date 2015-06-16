@@ -12,6 +12,10 @@
 #include <QString>
 #include <QSharedPointer>
 
+#include "gmock/gmock.h"
+
+using ::testing::AtLeast;
+
 namespace AutoTest
 {
 typedef QList<QObject*> TestList;
@@ -79,6 +83,8 @@ public:
 #define TEST_MAIN \
     int main(int argc, char *argv[]) \
 { \
+    ::testing::GTEST_FLAG(throw_on_failure) = true;\
+    ::testing::InitGoogleMock(&argc, argv);\
     return AutoTest::run(argc, argv); \
     }
 

@@ -14,6 +14,8 @@ public:
 
     QList<QString> getFilesInDirectory();
 
+    int runScript(QString fileName);
+
 
 signals:
 
