@@ -18,6 +18,7 @@ private slots:
     void cleanupTestCase();
     void getFilesInDirectory();
     void runScriptGettingStarted();
+    void testPythonStdOutToFile();
     void mockTest();
 };
 DECLARE_TEST(TestScriptEngine)

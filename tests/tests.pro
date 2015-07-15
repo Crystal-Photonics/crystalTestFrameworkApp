@@ -28,9 +28,9 @@ CONFIG( debug, debug|release ) {
 
 COPY_DIR = "$$(UNIXTOOLS)cp -r"
 
-message($$COPY_DIR)
-message($$OUT_PWD/)
-message($$PWD/scripts)
+#message($$COPY_DIR)
+#message($$OUT_PWD/)
+#message($$PWD/scripts)
 
 #copies scripts into builds
 

@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QString>
 #include <QList>
+#include <QFile>
 
 #include "pysys.h"
 
@@ -21,9 +22,6 @@ public:
     void runScript(QString fileName);
 
 
-signals:
-
-public slots:
 
 private slots:
     void slotPythonStdOut(const QString &str);
@@ -31,6 +29,7 @@ private slots:
 private:
     QString scriptDir;
     pySys *rtSys;
+    QFile fileStdOut;
 };
 
 #endif // SCRIPTENGINE_H

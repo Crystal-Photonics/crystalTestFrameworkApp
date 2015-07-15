@@ -2,6 +2,7 @@
 #include "pysys.h"
 #include <QString>
 #include <QVariant>
+#include <QTextStream>
 #include "gmock/gmock.h"  // Brings in Google Mock.
 
 #if 1
@@ -88,7 +89,7 @@ void TestScriptEngine::runScriptGettingStarted()
 
             ScriptEngine scriptEngine("scripts/");
             scriptEngine.setRTSys(&m_pysys);
-            scriptEngine.runScript("TestPrint.py");
+            scriptEngine.runScript("Test_sys_out.py");
         }
     #if 1
             catch (testing::internal::GoogleTestFailureException e)
@@ -100,4 +101,17 @@ void TestScriptEngine::runScriptGettingStarted()
             }
     #endif
 #endif
+}
+
+void TestScriptEngine::testPythonStdOutToFile(){
+    ScriptEngine scriptEngine("scripts/");
+    scriptEngine.runScript("Test_stdout.py");
+    QFile file("scripts/Test_stdout_stdout.txt");
+    QString line;
+    if (file.open(QFile::ReadOnly)) {
+        QTextStream ts(&file);
+        line = ts.readLine();
+        file.close();
+    }
+    QCOMPARE(line,QString("stdout HelloWorld!") );
 }
