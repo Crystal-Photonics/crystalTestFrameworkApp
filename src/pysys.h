@@ -9,12 +9,11 @@ class pySys : public QObject
     Q_OBJECT
 public:
     explicit pySys(QObject *parent = 0);
-    void print(QVariant text);
     ~pySys();
 
-signals:
-
-public slots:
+public Q_SLOTS:
+    virtual void out(QVariant text);
 };
+
 
 #endif // PYSYS_H

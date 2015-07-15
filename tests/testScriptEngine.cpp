@@ -8,7 +8,7 @@
 
 class MockPySys : public pySys {
     public:
-      MOCK_METHOD1(print, void(QVariant distance));
+      MOCK_METHOD1(out, void(QVariant text));
 
 };
 #endif
@@ -82,10 +82,13 @@ void TestScriptEngine::runScriptGettingStarted()
 
         try
         {
-MockPySys m_pysys;
-            EXPECT_CALL(m_pysys, print(QVariant("Test")))
+            MockPySys m_pysys;
+            EXPECT_CALL(m_pysys, out(QVariant("Hello World!")))
                   .Times(AtLeast(1));
-            m_pysys.print("Test");
+
+            ScriptEngine scriptEngine("scripts/");
+            scriptEngine.setRTSys(&m_pysys);
+            scriptEngine.runScript("TestPrint.py");
         }
     #if 1
             catch (testing::internal::GoogleTestFailureException e)

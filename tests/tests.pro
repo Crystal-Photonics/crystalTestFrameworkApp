@@ -28,19 +28,20 @@ CONFIG( debug, debug|release ) {
 
 COPY_DIR = "$$(UNIXTOOLS)cp -r"
 
+message($$COPY_DIR)
+message($$OUT_PWD/)
+message($$PWD/scripts)
+
 #copies scripts into builds
-runtests.commands = $$RUNTEST
-runtests.depends = copydata
+
+#runtests.commands = $$RUNTEST
+#runtests.depends = copydata
 
 copydata.commands = $$COPY_DIR $$PWD/scripts $$OUT_PWD/
-
-
-
+first.depends = $(first) copydata
 
 export(first.depends)
 export(copydata.commands)
-
-
 
 QMAKE_EXTRA_TARGETS +=   first copydata
 

@@ -13,14 +13,33 @@ bool fileExists(QString path) {
     }
 }
 
+void ScriptEngine::slotPythonStdOut (const QString &str){
+
+    qDebug() << str;
+}
+
+void ScriptEngine::slotPythonStdErr (const QString &str){
+
+    qWarning() << str;
+}
+
+
+
 ScriptEngine::ScriptEngine(QString dir, QObject *parent) : QObject(parent)
 {
     this->scriptDir = dir;
+    rtSys = new pySys(this);
 }
 
 ScriptEngine::~ScriptEngine()
 {
 
+
+}
+
+void ScriptEngine::setRTSys(pySys *rtSys_)
+{
+    this->rtSys = rtSys_;
 }
 
 QList<QString> ScriptEngine::getFilesInDirectory(){
@@ -40,23 +59,27 @@ int ScriptEngine::scriptPrint(QString fileName){
 
 }
 */
-int ScriptEngine::runScript(QString fileName){
-    PythonQt::init();
+void ScriptEngine::runScript(QString fileName){
+    PythonQt::init(PythonQt::IgnoreSiteModule | PythonQt::RedirectStdOut );
+    QDir dir(scriptDir);
+    fileName = dir.absoluteFilePath(fileName);
 
-    // get the __main__ python module
     PythonQtObjectPtr mainModule = PythonQt::self()->getMainModule();
-    QVariant result = mainModule.evalScript("19*2+4", Py_eval_input);
-    qDebug() << "result = " << result.toInt();
+
+    QObject::connect(PythonQt::self(), SIGNAL(pythonStdOut(const QString)),
+                         this, SLOT(slotPythonStdOut(const QString)));
+    QObject::connect(PythonQt::self(), SIGNAL(pythonStdErr(const QString)),
+                         this, SLOT(slotPythonStdErr(const QString)));
+
     if (fileExists(fileName)){
+        mainModule.addObject("sys", rtSys);
+        QFile t(fileName);
+        t.open(QIODevice::ReadOnly| QIODevice::Text);
+        QTextStream out(&t);
+        mainModule.evalScript(out.readAll());
+        t.close();
 
-        mainModule.evalFile(fileName);
-
-       // QVariant result =
-        // mainModule.evalScript("def appendText(text):\n  box.browser.append(text)");
-         // shows how to call the method with a text that will be append to the browser
-        //mainModule.call("appendText", QVariantList() << "The ultimate answer is ");
     }
-
 }
 
 #if 0
