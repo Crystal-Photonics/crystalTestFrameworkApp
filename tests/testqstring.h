@@ -8,9 +8,9 @@ class TestQString : public QObject
     Q_OBJECT
 
 private slots:
-    void initTestCase();
-    void cleanupTestCase();
-    void toUpper();
+	void initTestCase();
+	void cleanupTestCase();
+	void toUpper();
 };
 DECLARE_TEST(TestQString)
 #endif // TESTQSTRING_H

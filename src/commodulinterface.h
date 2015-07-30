@@ -7,7 +7,7 @@
 class comModulInterface
 {
 public:
-    virtual ~comModulInterface() {}
+	virtual ~comModulInterface() {}
     virtual QString echo_(const QString &message) = 0;
 };
 
