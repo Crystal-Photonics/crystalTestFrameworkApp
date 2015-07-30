@@ -42,3 +42,5 @@ exists( $$(PYTHONQT_PATH)/PythonQt.h ) {
 LIBS += -lPythonQt  #-lPythonQt_QtAll
 
 CONFIG += c++11
+CONFIG += warn
+QMAKE_CXXFLAGS += -Werror

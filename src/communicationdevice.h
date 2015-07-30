@@ -8,10 +8,11 @@
 class CommunicationDevice : public QObject
 {
 	Q_OBJECT
+protected:
+	CommunicationDevice() = default;
 public:
-	explicit CommunicationDevice(QObject *parent = nullptr);
-	virtual ~CommunicationDevice();
-	static CommunicationDevice *connect(QString target, QObject *parent = nullptr);
+	virtual ~CommunicationDevice() = default;
+	static CommunicationDevice *createConnection(QString target);
 signals:
 	void connected();
 	void disconnected();

@@ -6,8 +6,7 @@
 class SocketCommunicationDevice : public CommunicationDevice
 {
 public:
-	SocketCommunicationDevice();
-	~SocketCommunicationDevice();
+	void send(const QByteArray &data) override;
 };
 
 #endif // SOCKETCOMMUNICATIONDEVICE_H

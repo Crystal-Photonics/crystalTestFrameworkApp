@@ -1,12 +1,6 @@
 #include "socketcommunicationdevice.h"
 
-SocketCommunicationDevice::SocketCommunicationDevice()
+void SocketCommunicationDevice::send(const QByteArray &data)
 {
-
+	(void)data;
 }
-
-SocketCommunicationDevice::~SocketCommunicationDevice()
-{
-
-}
-
