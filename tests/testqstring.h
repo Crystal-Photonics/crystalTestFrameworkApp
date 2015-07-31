@@ -1,6 +1,7 @@
 #ifndef TESTQSTRING_H
 #define TESTQSTRING_H
 
+#include <QObject>
 #include "autotest.h"
 
 class TestQString : public QObject

@@ -16,7 +16,7 @@ public:
 signals:
 	void connected();
 	void disconnected();
-	void receive(QByteArray data);
+	void receive(QByteArray);
 public slots:
 	virtual void send(const QByteArray &data) = 0;
 };

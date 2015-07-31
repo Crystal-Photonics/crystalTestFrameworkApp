@@ -1,6 +1,7 @@
 #ifndef TESTSOCKETCOMMUNICATIONDEVICE_H
 #define TESTSOCKETCOMMUNICATIONDEVICE_H
 
+#include <QObject>
 #include "autotest.h"
 
 class TestSocketCommunicationDevice : public QObject

@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include "autotest.h"
+#include <functional>
 
 class TestCommunicationDevice : public QObject
 {
