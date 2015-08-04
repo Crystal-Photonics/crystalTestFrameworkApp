@@ -6,9 +6,15 @@ CONFIG += console
 QT +=  testlib
 
 HEADERS += autotest.h \
-    testqstring.h
+    testqstring.h \
+    testsocketcommunicationdevice.h \
+    testcommunicationdevice.h \
+    testechocommunicationdevice.h
 SOURCES += main.cpp \
-    testqstring.cpp
+    testqstring.cpp \
+    testsocketcommunicationdevice.cpp \
+    testcommunicationdevice.cpp \
+    testechocommunicationdevice.cpp
 
 SOURCES += testScriptEngine.cpp
 HEADERS += testScriptEngine.h

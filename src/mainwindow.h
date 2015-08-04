@@ -25,7 +25,7 @@ private:
     Ui::MainWindow *ui;
     bool loadPlugin();
     bool pythonTest();
-    comModulInterface *ComModulInterface;
+	comModulInterface *ComModulInterface;
 };
 
 #endif // MAINWINDOW_H

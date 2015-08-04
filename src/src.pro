@@ -6,11 +6,17 @@ TEMPLATE = lib
 
 SOURCES += mainwindow.cpp \
     scriptengine.cpp \
-    pysys.cpp
+    pysys.cpp \
+    communicationdevice.cpp \
+    socketcommunicationdevice.cpp \
+    echocommunicationdevice.cpp
 
 HEADERS += mainwindow.h \
     scriptengine.h \
-    pysys.h
+    pysys.h \
+    communicationdevice.h \
+    socketcommunicationdevice.h \
+    echocommunicationdevice.h
 HEADERS += commodulinterface.h
 
 

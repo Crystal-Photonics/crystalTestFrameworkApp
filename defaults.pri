@@ -11,8 +11,8 @@ INCLUDEPATH += $$PWD/src
 INCLUDEPATH += $$PWD/libs/gmock-1.7.0/include
 INCLUDEPATH += $$PWD/libs/gmock-1.7.0/gtest/include
 
-LIBS += -L$$PWD/libs/gmock-1.7.0/
-LIBS += -L$$PWD/libs/gmock-1.7.0/gtest
+LIBS += -L$$PWD/libs/gmock-1.7.0-build/
+LIBS += -L$$PWD/libs/gmock-1.7.0-build/gtest
 
 
 exists( $$PWD/libs/PythonQt3.0/src/PythonQt.h ) {
@@ -42,3 +42,7 @@ exists( $$(PYTHONQT_PATH)/PythonQt.h ) {
 
 
 LIBS += -lPythonQt  #-lPythonQt_QtAll
+
+CONFIG += c++11
+CONFIG += warn
+QMAKE_CXXFLAGS += -Werror
