@@ -7,6 +7,7 @@
 #include <QFile>
 
 #include "pysys.h"
+#include "PythonQt.h"
 
 class ScriptEngine : public QObject
 {
@@ -30,6 +31,10 @@ private:
     QString scriptDir;
     pySys *rtSys;
     QFile fileStdOut;
+    QFile fileStdErr;
+    QByteArray scriptArgv;
+    PythonQtObjectPtr mainModule;
+    char * pScriptArgv;
 };
 
 #endif // SCRIPTENGINE_H
