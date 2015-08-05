@@ -4,6 +4,8 @@ TARGET = crystalTestFrameworkApp
 
 TEMPLATE = lib
 
+DEFINES += EXPORT_LIBRARY
+
 SOURCES += mainwindow.cpp \
     scriptengine.cpp \
     pysys.cpp \
@@ -16,7 +18,8 @@ HEADERS += mainwindow.h \
     pysys.h \
     communicationdevice.h \
     socketcommunicationdevice.h \
-    echocommunicationdevice.h
+    echocommunicationdevice.h \
+    export.h
 HEADERS += commodulinterface.h
 
 

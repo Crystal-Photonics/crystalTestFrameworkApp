@@ -3,8 +3,9 @@
 
 #include <QString>
 
-//! [0]
-class comModulInterface
+#include "export.h"
+
+class EXPORT comModulInterface
 {
 public:
 	virtual ~comModulInterface() {}

@@ -5,6 +5,8 @@
 #include <memory>
 #include <QByteArray>
 
+#include <QtSerialPort/QSerialPort>
+
 
 
 void TestEchoCommunicationDevice::initTestCase()
@@ -26,7 +28,7 @@ void TestEchoCommunicationDevice::signaltest()
 	auto receiver = [&data](QByteArray received){
 		data = std::move(received);
 	};
-	auto connection = QObject::connect(c.get(), &CommunicationDevice::receive, receiver);
+	auto connection = QObject::connect(dynamic_cast<EchoCommunicationDevice *>(c.get()), &EchoCommunicationDevice::receive, receiver);
 	QVERIFY2(connection, "Failed connecting communication device to lambda");
 	const QByteArray testData = "RandomText";
 	//test receive directly

@@ -7,8 +7,9 @@
 namespace Ui {
 class MainWindow;
 }
+#include "export.h"
 
-class MainWindow : public QMainWindow
+class EXPORT MainWindow : public QMainWindow
 {
     Q_OBJECT
 

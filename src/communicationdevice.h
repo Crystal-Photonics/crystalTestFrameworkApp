@@ -4,8 +4,9 @@
 #include <QObject>
 #include <QByteArray>
 #include <memory>
+#include "export.h"
 
-class CommunicationDevice : public QObject
+class EXPORT CommunicationDevice : public QObject
 {
 	Q_OBJECT
 protected:

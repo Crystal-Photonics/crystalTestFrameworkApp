@@ -2,8 +2,9 @@
 #define SOCKETCOMMUNICATIONDEVICE_H
 
 #include "communicationdevice.h"
+#include "export.h"
 
-class SocketCommunicationDevice : public CommunicationDevice
+class EXPORT SocketCommunicationDevice : public CommunicationDevice
 {
 public:
 	void send(const QByteArray &data) override;

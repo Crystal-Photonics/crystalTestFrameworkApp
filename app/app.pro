@@ -2,7 +2,7 @@ include(../defaults.pri)
 
 TEMPLATE = app
 SOURCES += main.cpp
-
+DEFINES += EXPORT_APPLICATION
 
 CONFIG( debug, debug|release ) {
     # debug

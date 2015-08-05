@@ -41,3 +41,4 @@ comModules/mocklayer/*
 # Qt
 *.pro.user
 gmock-1.7.0
+/qTestLibRunnerConfig.qtr
