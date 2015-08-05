@@ -3,6 +3,8 @@
 #include <QString>
 #include <QVariant>
 #include <QTextStream>
+#include <QFileInfo>
+#include <QDir>
 #include "gmock/gmock.h"  // Brings in Google Mock.
 
 #if 1
@@ -51,7 +53,7 @@ class MockFoo {
 void TestScriptEngine::mockTest()
 {
 
-
+#if 0
     try {
 
         MockFoo mock;
@@ -74,12 +76,13 @@ void TestScriptEngine::mockTest()
     } catch (const std::exception& ex) {
         //EXPECT_THAT(ex.what(), testing::HasSubstr("has no default value"));
     }
+    #endif
 }
 
 
 void TestScriptEngine::runScriptGettingStarted()
 {
-#if 1
+#if 0
 
         try
         {
@@ -104,14 +107,70 @@ void TestScriptEngine::runScriptGettingStarted()
 }
 
 void TestScriptEngine::testPythonStdOutToFile(){
+        #if 0
     ScriptEngine scriptEngine("scripts/");
     scriptEngine.runScript("Test_stdout.py");
     QFile file("scripts/Test_stdout_stdout.txt");
     QString line;
-    if (file.open(QFile::ReadOnly)) {
+    if (file.open(QFile::ReadOnly | QIODevice::Text)) {
         QTextStream ts(&file);
         line = ts.readLine();
         file.close();
     }
     QCOMPARE(line,QString("stdout HelloWorld!") );
+#endif
+}
+
+void TestScriptEngine::testPythonStdErrToFile(){
+    #if 0
+    ScriptEngine scriptEngine("scripts/");
+    scriptEngine.runScript("Test_stderr.py");
+    QFile file("scripts/Test_stderr_stderr.txt");
+    QString line;
+    if (file.open(QFile::ReadOnly | QIODevice::Text)) {
+        QTextStream ts(&file);
+        while(!ts.atEnd()){
+            line = ts.readLine();
+            if (line.contains("SyntaxError:"))
+                break;
+        }
+
+        file.close();
+    }
+
+    QCOMPARE(line,QString("SyntaxError: invalid syntax") );
+#endif
+}
+
+
+void TestScriptEngine::testPythonUnittest(){
+#if 1
+    ScriptEngine scriptEngine("scripts/");
+    scriptEngine.runScript("Test_UnitTest.py");
+    QFileInfo fi("scripts/Test_UnitTest_stderr.txt");
+    QCOMPARE(fi.size(),0 );
+#endif
+}
+
+void TestScriptEngine::testPythonArgv(){
+   #if 0
+    QString scriptDir = "scripts/";
+    QString scriptFileName = "Test_Argv.py";
+    ScriptEngine scriptEngine(scriptDir);
+    scriptEngine.runScript(scriptFileName);
+
+    QFileInfo fi("scripts/Test_Argv_stderr.txt");
+    QCOMPARE(fi.size(),0 );
+
+    QDir dir(scriptDir);
+    QString fullScriptFileName = dir.absoluteFilePath(scriptFileName);
+    QFile file("scripts/Test_Argv_stdout.txt");
+    QString line;
+    if (file.open(QFile::ReadOnly | QIODevice::Text)) {
+        QTextStream ts(&file);
+        line = ts.readLine();
+        file.close();
+    }
+    QCOMPARE(line,"[\'"+fullScriptFileName+"\']");
+#endif
 }

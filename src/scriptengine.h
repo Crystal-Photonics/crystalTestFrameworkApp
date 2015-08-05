@@ -8,6 +8,8 @@
 
 #include "pysys.h"
 #include "export.h"
+#include "PythonQt.h"
+
 
 class EXPORT ScriptEngine : public QObject
 {
@@ -31,6 +33,10 @@ private:
     QString scriptDir;
     pySys *rtSys;
     QFile fileStdOut;
+    QFile fileStdErr;
+    QByteArray scriptArgv;
+    PythonQtObjectPtr mainModule;
+    char * pScriptArgv;
 };
 
 #endif // SCRIPTENGINE_H

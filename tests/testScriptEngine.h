@@ -12,14 +12,20 @@ public:
     explicit TestScriptEngine( QObject *parent = 0);
     ~TestScriptEngine();
 
+private:
 
-private slots:
-    void initTestCase();
     void cleanupTestCase();
     void getFilesInDirectory();
     void runScriptGettingStarted();
     void testPythonStdOutToFile();
     void mockTest();
+    void testPythonStdErrToFile();
+
+    void testPythonArgv();
+
+private slots:
+    void initTestCase();
+    void testPythonUnittest();
 };
 DECLARE_TEST(TestScriptEngine)
 

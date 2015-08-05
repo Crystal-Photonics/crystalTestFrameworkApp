@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "scriptengine.h"
 #include "ui_mainwindow.h"
 
 #include <QDir>
@@ -44,6 +45,9 @@ bool MainWindow::loadPlugin()
             }
         }
     }
+
+
+
 
     return false;
 }
