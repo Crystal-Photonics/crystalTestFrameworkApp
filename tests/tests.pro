@@ -5,6 +5,8 @@ TEMPLATE = app
 CONFIG += console
 QT +=  testlib
 
+DEFINES += EXPORT_APPLICATION
+
 HEADERS += autotest.h \
     testqstring.h \
     testsocketcommunicationdevice.h \

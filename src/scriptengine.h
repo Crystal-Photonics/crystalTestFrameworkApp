@@ -7,8 +7,9 @@
 #include <QFile>
 
 #include "pysys.h"
+#include "export.h"
 
-class ScriptEngine : public QObject
+class EXPORT ScriptEngine : public QObject
 {
     Q_OBJECT
 public:

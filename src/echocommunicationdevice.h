@@ -3,8 +3,9 @@
 
 #include "communicationdevice.h"
 #include <QObject>
+#include "export.h"
 
-class EchoCommunicationDevice : public CommunicationDevice
+class EXPORT EchoCommunicationDevice : public CommunicationDevice
 {
 	Q_OBJECT
 public:

@@ -3,8 +3,9 @@
 
 #include <QObject>
 #include <QVariant>
+#include "export.h"
 
-class pySys : public QObject
+class EXPORT pySys : public QObject
 {
     Q_OBJECT
 public:
