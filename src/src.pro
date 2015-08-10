@@ -11,7 +11,8 @@ SOURCES += mainwindow.cpp \
     pysys.cpp \
     communicationdevice.cpp \
     socketcommunicationdevice.cpp \
-    echocommunicationdevice.cpp
+    echocommunicationdevice.cpp \
+    util.cpp
 
 HEADERS += mainwindow.h \
     scriptengine.h \
@@ -19,7 +20,8 @@ HEADERS += mainwindow.h \
     communicationdevice.h \
     socketcommunicationdevice.h \
     echocommunicationdevice.h \
-    export.h
+    export.h \
+    util.h
 HEADERS += commodulinterface.h
 
 

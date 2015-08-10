@@ -36,7 +36,7 @@ private:
     QFile fileStdErr;
     QByteArray scriptArgv;
     PythonQtObjectPtr mainModule;
-    char * pScriptArgv;
+	const char *pScriptArgv;
 };
 
 #endif // SCRIPTENGINE_H

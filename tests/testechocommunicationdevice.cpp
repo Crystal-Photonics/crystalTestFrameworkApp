@@ -35,6 +35,7 @@ void TestEchoCommunicationDevice::signaltest()
 	emit c->receive(testData);
 	QCOMPARE(data, QByteArray(testData));
 	data.clear();
+	QCOMPARE(data, QByteArray());
 	//test if send redirects to receive
 	c->send(testData);
 	QCOMPARE(data, QByteArray(testData));

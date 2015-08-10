@@ -1,6 +1,6 @@
 include(libs/PythonQt3.0/build/python.prf)
 
-QT = gui core
+QT = gui core network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -43,6 +43,6 @@ exists( $$(PYTHONQT_PATH)/PythonQt.h ) {
 
 LIBS += -lPythonQt  #-lPythonQt_QtAll
 
-CONFIG += c++11
+CONFIG += c++14
 CONFIG += warn
 QMAKE_CXXFLAGS += -Werror

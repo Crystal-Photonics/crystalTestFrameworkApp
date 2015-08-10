@@ -41,7 +41,6 @@ ScriptEngine::ScriptEngine(QString dir, QObject *parent) : QObject(parent)
 
     //PythonQt::self()->addSysPath(info.absolutePath());
     PythonQt::self()->addSysPath("C:\\Python27\\lib");
-
 }
 
 ScriptEngine::~ScriptEngine(){}
@@ -89,9 +88,9 @@ void ScriptEngine::runScript(QString fileName){
     if (fileExists(scriptFileName)){
 #if 1
         scriptArgv = scriptFileName.toLatin1();
-        pScriptArgv = "C:\\Users\\ark\\entwicklung\\qt\\crystalTestFrameworkApp\\builds\\crystalTestFrameworkApp-Desktop_Qt_5_4_1_MinGW_32bit-Debug\\tests\\scripts\\Test_UnitTest.py";
+		pScriptArgv = "C:\\Users\\tr\\Desktop\\TestFramework\\build-crystalTestFrameworkApp-Desktop_Qt_5_5_0_MinGW_32bit2-Debug\\tests\\scripts\\Test_UnitTest.py";
         //pScriptArgv = scriptArgv.data();
-        PySys_SetArgv(1,&pScriptArgv);
+		PySys_SetArgv(1, const_cast<char **>(&pScriptArgv));
 #endif
         //QFileInfo info(scriptFileName);
         QFile f(scriptFileName);
