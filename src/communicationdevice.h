@@ -5,6 +5,7 @@
 #include <QByteArray>
 #include <memory>
 #include "export.h"
+#include <chrono>
 
 class EXPORT CommunicationDevice : public QObject
 {
@@ -13,7 +14,10 @@ protected:
 	CommunicationDevice() = default;
 public:
 	virtual ~CommunicationDevice() = default;
-	static CommunicationDevice *createConnection(QString target);
+	static std::unique_ptr<CommunicationDevice> createConnection(QString target);
+	virtual bool isConnected() = 0;
+	virtual bool waitConnected(std::chrono::seconds timeout = std::chrono::seconds(1)) = 0;
+	virtual bool waitReceive(std::chrono::seconds timeout = std::chrono::seconds(1)) = 0;
 signals:
 	void connected();
 	void disconnected();
