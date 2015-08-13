@@ -8,14 +8,16 @@ DEFINES += EXPORT_APPLICATION
 
 HEADERS += autotest.h \
     testqstring.h \
-    testsocketcommunicationdevice.h \
-    testcommunicationdevice.h \
-    testechocommunicationdevice.h
+    CommunicationDevices/testcommunicationdevice.h \
+    CommunicationDevices/testechocommunicationdevice.h \
+    CommunicationDevices/testsocketcommunicationdevice.h \
+	CommunicationDevices/testcomportcommunicationdevice.h
 SOURCES += main.cpp \
     testqstring.cpp \
-    testsocketcommunicationdevice.cpp \
-    testcommunicationdevice.cpp \
-    testechocommunicationdevice.cpp
+    CommunicationDevices/testcommunicationdevice.cpp \
+    CommunicationDevices/testechocommunicationdevice.cpp \
+    CommunicationDevices/testsocketcommunicationdevice.cpp \
+	CommunicationDevices/testcomportcommunicationdevice.cpp
 
 SOURCES += testScriptEngine.cpp
 HEADERS += testScriptEngine.h

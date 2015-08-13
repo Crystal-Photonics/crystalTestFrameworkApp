@@ -8,7 +8,7 @@
 #include <memory>
 #include <functional>
 
-class EXPORT SocketCommunicationDevice : public CommunicationDevice
+class EXPORT SocketCommunicationDevice final : public CommunicationDevice
 {
 public:
 	SocketCommunicationDevice(const QString &target);

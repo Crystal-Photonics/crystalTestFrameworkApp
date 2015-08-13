@@ -9,19 +9,23 @@ DEFINES += EXPORT_LIBRARY
 SOURCES += mainwindow.cpp \
     scriptengine.cpp \
     pysys.cpp \
-    communicationdevice.cpp \
-    socketcommunicationdevice.cpp \
-    echocommunicationdevice.cpp \
-    util.cpp
+    util.cpp \
+    main.cpp \
+    CommunicationDevices/communicationdevice.cpp \
+    CommunicationDevices/comportcommunicationdevice.cpp \
+    CommunicationDevices/echocommunicationdevice.cpp \
+    CommunicationDevices/socketcommunicationdevice.cpp
 
 HEADERS += mainwindow.h \
     scriptengine.h \
     pysys.h \
-    communicationdevice.h \
-    socketcommunicationdevice.h \
-    echocommunicationdevice.h \
     export.h \
-    util.h
+    util.h \
+    comportcommunicationdevice.h \
+    CommunicationDevices/communicationdevice.h \
+    CommunicationDevices/comportcommunicationdevice.h \
+    CommunicationDevices/echocommunicationdevice.h \
+    CommunicationDevices/socketcommunicationdevice.h
 HEADERS += commodulinterface.h
 
 

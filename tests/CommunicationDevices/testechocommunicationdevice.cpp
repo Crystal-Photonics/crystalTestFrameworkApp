@@ -5,10 +5,6 @@
 #include <memory>
 #include <QByteArray>
 
-#include <QtSerialPort/QSerialPort>
-
-
-
 void TestEchoCommunicationDevice::initTestCase()
 {
 

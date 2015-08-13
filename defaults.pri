@@ -7,6 +7,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 SRC_DIR = $$PWD
 
 INCLUDEPATH += $$PWD/src
+INCLUDEPATH += $$PWD/src/CommunicationDevices
 
 INCLUDEPATH += $$PWD/libs/gmock-1.7.0/include
 INCLUDEPATH += $$PWD/libs/gmock-1.7.0/gtest/include

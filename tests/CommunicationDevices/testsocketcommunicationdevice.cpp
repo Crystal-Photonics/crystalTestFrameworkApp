@@ -2,7 +2,6 @@
 #include "communicationdevice.h"
 #include <QByteArray>
 #include "util.h"
-#include <QSignalSpy>
 
 void TestSocketCommunicationDevice::initTestCase(){
 
@@ -18,10 +17,10 @@ void TestSocketCommunicationDevice::selfConnect(){
 	QByteArray serverReceivedData;
 	QByteArray clientReceivedData;
 	auto serverReceive = [&serverReceivedData](QByteArray data){
-		serverReceivedData = std::move(data);
+		serverReceivedData += std::move(data);
 	};
 	auto clientReceive = [&clientReceivedData](QByteArray data){
-		clientReceivedData = std::move(data);
+		clientReceivedData += std::move(data);
 	};
 	auto serverSignalSlotConnection = connect(server.get(), CommunicationDevice::receive, serverReceive);
 	QVERIFY2(serverSignalSlotConnection, "Failed signal slot connection on server");
@@ -57,4 +56,8 @@ void TestSocketCommunicationDevice::selfConnect(){
 		client->waitReceive();
 	QCOMPARE(serverReceivedData, clientSend);
 	QCOMPARE(clientReceivedData, serverSend);
+	server->send(clientSend);
+	if (clientReceivedData == serverSend)
+		client->waitReceive();
+	QCOMPARE(clientReceivedData, serverSend + clientSend);
 }
