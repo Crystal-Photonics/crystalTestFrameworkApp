@@ -6,26 +6,26 @@ TEMPLATE = lib
 
 DEFINES += EXPORT_LIBRARY
 
-SOURCES += mainwindow.cpp \
-    scriptengine.cpp \
-    pysys.cpp \
-    util.cpp \
-    main.cpp \
-    CommunicationDevices/communicationdevice.cpp \
-    CommunicationDevices/comportcommunicationdevice.cpp \
-    CommunicationDevices/echocommunicationdevice.cpp \
-    CommunicationDevices/socketcommunicationdevice.cpp
+SOURCES += mainwindow.cpp
+SOURCES += scriptengine.cpp
+SOURCES += pysys.cpp
+SOURCES += util.cpp
+SOURCES += main.cpp
+SOURCES += CommunicationDevices/communicationdevice.cpp
+SOURCES += CommunicationDevices/comportcommunicationdevice.cpp
+SOURCES += CommunicationDevices/echocommunicationdevice.cpp
+SOURCES += CommunicationDevices/socketcommunicationdevice.cpp
 
-HEADERS += mainwindow.h \
-    scriptengine.h \
-    pysys.h \
-    export.h \
-    util.h \
-    comportcommunicationdevice.h \
-    CommunicationDevices/communicationdevice.h \
-    CommunicationDevices/comportcommunicationdevice.h \
-    CommunicationDevices/echocommunicationdevice.h \
-    CommunicationDevices/socketcommunicationdevice.h
+HEADERS += mainwindow.h
+HEADERS += scriptengine.h
+HEADERS += pysys.h
+HEADERS += export.h
+HEADERS += util.h
+HEADERS +=comportcommunicationdevice.h
+HEADERS +=CommunicationDevices/communicationdevice.h
+HEADERS +=CommunicationDevices/comportcommunicationdevice.h
+HEADERS +=CommunicationDevices/echocommunicationdevice.h
+HEADERS +=CommunicationDevices/socketcommunicationdevice.h
 HEADERS += commodulinterface.h
 
 
@@ -50,4 +50,4 @@ exists( $$(PYTHON_PATH)/Python.h ) {
 }
 
 
-defaults.pri
+#defaults.pri

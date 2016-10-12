@@ -6,18 +6,19 @@ QT +=  testlib
 
 DEFINES += EXPORT_APPLICATION
 
-HEADERS += autotest.h \
-    testqstring.h \
-    CommunicationDevices/testcommunicationdevice.h \
-    CommunicationDevices/testechocommunicationdevice.h \
-    CommunicationDevices/testsocketcommunicationdevice.h \
-	CommunicationDevices/testcomportcommunicationdevice.h
-SOURCES += main.cpp \
-    testqstring.cpp \
-    CommunicationDevices/testcommunicationdevice.cpp \
-    CommunicationDevices/testechocommunicationdevice.cpp \
-    CommunicationDevices/testsocketcommunicationdevice.cpp \
-	CommunicationDevices/testcomportcommunicationdevice.cpp
+HEADERS += autotest.h
+HEADERS += testqstring.h
+#HEADERS += CommunicationDevices/testcommunicationdevice.h
+#HEADERS += CommunicationDevices/testechocommunicationdevice.h
+#HEADERS += CommunicationDevices/testsocketcommunicationdevice.h
+#HEADERS += CommunicationDevices/testcomportcommunicationdevice.h
+
+SOURCES += main.cpp
+SOURCES += testqstring.cpp
+#SOURCES += CommunicationDevices/testcommunicationdevice.cpp
+#SOURCES += CommunicationDevices/testechocommunicationdevice.cpp
+#SOURCES += CommunicationDevices/testsocketcommunicationdevice.cpp
+#SOURCES += CommunicationDevices/testcomportcommunicationdevice.cpp
 
 SOURCES += testScriptEngine.cpp
 HEADERS += testScriptEngine.h

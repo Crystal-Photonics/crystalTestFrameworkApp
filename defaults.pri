@@ -12,8 +12,8 @@ INCLUDEPATH += $$PWD/src/CommunicationDevices
 INCLUDEPATH += $$PWD/libs/gmock-1.7.0/include
 INCLUDEPATH += $$PWD/libs/gmock-1.7.0/gtest/include
 
-LIBS += -L$$PWD/libs/gmock-1.7.0-build/
-LIBS += -L$$PWD/libs/gmock-1.7.0-build/gtest
+LIBS += -L$$PWD/libs/build/googletest/googlemock/
+LIBS += -L$$PWD/libs/build/googletest/googlemock/gtest
 
 
 exists( $$PWD/libs/PythonQt3.0/src/PythonQt.h ) {
@@ -44,6 +44,8 @@ exists( $$(PYTHONQT_PATH)/PythonQt.h ) {
 
 LIBS += -lPythonQt  #-lPythonQt_QtAll
 
-CONFIG += c++14
+QMAKE_CXXFLAGS += -std=c++1y
+CONFIG += c++1y
+
 CONFIG += warn
 QMAKE_CXXFLAGS += -Werror
