@@ -1,6 +1,8 @@
 libs/PythonQt3.0
 libs/QtRptProject1.5.1
-builds/
+libs/build/*
+builds/*
+libs/googletest/CMakeLists.txt.user
 comModules/mocklayer/*
 
 *.zip
@@ -41,5 +43,4 @@ comModules/mocklayer/*
 # Qt
 *.pro.user
 
-libs/googletest/CMakeLists.txt.user
 /qTestLibRunnerConfig.qtr
