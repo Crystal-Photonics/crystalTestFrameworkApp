@@ -50,4 +50,3 @@ exists( $$(PYTHON_PATH)/Python.h ) {
 }
 
 
-#defaults.pri

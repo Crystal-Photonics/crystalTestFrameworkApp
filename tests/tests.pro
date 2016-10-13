@@ -7,26 +7,26 @@ QT +=  testlib
 DEFINES += EXPORT_APPLICATION
 
 HEADERS += autotest.h
+HEADERS += testgooglemock.h
 HEADERS += testqstring.h
-#HEADERS += CommunicationDevices/testcommunicationdevice.h
-#HEADERS += CommunicationDevices/testechocommunicationdevice.h
-#HEADERS += CommunicationDevices/testsocketcommunicationdevice.h
-#HEADERS += CommunicationDevices/testcomportcommunicationdevice.h
 
 SOURCES += main.cpp
+SOURCES += testgooglemock.cpp
 SOURCES += testqstring.cpp
-#SOURCES += CommunicationDevices/testcommunicationdevice.cpp
-#SOURCES += CommunicationDevices/testechocommunicationdevice.cpp
-#SOURCES += CommunicationDevices/testsocketcommunicationdevice.cpp
-#SOURCES += CommunicationDevices/testcomportcommunicationdevice.cpp
 
 SOURCES += testScriptEngine.cpp
 HEADERS += testScriptEngine.h
 
+INCLUDEPATH += $$PWD/../libs/googletest/googletest/include
+INCLUDEPATH += $$PWD/../libs/googletest/googlemock/include
+
+
+LIBS += -L$$PWD/../libs/build/googletest/googlemock/
+LIBS += -L$$PWD/../libs/build/googletest/googlemock/gtest
 
 LIBS += -lgmock
 LIBS += -lgtest
-
+LIBS += -lcrystalTestFrameworkApp
 
 CONFIG( debug, debug|release ) {
     # debug
@@ -55,7 +55,7 @@ export(copydata.commands)
 
 QMAKE_EXTRA_TARGETS +=   first copydata
 
-LIBS +=  -lcrystalTestFrameworkApp
+
 
 
 #

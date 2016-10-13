@@ -1,3 +1,6 @@
 [submodule "comModules/mocklayer"]
 	path = comModules/mocklayer
 	url = https://github.com/Crystal-Photonics/crystalTestFrameworkMocklayer
+[submodule "libs/googletest"]
+	path = libs/googletest
+	url = https://github.com/google/googletest.git

@@ -6,7 +6,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include "gmock/gmock.h"  // Brings in Google Mock.
-
+//#include "gtest/gtest.h"
 #if 1
 
 class MockPySys : public pySys {
@@ -15,6 +15,10 @@ class MockPySys : public pySys {
 
 };
 #endif
+
+
+
+
 
 TestScriptEngine::TestScriptEngine( QObject *parent) : QObject(parent)
 {
@@ -41,43 +45,10 @@ void TestScriptEngine::getFilesInDirectory()
     QCOMPARE(filelist.count(),4);
     QVERIFY2(filelist.indexOf("GettingStarted_1.py") > -1, "GettingStarted_1.py not found in List");
 }
-class Something {};
 
-class MockFoo {
- public:
-  // A mock method that returns a user-defined type.  Google Mock
-  // doesn't know what the default value for this type is.
-  MOCK_METHOD0(GetSomething, Something());
-};
 
-void TestScriptEngine::mockTest()
-{
 
-#if 0
-    try {
 
-        MockFoo mock;
-
-            EXPECT_CALL(mock, GetSomething())
-                  .Times(AtLeast(1));
-            mock.GetSomething();
-#if 0
-            QFAIL("GetSomething()'s return type has no default value, so Google Mock should have thrown.");
-#endif
-
-    } catch (testing::internal::GoogleTestFailureException& /* unused */) {
-#if 0
-        QFAIL("Google Test does not try to catch an exception of type "
-                "GoogleTestFailureException, which is used for reporting "
-                "a failure to other testing frameworks.  Google Mock should "
-                "not throw a GoogleTestFailureException as it will kill the "
-                "entire test program instead of just the current TEST.");
-#endif
-    } catch (const std::exception& ex) {
-        //EXPECT_THAT(ex.what(), testing::HasSubstr("has no default value"));
-    }
-    #endif
-}
 
 
 void TestScriptEngine::runScriptGettingStarted()
@@ -86,12 +57,12 @@ void TestScriptEngine::runScriptGettingStarted()
 
         try
         {
-           // MockPySys m_pysys;
-            //EXPECT_CALL(m_pysys, out(QVariant("Hello World!")))
-            //      .Times(AtLeast(1));
+           MockPySys m_pysys;
+            EXPECT_CALL(m_pysys, out(QVariant("Hello World!")))
+                  .Times(AtLeast(1));
 
             ScriptEngine scriptEngine("scripts/");
-            //scriptEngine.setRTSys(&m_pysys);
+            scriptEngine.setRTSys(&m_pysys);
             scriptEngine.runScript("Test_sys_out.py");
         }
     #if 1
@@ -99,7 +70,7 @@ void TestScriptEngine::runScriptGettingStarted()
             {
         #if 1
                 qWarning() << e.what();
-              //  QFAIL("GMock Expectation mismatch");
+                QFAIL("GMock Expectation mismatch");
         #endif
             }
     #endif

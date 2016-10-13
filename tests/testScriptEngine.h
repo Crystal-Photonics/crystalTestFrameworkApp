@@ -5,6 +5,11 @@
 #include "scriptengine.h"
 #include <QObject>
 
+class FooFooClass {
+  virtual void PenUp() = 0;
+  virtual void PenDown() = 0;
+};
+
 class TestScriptEngine: public QObject
 {
     Q_OBJECT
@@ -18,7 +23,6 @@ private:
     void getFilesInDirectory();
     void runScriptGettingStarted();
     void testPythonStdOutToFile();
-    void mockTest();
     void testPythonStdErrToFile();
 
     void testPythonArgv();
@@ -27,6 +31,9 @@ private slots:
     void initTestCase();
     void testPythonUnittest();
 };
+
+
 DECLARE_TEST(TestScriptEngine)
+
 
 #endif
