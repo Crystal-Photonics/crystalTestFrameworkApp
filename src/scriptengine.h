@@ -27,8 +27,8 @@ public:
 
 
 private slots:
-    void slotPythonStdOut(const QString &str);
-    void slotPythonStdErr(const QString &str);
+    virtual void slotPythonStdOut(const QString &str);
+    virtual void slotPythonStdErr(const QString &str);
 private:
     QString scriptDir;
     pySys *rtSys;

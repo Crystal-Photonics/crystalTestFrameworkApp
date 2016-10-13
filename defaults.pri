@@ -18,13 +18,22 @@ exists( $$PWD/libs/PythonQt3.0/src/PythonQt.h ) {
 exists( $$(PYTHONQT_PATH)/src/PythonQt.h ) {
     #message(found python windows)
     INCLUDEPATH += $$(PYTHONQT_PATH)/src/PythonQt.h
-    LIBS += -L$$(PYTHONQT_PATH)/lib
+    LIBS += -L$$(PYTHONQT_PATH)/libs
     PYTHONQT_FOUND = 1
 }
+
+
 
 exists( $$(PYTHONQT_PATH)/PythonQt.h ) {
     #message(found PythonQt linux)
     INCLUDEPATH += $$(PYTHONQT_PATH)
+    PYTHONQT_FOUND = 1
+}
+
+exists( $$(PYTHON_LIB)/src/PythonQt.h ) {
+    #message(found python windows)
+    INCLUDEPATH += $$(PYTHONQT_PATH)/src/PythonQt.h
+    LIBS += -L$$(PYTHONQT_PATH)/libs
     PYTHONQT_FOUND = 1
 }
 

@@ -23,7 +23,7 @@ void TestGoogleMock::basicMocking(){
     turtle.PenDown();
 }
 
-#if 1
+#if 0
 void TestGoogleMock::catchMockException()
 {
 

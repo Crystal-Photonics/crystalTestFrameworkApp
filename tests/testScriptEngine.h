@@ -20,16 +20,18 @@ public:
 private:
 
     void cleanupTestCase();
-    void getFilesInDirectory();
-    void runScriptGettingStarted();
-    void testPythonStdOutToFile();
-    void testPythonStdErrToFile();
 
-    void testPythonArgv();
 
 private slots:
     void initTestCase();
     void testPythonUnittest();
+    void runScriptGettingStarted();
+    void getFilesInDirectory();
+
+    void testPythonStdOutToFile();
+    void testPythonStdErrToFile();
+
+    void testPythonArgv();
 };
 
 

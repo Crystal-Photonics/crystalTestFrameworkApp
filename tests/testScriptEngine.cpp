@@ -6,20 +6,17 @@
 #include <QFileInfo>
 #include <QDir>
 #include "gmock/gmock.h"  // Brings in Google Mock.
-//#include "gtest/gtest.h"
-#if 1
+
+
 
 class MockPySys : public pySys {
     public:
       MOCK_METHOD1(out, void(QVariant text));
 
 };
-#endif
 
 
-
-
-
+#define USETESTS 1
 TestScriptEngine::TestScriptEngine( QObject *parent) : QObject(parent)
 {
 
@@ -53,32 +50,19 @@ void TestScriptEngine::getFilesInDirectory()
 
 void TestScriptEngine::runScriptGettingStarted()
 {
-#if 1
 
-        try
-        {
-           MockPySys m_pysys;
-            EXPECT_CALL(m_pysys, out(QVariant("Hello World!")))
-                  .Times(AtLeast(1));
+    MockPySys m_pysys;
+    EXPECT_CALL(m_pysys, out(QVariant("Hello World!")))
+            .Times(AtLeast(1));
 
-            ScriptEngine scriptEngine("scripts/");
-            scriptEngine.setRTSys(&m_pysys);
-            scriptEngine.runScript("Test_sys_out.py");
-        }
-    #if 1
-            catch (testing::internal::GoogleTestFailureException e)
-            {
-        #if 1
-                qWarning() << e.what();
-                QFAIL("GMock Expectation mismatch");
-        #endif
-            }
-    #endif
-#endif
+    ScriptEngine scriptEngine("scripts/");
+    scriptEngine.setRTSys(&m_pysys);
+    scriptEngine.runScript("Test_sys_out.py");
+
 }
 
 void TestScriptEngine::testPythonStdOutToFile(){
-        #if 1
+#if USETESTS
     ScriptEngine scriptEngine("scripts/");
     scriptEngine.runScript("Test_stdout.py");
     QFile file("scripts/Test_stdout_stdout.txt");
@@ -93,8 +77,12 @@ void TestScriptEngine::testPythonStdOutToFile(){
 }
 
 void TestScriptEngine::testPythonStdErrToFile(){
-    #if 1
+    #if USETESTS+0
+
     ScriptEngine scriptEngine("scripts/");
+
+
+
     scriptEngine.runScript("Test_stderr.py");
     QFile file("scripts/Test_stderr_stderr.txt");
     QString line;
@@ -115,7 +103,7 @@ void TestScriptEngine::testPythonStdErrToFile(){
 
 
 void TestScriptEngine::testPythonUnittest(){
-#if 1
+#if USETESTS+1
     ScriptEngine scriptEngine("scripts/");
     scriptEngine.runScript("Test_UnitTest.py");
 	QFile fi("scripts/Test_UnitTest_stderr.txt");
@@ -126,6 +114,7 @@ void TestScriptEngine::testPythonUnittest(){
 
 void TestScriptEngine::testPythonArgv(){
    #if 0
+    +USETESTS
     QString scriptDir = "scripts/";
     QString scriptFileName = "Test_Argv.py";
     ScriptEngine scriptEngine(scriptDir);

@@ -16,14 +16,16 @@ bool fileExists(QString path) {
 void ScriptEngine::slotPythonStdOut (const QString &str){
     QByteArray ba;
     ba.append(str);
-    qDebug() << fileStdOut.write(ba);
+    //qDebug() <<
+                fileStdOut.write(ba);
    // qDebug() << str;
 }
 
 void ScriptEngine::slotPythonStdErr (const QString &str){
     QByteArray ba;
     ba.append(str);
-    qDebug() << fileStdErr.write(ba);
+    //qDebug() <<
+        fileStdErr.write(ba);
     //qWarning() << str;
 }
 
@@ -66,11 +68,6 @@ void ScriptEngine::runScript(QString fileName){
 
     QDir dir(scriptDir);
     QString scriptFileName = dir.absoluteFilePath(fileName);
-
-
-
-
-
     QString stdOutName = fileName.split('.')[0]+"_stdout.txt";
     QString stdErrName = fileName.split('.')[0]+"_stderr.txt";
 

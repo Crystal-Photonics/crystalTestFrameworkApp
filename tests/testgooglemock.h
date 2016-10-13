@@ -15,7 +15,7 @@ class TestGoogleMock : public QObject
 public:
 private slots:
     void basicMocking();
-    void catchMockException();
+    //void catchMockException();
 };
 
 DECLARE_TEST(TestGoogleMock)
