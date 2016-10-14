@@ -41,7 +41,8 @@ exists( $$(PYTHON_LIB)/src/PythonQt.h ) {
     error (PythonQT directory needs to be configured in environment variable PYTHONQT_PATH. )
 }
 
-
+QPROTOCOL_INTERPRETER_PATH=$$PWD/libs/qRPCRuntimeParser
+include($$QPROTOCOL_INTERPRETER_PATH/qProtocollInterpreter_static.pri)
 
 LIBS += -lPythonQt  #-lPythonQt_QtAll
 
