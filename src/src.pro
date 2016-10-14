@@ -21,7 +21,6 @@ HEADERS += scriptengine.h
 HEADERS += pysys.h
 HEADERS += export.h
 HEADERS += util.h
-HEADERS +=comportcommunicationdevice.h
 HEADERS +=CommunicationDevices/communicationdevice.h
 HEADERS +=CommunicationDevices/comportcommunicationdevice.h
 HEADERS +=CommunicationDevices/echocommunicationdevice.h

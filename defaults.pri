@@ -45,8 +45,8 @@ exists( $$(PYTHON_LIB)/src/PythonQt.h ) {
 
 LIBS += -lPythonQt  #-lPythonQt_QtAll
 
-QMAKE_CXXFLAGS += -std=c++1y
-CONFIG += c++1y
+QMAKE_CXXFLAGS += -std=c++14
+CONFIG += c++14
 
 CONFIG += warn
 QMAKE_CXXFLAGS += -Werror

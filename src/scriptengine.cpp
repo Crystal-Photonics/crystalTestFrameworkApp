@@ -86,7 +86,7 @@ void ScriptEngine::runScript(QString fileName){
 #if 1
         scriptArgv = scriptFileName.toLatin1();
 		pScriptArgv = "C:\\Users\\tr\\Desktop\\TestFramework\\build-crystalTestFrameworkApp-Desktop_Qt_5_5_0_MinGW_32bit2-Debug\\tests\\scripts\\Test_UnitTest.py";
-        //pScriptArgv = scriptArgv.data();
+		//pScriptArgv = scriptArgv.data();
 		PySys_SetArgv(1, const_cast<char **>(&pScriptArgv));
 #endif
         //QFileInfo info(scriptFileName);
