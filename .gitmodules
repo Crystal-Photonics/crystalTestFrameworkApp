@@ -4,3 +4,6 @@
 [submodule "libs/googletest"]
 	path = libs/googletest
 	url = https://github.com/google/googletest.git
+[submodule "libs/qRPCRuntimeParser"]
+	path = libs/qRPCRuntimeParser
+	url = https://github.com/Crystal-Photonics/qRPCRuntimeParser.git
