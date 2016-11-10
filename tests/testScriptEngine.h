@@ -12,9 +12,10 @@ public:
     explicit TestScriptEngine( QObject *parent = 0);
     ~TestScriptEngine();
 private:
-    void cleanupTestCase();
+	void initTestCase();
+	void cleanupTestCase();
 private slots:
-    void initTestCase();
+	void basicLuaTest();
 };
 
 

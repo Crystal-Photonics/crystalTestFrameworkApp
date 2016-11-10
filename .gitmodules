@@ -7,3 +7,6 @@
 [submodule "libs/qRPCRuntimeParser"]
 	path = libs/qRPCRuntimeParser
 	url = https://github.com/Crystal-Photonics/qRPCRuntimeParser.git
+[submodule "libs/luasol"]
+	path = libs/luasol
+	url = https://github.com/Crystal-Photonics/luasol

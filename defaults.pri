@@ -6,6 +6,10 @@ SRC_DIR = $$PWD
 
 INCLUDEPATH += $$PWD/src
 
+INCLUDEPATH += $$PWD/libs/luasol/include
+LIBS += -L$$PWD/libs/luasol
+LIBS += -llua53
+
 QPROTOCOL_INTERPRETER_PATH=$$PWD/libs/qRPCRuntimeParser
 include($$QPROTOCOL_INTERPRETER_PATH/qProtocollInterpreter_static.pri)
 
