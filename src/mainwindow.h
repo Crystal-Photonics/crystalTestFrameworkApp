@@ -25,7 +25,6 @@ private slots:
 private:
     Ui::MainWindow *ui;
     bool loadPlugin();
-    bool pythonTest();
 	comModulInterface *ComModulInterface;
 };
 
