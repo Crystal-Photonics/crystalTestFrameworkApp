@@ -6,16 +6,18 @@ TEMPLATE = lib
 
 DEFINES += EXPORT_LIBRARY
 
-SOURCES += mainwindow.cpp
+SOURCES += mainwindow.cpp \
+    pathsettingswindow.cpp
 SOURCES += scriptengine.cpp
 SOURCES += util.cpp
-SOURCES += main.cpp
+SOURCES +=
 SOURCES += CommunicationDevices/communicationdevice.cpp
 SOURCES += CommunicationDevices/comportcommunicationdevice.cpp
 SOURCES += CommunicationDevices/echocommunicationdevice.cpp
 SOURCES += CommunicationDevices/socketcommunicationdevice.cpp
 
-HEADERS += mainwindow.h
+HEADERS += mainwindow.h \
+    pathsettingswindow.h
 HEADERS += scriptengine.h
 HEADERS += export.h
 HEADERS += util.h
@@ -26,4 +28,5 @@ HEADERS +=CommunicationDevices/socketcommunicationdevice.h
 HEADERS += commodulinterface.h
 
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    pathsettingswindow.ui

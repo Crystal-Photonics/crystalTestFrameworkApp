@@ -17,7 +17,11 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+private slots:
+	void on_actionPaths_triggered();
+
 private:
+	QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;
     bool loadPlugin();
 	comModulInterface *ComModulInterface;

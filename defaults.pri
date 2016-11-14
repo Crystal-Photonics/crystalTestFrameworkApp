@@ -14,7 +14,11 @@ QPROTOCOL_INTERPRETER_PATH=$$PWD/libs/qRPCRuntimeParser
 include($$QPROTOCOL_INTERPRETER_PATH/qProtocollInterpreter_static.pri)
 
 QMAKE_CXXFLAGS += -std=c++14
-CONFIG += c++14
-
-CONFIG += warn
 QMAKE_CXXFLAGS += -Werror
+
+QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer
+#QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
+#QMAKE_CXXFLAGS_DEBUG += -static-libasan -static-libubsan #some day windows will support a reasonable development environment ...
+
+CONFIG += c++14
+CONFIG += warn

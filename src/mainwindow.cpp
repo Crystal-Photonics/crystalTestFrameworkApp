@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "scriptengine.h"
 #include "ui_mainwindow.h"
+#include "pathsettingswindow.h"
 
 #include <QDir>
 #include <QPluginLoader>
@@ -23,4 +24,10 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::on_actionPaths_triggered()
+{
+	path_dialog = new PathSettingsWindow(this);
+	path_dialog->show();
 }
