@@ -14,9 +14,9 @@ PathSettingsWindow::PathSettingsWindow(QWidget *parent) :
 	ui(new Ui::PathSettingsWindow)
 {
 	ui->setupUi(this);
+	setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint); //remove question mark from the title bar
 	ui->test_script_path_text->setText(QSettings{}.value(Globals::test_script_path_key, "").toString());
 	ui->detection_script_path_text->setText(QSettings{}.value(Globals::detection_script_path_key, "").toString());
-	qDebug() << "getting" << QSettings{}.value(Globals::detection_script_path_key, "").toString();
 }
 
 PathSettingsWindow::~PathSettingsWindow()
@@ -26,10 +26,12 @@ PathSettingsWindow::~PathSettingsWindow()
 
 void PathSettingsWindow::on_settings_confirmation_accepted()
 {
-	qDebug() << "setting" << ui->detection_script_path_text->text();
-	QSettings settings;
-	settings.setValue(Globals::detection_script_path_key, ui->detection_script_path_text->text());
-	settings.setValue(Globals::test_script_path_key, ui->test_script_path_text->text());
-	settings.sync();
-	qDebug() << "getting" << settings.value(Globals::detection_script_path_key, "").toString();
+	QSettings{}.setValue(Globals::detection_script_path_key, ui->detection_script_path_text->text());
+	QSettings{}.setValue(Globals::test_script_path_key, ui->test_script_path_text->text());
+	close();
+}
+
+void PathSettingsWindow::on_settings_confirmation_rejected()
+{
+	close();
 }

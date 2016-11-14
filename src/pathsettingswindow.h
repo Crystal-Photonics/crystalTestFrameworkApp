@@ -18,6 +18,8 @@ public:
 private slots:
 	void on_settings_confirmation_accepted();
 
+	void on_settings_confirmation_rejected();
+
 private:
 	Ui::PathSettingsWindow *ui;
 };
