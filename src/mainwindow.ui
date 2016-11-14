@@ -18,7 +18,7 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="device_detect_button">
         <property name="text">
          <string>Detect</string>
         </property>
@@ -47,7 +47,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_2">
+       <widget class="QPushButton" name="run_test_script_button">
         <property name="text">
          <string>Run Selected Tests</string>
         </property>

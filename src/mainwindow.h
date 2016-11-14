@@ -20,6 +20,8 @@ public:
 private slots:
 	void on_actionPaths_triggered();
 
+	void on_device_detect_button_clicked();
+
 private:
 	QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;

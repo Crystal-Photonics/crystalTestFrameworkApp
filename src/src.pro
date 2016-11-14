@@ -7,7 +7,8 @@ TEMPLATE = lib
 DEFINES += EXPORT_LIBRARY
 
 SOURCES += mainwindow.cpp \
-    pathsettingswindow.cpp
+    pathsettingswindow.cpp \
+    config.cpp
 SOURCES += scriptengine.cpp
 SOURCES += util.cpp
 SOURCES +=
@@ -17,7 +18,8 @@ SOURCES += CommunicationDevices/echocommunicationdevice.cpp
 SOURCES += CommunicationDevices/socketcommunicationdevice.cpp
 
 HEADERS += mainwindow.h \
-    pathsettingswindow.h
+    pathsettingswindow.h \
+    config.h
 HEADERS += scriptengine.h
 HEADERS += export.h
 HEADERS += util.h

@@ -1,10 +1,11 @@
+#include "scriptengine.h"
+#include "sol.hpp"
+
 #include <QDebug>
 #include <QDir>
-#include "scriptengine.h"
+#include <QMessageBox>
 
-ScriptEngine::ScriptEngine(QObject *parent) : QObject(parent)
-{
-}
+ScriptEngine::ScriptEngine(QObject *parent)
+	: QObject(parent) {}
 
-ScriptEngine::~ScriptEngine(){}
-
+ScriptEngine::~ScriptEngine() {}
