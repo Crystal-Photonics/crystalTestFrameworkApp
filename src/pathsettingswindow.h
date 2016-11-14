@@ -20,6 +20,10 @@ private slots:
 
 	void on_settings_confirmation_rejected();
 
+	void on_detection_script_path_selector_clicked();
+
+	void on_test_script_path_selector_clicked();
+
 private:
 	Ui::PathSettingsWindow *ui;
 };
