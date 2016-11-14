@@ -11,7 +11,6 @@ SOURCES += mainwindow.cpp \
     config.cpp
 SOURCES += scriptengine.cpp
 SOURCES += util.cpp
-SOURCES +=
 SOURCES += CommunicationDevices/communicationdevice.cpp
 SOURCES += CommunicationDevices/comportcommunicationdevice.cpp
 SOURCES += CommunicationDevices/echocommunicationdevice.cpp
@@ -27,8 +26,6 @@ HEADERS +=CommunicationDevices/communicationdevice.h
 HEADERS +=CommunicationDevices/comportcommunicationdevice.h
 HEADERS +=CommunicationDevices/echocommunicationdevice.h
 HEADERS +=CommunicationDevices/socketcommunicationdevice.h
-HEADERS += commodulinterface.h
-
 
 FORMS    += mainwindow.ui \
     pathsettingswindow.ui

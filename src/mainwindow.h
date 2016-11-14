@@ -1,32 +1,35 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "export.h"
+#include "CommunicationDevices/communicationdevice.h"
+
 #include <QMainWindow>
-#include "commodulinterface.h"
+#include <QString>
+#include <memory>
+#include <vector>
 
 namespace Ui {
-class MainWindow;
+	class MainWindow;
 }
-#include "export.h"
 
-class EXPORT MainWindow : public QMainWindow
-{
+class EXPORT MainWindow : public QMainWindow {
     Q_OBJECT
 
-public:
+	public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-private slots:
+	private slots:
 	void on_actionPaths_triggered();
-
 	void on_device_detect_button_clicked();
 
-private:
+	void on_update_devices_list_button_clicked();
+
+	private:
 	QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;
-    bool loadPlugin();
-	comModulInterface *ComModulInterface;
+	std::vector<std::unique_ptr<CommunicationDevice>> devices;
 };
 
 #endif // MAINWINDOW_H

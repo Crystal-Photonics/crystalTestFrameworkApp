@@ -9,11 +9,16 @@
 #include <QDirIterator>
 #include <QGroupBox>
 #include <QSettings>
+#include <QTreeWidgetItem>
+#include <QtSerialPort/QSerialPort>
+#include <QtSerialPort/QSerialPortInfo>
+#include <memory>
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
 	, ui(new Ui::MainWindow) {
     ui->setupUi(this);
+	ui->update_devices_list_button->click();
 }
 
 MainWindow::~MainWindow() {
@@ -26,9 +31,17 @@ void MainWindow::on_actionPaths_triggered() {
 }
 
 void MainWindow::on_device_detect_button_clicked() {
-	const auto script_dir = QSettings{}.value(Globals::detection_script_path_settings_key, "").toString();
-	QDirIterator it(script_dir, QStringList() << "*.lua", QDir::Files, QDirIterator::Subdirectories);
-	while (it.hasNext()) {
-		//ScriptEngine{}.run_detection_script(it.next());
+}
+
+void MainWindow::on_update_devices_list_button_clicked()
+{
+	auto portlist = QSerialPortInfo::availablePorts();
+	for (auto &port : portlist) {
+		if (known_comports.count(port.systemLocation())){
+			continue;
+		}
+		known_comports.insert(port.systemLocation());
+		auto item = std::make_unique<QTreeWidgetItem>(ui->devices_list, QStringList{} << (QStringList{} << port.portName() << port.description()).join(" "));
+		ui->devices_list->addTopLevelItem(item.release());
 	}
 }

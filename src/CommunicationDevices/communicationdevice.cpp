@@ -1,6 +1,7 @@
 #include "communicationdevice.h"
 #include "socketcommunicationdevice.h"
 #include "echocommunicationdevice.h"
+
 #include <regex>
 
 std::unique_ptr<CommunicationDevice> CommunicationDevice::createConnection(QString target){
@@ -11,5 +12,6 @@ std::unique_ptr<CommunicationDevice> CommunicationDevice::createConnection(QStri
 	if (regex_match(target.toStdString(), ipPort)){
 		return std::make_unique<SocketCommunicationDevice>(target);
 	}
+	//TODO: comports
 	return nullptr;
 }
