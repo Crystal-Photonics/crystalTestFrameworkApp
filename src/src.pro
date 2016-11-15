@@ -8,7 +8,8 @@ DEFINES += EXPORT_LIBRARY
 
 SOURCES += mainwindow.cpp \
     pathsettingswindow.cpp \
-    config.cpp
+    config.cpp \
+    Protocols/rpcprotocol.cpp
 SOURCES += scriptengine.cpp
 SOURCES += util.cpp
 SOURCES += CommunicationDevices/communicationdevice.cpp
@@ -18,7 +19,8 @@ SOURCES += CommunicationDevices/socketcommunicationdevice.cpp
 
 HEADERS += mainwindow.h \
     pathsettingswindow.h \
-    config.h
+    config.h \
+    Protocols/rpcprotocol.h
 HEADERS += scriptengine.h
 HEADERS += export.h
 HEADERS += util.h
