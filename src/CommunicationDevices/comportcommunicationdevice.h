@@ -6,7 +6,11 @@
 class ComportCommunicationDevice : public CommunicationDevice
 {
 public:
-	ComportCommunicationDevice();
+	ComportCommunicationDevice() = default;
+	bool isConnected() override;
+	bool waitConnected(std::chrono::seconds timeout = std::chrono::seconds(1)) override;
+	bool waitReceived(std::chrono::seconds timeout = std::chrono::seconds(1)) override;
+	void send(const QByteArray &data) override;
 };
 
 #endif // COMPORTCOMMUNICATIONDEVICE_H

@@ -8,22 +8,27 @@
 #include <memory>
 
 class EXPORT CommunicationDevice : public QObject {
-	Q_OBJECT
+    Q_OBJECT
 	protected:
 	CommunicationDevice() = default;
 
-	public:
+    public:
 	virtual ~CommunicationDevice() = default;
-	static std::unique_ptr<CommunicationDevice> createConnection(QString target);
+	static std::unique_ptr<CommunicationDevice> createConnection(const QString &target);
 	virtual bool isConnected() = 0;
 	virtual bool waitConnected(std::chrono::seconds timeout = std::chrono::seconds(1)) = 0;
 	virtual bool waitReceived(std::chrono::seconds timeout = std::chrono::seconds(1)) = 0;
-	signals:
+	virtual void send(const QByteArray &data) = 0;
+	bool operator ==(const QString &target) const;
+	const QString &getTarget() const;
+
+    signals:
 	void connected();
 	void disconnected();
 	void received(QByteArray);
 	public slots:
-	virtual void send(const QByteArray &data) = 0;
+protected:
+    QString target;
 };
 
 #endif // COMMUNICATIONDEVICE_H

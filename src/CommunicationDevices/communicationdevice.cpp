@@ -1,17 +1,32 @@
 #include "communicationdevice.h"
-#include "socketcommunicationdevice.h"
+#include "CommunicationDevices/comportcommunicationdevice.h"
 #include "echocommunicationdevice.h"
+#include "socketcommunicationdevice.h"
 
+#include <QDebug>
 #include <regex>
 
-std::unique_ptr<CommunicationDevice> CommunicationDevice::createConnection(QString target){
-	std::regex ipPort(R"(((server:)|(client:))([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}:[[:digit:]]{1,5})");
-	if (target == "echo"){
+std::unique_ptr<CommunicationDevice> CommunicationDevice::createConnection(const QString &target) {
+	const auto targetstring = target.toStdString();
+	if (targetstring == "echo") {
 		return std::make_unique<EchoCommunicationDevice>();
 	}
-	if (regex_match(target.toStdString(), ipPort)){
-		return std::make_unique<SocketCommunicationDevice>(target);
+	std::regex ipPort(R"(((server:)|(client:))([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}:[[:digit:]]{1,5})");
+	if (regex_match(targetstring, ipPort)) {
+		return std::make_unique<SocketCommunicationDevice>();
 	}
-	//TODO: comports
+	std::regex comport(R"(\\\\.\\COM[[:digit:]]+)");
+	if (regex_match(targetstring, comport)) {
+		return std::make_unique<ComportCommunicationDevice>();
+	}
+	qDebug() << "unknown target device" << target;
 	return nullptr;
+}
+
+bool CommunicationDevice::operator==(const QString &target) const {
+	return this->target == target;
+}
+
+const QString &CommunicationDevice::getTarget() const {
+	return target;
 }

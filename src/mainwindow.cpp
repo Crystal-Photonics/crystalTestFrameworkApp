@@ -30,17 +30,15 @@ void MainWindow::on_actionPaths_triggered() {
 	path_dialog->show();
 }
 
-void MainWindow::on_device_detect_button_clicked() {
-}
+void MainWindow::on_device_detect_button_clicked() {}
 
-void MainWindow::on_update_devices_list_button_clicked()
-{
+void MainWindow::on_update_devices_list_button_clicked() {
 	auto portlist = QSerialPortInfo::availablePorts();
 	for (auto &port : portlist) {
-		if (known_comports.count(port.systemLocation())){
+		if (devices.count(port.systemLocation())) {
 			continue;
 		}
-		known_comports.insert(port.systemLocation());
+		devices.insert(CommunicationDevice::createConnection(port.systemLocation()));
 		auto item = std::make_unique<QTreeWidgetItem>(ui->devices_list, QStringList{} << (QStringList{} << port.portName() << port.description()).join(" "));
 		ui->devices_list->addTopLevelItem(item.release());
 	}

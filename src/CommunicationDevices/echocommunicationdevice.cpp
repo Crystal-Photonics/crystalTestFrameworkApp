@@ -8,7 +8,7 @@ EchoCommunicationDevice::EchoCommunicationDevice()
 
 void EchoCommunicationDevice::send(const QByteArray &data)
 {
-	emit receive(std::move(data));
+	emit received(std::move(data));
 }
 
 bool EchoCommunicationDevice::isConnected()
@@ -22,7 +22,7 @@ bool EchoCommunicationDevice::waitConnected(std::chrono::seconds timeout)
 	return true;
 }
 
-bool EchoCommunicationDevice::waitReceive(std::chrono::seconds timeout)
+bool EchoCommunicationDevice::waitReceived(std::chrono::seconds timeout)
 {
 	//TODO: actually wait
 	(void)timeout;

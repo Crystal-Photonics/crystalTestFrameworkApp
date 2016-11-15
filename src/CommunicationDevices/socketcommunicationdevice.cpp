@@ -6,7 +6,7 @@
 #include <memory>
 #include <QDebug>
 
-SocketCommunicationDevice::SocketCommunicationDevice(const QString &target)
+SocketCommunicationDevice::SocketCommunicationDevice()
 	: socket(nullptr)
 {
 	std::regex ipPort(R"(((server:)|(client:))([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}:[[:digit:]]{1,5})");
@@ -67,7 +67,7 @@ bool SocketCommunicationDevice::waitConnected(std::chrono::seconds timeout)
 	return socket->waitForConnected(timeout.count());
 }
 
-bool SocketCommunicationDevice::waitReceive(std::chrono::seconds timeout)
+bool SocketCommunicationDevice::waitReceived(std::chrono::seconds timeout)
 {
 	return socket->waitForReadyRead(std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count());
 }
@@ -94,5 +94,5 @@ bool SocketCommunicationDevice::isConnected()
 
 void SocketCommunicationDevice::receiveData(QByteArray data)
 {
-	receive(std::move(data));
+	emit received(std::move(data));
 }
