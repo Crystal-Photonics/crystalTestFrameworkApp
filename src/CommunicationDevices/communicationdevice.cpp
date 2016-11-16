@@ -17,7 +17,7 @@ std::unique_ptr<CommunicationDevice> CommunicationDevice::createConnection(const
 	}
 	std::regex comport(R"(\\\\.\\COM[[:digit:]]+)");
 	if (regex_match(targetstring, comport)) {
-		return std::make_unique<ComportCommunicationDevice>();
+		return std::make_unique<ComportCommunicationDevice>(target);
 	}
 	qDebug() << "unknown target device" << target;
 	return nullptr;

@@ -6,7 +6,7 @@
 class RPCProtocol
 {
 public:
-	static bool is_correct_protocol(CommunicationDevice *device);
+	static bool is_correct_protocol(CommunicationDevice &device);
 };
 
 #endif // RPCPROTOCOL_H

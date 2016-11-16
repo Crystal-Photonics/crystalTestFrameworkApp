@@ -1,7 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "CommunicationDevices/communicationdevice.h"
+#include "CommunicationDevices/comportcommunicationdevice.h"
 #include "export.h"
 
 #include <QMainWindow>
@@ -29,19 +29,7 @@ class EXPORT MainWindow : public QMainWindow {
 	private:
 	QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;
-	struct Comp {
-		bool operator()(const std::unique_ptr<CommunicationDevice> &lhs, const std::unique_ptr<CommunicationDevice> &rhs) const {
-			return lhs->getTarget() < rhs->getTarget();
-		}
-		bool operator()(const std::unique_ptr<CommunicationDevice> &lhs, const QString &rhs) const {
-			return lhs->getTarget() < rhs;
-		}
-		bool operator()(const QString &lhs, const std::unique_ptr<CommunicationDevice> &rhs) const {
-			return lhs < rhs->getTarget();
-		}
-		typedef void is_transparent;
-	};
-	std::set<std::unique_ptr<CommunicationDevice>, Comp> devices;
+	std::vector<std::unique_ptr<ComportCommunicationDevice>> comport_devices;
 };
 
 #endif // MAINWINDOW_H
