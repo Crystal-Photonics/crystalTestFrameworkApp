@@ -3,20 +3,20 @@
 
 #include "communicationdevice.h"
 #include "export.h"
-#include <QTcpSocket>
 #include <QTcpServer>
-#include <memory>
+#include <QTcpSocket>
 #include <functional>
+#include <memory>
 
-class EXPORT SocketCommunicationDevice final : public CommunicationDevice
-{
-public:
+class EXPORT SocketCommunicationDevice final : public CommunicationDevice {
+	public:
 	SocketCommunicationDevice();
 	void send(const QByteArray &data) override;
 	~SocketCommunicationDevice();
-	bool waitConnected(std::chrono::seconds timeout = std::chrono::seconds(1)) override;
-	bool waitReceived(std::chrono::seconds timeout = std::chrono::seconds(1)) override;
-private:
+	bool waitConnected(Duration timeout = std::chrono::seconds(1), const QString &params = "") override;
+	bool waitReceived(Duration timeout = std::chrono::seconds(1)) override;
+
+	private:
 	QTcpSocket *socket; //QTcpSocket does not support move semantics and is somehow auto-deleted, probably
 	QTcpServer server;
 	void setSocket();

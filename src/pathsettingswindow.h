@@ -19,7 +19,9 @@ class PathSettingsWindow : public QDialog {
 	void on_settings_confirmation_rejected();
 	void on_test_script_path_selector_clicked();
 
-	private:
+	void on_device_description_path_selector_clicked();
+
+private:
 	Ui::PathSettingsWindow *ui;
 };
 

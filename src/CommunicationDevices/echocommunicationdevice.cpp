@@ -1,29 +1,25 @@
 #include "echocommunicationdevice.h"
 #include <memory>
 
-EchoCommunicationDevice::EchoCommunicationDevice()
-{
+EchoCommunicationDevice::EchoCommunicationDevice() {
 	emit connected();
 }
 
-void EchoCommunicationDevice::send(const QByteArray &data)
-{
+void EchoCommunicationDevice::send(const QByteArray &data) {
 	emit received(std::move(data));
 }
 
-bool EchoCommunicationDevice::isConnected()
-{
+bool EchoCommunicationDevice::isConnected() {
 	return true;
 }
 
-bool EchoCommunicationDevice::waitConnected(std::chrono::seconds timeout)
-{
+bool EchoCommunicationDevice::waitConnected(Duration timeout, const QString &params) {
 	(void)timeout;
+	(void)params;
 	return true;
 }
 
-bool EchoCommunicationDevice::waitReceived(std::chrono::seconds timeout)
-{
+bool EchoCommunicationDevice::waitReceived(Duration timeout) {
 	//TODO: actually wait
 	(void)timeout;
 	return true;

@@ -2,18 +2,17 @@
 #define ECHOCOMMUNICATIONDEVICE_H
 
 #include "communicationdevice.h"
-#include <QObject>
 #include "export.h"
+#include <QObject>
 
-class EXPORT EchoCommunicationDevice final : public CommunicationDevice
-{
+class EXPORT EchoCommunicationDevice final : public CommunicationDevice {
 	Q_OBJECT
-public:
+	public:
 	EchoCommunicationDevice();
 	void send(const QByteArray &data) override;
 	bool isConnected() override;
-	bool waitConnected(std::chrono::seconds timeout = std::chrono::seconds(1)) override;
-	bool waitReceived(std::chrono::seconds timeout = std::chrono::seconds(1)) override;
+	bool waitConnected(Duration timeout = std::chrono::seconds(1), const QString &params = "") override;
+	bool waitReceived(Duration timeout = std::chrono::seconds(1)) override;
 };
 
 #endif // ECHOCOMMUNICATIONDEVICE_H

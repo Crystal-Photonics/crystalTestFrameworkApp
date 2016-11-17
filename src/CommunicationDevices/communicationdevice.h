@@ -13,13 +13,14 @@ class EXPORT CommunicationDevice : public QObject {
 	CommunicationDevice() = default;
 
     public:
+	using Duration = std::chrono::high_resolution_clock::duration;
 	virtual ~CommunicationDevice() = default;
 	static std::unique_ptr<CommunicationDevice> createConnection(const QString &target);
 	virtual bool isConnected() = 0;
-	virtual bool waitConnected(std::chrono::seconds timeout = std::chrono::seconds(1)) = 0;
-	virtual bool waitReceived(std::chrono::seconds timeout = std::chrono::seconds(1)) = 0;
+	virtual bool waitConnected(Duration timeout = std::chrono::seconds(1), const QString &params = "") = 0;
+	virtual bool waitReceived(Duration timeout = std::chrono::seconds(1)) = 0;
 	virtual void send(const QByteArray &data) = 0;
-	bool operator ==(const QString &target) const;
+	bool operator==(const QString &target) const;
 	const QString &getTarget() const;
 
     signals:
@@ -27,7 +28,7 @@ class EXPORT CommunicationDevice : public QObject {
 	void disconnected();
 	void received(QByteArray);
 	public slots:
-protected:
+	protected:
     QString target;
 };
 

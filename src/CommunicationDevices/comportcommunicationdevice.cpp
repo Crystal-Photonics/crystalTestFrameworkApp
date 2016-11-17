@@ -8,12 +8,13 @@ bool ComportCommunicationDevice::isConnected() {
 	return false;
 }
 
-bool ComportCommunicationDevice::waitConnected(std::chrono::seconds timeout) {
+bool ComportCommunicationDevice::waitConnected(Duration timeout, const QString &params) {
 	(void)timeout;
+	(void)params;
 	return false;
 }
 
-bool ComportCommunicationDevice::waitReceived(std::chrono::seconds timeout) {
+bool ComportCommunicationDevice::waitReceived(Duration timeout) {
 	(void)timeout;
 	return false;
 }
