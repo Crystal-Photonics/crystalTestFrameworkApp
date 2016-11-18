@@ -50,8 +50,7 @@ SocketCommunicationDevice::~SocketCommunicationDevice() {
 	QObject::disconnect(receiveSlot);
 }
 
-bool SocketCommunicationDevice::waitConnected(Duration timeout, const QString &params) {
-	(void)params;
+bool SocketCommunicationDevice::awaitConnection(Duration timeout) {
 	if (isServer) {
 		return server.waitForNewConnection(timeout.count());
 	}
@@ -60,6 +59,10 @@ bool SocketCommunicationDevice::waitConnected(Duration timeout, const QString &p
 
 bool SocketCommunicationDevice::waitReceived(Duration timeout) {
 	return socket->waitForReadyRead(std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count());
+}
+
+void SocketCommunicationDevice::close() {
+	socket->close();
 }
 
 void SocketCommunicationDevice::setSocket() {

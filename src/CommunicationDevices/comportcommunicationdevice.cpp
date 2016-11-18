@@ -5,13 +5,13 @@ ComportCommunicationDevice::ComportCommunicationDevice(QString target) {
 }
 
 bool ComportCommunicationDevice::isConnected() {
-	return false;
+	return port.isOpen();
 }
 
-bool ComportCommunicationDevice::waitConnected(Duration timeout, const QString &params) {
-	(void)timeout;
-	(void)params;
-	return false;
+bool ComportCommunicationDevice::connect(const QSerialPortInfo &portinfo, QSerialPort::BaudRate baudrate) {
+	port.setPort(portinfo);
+	port.setBaudRate(baudrate);
+	return port.open(QIODevice::ReadWrite);
 }
 
 bool ComportCommunicationDevice::waitReceived(Duration timeout) {
@@ -22,4 +22,9 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout) {
 void ComportCommunicationDevice::send(const QByteArray &data) {
 	(void)data;
 	return;
+}
+
+void ComportCommunicationDevice::close()
+{
+	port.close();
 }

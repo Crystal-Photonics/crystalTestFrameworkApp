@@ -1,10 +1,10 @@
 #include "mainwindow.h"
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
+#include "console.h"
 #include "pathsettingswindow.h"
 #include "scriptengine.h"
 #include "ui_mainwindow.h"
-#include "console.h"
 
 #include <QDebug>
 #include <QDir>
@@ -37,16 +37,19 @@ void MainWindow::on_actionPaths_triggered() {
 	path_dialog->show();
 }
 
-static bool is_valid_baudrate(int baudrate) {
+static bool is_valid_baudrate(QSerialPort::BaudRate baudrate) {
 	switch (baudrate) {
-		case QSerialPort::Baud9600:
-		case QSerialPort::Baud57600:
-		case QSerialPort::Baud4800:
-		case QSerialPort::Baud38400:
+		case QSerialPort::Baud1200:
 		case QSerialPort::Baud2400:
+		case QSerialPort::Baud4800:
+		case QSerialPort::Baud9600:
+		case QSerialPort::Baud38400:
+		case QSerialPort::Baud57600:
 		case QSerialPort::Baud19200:
 		case QSerialPort::Baud115200:
 			return true;
+		case QSerialPort::UnknownBaud:
+			return false;
 	}
 	return false;
 }
@@ -64,22 +67,25 @@ void MainWindow::on_device_detect_button_clicked() {
 	for (auto &rpc_device : rpc_devices) {
 		if (rpc_device.startsWith("COM:")) {
 			for (auto &device : comport_devices) {
-				if (device->isConnected()) {
+				if (device.device->isConnected()) {
 					continue;
 				}
 
-				const auto baudrate = rpc_device.split(":")[1];
-				if (is_valid_baudrate(baudrate.toInt()) == false) {
+				const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(rpc_device.split(":")[1].toInt());
+				if (is_valid_baudrate(baudrate) == false) {
 					QMessageBox::critical(this, tr("Input Error"),
 										  tr(R"(Invalid baudrate %1 specified in settings file "%2".)").arg(baudrate).arg(device_protocol_settings_file));
 					continue;
 				}
-				if (device->waitConnected(100ms, baudrate) == false){
-					Console::warning() << "Failed opening" << device->getTarget();
+				if (device.device->connect(device.info, baudrate) == false) {
+					Console::warning() << "Failed opening" << device.device->getTarget();
 					continue;
 				}
-				if (RPCProtocol::is_correct_protocol(*device)) {
+				if (RPCProtocol::is_correct_protocol(*device.device)) {
 					//TODO
+				}
+				else{
+					device.device->close();
 				}
 			}
 		}
@@ -90,11 +96,11 @@ void MainWindow::on_update_devices_list_button_clicked() {
 	auto portlist = QSerialPortInfo::availablePorts();
 	for (auto &port : portlist) {
 		auto pos = std::lower_bound(std::begin(comport_devices), std::end(comport_devices), port.systemLocation(),
-									[](const std::unique_ptr<ComportCommunicationDevice> &lhs, const QString &rhs) { return lhs->getTarget() < rhs; });
-		if (pos != std::end(comport_devices) && (*pos)->getTarget() == port.systemLocation()) {
+									[](const MainWindow::ComportDescription &lhs, const QString &rhs) { return lhs.device->getTarget() < rhs; });
+		if (pos != std::end(comport_devices) && pos->device->getTarget() == port.systemLocation()) {
 			continue;
 		}
-		comport_devices.insert(pos, std::make_unique<ComportCommunicationDevice>(port.systemLocation()));
+		comport_devices.insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port});
 		auto item = std::make_unique<QTreeWidgetItem>(ui->devices_list, QStringList{} << (QStringList{} << port.portName() << port.description()).join(" "));
 		ui->devices_list->addTopLevelItem(item.release());
 	}

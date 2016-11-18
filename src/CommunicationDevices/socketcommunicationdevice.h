@@ -13,8 +13,9 @@ class EXPORT SocketCommunicationDevice final : public CommunicationDevice {
 	SocketCommunicationDevice();
 	void send(const QByteArray &data) override;
 	~SocketCommunicationDevice();
-	bool waitConnected(Duration timeout = std::chrono::seconds(1), const QString &params = "") override;
+	bool awaitConnection(Duration timeout = std::chrono::seconds(1));
 	bool waitReceived(Duration timeout = std::chrono::seconds(1)) override;
+	void close() override;
 
 	private:
 	QTcpSocket *socket; //QTcpSocket does not support move semantics and is somehow auto-deleted, probably

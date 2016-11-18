@@ -6,6 +6,7 @@
 
 #include <QMainWindow>
 #include <QString>
+#include <QtSerialPort/QSerialPortInfo>
 #include <memory>
 #include <set>
 #include <vector>
@@ -29,7 +30,13 @@ class EXPORT MainWindow : public QMainWindow {
 	private:
 	QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;
-	std::vector<std::unique_ptr<ComportCommunicationDevice>> comport_devices;
+
+	struct ComportDescription{
+		std::unique_ptr<ComportCommunicationDevice> device;
+		QSerialPortInfo info;
+	};
+
+	std::vector<ComportDescription> comport_devices;
 };
 
 #endif // MAINWINDOW_H
