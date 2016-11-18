@@ -13,9 +13,10 @@ bool EchoCommunicationDevice::isConnected() {
 	return true;
 }
 
-bool EchoCommunicationDevice::waitReceived(Duration timeout) {
+bool EchoCommunicationDevice::waitReceived(Duration timeout, int bytes) {
 	//TODO: actually wait
 	(void)timeout;
+	(void)bytes;
 	return true;
 }
 

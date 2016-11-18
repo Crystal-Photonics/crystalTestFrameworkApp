@@ -11,19 +11,22 @@ struct Console {
 	public:
 	static QTextEdit *console;
 	static ConsoleProxy warning();
+	static ConsoleProxy note();
 
 	private:
 	struct ConsoleProxy {
 		template <class T>
-		ConsoleProxy operator<<(T &&t) &&{
+		ConsoleProxy &&operator<<(T &&t) &&{
 			s << t;
-			QStringList tmp = std::move(s);
-			s.clear();
-			return {console, std::move(tmp)};
+			return std::move(*this);
+			//QStringList tmp = std::move(s);
+			//s.clear();
+			//return {console, std::move(tmp)};
 		}
 		~ConsoleProxy();
 		QTextEdit *console;
 		QStringList s;
+		QString prefix;
 	};
 };
 

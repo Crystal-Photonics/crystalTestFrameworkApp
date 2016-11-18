@@ -17,7 +17,7 @@ class EXPORT CommunicationDevice : public QObject {
 	virtual ~CommunicationDevice() = default;
 	static std::unique_ptr<CommunicationDevice> createConnection(const QString &target);
 	virtual bool isConnected() = 0;
-	virtual bool waitReceived(Duration timeout = std::chrono::seconds(1)) = 0;
+	virtual bool waitReceived(Duration timeout = std::chrono::seconds(1), int bytes = 1) = 0;
 	virtual void send(const QByteArray &data) = 0;
 	virtual void close() = 0;
 	bool operator==(const QString &target) const;

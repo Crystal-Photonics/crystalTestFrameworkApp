@@ -55,6 +55,7 @@ static bool is_valid_baudrate(QSerialPort::BaudRate baudrate) {
 }
 
 void MainWindow::on_device_detect_button_clicked() {
+	Console::note() << "Auto-detecting protocols for devices";
 	auto device_protocol_settings_file = QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString();
 	if (device_protocol_settings_file.isEmpty()) {
 		QMessageBox::critical(
@@ -64,30 +65,37 @@ void MainWindow::on_device_detect_button_clicked() {
 	}
 	QSettings device_protocol_settings{device_protocol_settings_file, QSettings::IniFormat};
 	auto rpc_devices = device_protocol_settings.value("RPC").toStringList();
-	for (auto &rpc_device : rpc_devices) {
-		if (rpc_device.startsWith("COM:")) {
-			for (auto &device : comport_devices) {
-				if (device.device->isConnected()) {
-					continue;
-				}
-
-				const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(rpc_device.split(":")[1].toInt());
-				if (is_valid_baudrate(baudrate) == false) {
-					QMessageBox::critical(this, tr("Input Error"),
-										  tr(R"(Invalid baudrate %1 specified in settings file "%2".)").arg(baudrate).arg(device_protocol_settings_file));
-					continue;
-				}
-				if (device.device->connect(device.info, baudrate) == false) {
-					Console::warning() << "Failed opening" << device.device->getTarget();
-					continue;
-				}
-				if (RPCProtocol::is_correct_protocol(*device.device)) {
-					//TODO
-				}
-				else{
-					device.device->close();
-				}
+	auto check_rpc_protocols = [&](auto &device) {
+		for (auto &rpc_device : rpc_devices) {
+			if (rpc_device.startsWith("COM:") == false) {
+				continue;
 			}
+			const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(rpc_device.split(":")[1].toInt());
+			if (is_valid_baudrate(baudrate) == false) {
+				QMessageBox::critical(this, tr("Input Error"),
+									  tr(R"(Invalid baudrate %1 specified in settings file "%2".)").arg(baudrate).arg(device_protocol_settings_file));
+				continue;
+			}
+			if (device.device->connect(device.info, baudrate) == false) {
+				Console::warning() << tr("Failed opening") << device.device->getTarget();
+				return;
+			}
+			if (RPCProtocol::is_correct_protocol(*device.device)) {
+				//TODO
+			} else {
+				device.device->close();
+			}
+		}
+	};
+	for (auto &device : comport_devices) {
+		for (auto &protocol_check_function : {check_rpc_protocols}){
+			if (device.device->isConnected()) {
+				break;
+			}
+			protocol_check_function(device);
+		}
+		if (device.device->isConnected() == false){ //out of protocols and still not connected
+			Console::note() << tr("No protocol found for %1").arg(device.device->getTarget());
 		}
 	}
 }

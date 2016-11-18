@@ -5,12 +5,17 @@
 QTextEdit *Console::console = nullptr;
 
 Console::ConsoleProxy Console::warning() {
-	return {console, {}};
+	return {console, {}, "Warning"};
+}
+
+Console::ConsoleProxy Console::note()
+{
+	return {console, {}, "Note"};
 }
 
 Console::ConsoleProxy::~ConsoleProxy() {
 	if (s.isEmpty()) {
 		return;
 	}
-	console->append(QTime::currentTime().toString(Qt::ISODate) + ": " + s.join(" "));
+	console->append(QTime::currentTime().toString(Qt::ISODate) + ": " + prefix + ": " + s.join(" "));
 }

@@ -57,7 +57,8 @@ bool SocketCommunicationDevice::awaitConnection(Duration timeout) {
 	return socket->waitForConnected(timeout.count());
 }
 
-bool SocketCommunicationDevice::waitReceived(Duration timeout) {
+bool SocketCommunicationDevice::waitReceived(Duration timeout, int bytes) {
+	(void)bytes; //TODO: fix it so it waits for [bytes] until [timeout]
 	return socket->waitForReadyRead(std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count());
 }
 
