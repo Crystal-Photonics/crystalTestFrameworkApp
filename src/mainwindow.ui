@@ -14,13 +14,16 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QHBoxLayout" name="horizontalLayout_4">
+   <layout class="QVBoxLayout" name="verticalLayout_3">
     <item>
      <widget class="QSplitter" name="splitter">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
-      <widget class="QWidget" name="">
+      <property name="handleWidth">
+       <number>10</number>
+      </property>
+      <widget class="QWidget" name="layoutWidget">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -88,18 +91,26 @@
         </item>
        </layout>
       </widget>
-      <widget class="QGroupBox" name="groupBox">
-       <property name="title">
-        <string>Console</string>
+      <widget class="QTabWidget" name="tabWidget">
+       <property name="currentIndex">
+        <number>0</number>
        </property>
-       <property name="checkable">
+       <property name="tabsClosable">
         <bool>false</bool>
        </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
-        <item>
-         <widget class="QTextEdit" name="console_edit"/>
-        </item>
-       </layout>
+       <property name="movable">
+        <bool>true</bool>
+       </property>
+       <widget class="QWidget" name="ConsoleTab">
+        <attribute name="title">
+         <string>Console</string>
+        </attribute>
+        <layout class="QHBoxLayout" name="horizontalLayout_5">
+         <item>
+          <widget class="QTextEdit" name="console_edit"/>
+         </item>
+        </layout>
+       </widget>
       </widget>
      </widget>
     </item>

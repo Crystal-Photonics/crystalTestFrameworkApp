@@ -26,6 +26,8 @@ class EXPORT MainWindow : public QMainWindow {
 	void on_actionPaths_triggered();
 	void on_device_detect_button_clicked();
 	void on_update_devices_list_button_clicked();
+	void on_tabWidget_tabCloseRequested(int index);
+	void poll_ports();
 
 	private:
 	QDialog *path_dialog = nullptr;

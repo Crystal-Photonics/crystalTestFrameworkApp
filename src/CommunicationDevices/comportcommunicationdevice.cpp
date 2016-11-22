@@ -41,7 +41,7 @@ void ComportCommunicationDevice::send(const QByteArray &data) {
 		size += port.write(data.data() + size, data.size() - size);
 		assert(size == data.size());
 	}
-	return;
+	emit sent(data);
 }
 
 void ComportCommunicationDevice::close() {

@@ -12,10 +12,12 @@
 #include <QGroupBox>
 #include <QMessageBox>
 #include <QSettings>
+#include <QTimer>
 #include <QTreeWidgetItem>
 #include <QtSerialPort/QSerialPort>
 #include <QtSerialPort/QSerialPortInfo>
 #include <algorithm>
+#include <cassert>
 #include <memory>
 
 using namespace std::chrono_literals;
@@ -26,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 	Console::console = ui->console_edit;
 	ui->update_devices_list_button->click();
+	emit poll_ports();
 }
 
 MainWindow::~MainWindow() {
@@ -80,7 +83,8 @@ void MainWindow::on_device_detect_button_clicked() {
 				Console::warning() << tr("Failed opening") << device.device->getTarget();
 				return;
 			}
-			if (RPCProtocol::is_correct_protocol(*device.device)) {
+			RPCProtocol protocol;
+			if (protocol.is_correct_protocol(*device.device)) {
 				//TODO
 			} else {
 				device.device->close();
@@ -88,13 +92,13 @@ void MainWindow::on_device_detect_button_clicked() {
 		}
 	};
 	for (auto &device : comport_devices) {
-		for (auto &protocol_check_function : {check_rpc_protocols}){
+		for (auto &protocol_check_function : {check_rpc_protocols}) {
 			if (device.device->isConnected()) {
 				break;
 			}
 			protocol_check_function(device);
 		}
-		if (device.device->isConnected() == false){ //out of protocols and still not connected
+		if (device.device->isConnected() == false) { //out of protocols and still not connected
 			Console::note() << tr("No protocol found for %1").arg(device.device->getTarget());
 		}
 	}
@@ -108,8 +112,39 @@ void MainWindow::on_update_devices_list_button_clicked() {
 		if (pos != std::end(comport_devices) && pos->device->getTarget() == port.systemLocation()) {
 			continue;
 		}
-		comport_devices.insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port});
-		auto item = std::make_unique<QTreeWidgetItem>(ui->devices_list, QStringList{} << (QStringList{} << port.portName() << port.description()).join(" "));
+		auto &device = *comport_devices.insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port})->device;
+		auto item = std::make_unique<QTreeWidgetItem>(ui->devices_list, QStringList{} << port.portName() + " " + port.description());
 		ui->devices_list->addTopLevelItem(item.release());
+
+		auto tab = new QTextEdit(ui->tabWidget);
+		ui->tabWidget->addTab(tab, port.portName() + " " + port.description());
+		static const auto percent_encoding_include = " :\t\\\n!\"§$%&/()=+-*";
+		connect(&device, &CommunicationDevice::received, [console = tab](const QByteArray &data) {
+			//print received data
+			console->setTextColor(Qt::darkGreen);
+			console->append(data.toPercentEncoding(percent_encoding_include));
+		});
+		connect(&device, &CommunicationDevice::sent, [console = tab](const QByteArray &data) {
+			//print sent data
+			console->setTextColor(Qt::darkRed);
+			console->append(data.toPercentEncoding(percent_encoding_include));
+		});
 	}
+}
+
+void MainWindow::on_tabWidget_tabCloseRequested(int index) {
+	if (ui->tabWidget->tabText(index) == "Console") {
+		Console::note() << tr("Cannot close console window");
+		return;
+	}
+	ui->tabWidget->removeTab(index);
+}
+
+void MainWindow::poll_ports() {
+	for (auto &device : comport_devices) {
+		if (device.device->isConnected()) {
+			device.device->waitReceived(CommunicationDevice::Duration{0});
+		}
+	}
+	QTimer::singleShot(16, this, &MainWindow::poll_ports);
 }
