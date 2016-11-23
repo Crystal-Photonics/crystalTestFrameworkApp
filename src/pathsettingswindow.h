@@ -21,7 +21,9 @@ class PathSettingsWindow : public QDialog {
 
 	void on_device_description_path_selector_clicked();
 
-private:
+	void on_rpc_xml_files_path_selector_clicked();
+
+	private:
 	Ui::PathSettingsWindow *ui;
 };
 
