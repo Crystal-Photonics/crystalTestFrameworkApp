@@ -124,6 +124,16 @@ void MainWindow::on_update_devices_list_button_clicked() {
 			console->setTextColor(Qt::darkGreen);
 			console->append(data.toPercentEncoding(percent_encoding_include));
 		});
+		connect(&device, &CommunicationDevice::decoded_received, [console = tab](const QByteArray &data) {
+			//print decoded received data
+			console->setTextColor(Qt::darkBlue);
+			console->append(data.toPercentEncoding(percent_encoding_include));
+		});
+		connect(&device, &CommunicationDevice::message, [console = tab](const QByteArray &data) {
+			//print decoded received data
+			console->setTextColor(Qt::black);
+			console->append(data.toPercentEncoding(percent_encoding_include));
+		});
 		connect(&device, &CommunicationDevice::sent, [console = tab](const QByteArray &data) {
 			//print sent data
 			console->setTextColor(Qt::darkRed);

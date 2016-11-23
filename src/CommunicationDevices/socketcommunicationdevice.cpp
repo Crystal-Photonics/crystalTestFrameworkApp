@@ -33,14 +33,15 @@ SocketCommunicationDevice::SocketCommunicationDevice()
 			this->setSocket();
 			this->connected();
 		};
-		connectedSlot = QObject::connect(&server, QTcpServer::newConnection, callSetSocket);
+		connectedSlot = QObject::connect(&server, &QTcpServer::newConnection, callSetSocket);
 		assert(connectedSlot);
 	} else {
 		throw std::logic_error("regex logic is wrong: " + type.toStdString() + " must be \"server\" or \"client\"");
 	}
 }
 
-void SocketCommunicationDevice::send(const QByteArray &data) {
+void SocketCommunicationDevice::send(const QByteArray &data, const QByteArray &displayed_data) {
+	(void)displayed_data;
 	socket->write(data);
 	socket->waitForBytesWritten(1000);
 }
@@ -70,7 +71,7 @@ void SocketCommunicationDevice::setSocket() {
 	socket = server.nextPendingConnection();
 	if (receiveSlot)
 		QObject::disconnect(receiveSlot);
-	receiveSlot = connect(socket, QTcpSocket::readyRead, [this]() { emit this->receiveData(this->socket->readAll()); });
+	receiveSlot = connect(socket, &QTcpSocket::readyRead, [this]() { emit this->receiveData(this->socket->readAll()); });
 	assert(receiveSlot);
 }
 

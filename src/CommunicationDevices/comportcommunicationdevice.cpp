@@ -31,8 +31,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes) {
 	return received_bytes >= bytes;
 }
 
-void ComportCommunicationDevice::send(const QByteArray &data) {
-	//TODO: somehow handle not being able to write data
+void ComportCommunicationDevice::send(const QByteArray &data, const QByteArray &displayed_data) {
 	auto size = port.write(data);
 	if (size == -1) {
 		return;
@@ -41,6 +40,7 @@ void ComportCommunicationDevice::send(const QByteArray &data) {
 		size += port.write(data.data() + size, data.size() - size);
 		assert(size == data.size());
 	}
+	emit decoded_sent(displayed_data.isEmpty() ? data : displayed_data);
 	emit sent(data);
 }
 

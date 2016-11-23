@@ -23,6 +23,11 @@ std::unique_ptr<CommunicationDevice> CommunicationDevice::createConnection(const
 	return nullptr;
 }
 
+void CommunicationDevice::send(const std::vector<unsigned char> &data, const std::vector<unsigned char> &displayed_data) {
+	send(QByteArray(reinterpret_cast<const char *>(data.data()), data.size()),
+		 QByteArray(reinterpret_cast<const char *>(displayed_data.data()), displayed_data.size()));
+}
+
 bool CommunicationDevice::operator==(const QString &target) const {
 	return this->target == target;
 }

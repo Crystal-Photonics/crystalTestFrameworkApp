@@ -11,7 +11,7 @@
 class EXPORT SocketCommunicationDevice final : public CommunicationDevice {
 	public:
 	SocketCommunicationDevice();
-	void send(const QByteArray &data) override;
+	void send(const QByteArray &data, const QByteArray &displayed_data = {}) override;
 	~SocketCommunicationDevice();
 	bool awaitConnection(Duration timeout = std::chrono::seconds(1));
 	bool waitReceived(Duration timeout = std::chrono::seconds(1), int bytes = 1) override;

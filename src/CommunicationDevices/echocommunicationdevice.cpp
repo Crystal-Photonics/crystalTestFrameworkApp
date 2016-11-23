@@ -5,7 +5,8 @@ EchoCommunicationDevice::EchoCommunicationDevice() {
 	emit connected();
 }
 
-void EchoCommunicationDevice::send(const QByteArray &data) {
+void EchoCommunicationDevice::send(const QByteArray &data, const QByteArray &displayed_data) {
+	(void)displayed_data;
 	emit received(std::move(data));
 }
 
