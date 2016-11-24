@@ -85,11 +85,12 @@ void MainWindow::on_device_detect_button_clicked() {
 			}
 			RPCProtocol protocol;
 			if (protocol.is_correct_protocol(*device.device)) {
-				//TODO
+
 			} else {
 				device.device->close();
 			}
 		}
+		//TODO: Add non-rpc device discovery here
 	};
 	for (auto &device : comport_devices) {
 		for (auto &protocol_check_function : {check_rpc_protocols}) {
@@ -117,6 +118,7 @@ void MainWindow::on_update_devices_list_button_clicked() {
 		ui->devices_list->addTopLevelItem(item.release());
 
 		auto tab = new QTextEdit(ui->tabWidget);
+		tab->setReadOnly(true);
 		ui->tabWidget->addTab(tab, port.portName() + " " + port.description());
 		static const auto percent_encoding_include = " :\t\\\n!\"§$%&/()=+-*";
 
