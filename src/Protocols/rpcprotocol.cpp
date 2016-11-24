@@ -1,5 +1,6 @@
 #include "rpcprotocol.h"
 #include "channel_codec_wrapper.h"
+#include "config.h"
 #include "console.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_decoder.h"
@@ -8,14 +9,17 @@
 #include "rpcruntime_protocol_description.h"
 
 #include <QByteArray>
+#include <QDir>
 #include <QObject>
+#include <QSettings>
 #include <cassert>
+#include <fstream>
 
 using namespace std::chrono_literals;
 
 RPCProtocol::RPCProtocol()
-	: decoder{interpreter}
-	, encoder{interpreter}
+	: decoder{description}
+	, encoder{description}
 	, channel_codec{decoder} {}
 
 bool RPCProtocol::is_correct_protocol(CommunicationDevice &device) {
@@ -27,8 +31,16 @@ bool RPCProtocol::is_correct_protocol(CommunicationDevice &device) {
 	if (result) {
 		const auto &hash = QByteArray::fromStdString(result->get_parameter_by_name("hash_out")->as_string()).toHex();
 		device.message(QObject::tr("Received Hash: ").toUtf8() + hash);
+		const auto filename =
+			QDir(QSettings{}.value(Globals::rpc_xml_files_path_settings_key, QDir::currentPath()).toString()).filePath(hash + ".xml").toStdString();
+		std::ifstream xmlfile(filename);
+		if (description.openProtocolDescription(xmlfile) == false) {
+			device.message(QObject::tr("Failed opening RPC description file %1. Make sure it exists or change the search path in the settings menu.")
+							   .arg(filename.c_str())
+							   .toUtf8());
+		}
 	}
-	return result != nullptr; //TODO: use result to get the hash and load the XML
+	return result != nullptr;
 }
 
 std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice &device,

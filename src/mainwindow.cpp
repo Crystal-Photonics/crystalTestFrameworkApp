@@ -119,26 +119,24 @@ void MainWindow::on_update_devices_list_button_clicked() {
 		auto tab = new QTextEdit(ui->tabWidget);
 		ui->tabWidget->addTab(tab, port.portName() + " " + port.description());
 		static const auto percent_encoding_include = " :\t\\\n!\"§$%&/()=+-*";
-		connect(&device, &CommunicationDevice::received, [console = tab](const QByteArray &data) {
-			//print received data
-			console->setTextColor(Qt::darkGreen);
-			console->append(data.toPercentEncoding(percent_encoding_include));
-		});
-		connect(&device, &CommunicationDevice::decoded_received, [console = tab](const QByteArray &data) {
-			//print decoded received data
-			console->setTextColor(Qt::darkBlue);
-			console->append(data.toPercentEncoding(percent_encoding_include));
-		});
-		connect(&device, &CommunicationDevice::message, [console = tab](const QByteArray &data) {
-			//print decoded received data
-			console->setTextColor(Qt::black);
-			console->append(data.toPercentEncoding(percent_encoding_include));
-		});
-		connect(&device, &CommunicationDevice::sent, [console = tab](const QByteArray &data) {
-			//print sent data
-			console->setTextColor(Qt::darkRed);
-			console->append(data.toPercentEncoding(percent_encoding_include));
-		});
+
+		struct Data {
+			void (CommunicationDevice::*signal)(const QByteArray &);
+			QColor color;
+			QFont::Weight weight;
+		};
+		Data data[] = {{&CommunicationDevice::received, Qt::darkGreen, QFont::Light},
+					   {&CommunicationDevice::decoded_received, Qt::darkGreen, QFont::DemiBold},
+					   {&CommunicationDevice::message, Qt::black, QFont::DemiBold},
+					   {&CommunicationDevice::sent, Qt::darkRed, QFont::Light},
+					   {&CommunicationDevice::decoded_sent, Qt::darkRed, QFont::DemiBold}};
+		for (auto &d : data) {
+			connect(&device, d.signal, [ console = tab, color = d.color, weight = d.weight ](const QByteArray &data) {
+				console->setTextColor(color);
+				console->setFontWeight(weight);
+				console->append(data.toPercentEncoding(percent_encoding_include));
+			});
+		}
 	}
 }
 

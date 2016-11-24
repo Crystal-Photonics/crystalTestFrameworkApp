@@ -20,7 +20,7 @@ class RPCProtocol {
 																 CommunicationDevice::Duration duration = std::chrono::seconds{1});
 
 	private:
-	RPCRunTimeProtocolDescription interpreter;
+	RPCRunTimeProtocolDescription description;
 	RPCRuntimeDecoder decoder;
 	RPCRuntimeEncoder encoder;
 	Channel_codec_wrapper channel_codec;

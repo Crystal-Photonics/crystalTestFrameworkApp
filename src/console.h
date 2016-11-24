@@ -18,10 +18,7 @@ struct Console {
 		template <class T>
 		ConsoleProxy &&operator<<(T &&t) &&{
 			s << t;
-			return std::move(*this);
-			//QStringList tmp = std::move(s);
-			//s.clear();
-			//return {console, std::move(tmp)};
+			return std::move(*this); //TODO: I'm not sure if this is correct or we return an expired temporary
 		}
 		~ConsoleProxy();
 		QTextEdit *console;
