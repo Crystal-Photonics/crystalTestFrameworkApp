@@ -85,7 +85,7 @@ void MainWindow::on_device_detect_button_clicked() {
 			}
 			RPCProtocol protocol;
 			if (protocol.is_correct_protocol(*device.device)) {
-
+				protocol.set_ui_description(*device.device, device.ui_entry);
 			} else {
 				device.device->close();
 			}
@@ -113,8 +113,8 @@ void MainWindow::on_update_devices_list_button_clicked() {
 		if (pos != std::end(comport_devices) && pos->device->getTarget() == port.systemLocation()) {
 			continue;
 		}
-		auto &device = *comport_devices.insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port})->device;
 		auto item = std::make_unique<QTreeWidgetItem>(ui->devices_list, QStringList{} << port.portName() + " " + port.description());
+		auto &device = *comport_devices.insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port, item.get()})->device;
 		ui->devices_list->addTopLevelItem(item.release());
 
 		auto tab = new QTextEdit(ui->tabWidget);

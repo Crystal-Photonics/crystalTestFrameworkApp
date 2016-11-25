@@ -2,6 +2,7 @@
 #include "channel_codec_wrapper.h"
 #include "config.h"
 #include "console.h"
+#include "rpc_ui.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_decoder.h"
 #include "rpcruntime_encoded_function_call.h"
@@ -12,6 +13,7 @@
 #include <QDir>
 #include <QObject>
 #include <QSettings>
+#include <QTreeWidgetItem>
 #include <cassert>
 #include <fstream>
 
@@ -22,12 +24,16 @@ RPCProtocol::RPCProtocol()
 	, encoder{description}
 	, channel_codec{decoder} {}
 
+RPCProtocol::~RPCProtocol()
+{
+	QObject::disconnect(connection);
+}
+
 bool RPCProtocol::is_correct_protocol(CommunicationDevice &device) {
-	auto connection = QObject::connect(&device, &CommunicationDevice::received, [&cc = channel_codec](const QByteArray &data) {
+	connection = QObject::connect(&device, &CommunicationDevice::received, [&cc = channel_codec](const QByteArray &data) {
 		cc.add_data(reinterpret_cast<const unsigned char *>(data.data()), data.size());
 	});
 	auto result = call_and_wait(encoder.encode(0), device);
-	QObject::disconnect(connection);
 	if (result) {
 		const auto &hash = QByteArray::fromStdString(result->get_parameter_by_name("hash_out")->as_string()).toHex();
 		device.message(QObject::tr("Received Hash: ").toUtf8() + hash);
@@ -62,4 +68,30 @@ std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const 
 		device.waitReceived(duration - (std::chrono::high_resolution_clock::now() - start));
 	}
 	return nullptr;
+}
+
+const RPCRunTimeProtocolDescription &RPCProtocol::get_description() {
+	return description;
+}
+
+void RPCProtocol::set_ui_description(CommunicationDevice &device, QTreeWidgetItem *ui_entry) {
+	const auto &protocol_description = get_description();
+	if (protocol_description.has_function("get_device_descriptor")) {
+		auto get_device_descriptor_function = RPCRuntimeEncodedFunctionCall{protocol_description.get_function("get_device_descriptor")};
+		if (get_device_descriptor_function.are_all_values_set()) {
+			auto result = call_and_wait(get_device_descriptor_function, device);
+			if (result) {
+				ui_entry->addChild(getTreeWidgetReport(*result).release());
+			}
+			else{
+				Console::note() << "RPC-function \"get_device_descriptor\" did not answer";
+			}
+		}
+		else{
+			Console::note() << "RPC-function \"get_device_descriptor\" requires parameters";
+		}
+	}
+	else{
+		Console::note() << "No RPC-function \"get_device_descriptor\"";
+	}
 }

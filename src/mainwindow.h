@@ -11,6 +11,8 @@
 #include <set>
 #include <vector>
 
+class QTreeWidgetItem;
+
 namespace Ui {
 	class MainWindow;
 }
@@ -36,6 +38,7 @@ class EXPORT MainWindow : public QMainWindow {
 	struct ComportDescription{
 		std::unique_ptr<ComportCommunicationDevice> device;
 		QSerialPortInfo info;
+		QTreeWidgetItem *ui_entry;
 	};
 
 	std::vector<ComportDescription> comport_devices;
