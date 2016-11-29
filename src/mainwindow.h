@@ -24,6 +24,9 @@ class EXPORT MainWindow : public QMainWindow {
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+	public slots:
+	void align_device_columns();
+
 	private slots:
 	void on_actionPaths_triggered();
 	void on_device_detect_button_clicked();
@@ -35,7 +38,7 @@ class EXPORT MainWindow : public QMainWindow {
 	QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;
 
-	struct ComportDescription{
+	struct ComportDescription {
 		std::unique_ptr<ComportCommunicationDevice> device;
 		QSerialPortInfo info;
 		QTreeWidgetItem *ui_entry;

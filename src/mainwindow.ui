@@ -59,6 +59,12 @@
          </item>
          <item>
           <widget class="QTreeWidget" name="devices_list">
+           <property name="mouseTracking">
+            <bool>false</bool>
+           </property>
+           <attribute name="headerCascadingSectionResizes">
+            <bool>false</bool>
+           </attribute>
            <column>
             <property name="text">
              <string>Devices</string>
@@ -148,5 +154,73 @@
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>devices_list</sender>
+   <signal>itemExpanded(QTreeWidgetItem*)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>align_device_columns()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>11</x>
+     <y>113</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>3</x>
+     <y>112</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>devices_list</sender>
+   <signal>itemCollapsed(QTreeWidgetItem*)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>align_device_columns()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>30</x>
+     <y>149</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>0</x>
+     <y>147</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>devices_list</sender>
+   <signal>itemChanged(QTreeWidgetItem*,int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>align_device_columns()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>18</x>
+     <y>178</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>7</x>
+     <y>178</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>devices_list</sender>
+   <signal>itemEntered(QTreeWidgetItem*,int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>align_device_columns()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>22</x>
+     <y>216</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>5</x>
+     <y>215</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>align_device_columns()</slot>
+ </slots>
 </ui>

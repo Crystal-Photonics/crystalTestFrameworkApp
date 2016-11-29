@@ -17,6 +17,8 @@ class RPCProtocol {
 	public:
 	RPCProtocol();
 	~RPCProtocol();
+	RPCProtocol(const RPCProtocol &) = delete;
+	RPCProtocol(RPCProtocol &&other);
 	bool is_correct_protocol(CommunicationDevice &device);
 	std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice &device,
 																 CommunicationDevice::Duration duration = std::chrono::seconds{1});
@@ -28,7 +30,7 @@ class RPCProtocol {
 	RPCRuntimeDecoder decoder;
 	RPCRuntimeEncoder encoder;
 	Channel_codec_wrapper channel_codec;
-	QMetaObject::Connection connection; //TODO: This probably requires a special move constructor implementation and disables copying
+	QMetaObject::Connection connection;
 };
 
 #endif // RPCPROTOCOL_H

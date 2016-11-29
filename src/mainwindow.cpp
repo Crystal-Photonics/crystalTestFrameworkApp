@@ -32,7 +32,14 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 MainWindow::~MainWindow() {
-    delete ui;
+	delete ui;
+}
+
+void MainWindow::align_device_columns()
+{
+	for (int i = 0; i < ui->devices_list->columnCount(); i++) {
+		ui->devices_list->resizeColumnToContents(i);
+	}
 }
 
 void MainWindow::on_actionPaths_triggered() {
@@ -116,6 +123,7 @@ void MainWindow::on_update_devices_list_button_clicked() {
 		auto item = std::make_unique<QTreeWidgetItem>(ui->devices_list, QStringList{} << port.portName() + " " + port.description());
 		auto &device = *comport_devices.insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port, item.get()})->device;
 		ui->devices_list->addTopLevelItem(item.release());
+		align_device_columns();
 
 		auto tab = new QTextEdit(ui->tabWidget);
 		tab->setReadOnly(true);
