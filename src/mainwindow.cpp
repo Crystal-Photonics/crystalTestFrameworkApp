@@ -12,6 +12,7 @@
 #include <QGroupBox>
 #include <QMessageBox>
 #include <QSettings>
+#include <QStringList>
 #include <QTimer>
 #include <QTreeWidgetItem>
 #include <QtSerialPort/QSerialPort>
@@ -29,14 +30,14 @@ MainWindow::MainWindow(QWidget *parent)
 	Console::console = ui->console_edit;
 	ui->update_devices_list_button->click();
 	emit poll_ports();
+	load_scripts();
 }
 
 MainWindow::~MainWindow() {
 	delete ui;
 }
 
-void MainWindow::align_device_columns()
-{
+void MainWindow::align_device_columns() {
 	for (int i = 0; i < ui->devices_list->columnCount(); i++) {
 		ui->devices_list->resizeColumnToContents(i);
 	}
@@ -165,4 +166,50 @@ void MainWindow::poll_ports() {
 		}
 	}
 	QTimer::singleShot(16, this, &MainWindow::poll_ports);
+}
+
+void MainWindow::load_scripts() {
+	ui->tests_list->clear();
+	QDirIterator dit{QSettings{}.value(Globals::test_script_path_settings_key, "").toString(), QStringList{} << "*.lua", QDir::Files};
+	while (dit.hasNext()) {
+		const auto &file_path = dit.next();
+		tests.push_back({ui->tests_list, file_path});
+	}
+}
+
+MainWindow::Test::Test(QTreeWidget *w, const QString &file_path)
+	: parent(w) {
+	auto file = QString{file_path.data() + file_path.lastIndexOf('/') + 1};
+	if (file.endsWith(".lua")) {
+		file.chop(4);
+	}
+	ui_item = new QTreeWidgetItem(w, QStringList{} << file);
+	parent->addTopLevelItem(ui_item);
+	script.load_script(file_path);
+	QStringList protocols;
+	script.run_function("getProtocols", protocols);
+	if (protocols.empty() == false){
+		ui_item->addChild(new QTreeWidgetItem(ui_item, QStringList{} << protocols.join(", ")));
+	}
+}
+
+MainWindow::Test::~Test() {
+	if (ui_item != nullptr) {
+		parent->removeItemWidget(ui_item, 0);
+	}
+}
+
+MainWindow::Test::Test(MainWindow::Test &&other) {
+	swap(other);
+}
+
+MainWindow::Test &MainWindow::Test::operator=(MainWindow::Test &&other) {
+	swap(other);
+	return *this;
+}
+
+void MainWindow::Test::swap(MainWindow::Test &other) {
+	auto t = std::tie(this->parent, this->ui_item, this->script);
+	auto o = std::tie(other.parent, other.ui_item, other.script);
+	std::swap(t, o);
 }

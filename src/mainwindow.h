@@ -3,6 +3,7 @@
 
 #include "CommunicationDevices/comportcommunicationdevice.h"
 #include "export.h"
+#include "scriptengine.h"
 
 #include <QMainWindow>
 #include <QString>
@@ -11,6 +12,7 @@
 #include <set>
 #include <vector>
 
+class QTreeWidget;
 class QTreeWidgetItem;
 
 namespace Ui {
@@ -35,6 +37,8 @@ class EXPORT MainWindow : public QMainWindow {
 	void poll_ports();
 
 	private:
+	void load_scripts();
+
 	QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;
 
@@ -45,6 +49,21 @@ class EXPORT MainWindow : public QMainWindow {
 	};
 
 	std::vector<ComportDescription> comport_devices;
+
+	struct Test {
+		Test(QTreeWidget *w, const QString &file_path);
+		~Test();
+		Test(const Test &) = delete;
+		Test(Test &&other);
+		Test &operator=(const Test &) = delete;
+		Test &operator=(Test &&other);
+		void swap(Test &other);
+
+		QTreeWidget *parent = nullptr;
+		QTreeWidgetItem *ui_item = nullptr;
+		ScriptEngine script;
+	};
+	std::vector<Test> tests;
 };
 
 #endif // MAINWINDOW_H

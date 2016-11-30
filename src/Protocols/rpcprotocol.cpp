@@ -136,8 +136,7 @@ static void set_description_data(Device_data &dd, const RPCRuntimeDecodedParam &
 		case RPCRuntimeParameterDescription::Type::integer:
 			if (param.get_desciption()->get_parameter_name() == "githash") {
 				const auto &param_value = param.as_integer();
-				QByteArray bytes(reinterpret_cast<const char *>(&param_value), sizeof param_value);
-				dd.githash = bytes.toHex();
+				dd.githash = QString::number(param_value, 16);
 			} else if (param.get_desciption()->get_parameter_name() == "gitDate_unix") {
 				const auto &param_value = param.as_integer();
 				dd.gitDate_unix = QDateTime::fromTime_t(param_value).toString();
@@ -169,7 +168,9 @@ static Device_data get_description_data(const RPCRuntimeDecodedFunctionCall &cal
 }
 
 static void set_display_data(QTreeWidgetItem *item, const Device_data &data) {
-	item->setToolTip(0, data.get_summary());
+	const auto &summary = data.get_summary();
+	item->setToolTip(0, summary);
+	item->addChild(new QTreeWidgetItem(item, QStringList{} << summary));
 }
 
 void RPCProtocol::set_ui_description(CommunicationDevice &device, QTreeWidgetItem *ui_entry) {
