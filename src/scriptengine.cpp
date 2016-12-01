@@ -1,40 +1,63 @@
 #include "scriptengine.h"
+#include "config.h"
 #include "console.h"
-#include "sol.hpp"
+#include "util.h"
 
 #include <QDebug>
 #include <QDir>
 #include <QMessageBox>
+#include <QProcess>
+#include <QSettings>
+#include <regex>
 #include <string>
 #include <vector>
 
-ScriptEngine::ScriptEngine() {
-	lua = std::make_unique<sol::state>();
-}
-
-bool ScriptEngine::load_script(const QString &path) {
-	return lua->load_file(path.toStdString());
-}
-
-void ScriptEngine::run_function(const QString &name, QStringList &retval) {
+void ScriptEngine::load_script(const QString &path) {
+	this->path = path;
 	try {
-		sol::function f = (*lua)[name.toStdString()];
-		auto result = f.call<std::vector<std::string>>();
-		for (auto &r : result) {
-			retval << r.c_str();
-		}
+		//lua.open_libraries(sol::lib::base); //load the standard lib if necessary
+		lua.set_function("show_warning", [path](const std::string &title, const std::string &message) {
+			QMessageBox::warning(nullptr, QString::fromStdString(title) + " from " + path, QString::fromStdString(message));
+		});
+		lua.script_file(path.toStdString());
 	} catch (const sol::error &error) {
-		Console::warning() << error.what();
+		set_error(error);
+		throw;
 	}
 }
 
-ScriptEngine::ScriptEngine(ScriptEngine &&other) {
-	std::swap(lua, other.lua);
+QStringList ScriptEngine::get_string_list(const QString &name) {
+	QStringList retval;
+	sol::table t = lua.get<sol::table>(name.toStdString());
+	try {
+		if (t.valid() == false) {
+			return retval;
+		}
+		for (auto &s : t) {
+			retval << s.second.as<std::string>().c_str();
+		}
+	} catch (const sol::error &error) {
+		set_error(error);
+		throw;
+	}
+	return retval;
 }
 
-ScriptEngine &ScriptEngine::operator=(ScriptEngine &&other) {
-	std::swap(lua, other.lua);
-	return *this;
+void ScriptEngine::set_error(const sol::error &error) {
+	const std::string &string = error.what();
+	std::regex r(R"(\.lua:([0-9]*): )");
+	std::smatch match;
+	if (std::regex_search(string, match, r)) {
+		Utility::convert(match[1].str(), error_line);
+	}
 }
 
-ScriptEngine::~ScriptEngine() {}
+void ScriptEngine::launch_editor() const {
+	QStringList parameter;
+	if (error_line != 0) {
+		parameter << path + ":" + QString::number(error_line);
+	} else {
+		parameter << path;
+	}
+	QProcess::startDetached(QSettings{}.value(Globals::lua_editor_path_settings_key, R"(C:\Qt\Tools\QtCreator\bin\qtcreator.exe)").toString(), parameter);
+}

@@ -23,6 +23,8 @@ class PathSettingsWindow : public QDialog {
 
 	void on_rpc_xml_files_path_selector_clicked();
 
+	void on_lua_editor_path_selector_clicked();
+
 	private:
 	Ui::PathSettingsWindow *ui;
 };

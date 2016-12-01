@@ -36,6 +36,8 @@ class EXPORT MainWindow : public QMainWindow {
 	void on_tabWidget_tabCloseRequested(int index);
 	void poll_ports();
 
+	void on_tests_list_itemDoubleClicked(QTreeWidgetItem *item, int column);
+
 	private:
 	void load_scripts();
 
@@ -62,6 +64,9 @@ class EXPORT MainWindow : public QMainWindow {
 		QTreeWidget *parent = nullptr;
 		QTreeWidgetItem *ui_item = nullptr;
 		ScriptEngine script;
+		bool operator ==(QTreeWidgetItem *item){
+			return item == ui_item;
+		}
 	};
 	std::vector<Test> tests;
 };

@@ -2,6 +2,7 @@
 #define SCRIPTENGINE_H
 
 #include "export.h"
+#include "sol.hpp"
 
 #include <QFile>
 #include <QList>
@@ -10,22 +11,17 @@
 #include <QStringList>
 #include <memory>
 
-namespace sol {
-	class state;
-}
-
 class ScriptEngine {
 	public:
-	explicit ScriptEngine();
-	bool load_script(const QString &path);
-	void run_function(const QString &name, QString &retval);
-	void run_function(const QString &name, QStringList &retval);
-	ScriptEngine(ScriptEngine &&other);
-	ScriptEngine &operator=(ScriptEngine &&other);
-	~ScriptEngine();
+	void load_script(const QString &path);
+	QStringList get_string_list(const QString &name);
+	void launch_editor() const;
 
 	private:
-	std::unique_ptr<sol::state> lua;
+	void set_error(const sol::error &error);
+	sol::state lua;
+	QString path;
+	int error_line = 0;
 };
 
 #endif // SCRIPTENGINE_H

@@ -10,6 +10,8 @@ INCLUDEPATH += $$PWD/libs/luasol/include
 LIBS += -L$$PWD/libs/luasol
 LIBS += -llua53
 
+DEFINES += SOL_CHECK_ARGUMENTS
+
 QPROTOCOL_INTERPRETER_PATH=$$PWD/libs/qRPCRuntimeParser
 INCLUDEPATH += $$QPROTOCOL_INTERPRETER_PATH/project/src
 include($$QPROTOCOL_INTERPRETER_PATH/qProtocollInterpreter_static.pri)
@@ -17,8 +19,8 @@ include($$QPROTOCOL_INTERPRETER_PATH/qProtocollInterpreter_static.pri)
 QMAKE_CXXFLAGS += -std=c++14
 QMAKE_CXXFLAGS += -Werror
 
-QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function
-QMAKE_CXXFLAGS_RELEASE += -Wunused-function
+QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function -Wno-unused-parameter
+QMAKE_CXXFLAGS_RELEASE += -Wunused-function -Wunused-parameter
 
 QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address

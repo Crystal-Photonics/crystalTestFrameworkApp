@@ -185,11 +185,26 @@ MainWindow::Test::Test(QTreeWidget *w, const QString &file_path)
 	}
 	ui_item = new QTreeWidgetItem(w, QStringList{} << file);
 	parent->addTopLevelItem(ui_item);
-	script.load_script(file_path);
-	QStringList protocols;
-	script.run_function("getProtocols", protocols);
-	if (protocols.empty() == false){
-		ui_item->addChild(new QTreeWidgetItem(ui_item, QStringList{} << protocols.join(", ")));
+	try {
+		script.load_script(file_path);
+	} catch (const sol::error &e) {
+		Console::warning() << "Failed loading script" << file_path << "because" << e.what();
+		auto item = new QTreeWidgetItem(ui_item, QStringList{} << "Failed loading script " + file_path + " because " + e.what());
+		item->setTextColor(0, Qt::red);
+		ui_item->addChild(item);
+		ui_item->setTextColor(0, Qt::red);
+		return;
+	}
+	try {
+		QStringList protocols = script.get_string_list("protocols");
+		if (protocols.empty() == false) {
+			ui_item->addChild(new QTreeWidgetItem(ui_item, QStringList{} << protocols.join(", ")));
+		}
+	} catch (const sol::error &e) {
+		ui_item->setTextColor(0, Qt::red);
+		auto item = new QTreeWidgetItem(ui_item, QStringList{} << "Failed retrieving variable \"protocols\" from " + file_path + " because " + e.what());
+		item->setTextColor(0, Qt::red);
+		ui_item->addChild(item);
 	}
 }
 
@@ -212,4 +227,12 @@ void MainWindow::Test::swap(MainWindow::Test &other) {
 	auto t = std::tie(this->parent, this->ui_item, this->script);
 	auto o = std::tie(other.parent, other.ui_item, other.script);
 	std::swap(t, o);
+}
+
+void MainWindow::on_tests_list_itemDoubleClicked(QTreeWidgetItem *item, int column) {
+	for (auto &test : tests) {
+		if (test == item) {
+			test.script.launch_editor();
+		}
+	}
 }
