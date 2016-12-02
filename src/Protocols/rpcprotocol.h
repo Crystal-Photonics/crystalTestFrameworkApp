@@ -3,6 +3,7 @@
 
 #include "CommunicationDevices/communicationdevice.h"
 #include "channel_codec_wrapper.h"
+#include "protocol.h"
 #include "rpcruntime_decoder.h"
 #include "rpcruntime_encoder.h"
 #include "rpcruntime_protocol_description.h"
@@ -13,7 +14,7 @@
 class RPCRuntimeEncodedFunctionCall;
 class QTreeWidgetItem;
 
-class RPCProtocol {
+class RPCProtocol : public Protocol {
 	public:
 	RPCProtocol();
 	~RPCProtocol();
@@ -31,6 +32,7 @@ class RPCProtocol {
 	RPCRuntimeEncoder encoder;
 	Channel_codec_wrapper channel_codec;
 	QMetaObject::Connection connection;
+	std::unique_ptr<RPCRuntimeDecodedFunctionCall> descriptor_answer;
 };
 
 #endif // RPCPROTOCOL_H

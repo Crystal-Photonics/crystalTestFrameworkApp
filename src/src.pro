@@ -10,7 +10,8 @@ SOURCES += mainwindow.cpp \
     pathsettingswindow.cpp \
     config.cpp \
     Protocols/rpcprotocol.cpp \
-    console.cpp
+    console.cpp \
+    Protocols/protocol.cpp
 SOURCES += scriptengine.cpp
 SOURCES += util.cpp
 SOURCES += CommunicationDevices/communicationdevice.cpp
@@ -22,7 +23,8 @@ HEADERS += mainwindow.h \
     pathsettingswindow.h \
     config.h \
     Protocols/rpcprotocol.h \
-    console.h
+    console.h \
+    Protocols/protocol.h
 HEADERS += scriptengine.h
 HEADERS += export.h
 HEADERS += util.h

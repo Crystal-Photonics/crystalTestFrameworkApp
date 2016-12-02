@@ -94,6 +94,8 @@ void MainWindow::on_device_detect_button_clicked() {
 			RPCProtocol protocol;
 			if (protocol.is_correct_protocol(*device.device)) {
 				protocol.set_ui_description(*device.device, device.ui_entry);
+				device.protocol = std::make_unique<RPCProtocol>(std::move(protocol));
+
 			} else {
 				device.device->close();
 			}
@@ -122,7 +124,7 @@ void MainWindow::on_update_devices_list_button_clicked() {
 			continue;
 		}
 		auto item = std::make_unique<QTreeWidgetItem>(ui->devices_list, QStringList{} << port.portName() + " " + port.description());
-		auto &device = *comport_devices.insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port, item.get()})->device;
+		auto &device = *comport_devices.insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port, item.get(), nullptr})->device;
 		ui->devices_list->addTopLevelItem(item.release());
 		align_device_columns();
 
@@ -198,7 +200,7 @@ MainWindow::Test::Test(QTreeWidget *w, const QString &file_path)
 	try {
 		QStringList protocols = script.get_string_list("protocols");
 		if (protocols.empty() == false) {
-			ui_item->addChild(new QTreeWidgetItem(ui_item, QStringList{} << protocols.join(", ")));
+			ui_item->addChild(new QTreeWidgetItem(ui_item, QStringList{} << tr("Required Device Protocols: ") + protocols.join(", ")));
 		}
 	} catch (const sol::error &e) {
 		ui_item->setTextColor(0, Qt::red);

@@ -35,7 +35,8 @@ RPCProtocol::RPCProtocol(RPCProtocol &&other)
 	, decoder(std::move(other.decoder))
 	, encoder(std::move(other.encoder))
 	, channel_codec(std::move(other.channel_codec))
-	, connection(std::move(other.connection)) {
+	, connection(std::move(other.connection))
+	, descriptor_answer(std::move(other.descriptor_answer)) {
 	other.connection = QMetaObject::Connection{}; //prevent other from breaking the connection
 }
 
@@ -178,9 +179,9 @@ void RPCProtocol::set_ui_description(CommunicationDevice &device, QTreeWidgetIte
 	if (protocol_description.has_function("get_device_descriptor")) {
 		auto get_device_descriptor_function = RPCRuntimeEncodedFunctionCall{protocol_description.get_function("get_device_descriptor")};
 		if (get_device_descriptor_function.are_all_values_set()) {
-			auto result = call_and_wait(get_device_descriptor_function, device);
-			if (result) {
-				auto data = get_description_data(*result);
+			descriptor_answer = call_and_wait(get_device_descriptor_function, device);
+			if (descriptor_answer) {
+				auto data = get_description_data(*descriptor_answer);
 				ui_entry->setText(0, data.name + " " + ui_entry->text(0));
 				set_display_data(ui_entry, data);
 			} else {

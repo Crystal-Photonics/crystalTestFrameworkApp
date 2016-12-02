@@ -4,6 +4,7 @@
 #include "CommunicationDevices/comportcommunicationdevice.h"
 #include "export.h"
 #include "scriptengine.h"
+#include "Protocols/protocol.h"
 
 #include <QMainWindow>
 #include <QString>
@@ -48,6 +49,7 @@ class EXPORT MainWindow : public QMainWindow {
 		std::unique_ptr<ComportCommunicationDevice> device;
 		QSerialPortInfo info;
 		QTreeWidgetItem *ui_entry;
+		std::unique_ptr<Protocol> protocol;
 	};
 
 	std::vector<ComportDescription> comport_devices;
