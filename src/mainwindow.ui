@@ -113,6 +113,9 @@
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
           <widget class="QTreeWidget" name="tests_list">
+           <property name="selectionMode">
+            <enum>QAbstractItemView::ExtendedSelection</enum>
+           </property>
            <column>
             <property name="text">
              <string>Tests</string>

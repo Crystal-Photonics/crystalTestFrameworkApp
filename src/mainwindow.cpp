@@ -3,6 +3,7 @@
 #include "config.h"
 #include "console.h"
 #include "pathsettingswindow.h"
+#include "qt_util.h"
 #include "scriptengine.h"
 #include "ui_mainwindow.h"
 
@@ -19,6 +20,7 @@
 #include <QtSerialPort/QSerialPortInfo>
 #include <algorithm>
 #include <cassert>
+#include <iterator>
 #include <memory>
 
 using namespace std::chrono_literals;
@@ -186,6 +188,7 @@ MainWindow::Test::Test(QTreeWidget *w, const QString &file_path)
 		file.chop(4);
 	}
 	ui_item = new QTreeWidgetItem(w, QStringList{} << file);
+	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
 	parent->addTopLevelItem(ui_item);
 	try {
 		script.load_script(file_path);
@@ -199,6 +202,8 @@ MainWindow::Test::Test(QTreeWidget *w, const QString &file_path)
 	}
 	try {
 		QStringList protocols = script.get_string_list("protocols");
+		std::copy(protocols.begin(), protocols.end(), std::back_inserter(this->protocols));
+		std::sort(this->protocols.begin(), this->protocols.end());
 		if (protocols.empty() == false) {
 			ui_item->addChild(new QTreeWidgetItem(ui_item, QStringList{} << tr("Required Device Protocols: ") + protocols.join(", ")));
 		}
@@ -218,6 +223,7 @@ MainWindow::Test::~Test() {
 
 MainWindow::Test::Test(MainWindow::Test &&other) {
 	swap(other);
+	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
 }
 
 MainWindow::Test &MainWindow::Test::operator=(MainWindow::Test &&other) {
@@ -226,8 +232,8 @@ MainWindow::Test &MainWindow::Test::operator=(MainWindow::Test &&other) {
 }
 
 void MainWindow::Test::swap(MainWindow::Test &other) {
-	auto t = std::tie(this->parent, this->ui_item, this->script);
-	auto o = std::tie(other.parent, other.ui_item, other.script);
+	auto t = std::tie(this->parent, this->ui_item, this->script, this->protocols);
+	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols);
 	std::swap(t, o);
 }
 
@@ -235,6 +241,48 @@ void MainWindow::on_tests_list_itemDoubleClicked(QTreeWidgetItem *item, int colu
 	for (auto &test : tests) {
 		if (test == item) {
 			test.script.launch_editor();
+		}
+	}
+}
+
+void MainWindow::on_run_test_script_button_clicked() {
+	auto items = ui->tests_list->selectedItems();
+	for (auto &item : items) {
+		auto test = Utility::from_qvariant<MainWindow::Test>(item->data(0, Qt::UserRole));
+		if (test == nullptr) {
+			continue;
+		}
+		if (test->protocols.empty()) {
+			QMessageBox::warning(this, tr("Invalid Script"),
+								 tr("The selected script \"%1\" cannot be run, because it did not report the required devices.").arg(test->ui_item->text(0)));
+		}
+		for (const auto &protocol : test->protocols) {
+			std::vector<const ComportDescription *> candidates;
+			for (const auto &device : comport_devices) { //TODO: do not only loop over comport_devices, but other devices as well
+				if (device.protocol == nullptr) {
+					continue;
+				}
+				if (device.protocol->type == protocol) {
+					candidates.push_back(&device);
+				}
+			}
+			switch (candidates.size()) {
+				case 0:
+					//failed to find suitable device
+					QMessageBox::warning(this, tr("Missing Device"),
+										 tr("The selected test \"%1\" requires a device with protocol \"%2\", but no such device is available.")
+											 .arg(test->ui_item->text(0))
+											 .arg(protocol));
+					break;
+				case 1:
+					//found the only viable option
+					QMessageBox::critical(this, "TODO", "TODO: implementation");
+					break;
+				default:
+					//found multiple viable options
+					QMessageBox::critical(this, "TODO", "TODO: implementation");
+					break;
+			}
 		}
 	}
 }

@@ -12,6 +12,7 @@
 #include <memory>
 #include <set>
 #include <vector>
+#include <list>
 
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -38,6 +39,8 @@ class EXPORT MainWindow : public QMainWindow {
 	void poll_ports();
 
 	void on_tests_list_itemDoubleClicked(QTreeWidgetItem *item, int column);
+
+	void on_run_test_script_button_clicked();
 
 	private:
 	void load_scripts();
@@ -66,11 +69,12 @@ class EXPORT MainWindow : public QMainWindow {
 		QTreeWidget *parent = nullptr;
 		QTreeWidgetItem *ui_item = nullptr;
 		ScriptEngine script;
+		std::vector<QString> protocols;
 		bool operator ==(QTreeWidgetItem *item){
 			return item == ui_item;
 		}
 	};
-	std::vector<Test> tests;
+	std::list<Test> tests;
 };
 
 #endif // MAINWINDOW_H

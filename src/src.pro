@@ -11,7 +11,8 @@ SOURCES += mainwindow.cpp \
     config.cpp \
     Protocols/rpcprotocol.cpp \
     console.cpp \
-    Protocols/protocol.cpp
+    Protocols/protocol.cpp \
+    qt_util.cpp
 SOURCES += scriptengine.cpp
 SOURCES += util.cpp
 SOURCES += CommunicationDevices/communicationdevice.cpp
@@ -24,7 +25,8 @@ HEADERS += mainwindow.h \
     config.h \
     Protocols/rpcprotocol.h \
     console.h \
-    Protocols/protocol.h
+    Protocols/protocol.h \
+    qt_util.h
 HEADERS += scriptengine.h
 HEADERS += export.h
 HEADERS += util.h

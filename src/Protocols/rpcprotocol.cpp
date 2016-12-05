@@ -22,7 +22,8 @@
 using namespace std::chrono_literals;
 
 RPCProtocol::RPCProtocol()
-	: decoder{description}
+	: Protocol{"RPC"}
+	, decoder{description}
 	, encoder{description}
 	, channel_codec{decoder} {}
 
@@ -31,7 +32,8 @@ RPCProtocol::~RPCProtocol() {
 }
 
 RPCProtocol::RPCProtocol(RPCProtocol &&other)
-	: description(std::move(other.description))
+	: Protocol{"RPC"}
+	, description(std::move(other.description))
 	, decoder(std::move(other.decoder))
 	, encoder(std::move(other.encoder))
 	, channel_codec(std::move(other.channel_codec))
