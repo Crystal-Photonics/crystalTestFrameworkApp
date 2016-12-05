@@ -16,15 +16,16 @@ class QTreeWidgetItem;
 
 class RPCProtocol : public Protocol {
 	public:
-	RPCProtocol();
+	RPCProtocol(CommunicationDevice &device);
 	~RPCProtocol();
 	RPCProtocol(const RPCProtocol &) = delete;
 	RPCProtocol(RPCProtocol &&other);
-	bool is_correct_protocol(CommunicationDevice &device);
-	std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice &device,
+	bool is_correct_protocol();
+	std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call,
 																 CommunicationDevice::Duration duration = std::chrono::seconds{1});
 	const RPCRunTimeProtocolDescription &get_description();
-	void set_ui_description(CommunicationDevice &device, QTreeWidgetItem *ui_entry);
+	void set_ui_description(QTreeWidgetItem *ui_entry);
+	RPCProtocol &operator=(const RPCProtocol &&) = delete;
 
 	private:
 	RPCRunTimeProtocolDescription description;
@@ -33,6 +34,7 @@ class RPCProtocol : public Protocol {
 	Channel_codec_wrapper channel_codec;
 	QMetaObject::Connection connection;
 	std::unique_ptr<RPCRuntimeDecodedFunctionCall> descriptor_answer;
+	CommunicationDevice *device;
 };
 
 #endif // RPCPROTOCOL_H

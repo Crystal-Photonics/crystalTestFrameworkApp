@@ -67,12 +67,17 @@
            </attribute>
            <column>
             <property name="text">
-             <string>Devices</string>
+             <string>Device</string>
             </property>
            </column>
            <column>
             <property name="text">
-             <string>Values</string>
+             <string>Protocol</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Name</string>
             </property>
            </column>
           </widget>

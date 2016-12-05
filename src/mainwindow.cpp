@@ -93,9 +93,9 @@ void MainWindow::on_device_detect_button_clicked() {
 				Console::warning() << tr("Failed opening") << device.device->getTarget();
 				return;
 			}
-			RPCProtocol protocol;
-			if (protocol.is_correct_protocol(*device.device)) {
-				protocol.set_ui_description(*device.device, device.ui_entry);
+			RPCProtocol protocol{*device.device};
+			if (protocol.is_correct_protocol()) {
+				protocol.set_ui_description(device.ui_entry);
 				device.protocol = std::make_unique<RPCProtocol>(std::move(protocol));
 
 			} else {
