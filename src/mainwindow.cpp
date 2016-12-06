@@ -276,11 +276,30 @@ void MainWindow::on_run_test_script_button_clicked() {
 					break;
 				case 1:
 					//found the only viable option
-					QMessageBox::critical(this, "TODO", "TODO: implementation");
+					{
+						auto &device = *candidates.front();
+						auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
+						if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
+							std::string message;
+							try {
+								message = test->script.call<std::string>("RPC_acceptable", rpc_protocol->get_lua_device_descriptor());
+							} catch (const sol::error &e) {
+								QMessageBox::critical(this, tr("Script Error"), tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what()));
+								return;
+							}
+							if (message.empty()) {
+								//acceptable device
+								QMessageBox::critical(this, "TODO", "TODO: implementation of accepted device");
+							} else {
+								//device incompatible, reason should be inside of message
+								//test->notify(message);
+							}
+						}
+					}
 					break;
 				default:
 					//found multiple viable options
-					QMessageBox::critical(this, "TODO", "TODO: implementation");
+					QMessageBox::critical(this, "TODO", "TODO: implementation for multiple viable device options");
 					break;
 			}
 		}

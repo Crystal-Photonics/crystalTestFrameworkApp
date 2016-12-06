@@ -9,10 +9,33 @@
 #include "rpcruntime_protocol_description.h"
 #include "rpcruntime_transfer.h"
 
+#include <sol.hpp>
 #include <memory>
 
 class RPCRuntimeEncodedFunctionCall;
 class QTreeWidgetItem;
+
+struct Device_data {
+	QString githash;
+	QString gitDate_unix;
+
+	QString serialnumber;
+	QString deviceID;
+	QString guid;
+	QString boardRevision;
+
+	QString name;
+	QString version;
+
+	QString get_summary() const;
+	sol::table get_lua_data() const;
+	private:
+	struct Description_source {
+		QString description;
+		const QString &source;
+	};
+	std::vector<Description_source> get_description_source() const;
+};
 
 class RPCProtocol : public Protocol {
 	public:
@@ -26,6 +49,7 @@ class RPCProtocol : public Protocol {
 	const RPCRunTimeProtocolDescription &get_description();
 	void set_ui_description(QTreeWidgetItem *ui_entry);
 	RPCProtocol &operator=(const RPCProtocol &&) = delete;
+	sol::table get_lua_device_descriptor() const;
 
 	private:
 	RPCRunTimeProtocolDescription description;
@@ -35,6 +59,7 @@ class RPCProtocol : public Protocol {
 	QMetaObject::Connection connection;
 	std::unique_ptr<RPCRuntimeDecodedFunctionCall> descriptor_answer;
 	CommunicationDevice *device;
+	Device_data device_data;
 };
 
 #endif // RPCPROTOCOL_H
