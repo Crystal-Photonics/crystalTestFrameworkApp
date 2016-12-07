@@ -205,10 +205,15 @@ MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QStr
 		std::copy(protocols.begin(), protocols.end(), std::back_inserter(this->protocols));
 		std::sort(this->protocols.begin(), this->protocols.end());
 		if (protocols.empty() == false) {
-			ui_item->addChild(new QTreeWidgetItem(ui_item, QStringList{} << tr("Required Device Protocols: ") + protocols.join(", ")));
+			ui_item->setText(1, protocols.join(", "));
+		} else {
+			ui_item->setText(1, tr("None"));
+			ui_item->setTextColor(1, Qt::darkRed);
 		}
 	} catch (const sol::error &e) {
 		Console::error(console) << tr("Failed retrieving variable \"protocols\" from %1 because %2").arg(file_path).arg(e.what());
+		ui_item->setText(1, tr("Failed getting protocols"));
+		ui_item->setTextColor(1, Qt::darkRed);
 	}
 }
 
@@ -233,6 +238,16 @@ void MainWindow::Test::swap(MainWindow::Test &other) {
 	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols, other.name, other.test_tabs, other.console);
 
 	std::swap(t, o);
+}
+
+int MainWindow::Test::get_tab_id() const
+{
+	return test_tabs->indexOf(console);
+}
+
+void MainWindow::Test::activate_console()
+{
+	test_tabs->setCurrentIndex(get_tab_id());
 }
 
 void MainWindow::on_tests_list_itemDoubleClicked(QTreeWidgetItem *item, int column) {
@@ -303,4 +318,9 @@ void MainWindow::on_run_test_script_button_clicked() {
 			}
 		}
 	}
+}
+
+void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
+	auto test = Utility::from_qvariant<MainWindow::Test>(item->data(0, Qt::UserRole));
+	test->activate_console();
 }

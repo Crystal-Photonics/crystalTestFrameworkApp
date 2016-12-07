@@ -43,6 +43,8 @@ class EXPORT MainWindow : public QMainWindow {
 
 	void on_run_test_script_button_clicked();
 
+	void on_tests_list_itemClicked(QTreeWidgetItem *item, int column);
+
 	private:
 	void load_scripts();
 
@@ -77,6 +79,8 @@ class EXPORT MainWindow : public QMainWindow {
 		bool operator ==(QTreeWidgetItem *item){
 			return item == ui_item;
 		}
+		int get_tab_id() const;
+		void activate_console();
 	};
 	std::list<Test> tests;
 };
