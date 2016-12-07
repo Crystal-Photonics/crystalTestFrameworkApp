@@ -1,9 +1,10 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
+#include <QColor>
 #include <QStringList>
 #include <QTextEdit>
-#include <QColor>
+#include <string>
 
 struct Console {
 	private:
@@ -18,8 +19,12 @@ struct Console {
 	private:
 	struct ConsoleProxy {
 		template <class T>
-		ConsoleProxy &&operator<<(T &&t) &&{
+		ConsoleProxy &&operator<<(const T &t) && {
 			s << t;
+			return std::move(*this); //TODO: I'm not sure if this is correct or we return an expired temporary
+		}
+		ConsoleProxy &&operator<<(const std::string &t) && {
+			s << t.c_str();
 			return std::move(*this); //TODO: I'm not sure if this is correct or we return an expired temporary
 		}
 		~ConsoleProxy();

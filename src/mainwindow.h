@@ -13,6 +13,7 @@
 #include <set>
 #include <vector>
 #include <list>
+#include <QTextEdit>
 
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -58,7 +59,7 @@ class EXPORT MainWindow : public QMainWindow {
 	std::vector<ComportDescription> comport_devices;
 
 	struct Test {
-		Test(QTreeWidget *w, const QString &file_path);
+		Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QString &file_path);
 		~Test();
 		Test(const Test &) = delete;
 		Test(Test &&other);
@@ -68,6 +69,8 @@ class EXPORT MainWindow : public QMainWindow {
 
 		QTreeWidget *parent = nullptr;
 		QTreeWidgetItem *ui_item = nullptr;
+		QTabWidget *test_tabs = nullptr;
+		QTextEdit *console = nullptr;
 		ScriptEngine script;
 		std::vector<QString> protocols;
 		QString name;

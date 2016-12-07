@@ -177,27 +177,27 @@ void MainWindow::load_scripts() {
 	QDirIterator dit{QSettings{}.value(Globals::test_script_path_settings_key, "").toString(), QStringList{} << "*.lua", QDir::Files};
 	while (dit.hasNext()) {
 		const auto &file_path = dit.next();
-		tests.push_back({ui->tests_list, file_path});
+		tests.push_back({ui->tests_list, ui->test_tabs, file_path});
 	}
 }
 
-MainWindow::Test::Test(QTreeWidget *w, const QString &file_path)
-	: parent(w) {
+MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QString &file_path)
+	: parent(test_list)
+	, test_tabs(test_tabs) {
 	name = QString{file_path.data() + file_path.lastIndexOf('/') + 1};
 	if (name.endsWith(".lua")) {
 		name.chop(4);
 	}
-	ui_item = new QTreeWidgetItem(w, QStringList{} << name);
+	console = new QTextEdit(test_tabs);
+	test_tabs->addTab(console, name);
+
+	ui_item = new QTreeWidgetItem(test_list, QStringList{} << name);
 	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
 	parent->addTopLevelItem(ui_item);
 	try {
 		script.load_script(file_path);
 	} catch (const sol::error &e) {
-		Console::warning() << "Failed loading script" << file_path << "because" << e.what();
-		auto item = new QTreeWidgetItem(ui_item, QStringList{} << "Failed loading script " + file_path + " because " + e.what());
-		item->setTextColor(0, Qt::red);
-		ui_item->addChild(item);
-		ui_item->setTextColor(0, Qt::red);
+		Console::error(console) << tr("Failed loading script \"%1\" because %2").arg(file_path).arg(e.what());
 		return;
 	}
 	try {
@@ -208,10 +208,7 @@ MainWindow::Test::Test(QTreeWidget *w, const QString &file_path)
 			ui_item->addChild(new QTreeWidgetItem(ui_item, QStringList{} << tr("Required Device Protocols: ") + protocols.join(", ")));
 		}
 	} catch (const sol::error &e) {
-		ui_item->setTextColor(0, Qt::red);
-		auto item = new QTreeWidgetItem(ui_item, QStringList{} << "Failed retrieving variable \"protocols\" from " + file_path + " because " + e.what());
-		item->setTextColor(0, Qt::red);
-		ui_item->addChild(item);
+		Console::error(console) << tr("Failed retrieving variable \"protocols\" from %1 because %2").arg(file_path).arg(e.what());
 	}
 }
 
@@ -232,8 +229,9 @@ MainWindow::Test &MainWindow::Test::operator=(MainWindow::Test &&other) {
 }
 
 void MainWindow::Test::swap(MainWindow::Test &other) {
-	auto t = std::tie(this->parent, this->ui_item, this->script, this->protocols, this->name);
-	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols, other.name);
+	auto t = std::tie(this->parent, this->ui_item, this->script, this->protocols, this->name, this->test_tabs, this->console);
+	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols, other.name, other.test_tabs, other.console);
+
 	std::swap(t, o);
 }
 
@@ -253,8 +251,7 @@ void MainWindow::on_run_test_script_button_clicked() {
 			continue;
 		}
 		if (test->protocols.empty()) {
-			QMessageBox::warning(this, tr("Invalid Script"),
-								 tr("The selected script \"%1\" cannot be run, because it did not report the required devices.").arg(test->ui_item->text(0)));
+			Console::error(test->console) << tr("The selected script \"%1\" cannot be run, because it did not report the required devices.").arg(test->name);
 		}
 		for (const auto &protocol : test->protocols) {
 			std::vector<const ComportDescription *> candidates;
@@ -269,16 +266,13 @@ void MainWindow::on_run_test_script_button_clicked() {
 			switch (candidates.size()) {
 				case 0:
 					//failed to find suitable device
-					QMessageBox::warning(this, tr("Missing Device"),
-										 tr("The selected test \"%1\" requires a device with protocol \"%2\", but no such device is available.")
-											 .arg(test->ui_item->text(0))
-											 .arg(protocol));
+					Console::error(test->console) << tr("The selected test \"%1\" requires a device with protocol \"%2\", but no such device is available.")
+														 .arg(test->ui_item->text(0))
+														 .arg(protocol);
 					break;
 				case 1:
 					//found the only viable option
 					{
-						auto text_edit = new QTextEdit(ui->test_tabs);
-						ui->test_tabs->addTab(text_edit, test->name);
 						auto &device = *candidates.front();
 						auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
 						if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
@@ -287,8 +281,7 @@ void MainWindow::on_run_test_script_button_clicked() {
 								message = test->script.call<std::string>("RPC_acceptable", rpc_protocol->get_lua_device_descriptor());
 							} catch (const sol::error &e) {
 								const auto &message = tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
-								//QMessageBox::critical(this, tr("Script Error"), message);
-								Console::error(text_edit) << message;
+								Console::error(test->console) << message;
 								return;
 							}
 							if (message.empty()) {
@@ -296,11 +289,10 @@ void MainWindow::on_run_test_script_button_clicked() {
 								QMessageBox::critical(this, "TODO", "TODO: implementation of accepted device");
 							} else {
 								//device incompatible, reason should be inside of message
-								//test->notify(message);
+								Console::note(test->console) << tr("Invalid device:") << message;
 							}
-						}
-						else{
-							//TODO: handle non-RPC protocol
+						} else {
+							assert(!"TODO: handle non-RPC protocol");
 						}
 					}
 					break;
