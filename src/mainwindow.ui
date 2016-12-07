@@ -62,6 +62,9 @@
            <property name="mouseTracking">
             <bool>false</bool>
            </property>
+           <property name="sortingEnabled">
+            <bool>true</bool>
+           </property>
            <attribute name="headerCascadingSectionResizes">
             <bool>false</bool>
            </attribute>
@@ -121,6 +124,9 @@
            <property name="selectionMode">
             <enum>QAbstractItemView::ExtendedSelection</enum>
            </property>
+           <property name="sortingEnabled">
+            <bool>true</bool>
+           </property>
            <column>
             <property name="text">
              <string>Test</string>
@@ -134,11 +140,28 @@
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="run_test_script_button">
-           <property name="text">
-            <string>Run Selected Tests</string>
-           </property>
-          </widget>
+          <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <item>
+            <widget class="QPushButton" name="run_test_script_button">
+             <property name="text">
+              <string>Run Selected Tests</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
          </item>
         </layout>
        </widget>
