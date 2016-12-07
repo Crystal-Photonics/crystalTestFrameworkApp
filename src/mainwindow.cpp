@@ -39,10 +39,22 @@ MainWindow::~MainWindow() {
 	delete ui;
 }
 
-void MainWindow::align_device_columns() {
+void MainWindow::align_columns() {
 	for (int i = 0; i < ui->devices_list->columnCount(); i++) {
 		ui->devices_list->resizeColumnToContents(i);
 	}
+	for (int i = 0; i < ui->tests_list->columnCount(); i++) {
+		ui->tests_list->resizeColumnToContents(i);
+	}
+}
+
+void MainWindow::poll_ports() {
+	for (auto &device : comport_devices) {
+		if (device.device->isConnected()) {
+			device.device->waitReceived(CommunicationDevice::Duration{0});
+		}
+	}
+	QTimer::singleShot(16, this, &MainWindow::poll_ports);
 }
 
 void MainWindow::on_actionPaths_triggered() {
@@ -128,7 +140,7 @@ void MainWindow::on_update_devices_list_button_clicked() {
 		auto item = std::make_unique<QTreeWidgetItem>(ui->devices_list, QStringList{} << port.portName() + " " + port.description());
 		auto &device = *comport_devices.insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port, item.get(), nullptr})->device;
 		ui->devices_list->addTopLevelItem(item.release());
-		align_device_columns();
+		align_columns();
 
 		auto tab = new QTextEdit(ui->tabWidget);
 		tab->setReadOnly(true);
@@ -161,15 +173,6 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index) {
 		return;
 	}
 	ui->tabWidget->removeTab(index);
-}
-
-void MainWindow::poll_ports() {
-	for (auto &device : comport_devices) {
-		if (device.device->isConnected()) {
-			device.device->waitReceived(CommunicationDevice::Duration{0});
-		}
-	}
-	QTimer::singleShot(16, this, &MainWindow::poll_ports);
 }
 
 void MainWindow::load_scripts() {
@@ -240,13 +243,11 @@ void MainWindow::Test::swap(MainWindow::Test &other) {
 	std::swap(t, o);
 }
 
-int MainWindow::Test::get_tab_id() const
-{
+int MainWindow::Test::get_tab_id() const {
 	return test_tabs->indexOf(console);
 }
 
-void MainWindow::Test::activate_console()
-{
+void MainWindow::Test::activate_console() {
 	test_tabs->setCurrentIndex(get_tab_id());
 }
 

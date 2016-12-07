@@ -185,7 +185,7 @@
    <sender>devices_list</sender>
    <signal>itemExpanded(QTreeWidgetItem*)</signal>
    <receiver>MainWindow</receiver>
-   <slot>align_device_columns()</slot>
+   <slot>align_columns()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>11</x>
@@ -201,7 +201,7 @@
    <sender>devices_list</sender>
    <signal>itemCollapsed(QTreeWidgetItem*)</signal>
    <receiver>MainWindow</receiver>
-   <slot>align_device_columns()</slot>
+   <slot>align_columns()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>30</x>
@@ -217,7 +217,7 @@
    <sender>devices_list</sender>
    <signal>itemChanged(QTreeWidgetItem*,int)</signal>
    <receiver>MainWindow</receiver>
-   <slot>align_device_columns()</slot>
+   <slot>align_columns()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>18</x>
@@ -233,7 +233,7 @@
    <sender>devices_list</sender>
    <signal>itemEntered(QTreeWidgetItem*,int)</signal>
    <receiver>MainWindow</receiver>
-   <slot>align_device_columns()</slot>
+   <slot>align_columns()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>22</x>
@@ -245,8 +245,72 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>tests_list</sender>
+   <signal>itemChanged(QTreeWidgetItem*,int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>align_columns()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>657</x>
+     <y>184</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>750</x>
+     <y>181</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tests_list</sender>
+   <signal>itemEntered(QTreeWidgetItem*,int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>align_columns()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>723</x>
+     <y>217</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>752</x>
+     <y>216</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tests_list</sender>
+   <signal>itemExpanded(QTreeWidgetItem*)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>align_columns()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>724</x>
+     <y>245</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>749</x>
+     <y>248</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tests_list</sender>
+   <signal>itemCollapsed(QTreeWidgetItem*)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>align_columns()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>726</x>
+     <y>279</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>749</x>
+     <y>278</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
-  <slot>align_device_columns()</slot>
+  <slot>align_columns()</slot>
  </slots>
 </ui>
