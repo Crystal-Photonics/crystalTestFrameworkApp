@@ -70,6 +70,7 @@ class EXPORT MainWindow : public QMainWindow {
 		QTreeWidgetItem *ui_item = nullptr;
 		ScriptEngine script;
 		std::vector<QString> protocols;
+		QString name;
 		bool operator ==(QTreeWidgetItem *item){
 			return item == ui_item;
 		}

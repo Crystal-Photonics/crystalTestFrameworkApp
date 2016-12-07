@@ -3,6 +3,7 @@
 
 #include <QStringList>
 #include <QTextEdit>
+#include <QColor>
 
 struct Console {
 	private:
@@ -10,8 +11,9 @@ struct Console {
 
 	public:
 	static QTextEdit *console;
-	static ConsoleProxy warning();
-	static ConsoleProxy note();
+	static ConsoleProxy warning(QTextEdit *console = nullptr);
+	static ConsoleProxy note(QTextEdit *console = nullptr);
+	static ConsoleProxy error(QTextEdit *console = nullptr);
 
 	private:
 	struct ConsoleProxy {
@@ -24,6 +26,7 @@ struct Console {
 		QTextEdit *console;
 		QStringList s;
 		QString prefix;
+		QColor color;
 	};
 };
 

@@ -137,7 +137,14 @@
          </item>
         </layout>
        </widget>
-       <widget class="QTabWidget" name="tabWidget_2"/>
+       <widget class="QTabWidget" name="test_tabs">
+        <property name="tabsClosable">
+         <bool>true</bool>
+        </property>
+        <property name="movable">
+         <bool>true</bool>
+        </property>
+       </widget>
       </widget>
      </widget>
     </item>

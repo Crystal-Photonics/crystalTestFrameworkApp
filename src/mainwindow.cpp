@@ -183,11 +183,11 @@ void MainWindow::load_scripts() {
 
 MainWindow::Test::Test(QTreeWidget *w, const QString &file_path)
 	: parent(w) {
-	auto file = QString{file_path.data() + file_path.lastIndexOf('/') + 1};
-	if (file.endsWith(".lua")) {
-		file.chop(4);
+	name = QString{file_path.data() + file_path.lastIndexOf('/') + 1};
+	if (name.endsWith(".lua")) {
+		name.chop(4);
 	}
-	ui_item = new QTreeWidgetItem(w, QStringList{} << file);
+	ui_item = new QTreeWidgetItem(w, QStringList{} << name);
 	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
 	parent->addTopLevelItem(ui_item);
 	try {
@@ -232,8 +232,8 @@ MainWindow::Test &MainWindow::Test::operator=(MainWindow::Test &&other) {
 }
 
 void MainWindow::Test::swap(MainWindow::Test &other) {
-	auto t = std::tie(this->parent, this->ui_item, this->script, this->protocols);
-	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols);
+	auto t = std::tie(this->parent, this->ui_item, this->script, this->protocols, this->name);
+	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols, other.name);
 	std::swap(t, o);
 }
 
@@ -277,6 +277,8 @@ void MainWindow::on_run_test_script_button_clicked() {
 				case 1:
 					//found the only viable option
 					{
+						auto text_edit = new QTextEdit(ui->test_tabs);
+						ui->test_tabs->addTab(text_edit, test->name);
 						auto &device = *candidates.front();
 						auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
 						if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
@@ -284,7 +286,9 @@ void MainWindow::on_run_test_script_button_clicked() {
 							try {
 								message = test->script.call<std::string>("RPC_acceptable", rpc_protocol->get_lua_device_descriptor());
 							} catch (const sol::error &e) {
-								QMessageBox::critical(this, tr("Script Error"), tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what()));
+								const auto &message = tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
+								//QMessageBox::critical(this, tr("Script Error"), message);
+								Console::error(text_edit) << message;
 								return;
 							}
 							if (message.empty()) {
@@ -294,6 +298,9 @@ void MainWindow::on_run_test_script_button_clicked() {
 								//device incompatible, reason should be inside of message
 								//test->notify(message);
 							}
+						}
+						else{
+							//TODO: handle non-RPC protocol
 						}
 					}
 					break;
