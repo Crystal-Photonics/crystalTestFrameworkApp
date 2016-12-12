@@ -16,6 +16,8 @@ class ScriptEngine {
 	void load_script(const QString &path);
 	QStringList get_string_list(const QString &name);
 	void launch_editor() const;
+	sol::table create_table();
+
 	template <class ReturnType, class... Arguments>
 	ReturnType call(const char *function_name, Arguments &&... args) {
 		sol::protected_function f = lua[function_name];

@@ -62,6 +62,9 @@
            <property name="mouseTracking">
             <bool>false</bool>
            </property>
+           <property name="contextMenuPolicy">
+            <enum>Qt::ActionsContextMenu</enum>
+           </property>
            <property name="sortingEnabled">
             <bool>true</bool>
            </property>

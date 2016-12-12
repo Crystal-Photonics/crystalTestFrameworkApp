@@ -72,10 +72,6 @@ static void set_display_data(QTreeWidgetItem *item, const Device_data &data) {
 	item->addChild(new QTreeWidgetItem(item, QStringList{} << summary));
 }
 
-sol::table RPCProtocol::get_lua_device_descriptor() const {
-	return device_data.get_lua_data();
-}
-
 QString Device_data::get_summary() const {
 	QStringList statustip;
 	for (auto &d : get_description_source()) {
@@ -86,13 +82,15 @@ QString Device_data::get_summary() const {
 	return statustip.join("\n");
 }
 
-sol::table Device_data::get_lua_data() const {
-	return {};
+void Device_data::get_lua_data(sol::table &t) const {
+	for (auto &d : get_description_source()) {
+		t.set(d.description.toStdString(), d.source.toStdString());
+	}
 }
 
 std::vector<Device_data::Description_source> Device_data::get_description_source() const {
-	return {{"Git Hash", githash},
-			{"Git Data", gitDate_unix},
+	return {{"GitHash", githash},
+			{"GitDate", gitDate_unix},
 			{"Serialnumber", serialnumber},
 			{"DeviceID", deviceID},
 			{"GUID", guid},
@@ -197,5 +195,11 @@ void RPCProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
 		set_display_data(ui_entry, data);
 	} else {
 		Console::note() << "RPC-function \"get_device_descriptor\" did not answer";
+		//TODO: add a rightclick action to resend the descriptor request
 	}
+}
+
+void RPCProtocol::get_lua_device_descriptor(sol::table &t) const
+{
+	return device_data.get_lua_data(t);
 }

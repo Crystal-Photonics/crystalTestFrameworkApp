@@ -292,20 +292,22 @@ void MainWindow::on_run_test_script_button_clicked() {
 						auto &device = *candidates.front();
 						auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
 						if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
-							std::string message;
+							sol::optional<std::string> message;
 							try {
-								message = test->script.call<std::string>("RPC_acceptable", rpc_protocol->get_lua_device_descriptor());
+								sol::table table = test->script.create_table();
+								rpc_protocol->get_lua_device_descriptor(table);
+								message = test->script.call<std::string>("RPC_acceptable", std::move(table));
 							} catch (const sol::error &e) {
 								const auto &message = tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
 								Console::error(test->console) << message;
 								return;
 							}
-							if (message.empty()) {
+							if (message) {
+								//device incompatible, reason should be inside of message
+								Console::note(test->console) << tr("Device rejected:") << message.value();
+							} else {
 								//acceptable device
 								QMessageBox::critical(this, "TODO", "TODO: implementation of accepted device");
-							} else {
-								//device incompatible, reason should be inside of message
-								Console::note(test->console) << tr("Invalid device:") << message;
 							}
 						} else {
 							assert(!"TODO: handle non-RPC protocol");

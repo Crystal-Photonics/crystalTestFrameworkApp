@@ -15,9 +15,9 @@
 void ScriptEngine::load_script(const QString &path) {
 	this->path = path;
 	try {
-		//lua.open_libraries(sol::lib::base); //load the standard lib if necessary
-		lua.set_function("show_warning", [path](const std::string &title, const std::string &message) {
-			QMessageBox::warning(nullptr, QString::fromStdString(title) + " from " + path, QString::fromStdString(message));
+		lua.open_libraries(sol::lib::base); //load the standard lib if necessary
+		lua.set_function("show_warning", [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
+			QMessageBox::warning(nullptr, QString::fromStdString(title.value_or("nil")) + " from " + path, QString::fromStdString(message.value_or("nil")));
 		});
 		lua.script_file(path.toStdString());
 	} catch (const sol::error &error) {
@@ -60,4 +60,8 @@ void ScriptEngine::launch_editor() const {
 		parameter << path;
 	}
 	QProcess::startDetached(QSettings{}.value(Globals::lua_editor_path_settings_key, R"(C:\Qt\Tools\QtCreator\bin\qtcreator.exe)").toString(), parameter);
+}
+
+sol::table ScriptEngine::create_table() {
+	return lua.create_table_with();
 }
