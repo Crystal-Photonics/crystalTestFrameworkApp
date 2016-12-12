@@ -7,6 +7,7 @@
 #include "scriptengine.h"
 #include "ui_mainwindow.h"
 
+#include <QAction>
 #include <QDebug>
 #include <QDir>
 #include <QDirIterator>
@@ -23,6 +24,26 @@
 #include <iterator>
 #include <memory>
 
+namespace GUI {
+	//ID's referring to the device
+	namespace Devices {
+		enum {
+			description,
+			protocol,
+			name,
+			current_test,
+		};
+	}
+	namespace Tests {
+		enum {
+			name,
+			protocol,
+			deviceNames,
+			connectedDevices,
+		};
+	}
+}
+
 using namespace std::chrono_literals;
 
 MainWindow::MainWindow(QWidget *parent)
@@ -33,6 +54,7 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->update_devices_list_button->click();
 	emit poll_ports();
 	load_scripts();
+	connect(ui->devices_list, &QTreeWidget::customContextMenuRequested, this, &MainWindow::devices_rightclicked);
 }
 
 MainWindow::~MainWindow() {
@@ -55,6 +77,40 @@ void MainWindow::poll_ports() {
 		}
 	}
 	QTimer::singleShot(16, this, &MainWindow::poll_ports);
+}
+
+void MainWindow::forget_device() {
+	auto selected_device_item = ui->devices_list->currentItem();
+	for (auto device_it = std::begin(comport_devices); device_it != std::end(comport_devices); ++device_it) {
+		if (device_it->ui_entry == selected_device_item) {
+			device_it = comport_devices.erase(device_it);
+			delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(selected_device_item));
+			return;
+		}
+	}
+}
+
+void MainWindow::devices_rightclicked(const QPoint &pos) {
+	auto item = ui->devices_list->itemAt(pos);
+	if (item) {
+		QAction action(tr("Forget"));
+		connect(&action, &QAction::triggered, this, &MainWindow::forget_device);
+		QMenu menu(this);
+		menu.addAction(&action);
+		menu.exec(ui->devices_list->mapToGlobal(pos));
+	} else {
+		QMenu menu(this);
+
+		QAction action_update(tr("Update device list"));
+		connect(&action_update, &QAction::triggered, ui->update_devices_list_button, &QPushButton::clicked);
+		menu.addAction(&action_update);
+
+		QAction action_detect(tr("Detect device protocols"));
+		connect(&action_detect, &QAction::triggered, ui->device_detect_button, &QPushButton::clicked);
+		menu.addAction(&action_detect);
+
+		menu.exec(ui->devices_list->mapToGlobal(pos));
+	}
 }
 
 void MainWindow::on_actionPaths_triggered() {
@@ -192,6 +248,7 @@ MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QStr
 		name.chop(4);
 	}
 	console = new QTextEdit(test_tabs);
+	console->setReadOnly(true);
 	test_tabs->addTab(console, name);
 
 	ui_item = new QTreeWidgetItem(test_list, QStringList{} << name);
@@ -208,15 +265,24 @@ MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QStr
 		std::copy(protocols.begin(), protocols.end(), std::back_inserter(this->protocols));
 		std::sort(this->protocols.begin(), this->protocols.end());
 		if (protocols.empty() == false) {
-			ui_item->setText(1, protocols.join(", "));
+			ui_item->setText(GUI::Tests::protocol, protocols.join(", "));
 		} else {
-			ui_item->setText(1, tr("None"));
+			ui_item->setText(GUI::Tests::protocol, tr("None"));
 			ui_item->setTextColor(1, Qt::darkRed);
 		}
 	} catch (const sol::error &e) {
 		Console::error(console) << tr("Failed retrieving variable \"protocols\" from %1 because %2").arg(file_path).arg(e.what());
-		ui_item->setText(1, tr("Failed getting protocols"));
-		ui_item->setTextColor(1, Qt::darkRed);
+		ui_item->setText(GUI::Tests::protocol, tr("Failed getting protocols"));
+		ui_item->setTextColor(GUI::Tests::protocol, Qt::darkRed);
+	}
+	try {
+		auto deviceNames = script.get_string_list("deviceNames");
+		if (deviceNames.isEmpty() == false){
+			ui_item->setText(GUI::Tests::deviceNames, deviceNames.join(", "));
+		}
+
+	} catch (const sol::error &e) {
+		Console::warning(console) << tr("Failed retrieving variable \"deviceNames\" from %1 because %2").arg(file_path).arg(e.what());
 	}
 }
 
@@ -296,7 +362,7 @@ void MainWindow::on_run_test_script_button_clicked() {
 							try {
 								sol::table table = test->script.create_table();
 								rpc_protocol->get_lua_device_descriptor(table);
-								message = test->script.call<std::string>("RPC_acceptable", std::move(table));
+								message = test->script.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
 							} catch (const sol::error &e) {
 								const auto &message = tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
 								Console::error(test->console) << message;

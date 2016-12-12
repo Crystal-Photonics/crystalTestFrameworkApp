@@ -34,6 +34,8 @@ class EXPORT MainWindow : public QMainWindow {
 
 	private slots:
 	void poll_ports();
+	void forget_device();
+	void devices_rightclicked(const QPoint &pos);
 	void on_actionPaths_triggered();
 	void on_device_detect_button_clicked();
 	void on_update_devices_list_button_clicked();

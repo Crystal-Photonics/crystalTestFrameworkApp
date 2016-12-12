@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>752</width>
-    <height>551</height>
+    <width>1113</width>
+    <height>599</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -63,7 +63,7 @@
             <bool>false</bool>
            </property>
            <property name="contextMenuPolicy">
-            <enum>Qt::ActionsContextMenu</enum>
+            <enum>Qt::CustomContextMenu</enum>
            </property>
            <property name="sortingEnabled">
             <bool>true</bool>
@@ -73,7 +73,7 @@
            </attribute>
            <column>
             <property name="text">
-             <string>Device</string>
+             <string>Device Name</string>
             </property>
            </column>
            <column>
@@ -84,6 +84,11 @@
            <column>
             <property name="text">
              <string>Name</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Current Test</string>
             </property>
            </column>
           </widget>
@@ -132,12 +137,22 @@
            </property>
            <column>
             <property name="text">
-             <string>Test</string>
+             <string>Test Name</string>
             </property>
            </column>
            <column>
             <property name="text">
              <string>Protocols</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Device Names</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Connected Devices</string>
             </property>
            </column>
           </widget>
@@ -186,7 +201,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>752</width>
+     <width>1113</width>
      <height>21</height>
     </rect>
    </property>

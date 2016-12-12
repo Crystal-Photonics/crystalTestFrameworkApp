@@ -196,6 +196,7 @@ void RPCProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
 	} else {
 		Console::note() << "RPC-function \"get_device_descriptor\" did not answer";
 		//TODO: add a rightclick action to resend the descriptor request
+		//ui_entry->
 	}
 }
 
