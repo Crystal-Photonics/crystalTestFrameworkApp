@@ -35,14 +35,16 @@ class EXPORT MainWindow : public QMainWindow {
 	private slots:
 	void poll_ports();
 	void forget_device();
-	void devices_rightclicked(const QPoint &pos);
+	void reload_test();
+
 	void on_actionPaths_triggered();
 	void on_device_detect_button_clicked();
 	void on_update_devices_list_button_clicked();
 	void on_tabWidget_tabCloseRequested(int index);
-	void on_tests_list_itemDoubleClicked(QTreeWidgetItem *item, int column);
 	void on_run_test_script_button_clicked();
 	void on_tests_list_itemClicked(QTreeWidgetItem *item, int column);
+	void on_tests_list_customContextMenuRequested(const QPoint &pos);
+	void on_devices_list_customContextMenuRequested(const QPoint &pos);
 
 	private:
 	void load_scripts();
@@ -75,6 +77,7 @@ class EXPORT MainWindow : public QMainWindow {
 		ScriptEngine script;
 		std::vector<QString> protocols;
 		QString name;
+		QString file_path;
 		bool operator ==(QTreeWidgetItem *item){
 			return item == ui_item;
 		}

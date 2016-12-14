@@ -54,7 +54,6 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->update_devices_list_button->click();
 	emit poll_ports();
 	load_scripts();
-	connect(ui->devices_list, &QTreeWidget::customContextMenuRequested, this, &MainWindow::devices_rightclicked);
 }
 
 MainWindow::~MainWindow() {
@@ -85,31 +84,23 @@ void MainWindow::forget_device() {
 		if (device_it->ui_entry == selected_device_item) {
 			device_it = comport_devices.erase(device_it);
 			delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(selected_device_item));
-			return;
+			break;
 		}
 	}
 }
 
-void MainWindow::devices_rightclicked(const QPoint &pos) {
-	auto item = ui->devices_list->itemAt(pos);
-	if (item) {
-		QAction action(tr("Forget"));
-		connect(&action, &QAction::triggered, this, &MainWindow::forget_device);
-		QMenu menu(this);
-		menu.addAction(&action);
-		menu.exec(ui->devices_list->mapToGlobal(pos));
-	} else {
-		QMenu menu(this);
-
-		QAction action_update(tr("Update device list"));
-		connect(&action_update, &QAction::triggered, ui->update_devices_list_button, &QPushButton::clicked);
-		menu.addAction(&action_update);
-
-		QAction action_detect(tr("Detect device protocols"));
-		connect(&action_detect, &QAction::triggered, ui->device_detect_button, &QPushButton::clicked);
-		menu.addAction(&action_detect);
-
-		menu.exec(ui->devices_list->mapToGlobal(pos));
+void MainWindow::reload_test() {
+	auto selected_test_item = ui->tests_list->currentItem();
+	QString file_path;
+	for (auto test_it = tests.begin(); test_it != tests.end(); ++test_it) {
+		if (test_it->ui_item == selected_test_item) {
+			file_path = test_it->file_path;
+			test_it = tests.erase(test_it);
+			break;
+		}
+	}
+	if (file_path.isEmpty() == false) {
+		tests.push_back({ui->tests_list, ui->test_tabs, file_path});
 	}
 }
 
@@ -232,7 +223,6 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index) {
 }
 
 void MainWindow::load_scripts() {
-	ui->tests_list->clear();
 	QDirIterator dit{QSettings{}.value(Globals::test_script_path_settings_key, "").toString(), QStringList{} << "*.lua", QDir::Files};
 	while (dit.hasNext()) {
 		const auto &file_path = dit.next();
@@ -242,7 +232,8 @@ void MainWindow::load_scripts() {
 
 MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QString &file_path)
 	: parent(test_list)
-	, test_tabs(test_tabs) {
+	, test_tabs(test_tabs)
+	, file_path(file_path) {
 	name = QString{file_path.data() + file_path.lastIndexOf('/') + 1};
 	if (name.endsWith(".lua")) {
 		name.chop(4);
@@ -277,7 +268,7 @@ MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QStr
 	}
 	try {
 		auto deviceNames = script.get_string_list("deviceNames");
-		if (deviceNames.isEmpty() == false){
+		if (deviceNames.isEmpty() == false) {
 			ui_item->setText(GUI::Tests::deviceNames, deviceNames.join(", "));
 		}
 
@@ -288,7 +279,7 @@ MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QStr
 
 MainWindow::Test::~Test() {
 	if (ui_item != nullptr) {
-		parent->removeItemWidget(ui_item, 0);
+		delete parent->takeTopLevelItem(parent->indexOfTopLevelItem(ui_item));
 	}
 }
 
@@ -303,8 +294,8 @@ MainWindow::Test &MainWindow::Test::operator=(MainWindow::Test &&other) {
 }
 
 void MainWindow::Test::swap(MainWindow::Test &other) {
-	auto t = std::tie(this->parent, this->ui_item, this->script, this->protocols, this->name, this->test_tabs, this->console);
-	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols, other.name, other.test_tabs, other.console);
+	auto t = std::tie(this->parent, this->ui_item, this->script, this->protocols, this->name, this->test_tabs, this->console, this->file_path);
+	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols, other.name, other.test_tabs, other.console, other.file_path);
 
 	std::swap(t, o);
 }
@@ -315,14 +306,6 @@ int MainWindow::Test::get_tab_id() const {
 
 void MainWindow::Test::activate_console() {
 	test_tabs->setCurrentIndex(get_tab_id());
-}
-
-void MainWindow::on_tests_list_itemDoubleClicked(QTreeWidgetItem *item, int column) {
-	for (auto &test : tests) {
-		if (test == item) {
-			test.script.launch_editor();
-		}
-	}
 }
 
 void MainWindow::on_run_test_script_button_clicked() {
@@ -392,4 +375,65 @@ void MainWindow::on_run_test_script_button_clicked() {
 void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
 	auto test = Utility::from_qvariant<MainWindow::Test>(item->data(0, Qt::UserRole));
 	test->activate_console();
+}
+
+void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
+	auto item = ui->tests_list->itemAt(pos);
+	if (item) {
+		QMenu menu(this);
+
+		QAction action_reload(tr("Reload"));
+		connect(&action_reload, &QAction::triggered, this, &MainWindow::reload_test);
+		menu.addAction(&action_reload);
+
+		QAction action_editor(tr("Open in Editor"));
+		connect(&action_editor, &QAction::triggered, [this] {
+			auto test_item = ui->tests_list->currentItem();
+			for (auto &test : tests) {
+				if (test.ui_item == test_item) {
+					test.script.launch_editor();
+					return;
+				}
+			}
+		});
+		menu.addAction(&action_editor);
+
+		menu.exec(ui->tests_list->mapToGlobal(pos));
+	} else {
+		QMenu menu(this);
+
+		QAction action(tr("Reload all scripts"));
+		connect(&action, &QAction::triggered, [this] {
+			tests.clear();
+			load_scripts();
+		});
+		menu.addAction(&action);
+
+		menu.exec(ui->tests_list->mapToGlobal(pos));
+	}
+}
+
+void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
+	auto item = ui->devices_list->itemAt(pos);
+	if (item) {
+		QMenu menu(this);
+
+		QAction action(tr("Forget"));
+		connect(&action, &QAction::triggered, this, &MainWindow::forget_device);
+		menu.addAction(&action);
+
+		menu.exec(ui->devices_list->mapToGlobal(pos));
+	} else {
+		QMenu menu(this);
+
+		QAction action_update(tr("Update device list"));
+		connect(&action_update, &QAction::triggered, ui->update_devices_list_button, &QPushButton::clicked);
+		menu.addAction(&action_update);
+
+		QAction action_detect(tr("Detect device protocols"));
+		connect(&action_detect, &QAction::triggered, ui->device_detect_button, &QPushButton::clicked);
+		menu.addAction(&action_detect);
+
+		menu.exec(ui->devices_list->mapToGlobal(pos));
+	}
 }
