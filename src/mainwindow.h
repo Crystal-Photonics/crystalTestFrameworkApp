@@ -25,6 +25,7 @@ namespace Ui {
 class EXPORT MainWindow : public QMainWindow {
     Q_OBJECT
 
+	struct ComportDescription;
 	public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
@@ -35,7 +36,7 @@ class EXPORT MainWindow : public QMainWindow {
 	private slots:
 	void poll_ports();
 	void forget_device();
-	void reload_test();
+
 
 	void on_actionPaths_triggered();
 	void on_device_detect_button_clicked();
@@ -48,6 +49,7 @@ class EXPORT MainWindow : public QMainWindow {
 
 	private:
 	void load_scripts();
+	void detect_devices(std::vector<ComportDescription *> comport_device_list);
 
 	QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;

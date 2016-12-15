@@ -89,21 +89,6 @@ void MainWindow::forget_device() {
 	}
 }
 
-void MainWindow::reload_test() {
-	auto selected_test_item = ui->tests_list->currentItem();
-	QString file_path;
-	for (auto test_it = tests.begin(); test_it != tests.end(); ++test_it) {
-		if (test_it->ui_item == selected_test_item) {
-			file_path = test_it->file_path;
-			test_it = tests.erase(test_it);
-			break;
-		}
-	}
-	if (file_path.isEmpty() == false) {
-		tests.push_back({ui->tests_list, ui->test_tabs, file_path});
-	}
-}
-
 void MainWindow::on_actionPaths_triggered() {
 	path_dialog = new PathSettingsWindow(this);
 	path_dialog->show();
@@ -127,53 +112,12 @@ static bool is_valid_baudrate(QSerialPort::BaudRate baudrate) {
 }
 
 void MainWindow::on_device_detect_button_clicked() {
-	Console::note() << "Auto-detecting protocols for devices";
-	auto device_protocol_settings_file = QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString();
-	if (device_protocol_settings_file.isEmpty()) {
-		QMessageBox::critical(
-			this, tr("Missing File"),
-			tr("Auto-Detecting devices requires a file that defines which protocols can use which file. Make such a file and add it via Settings->Paths"));
-		return;
-	}
-	QSettings device_protocol_settings{device_protocol_settings_file, QSettings::IniFormat};
-	auto rpc_devices = device_protocol_settings.value("RPC").toStringList();
-	auto check_rpc_protocols = [&](auto &device) {
-		for (auto &rpc_device : rpc_devices) {
-			if (rpc_device.startsWith("COM:") == false) {
-				continue;
-			}
-			const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(rpc_device.split(":")[1].toInt());
-			if (is_valid_baudrate(baudrate) == false) {
-				QMessageBox::critical(this, tr("Input Error"),
-									  tr(R"(Invalid baudrate %1 specified in settings file "%2".)").arg(baudrate).arg(device_protocol_settings_file));
-				continue;
-			}
-			if (device.device->connect(device.info, baudrate) == false) {
-				Console::warning() << tr("Failed opening") << device.device->getTarget();
-				return;
-			}
-			RPCProtocol protocol{*device.device};
-			if (protocol.is_correct_protocol()) {
-				protocol.set_ui_description(device.ui_entry);
-				device.protocol = std::make_unique<RPCProtocol>(std::move(protocol));
-
-			} else {
-				device.device->close();
-			}
-		}
-		//TODO: Add non-rpc device discovery here
-	};
+	std::vector<ComportDescription *> v;
+	v.reserve(comport_devices.size());
 	for (auto &device : comport_devices) {
-		for (auto &protocol_check_function : {check_rpc_protocols}) {
-			if (device.device->isConnected()) {
-				break;
-			}
-			protocol_check_function(device);
-		}
-		if (device.device->isConnected() == false) { //out of protocols and still not connected
-			Console::note() << tr("No protocol found for %1").arg(device.device->getTarget());
-		}
+		v.push_back(&device);
 	}
+	detect_devices(v);
 }
 
 void MainWindow::on_update_devices_list_button_clicked() {
@@ -227,6 +171,55 @@ void MainWindow::load_scripts() {
 	while (dit.hasNext()) {
 		const auto &file_path = dit.next();
 		tests.push_back({ui->tests_list, ui->test_tabs, file_path});
+	}
+}
+
+void MainWindow::detect_devices(std::vector<MainWindow::ComportDescription *> comport_device_list) {
+	auto device_protocol_settings_file = QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString();
+	if (device_protocol_settings_file.isEmpty()) {
+		QMessageBox::critical(
+			this, tr("Missing File"),
+			tr("Auto-Detecting devices requires a file that defines which protocols can use which file. Make such a file and add it via Settings->Paths"));
+		return;
+	}
+	QSettings device_protocol_settings{device_protocol_settings_file, QSettings::IniFormat};
+	auto rpc_devices = device_protocol_settings.value("RPC").toStringList();
+	auto check_rpc_protocols = [&](auto &device) {
+		for (auto &rpc_device : rpc_devices) {
+			if (rpc_device.startsWith("COM:") == false) {
+				continue;
+			}
+			const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(rpc_device.split(":")[1].toInt());
+			if (is_valid_baudrate(baudrate) == false) {
+				QMessageBox::critical(this, tr("Input Error"),
+									  tr(R"(Invalid baudrate %1 specified in settings file "%2".)").arg(baudrate).arg(device_protocol_settings_file));
+				continue;
+			}
+			if (device.device->connect(device.info, baudrate) == false) {
+				Console::warning() << tr("Failed opening") << device.device->getTarget();
+				return;
+			}
+			RPCProtocol protocol{*device.device};
+			if (protocol.is_correct_protocol()) {
+				protocol.set_ui_description(device.ui_entry);
+				device.protocol = std::make_unique<RPCProtocol>(std::move(protocol));
+
+			} else {
+				device.device->close();
+			}
+		}
+		//TODO: Add non-rpc device discovery here
+	};
+	for (auto &device : comport_device_list) {
+		for (auto &protocol_check_function : {check_rpc_protocols}) {
+			if (device->device->isConnected()) {
+				break;
+			}
+			protocol_check_function(*device);
+		}
+		if (device->device->isConnected() == false) { //out of protocols and still not connected
+			Console::note() << tr("No protocol found for %1").arg(device->device->getTarget());
+		}
 	}
 }
 
@@ -318,9 +311,9 @@ void MainWindow::on_run_test_script_button_clicked() {
 		if (test->protocols.empty()) {
 			Console::error(test->console) << tr("The selected script \"%1\" cannot be run, because it did not report the required devices.").arg(test->name);
 		}
-		for (const auto &protocol : test->protocols) {
-			std::vector<const ComportDescription *> candidates;
-			for (const auto &device : comport_devices) { //TODO: do not only loop over comport_devices, but other devices as well
+		for (auto &protocol : test->protocols) {
+			std::vector<ComportDescription *> candidates;
+			for (auto &device : comport_devices) { //TODO: do not only loop over comport_devices, but other devices as well
 				if (device.protocol == nullptr) {
 					continue;
 				}
@@ -356,7 +349,11 @@ void MainWindow::on_run_test_script_button_clicked() {
 								Console::note(test->console) << tr("Device rejected:") << message.value();
 							} else {
 								//acceptable device
-								QMessageBox::critical(this, "TODO", "TODO: implementation of accepted device");
+								try {
+									test->script.run({{*device.device, *device.protocol}});
+								} catch (const sol::error &e) {
+									Console::error(test->console) << e.what();
+								}
 							}
 						} else {
 							assert(!"TODO: handle non-RPC protocol");
@@ -383,7 +380,20 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 		QMenu menu(this);
 
 		QAction action_reload(tr("Reload"));
-		connect(&action_reload, &QAction::triggered, this, &MainWindow::reload_test);
+		connect(&action_reload, &QAction::triggered, [this] {
+			auto selected_test_item = ui->tests_list->currentItem();
+			QString file_path;
+			for (auto test_it = tests.begin(); test_it != tests.end(); ++test_it) {
+				if (test_it->ui_item == selected_test_item) {
+					file_path = test_it->file_path;
+					test_it = tests.erase(test_it);
+					break;
+				}
+			}
+			if (file_path.isEmpty() == false) {
+				tests.push_back({ui->tests_list, ui->test_tabs, file_path});
+			}
+		});
 		menu.addAction(&action_reload);
 
 		QAction action_editor(tr("Open in Editor"));
@@ -397,6 +407,10 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 			}
 		});
 		menu.addAction(&action_editor);
+
+		QAction action_run(tr("Run"));
+		connect(&action_run, &QAction::triggered, [this] { emit on_run_test_script_button_clicked(); });
+		menu.addAction(&action_run);
 
 		menu.exec(ui->tests_list->mapToGlobal(pos));
 	} else {
@@ -418,9 +432,20 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 	if (item) {
 		QMenu menu(this);
 
-		QAction action(tr("Forget"));
-		connect(&action, &QAction::triggered, this, &MainWindow::forget_device);
-		menu.addAction(&action);
+		QAction action_forget(tr("Forget"));
+		connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
+		menu.addAction(&action_forget);
+
+		QAction action_detect(tr("Detect"));
+		connect(&action_detect, &QAction::triggered, [this, item] {
+			for (auto &device : comport_devices) {
+				if (device.ui_entry == item) {
+					detect_devices({&device});
+					break;
+				}
+			}
+		});
+		menu.addAction(&action_detect);
 
 		menu.exec(ui->devices_list->mapToGlobal(pos));
 	} else {
