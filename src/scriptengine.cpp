@@ -2,6 +2,7 @@
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
 #include "console.h"
+#include "rpcruntime_encoded_function_call.h"
 #include "util.h"
 
 #include <QDebug>
@@ -69,30 +70,36 @@ sol::table ScriptEngine::create_table() {
 }
 
 struct RPCDevice {
-	sol::object operator()(const std::string &name, sol::variadic_args va) {
+	sol::object call_rpc_function(const std::string &name, sol::variadic_args va) {
+		Console::note() << QString("RPC Device got called with function \"%1\" and %2 arguments").arg(name.c_str()).arg(va.leftover_count());
+		auto function = protocol->encode_function(name);
+		//TODO: put arguments from va into function
+		if (function.are_all_values_set()) {
+			//TODO: call function
+		} else {
+			//not all values set, error
+			throw sol::error("Failed calling function, missing parameters");
+		}
 		//return sol::make_object(lua, 42);
 		return sol::nil;
 	}
-	lua_State *lua = nullptr;
+	sol::state *lua = nullptr;
+	RPCProtocol *protocol = nullptr;
 };
 
 void ScriptEngine::run(std::list<DeviceProtocol> device_protocols) {
 	try {
-		std::vector<std::function<sol::object(const std::string &name, sol::variadic_args va)>> device_callback;
 		auto device_list = lua.create_table_with();
 		for (auto &device_protocol : device_protocols) {
 			if (auto rpcp = dynamic_cast<RPCProtocol *>(&device_protocol.protocol)) {
-				device_callback.push_back(RPCDevice{lua.lua_state()});
-				auto type = lua.create_simple_usertype<RPCDevice>();
-				const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
-				lua.set_usertype(type_name, type);
+				device_list.add(RPCDevice{&lua, rpcp});
+				auto type_reg = lua.create_simple_usertype<RPCDevice>();
 				for (auto &function : rpcp->get_description().get_functions()) {
 					const auto &function_name = function.get_function_name();
-					lua[type_name][function_name] = [ function_name, &device = device_callback.back() ](RPCDevice &self, sol::variadic_args va) {
-						device(function_name, va);
-					};
+					type_reg.set(function_name, [function_name](RPCDevice &device, sol::variadic_args va) { device.call_rpc_function(function_name, va); });
 				}
-				//TODO: create an object of type type and add it to device_list
+				const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
+				lua.set_usertype(type_name, type_reg);
 			} else {
 				//TODO: other protocols
 				throw std::runtime_error("invalid protocol: " + device_protocol.protocol.type.toStdString());

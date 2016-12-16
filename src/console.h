@@ -5,6 +5,7 @@
 #include <QStringList>
 #include <QTextEdit>
 #include <string>
+#include <sstream>
 
 struct Console {
 	private:
