@@ -130,6 +130,8 @@ RPCProtocol::RPCProtocol(RPCProtocol &&other)
 		cc.add_data(reinterpret_cast<const unsigned char *>(data.data()), data.size());
 	});
 	assert(connection);
+	decoder.set_description(description);
+	encoder.set_description(description);
 }
 
 bool RPCProtocol::is_correct_protocol() {
