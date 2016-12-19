@@ -231,9 +231,11 @@ MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QStr
 	if (name.endsWith(".lua")) {
 		name.chop(4);
 	}
-	console = new QTextEdit(test_tabs);
+	auto splitter = new QSplitter(Qt::Vertical, test_tabs);
+	console = new QTextEdit(splitter);
 	console->setReadOnly(true);
-	test_tabs->addTab(console, name);
+	splitter->addWidget(console);
+	test_tabs->addTab(splitter, name);
 
 	ui_item = new QTreeWidgetItem(test_list, QStringList{} << name);
 	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
@@ -264,7 +266,6 @@ MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QStr
 		if (deviceNames.isEmpty() == false) {
 			ui_item->setText(GUI::Tests::deviceNames, deviceNames.join(", "));
 		}
-
 	} catch (const sol::error &e) {
 		Console::warning(console) << tr("Failed retrieving variable \"deviceNames\" from %1 because %2").arg(file_path).arg(e.what());
 	}
@@ -273,6 +274,9 @@ MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QStr
 MainWindow::Test::~Test() {
 	if (ui_item != nullptr) {
 		delete parent->takeTopLevelItem(parent->indexOfTopLevelItem(ui_item));
+	}
+	if (console != nullptr) {
+		test_tabs->removeTab(test_tabs->indexOf(console));
 	}
 }
 
