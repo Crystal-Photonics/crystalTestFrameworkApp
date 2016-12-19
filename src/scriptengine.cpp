@@ -70,6 +70,28 @@ sol::table ScriptEngine::create_table() {
 	return lua.create_table_with();
 }
 
+static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedParam &param, sol::state &lua) {
+	switch (param.get_desciption()->get_type()) {
+		case RPCRuntimeParameterDescription::Type::array: {
+			auto array = param.as_array();
+			if (array.size() == 1) {
+				return create_lua_object_from_RPC_answer(array.front(), lua);
+			}
+			return sol::make_object(lua.lua_state(), "TODO: Parse return value of type array");
+		}
+		case RPCRuntimeParameterDescription::Type::character:
+			return sol::make_object(lua.lua_state(), "TODO: Parse return value of type character");
+		case RPCRuntimeParameterDescription::Type::enumeration:
+			return sol::make_object(lua.lua_state(), "TODO: Parse return value of type enumeration");
+		case RPCRuntimeParameterDescription::Type::structure:
+			return sol::make_object(lua.lua_state(), "TODO: Parse return value of type structure");
+		case RPCRuntimeParameterDescription::Type::integer:
+			return sol::make_object(lua.lua_state(), param.as_integer());
+	}
+	assert("Invalid type of RPCRuntimeParameterDescription");
+	return sol::nil;
+}
+
 struct RPCDevice {
 	sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
 		Console::note() << QString("RPC Device got called with function \"%1\" and %2 arguments").arg(name.c_str()).arg(va.leftover_count());
@@ -86,24 +108,17 @@ struct RPCDevice {
 		if (function.are_all_values_set()) {
 			//TODO: call function and return return value
 			auto result = protocol->call_and_wait(function);
+
 			if (result) {
 				try {
 					auto output_params = result->get_decoded_parameters();
 					if (output_params.empty()) {
 						return sol::nil;
 					} else if (output_params.size() == 1) {
-						switch (output_params.front().get_desciption()->get_type()) {
-							case RPCRuntimeParameterDescription::Type::array:
-							case RPCRuntimeParameterDescription::Type::character:
-							case RPCRuntimeParameterDescription::Type::enumeration:
-							case RPCRuntimeParameterDescription::Type::structure:;
-								return sol::make_object(lua->lua_state(), "TODO");
-							case RPCRuntimeParameterDescription::Type::integer:
-								return sol::make_object(lua->lua_state(), output_params.front().as_integer());
-						}
+						return create_lua_object_from_RPC_answer(output_params.front(), *lua);
 					}
 					//else: multiple variables, need to make a table
-					return sol::make_object(lua->lua_state(), "TODO");
+					return sol::make_object(lua->lua_state(), "TODO: Parse multiple return values");
 				} catch (const sol::error &e) {
 					Console::error() << e.what();
 					throw;

@@ -43,7 +43,7 @@ class RPCProtocol : public Protocol {
 	RPCProtocol(CommunicationDevice &device);
 	~RPCProtocol();
 	RPCProtocol(const RPCProtocol &) = delete;
-	RPCProtocol(RPCProtocol &&other);
+	RPCProtocol(RPCProtocol &&other) = delete;
 	bool is_correct_protocol();
 	std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call,
 																 CommunicationDevice::Duration duration = std::chrono::seconds{1});

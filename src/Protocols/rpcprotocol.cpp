@@ -117,23 +117,6 @@ RPCProtocol::~RPCProtocol() {
 	assert(result);
 }
 
-RPCProtocol::RPCProtocol(RPCProtocol &&other)
-	: Protocol{"RPC"}
-	, description(std::move(other.description))
-	, decoder(std::move(other.decoder))
-	, encoder(std::move(other.encoder))
-	, channel_codec(std::move(other.channel_codec))
-	, descriptor_answer(std::move(other.descriptor_answer))
-	, device(other.device)
-	, device_data(std::move(other.device_data)) {
-	connection = QObject::connect(device, &CommunicationDevice::received, [&cc = channel_codec](const QByteArray &data) {
-		cc.add_data(reinterpret_cast<const unsigned char *>(data.data()), data.size());
-	});
-	assert(connection);
-	decoder.set_description(description);
-	encoder.set_description(description);
-}
-
 bool RPCProtocol::is_correct_protocol() {
 	auto result = call_and_wait(encoder.encode(0));
 	if (result) {

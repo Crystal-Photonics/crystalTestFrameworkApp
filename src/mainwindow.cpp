@@ -199,10 +199,10 @@ void MainWindow::detect_devices(std::vector<MainWindow::ComportDescription *> co
 				Console::warning() << tr("Failed opening") << device.device->getTarget();
 				return;
 			}
-			RPCProtocol protocol{*device.device};
-			if (protocol.is_correct_protocol()) {
-				protocol.set_ui_description(device.ui_entry);
-				device.protocol = std::make_unique<RPCProtocol>(std::move(protocol));
+			auto protocol = std::make_unique<RPCProtocol>(*device.device);
+			if (protocol->is_correct_protocol()) {
+				protocol->set_ui_description(device.ui_entry);
+				device.protocol = std::move(protocol);
 
 			} else {
 				device.device->close();
