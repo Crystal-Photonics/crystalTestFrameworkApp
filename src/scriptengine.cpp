@@ -16,7 +16,11 @@
 #include <string>
 #include <vector>
 
+ScriptEngine::ScriptEngine(LuaUI lua_ui)
+	: lua_ui(std::move(lua_ui)) {}
+
 void ScriptEngine::load_script(const QString &path) {
+	//NOTE: When using lambdas do not capture this or by reference, because it breaks when the ScriptEngine is moved
 	this->path = path;
 	try {
 		lua.open_libraries(sol::lib::base); //load the standard lib if necessary
@@ -24,6 +28,18 @@ void ScriptEngine::load_script(const QString &path) {
 			QMessageBox::warning(nullptr, QString::fromStdString(title.value_or("nil")) + " from " + path, QString::fromStdString(message.value_or("nil")));
 		});
 		lua.script_file(path.toStdString());
+
+		//bind UI
+		auto ui_table = lua.create_named_table("ui");
+		ui_table.new_usertype<LuaUI::Plot>("plot", //
+										   sol::meta_function::construct, sol::no_constructor, sol::meta_function::construct,
+										   [lua_ui = this->lua_ui]() mutable { return lua_ui.create_plot(); }, //
+										   "add", &LuaUI::Plot::add,                                           //
+										   "clear", &LuaUI::Plot::clear);
+		ui_table["create_table"] = [lua_ui = this->lua_ui]() mutable {
+			lua_ui.create_plot();
+		};
+
 	} catch (const sol::error &error) {
 		set_error(error);
 		throw;

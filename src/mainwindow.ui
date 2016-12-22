@@ -112,6 +112,9 @@
          <layout class="QHBoxLayout" name="horizontalLayout_2">
           <item>
            <widget class="QTextEdit" name="console_edit">
+            <property name="lineWrapMode">
+             <enum>QTextEdit::NoWrap</enum>
+            </property>
             <property name="readOnly">
              <bool>true</bool>
             </property>

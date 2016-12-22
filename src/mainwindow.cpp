@@ -226,12 +226,13 @@ void MainWindow::detect_devices(std::vector<MainWindow::ComportDescription *> co
 MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QString &file_path)
 	: parent(test_list)
 	, test_tabs(test_tabs)
+	, splitter(new QSplitter(Qt::Vertical, test_tabs))
+	, script(splitter)
 	, file_path(file_path) {
 	name = QString{file_path.data() + file_path.lastIndexOf('/') + 1};
 	if (name.endsWith(".lua")) {
 		name.chop(4);
 	}
-	auto splitter = new QSplitter(Qt::Vertical, test_tabs);
 	console = new QTextEdit(splitter);
 	console->setReadOnly(true);
 	splitter->addWidget(console);
@@ -280,7 +281,8 @@ MainWindow::Test::~Test() {
 	}
 }
 
-MainWindow::Test::Test(MainWindow::Test &&other) {
+MainWindow::Test::Test(MainWindow::Test &&other)
+	: script(nullptr) {
 	swap(other);
 	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
 }
@@ -295,6 +297,10 @@ void MainWindow::Test::swap(MainWindow::Test &other) {
 	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols, other.name, other.test_tabs, other.console, other.file_path);
 
 	std::swap(t, o);
+}
+
+bool MainWindow::Test::operator==(QTreeWidgetItem *item) {
+	return item == ui_item;
 }
 
 int MainWindow::Test::get_tab_id() const {

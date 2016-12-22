@@ -2,18 +2,18 @@
 #define MAINWINDOW_H
 
 #include "CommunicationDevices/comportcommunicationdevice.h"
+#include "Protocols/protocol.h"
 #include "export.h"
 #include "scriptengine.h"
-#include "Protocols/protocol.h"
 
 #include <QMainWindow>
 #include <QString>
+#include <QTextEdit>
 #include <QtSerialPort/QSerialPortInfo>
+#include <list>
 #include <memory>
 #include <set>
 #include <vector>
-#include <list>
-#include <QTextEdit>
 
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -26,6 +26,7 @@ class EXPORT MainWindow : public QMainWindow {
     Q_OBJECT
 
 	struct ComportDescription;
+
 	public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
@@ -36,7 +37,6 @@ class EXPORT MainWindow : public QMainWindow {
 	private slots:
 	void poll_ports();
 	void forget_device();
-
 
 	void on_actionPaths_triggered();
 	void on_device_detect_button_clicked();
@@ -76,13 +76,12 @@ class EXPORT MainWindow : public QMainWindow {
 		QTreeWidgetItem *ui_item = nullptr;
 		QTabWidget *test_tabs = nullptr;
 		QTextEdit *console = nullptr;
+		QSplitter *splitter = nullptr;
 		ScriptEngine script;
 		std::vector<QString> protocols;
 		QString name;
 		QString file_path;
-		bool operator ==(QTreeWidgetItem *item){
-			return item == ui_item;
-		}
+		bool operator==(QTreeWidgetItem *item);
 		int get_tab_id() const;
 		void activate_console();
 	};
