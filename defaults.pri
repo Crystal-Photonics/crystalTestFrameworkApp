@@ -10,6 +10,12 @@ INCLUDEPATH += $$PWD/libs/luasol/include
 LIBS += -L$$PWD/libs/luasol
 LIBS += -llua53
 
+QWT_DIR = $$PWD/libs/qwt
+INCLUDEPATH += $$QWT_DIR/include
+LIBS += -L$$QWT_DIR/lib
+Debug:LIBS += -lqwtd
+Release:LIBS += -lqwt
+
 DEFINES += SOL_CHECK_ARGUMENTS
 
 QPROTOCOL_INTERPRETER_PATH=$$PWD/libs/qRPCRuntimeParser
