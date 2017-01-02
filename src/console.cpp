@@ -18,6 +18,11 @@ Console::ConsoleProxy Console::error(QTextEdit *console)
 	return {console ? console : Console::console, {}, "Error", Qt::darkRed};
 }
 
+Console::ConsoleProxy Console::debug(QTextEdit *console)
+{
+	return {console ? console : Console::console, {}, "Debug", Qt::darkGreen};
+}
+
 Console::ConsoleProxy::~ConsoleProxy() {
 	if (s.isEmpty()) {
 		return;

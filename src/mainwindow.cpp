@@ -223,6 +223,20 @@ void MainWindow::detect_devices(std::vector<MainWindow::ComportDescription *> co
 	}
 }
 
+MainWindow::Test *MainWindow::get_test_from_ui()
+{
+	auto item = ui->tests_list->currentItem();
+	if (item == nullptr){
+		return nullptr;
+	}
+	for (auto &test : tests){
+		if (test.ui_item == item){
+			return &test;
+		}
+	}
+	return nullptr;
+}
+
 MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QString &file_path)
 	: parent(test_list)
 	, test_tabs(test_tabs)
@@ -471,4 +485,13 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 
 		menu.exec(ui->devices_list->mapToGlobal(pos));
 	}
+}
+
+void MainWindow::on_debug_print_channel_codec_state_clicked()
+{
+	auto test = get_test_from_ui();
+	if (!test){
+		return;
+	}
+	Console::debug(test->console) << "Debug";
 }

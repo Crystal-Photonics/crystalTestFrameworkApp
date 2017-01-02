@@ -110,7 +110,7 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
 
 struct RPCDevice {
 	sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
-		Console::note() << QString("RPC Device got called with function \"%1\" and %2 arguments").arg(name.c_str()).arg(va.leftover_count());
+		//Console::note() << QString("RPC Device got called with function \"%1\" and %2 arguments").arg(name.c_str()).arg(va.leftover_count());
 		auto function = protocol->encode_function(name);
 		int param_count = 0;
 		for (auto &arg : va) {

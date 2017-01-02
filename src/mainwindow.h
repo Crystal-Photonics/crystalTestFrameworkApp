@@ -47,6 +47,8 @@ class EXPORT MainWindow : public QMainWindow {
 	void on_tests_list_customContextMenuRequested(const QPoint &pos);
 	void on_devices_list_customContextMenuRequested(const QPoint &pos);
 
+	void on_debug_print_channel_codec_state_clicked();
+
 	private:
 	void load_scripts();
 	void detect_devices(std::vector<ComportDescription *> comport_device_list);
@@ -86,6 +88,7 @@ class EXPORT MainWindow : public QMainWindow {
 		void activate_console();
 	};
 	std::list<Test> tests;
+	Test *get_test_from_ui();
 };
 
 #endif // MAINWINDOW_H
