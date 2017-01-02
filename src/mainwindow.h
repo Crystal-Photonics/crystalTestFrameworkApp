@@ -37,6 +37,7 @@ class EXPORT MainWindow : public QMainWindow {
 	private slots:
 	void poll_ports();
 	void forget_device();
+	void debug_channel_codec_state(std::list<DeviceProtocol> &protocols);
 
 	void on_actionPaths_triggered();
 	void on_device_detect_button_clicked();
@@ -46,8 +47,6 @@ class EXPORT MainWindow : public QMainWindow {
 	void on_tests_list_itemClicked(QTreeWidgetItem *item, int column);
 	void on_tests_list_customContextMenuRequested(const QPoint &pos);
 	void on_devices_list_customContextMenuRequested(const QPoint &pos);
-
-	void on_debug_print_channel_codec_state_clicked();
 
 	private:
 	void load_scripts();

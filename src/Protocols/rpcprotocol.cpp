@@ -192,3 +192,8 @@ void RPCProtocol::get_lua_device_descriptor(sol::table &t) const {
 RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const std::string &name) const {
 	return encoder.encode(name);
 }
+
+const channel_codec_instance_t *RPCProtocol::debug_get_channel_codec_instance() const
+{
+	return channel_codec.debug_get_instance();
+}

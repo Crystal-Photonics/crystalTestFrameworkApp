@@ -14,6 +14,7 @@
 #include <QStringList>
 #include <list>
 #include <memory>
+#include <functional>
 
 struct DeviceProtocol {
 	CommunicationDevice &device;
@@ -27,7 +28,7 @@ class ScriptEngine {
 	QStringList get_string_list(const QString &name);
 	void launch_editor() const;
 	sol::table create_table();
-	void run(std::list<DeviceProtocol> device_protocols);
+	void run(std::list<DeviceProtocol> device_protocols, std::function<void(std::list<DeviceProtocol> &)> debug_callback = [](std::list<DeviceProtocol> &){});
 	template <class ReturnType, class... Arguments>
 	ReturnType call(const char *function_name, Arguments &&... args);
 

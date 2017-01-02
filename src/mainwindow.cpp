@@ -8,6 +8,7 @@
 #include "ui_mainwindow.h"
 
 #include <QAction>
+#include <QByteArray>
 #include <QDebug>
 #include <QDir>
 #include <QDirIterator>
@@ -223,14 +224,13 @@ void MainWindow::detect_devices(std::vector<MainWindow::ComportDescription *> co
 	}
 }
 
-MainWindow::Test *MainWindow::get_test_from_ui()
-{
+MainWindow::Test *MainWindow::get_test_from_ui() {
 	auto item = ui->tests_list->currentItem();
-	if (item == nullptr){
+	if (item == nullptr) {
 		return nullptr;
 	}
-	for (auto &test : tests){
-		if (test.ui_item == item){
+	for (auto &test : tests) {
+		if (test.ui_item == item) {
 			return &test;
 		}
 	}
@@ -374,7 +374,8 @@ void MainWindow::on_run_test_script_button_clicked() {
 							} else {
 								//acceptable device
 								try {
-									test->script.run({{*device.device, *device.protocol}});
+									test->script.run({{*device.device, *device.protocol}},
+													 [this](std::list<DeviceProtocol> &protocols) { debug_channel_codec_state(protocols); });
 								} catch (const sol::error &e) {
 									Console::error(test->console) << e.what();
 								}
@@ -421,15 +422,7 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 		menu.addAction(&action_reload);
 
 		QAction action_editor(tr("Open in Editor"));
-		connect(&action_editor, &QAction::triggered, [this] {
-			auto test_item = ui->tests_list->currentItem();
-			for (auto &test : tests) {
-				if (test.ui_item == test_item) {
-					test.script.launch_editor();
-					return;
-				}
-			}
-		});
+		connect(&action_editor, &QAction::triggered, [this] { get_test_from_ui()->script.launch_editor(); });
 		menu.addAction(&action_editor);
 
 		QAction action_run(tr("Run"));
@@ -487,11 +480,35 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 	}
 }
 
-void MainWindow::on_debug_print_channel_codec_state_clicked()
-{
+void MainWindow::debug_channel_codec_state(std::list<DeviceProtocol> &protocols) {
 	auto test = get_test_from_ui();
-	if (!test){
+	if (test == nullptr) {
+		Console::debug() << "Invalid Test";
 		return;
 	}
-	Console::debug(test->console) << "Debug";
+	if (protocols.size() != 1) {
+		Console::debug(test->console) << "Expected 1 protocol, but got" << protocols.size();
+		return;
+	}
+	auto rpc_protocol = dynamic_cast<const RPCProtocol *>(&protocols.front().protocol);
+	if (rpc_protocol == nullptr) {
+		Console::debug(test->console) << "Test is not using RPC Protocol";
+		return;
+	}
+	auto instance = rpc_protocol->debug_get_channel_codec_instance();
+	if (instance == nullptr) {
+		Console::debug(test->console) << "RPC Channel Codec Instance is null";
+		return;
+	}
+	if (instance->i.initialized == false) {
+		Console::debug(test->console) << "RPC Channel Codec Instance is not initialized";
+		return;
+	}
+	auto &rx = instance->i.rxState;
+	Console::debug(test->console) << "State:" << instance->i.ccChannelState                        //
+								  << ',' << "rxBitmask:" << static_cast<int>(rx.bitmask)           //
+								  << ',' << "Buffer Length:" << rx.bufferLength                    //
+								  << ',' << "Index in Block:" << static_cast<int>(rx.indexInBlock) //
+								  << ',' << "Write Pointer:" << rx.writePointer                    //
+								  << ',' << "Buffer: " << QByteArray(rx.buffer).toPercentEncoding(" :\t\\\n!\"§$%&/()=+-*").toStdString();
 }

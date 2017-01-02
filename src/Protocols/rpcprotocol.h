@@ -52,6 +52,7 @@ class RPCProtocol : public Protocol {
 	RPCProtocol &operator=(const RPCProtocol &&) = delete;
 	void get_lua_device_descriptor(sol::table &t) const;
 	RPCRuntimeEncodedFunctionCall encode_function(const std::string &name) const;
+	const channel_codec_instance_t *debug_get_channel_codec_instance() const;
 
 	private:
 	RPCRunTimeProtocolDescription description;

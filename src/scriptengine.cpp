@@ -150,7 +150,8 @@ struct RPCDevice {
 	CommunicationDevice *device = nullptr;
 };
 
-void ScriptEngine::run(std::list<DeviceProtocol> device_protocols) {
+void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function<void (std::list<DeviceProtocol> &)> debug_callback)
+{
 	try {
 		auto device_list = lua.create_table_with();
 		for (auto &device_protocol : device_protocols) {
@@ -171,6 +172,7 @@ void ScriptEngine::run(std::list<DeviceProtocol> device_protocols) {
 		}
 		lua["run"](device_list);
 	} catch (const sol::error &e) {
+		debug_callback(device_protocols);
 		set_error(e);
 		throw;
 	}
