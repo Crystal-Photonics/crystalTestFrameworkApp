@@ -318,7 +318,7 @@ bool MainWindow::Test::operator==(QTreeWidgetItem *item) {
 }
 
 int MainWindow::Test::get_tab_id() const {
-	return test_tabs->indexOf(console);
+	return test_tabs->indexOf(static_cast<QWidget *>(console->parent()));
 }
 
 void MainWindow::Test::activate_console() {
@@ -402,6 +402,8 @@ void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
 void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 	auto item = ui->tests_list->itemAt(pos);
 	if (item) {
+		get_test_from_ui()->activate_console();
+
 		QMenu menu(this);
 
 		QAction action_reload(tr("Reload"));
