@@ -406,6 +406,10 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 
 		QMenu menu(this);
 
+		QAction action_run(tr("Run"));
+		connect(&action_run, &QAction::triggered, [this] { emit on_run_test_script_button_clicked(); });
+		menu.addAction(&action_run);
+
 		QAction action_reload(tr("Reload"));
 		connect(&action_reload, &QAction::triggered, [this] {
 			auto selected_test_item = ui->tests_list->currentItem();
@@ -427,10 +431,6 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 		connect(&action_editor, &QAction::triggered, [this] { get_test_from_ui()->script.launch_editor(); });
 		menu.addAction(&action_editor);
 
-		QAction action_run(tr("Run"));
-		connect(&action_run, &QAction::triggered, [this] { emit on_run_test_script_button_clicked(); });
-		menu.addAction(&action_run);
-
 		menu.exec(ui->tests_list->mapToGlobal(pos));
 	} else {
 		QMenu menu(this);
@@ -451,10 +451,6 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 	if (item) {
 		QMenu menu(this);
 
-		QAction action_forget(tr("Forget"));
-		connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
-		menu.addAction(&action_forget);
-
 		QAction action_detect(tr("Detect"));
 		connect(&action_detect, &QAction::triggered, [this, item] {
 			for (auto &device : comport_devices) {
@@ -465,6 +461,10 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 			}
 		});
 		menu.addAction(&action_detect);
+
+		QAction action_forget(tr("Forget"));
+		connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
+		menu.addAction(&action_forget);
 
 		menu.exec(ui->devices_list->mapToGlobal(pos));
 	} else {

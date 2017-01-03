@@ -20,14 +20,19 @@ bool ComportCommunicationDevice::connect(const QSerialPortInfo &portinfo, QSeria
 bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes) {
 	auto now = std::chrono::high_resolution_clock::now();
 	int received_bytes = 0;
-	do {
+	auto try_read = [this, &received_bytes] {
 		QApplication::processEvents();
 		auto result = port.readAll();
 		if (result.isEmpty() == false) {
 			emit received(result);
 			received_bytes += result.size();
 		}
+	};
+	do {
+		try_read();
 	} while (received_bytes < bytes && std::chrono::high_resolution_clock::now() - now < timeout);
+	try_read();
+	QApplication::processEvents();
 	return received_bytes >= bytes;
 }
 
