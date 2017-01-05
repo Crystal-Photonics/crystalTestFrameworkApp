@@ -1,25 +1,23 @@
 #include "console.h"
+#include "util.h"
 
 #include <QTime>
 
-QTextEdit *Console::console = nullptr;
+QPlainTextEdit *Console::console = nullptr;
 
-Console::ConsoleProxy Console::warning(QTextEdit *console) {
+Console::ConsoleProxy Console::warning(QPlainTextEdit *console) {
 	return {console ? console : Console::console, {}, "Warning", Qt::darkYellow};
 }
 
-Console::ConsoleProxy Console::note(QTextEdit *console)
-{
+Console::ConsoleProxy Console::note(QPlainTextEdit *console) {
 	return {console ? console : Console::console, {}, "Note", Qt::black};
 }
 
-Console::ConsoleProxy Console::error(QTextEdit *console)
-{
+Console::ConsoleProxy Console::error(QPlainTextEdit *console) {
 	return {console ? console : Console::console, {}, "Error", Qt::darkRed};
 }
 
-Console::ConsoleProxy Console::debug(QTextEdit *console)
-{
+Console::ConsoleProxy Console::debug(QPlainTextEdit *console) {
 	return {console ? console : Console::console, {}, "Debug", Qt::darkGreen};
 }
 
@@ -27,6 +25,6 @@ Console::ConsoleProxy::~ConsoleProxy() {
 	if (s.isEmpty()) {
 		return;
 	}
-	console->setTextColor(color);
-	console->append(QTime::currentTime().toString(Qt::ISODate) + ": " + prefix + ": " + s.join(" "));
+	console->appendHtml("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" + QTime::currentTime().toString(Qt::ISODate) + ": " + prefix +
+						": " + Utility::to_human_readable_binary_data(s.join(" ")) + "</plaintext></font>\n");
 }

@@ -6,6 +6,7 @@
 #include "qt_util.h"
 #include "scriptengine.h"
 #include "ui_mainwindow.h"
+#include "util.h"
 
 #include <QAction>
 #include <QByteArray>
@@ -13,6 +14,7 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QGroupBox>
+#include <QListView>
 #include <QMessageBox>
 #include <QSettings>
 #include <QStringList>
@@ -134,26 +136,24 @@ void MainWindow::on_update_devices_list_button_clicked() {
 		ui->devices_list->addTopLevelItem(item.release());
 		align_columns();
 
-		auto tab = new QTextEdit(ui->tabWidget);
+		auto tab = new QPlainTextEdit(ui->tabWidget);
+		tab->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
 		tab->setReadOnly(true);
 		ui->tabWidget->addTab(tab, port.portName() + " " + port.description());
-		static const auto percent_encoding_include = " :\t\\\n!\"§$%&/()=+-*";
 
 		struct Data {
 			void (CommunicationDevice::*signal)(const QByteArray &);
 			QColor color;
-			QFont::Weight weight;
 		};
-		Data data[] = {{&CommunicationDevice::received, Qt::darkGreen, QFont::Light},
-					   {&CommunicationDevice::decoded_received, Qt::darkGreen, QFont::DemiBold},
-					   {&CommunicationDevice::message, Qt::black, QFont::DemiBold},
-					   {&CommunicationDevice::sent, Qt::darkRed, QFont::Light},
-					   {&CommunicationDevice::decoded_sent, Qt::darkRed, QFont::DemiBold}};
+		Data data[] = {{&CommunicationDevice::received, Qt::green},
+					   {&CommunicationDevice::decoded_received, Qt::darkGreen},
+					   {&CommunicationDevice::message, Qt::black},
+					   {&CommunicationDevice::sent, Qt::red},
+					   {&CommunicationDevice::decoded_sent, Qt::darkRed}};
 		for (auto &d : data) {
-			connect(&device, d.signal, [ console = tab, color = d.color, weight = d.weight ](const QByteArray &data) {
-				console->setTextColor(color);
-				console->setFontWeight(weight);
-				console->append(data.toPercentEncoding(percent_encoding_include));
+			connect(&device, d.signal, [ console = tab, color = d.color ](const QByteArray &data) {
+				console->appendHtml("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" + Utility::to_human_readable_binary_data(data) +
+									"</plaintext></font>\n");
 			});
 		}
 	}
@@ -247,7 +247,7 @@ MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QStr
 	if (name.endsWith(".lua")) {
 		name.chop(4);
 	}
-	console = new QTextEdit(splitter);
+	console = new QPlainTextEdit(splitter);
 	console->setReadOnly(true);
 	splitter->addWidget(console);
 	test_tabs->addTab(splitter, name);
@@ -374,6 +374,7 @@ void MainWindow::on_run_test_script_button_clicked() {
 							} else {
 								//acceptable device
 								try {
+									Console::note(test->console) << "Started test";
 									test->script.run({{*device.device, *device.protocol}},
 													 [this](std::list<DeviceProtocol> &protocols) { debug_channel_codec_state(protocols); });
 								} catch (const sol::error &e) {
@@ -395,6 +396,7 @@ void MainWindow::on_run_test_script_button_clicked() {
 }
 
 void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
+	(void)column;
 	auto test = Utility::from_qvariant<MainWindow::Test>(item->data(0, Qt::UserRole));
 	test->activate_console();
 }

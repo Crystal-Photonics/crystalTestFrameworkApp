@@ -8,7 +8,7 @@
 
 #include <QMainWindow>
 #include <QString>
-#include <QTextEdit>
+#include <QPlainTextEdit>
 #include <QtSerialPort/QSerialPortInfo>
 #include <list>
 #include <memory>
@@ -76,7 +76,7 @@ class EXPORT MainWindow : public QMainWindow {
 		QTreeWidget *parent = nullptr;
 		QTreeWidgetItem *ui_item = nullptr;
 		QTabWidget *test_tabs = nullptr;
-		QTextEdit *console = nullptr;
+		QPlainTextEdit *console = nullptr;
 		QSplitter *splitter = nullptr;
 		ScriptEngine script;
 		std::vector<QString> protocols;

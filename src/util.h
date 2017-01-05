@@ -53,6 +53,9 @@ namespace Utility {
 	impl::RAII_Helper<Exit> RAII_do(Init &&init, Exit &&exit) {
 		return impl::RAII_Helper<Exit>(std::forward<Init>(init), std::forward<Exit>(exit));
 	}
+
+	QString to_human_readable_binary_data(const QByteArray &data);
+	QString to_human_readable_binary_data(const QString &data);
 }
 
 #endif // UTILITY_H

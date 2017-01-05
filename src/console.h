@@ -5,7 +5,7 @@
 
 #include <QColor>
 #include <QStringList>
-#include <QTextEdit>
+#include <QPlainTextEdit>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -16,18 +16,18 @@ struct Console {
 	struct ConsoleProxy;
 
 	public:
-	static QTextEdit *console;
-	static ConsoleProxy warning(QTextEdit *console = nullptr);
-	static ConsoleProxy note(QTextEdit *console = nullptr);
-	static ConsoleProxy error(QTextEdit *console = nullptr);
-	static ConsoleProxy debug(QTextEdit *console = nullptr);
+	static QPlainTextEdit *console;
+	static ConsoleProxy warning(QPlainTextEdit *console = nullptr);
+	static ConsoleProxy note(QPlainTextEdit *console = nullptr);
+	static ConsoleProxy error(QPlainTextEdit *console = nullptr);
+	static ConsoleProxy debug(QPlainTextEdit *console = nullptr);
 
 	private:
 	struct ConsoleProxy {
 		template <class T>
 		ConsoleProxy &&operator<<(const T &t) &&;
 		~ConsoleProxy();
-		QTextEdit *console;
+		QPlainTextEdit *console;
 		QStringList s;
 		QString prefix;
 		QColor color;
