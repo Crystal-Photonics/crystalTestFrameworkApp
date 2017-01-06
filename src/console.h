@@ -11,6 +11,8 @@
 #include <string>
 #include <type_traits>
 
+class MainWindow;
+
 struct Console {
 	private:
 	struct ConsoleProxy;
@@ -21,6 +23,7 @@ struct Console {
 	static ConsoleProxy note(QPlainTextEdit *console = nullptr);
 	static ConsoleProxy error(QPlainTextEdit *console = nullptr);
 	static ConsoleProxy debug(QPlainTextEdit *console = nullptr);
+	static MainWindow *mw;
 
 	private:
 	struct ConsoleProxy {

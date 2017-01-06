@@ -1,10 +1,11 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "CommunicationDevices/comportcommunicationdevice.h"
+#include "CommunicationDevices/communicationdevice.h"
 #include "Protocols/protocol.h"
 #include "export.h"
 #include "scriptengine.h"
+#include "worker.h"
 
 #include <QMainWindow>
 #include <QString>
@@ -14,6 +15,7 @@
 #include <memory>
 #include <set>
 #include <vector>
+#include <QThread>
 
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -25,19 +27,20 @@ namespace Ui {
 class EXPORT MainWindow : public QMainWindow {
     Q_OBJECT
 
-	struct ComportDescription;
-
 	public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
 	public slots:
 	void align_columns();
+	void remove_device_entry(QTreeWidgetItem *item);
+	void add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *comport);
+	void append_html_to_console(QString text, QPlainTextEdit *console);
 
 	private slots:
-	void poll_ports();
 	void forget_device();
 	void debug_channel_codec_state(std::list<DeviceProtocol> &protocols);
+	void load_scripts();
 
 	void on_actionPaths_triggered();
 	void on_device_detect_button_clicked();
@@ -49,21 +52,6 @@ class EXPORT MainWindow : public QMainWindow {
 	void on_devices_list_customContextMenuRequested(const QPoint &pos);
 
 	private:
-	void load_scripts();
-	void detect_devices(std::vector<ComportDescription *> comport_device_list);
-
-	QDialog *path_dialog = nullptr;
-    Ui::MainWindow *ui;
-
-	struct ComportDescription {
-		std::unique_ptr<ComportCommunicationDevice> device;
-		QSerialPortInfo info;
-		QTreeWidgetItem *ui_entry;
-		std::unique_ptr<Protocol> protocol;
-	};
-
-	std::vector<ComportDescription> comport_devices;
-
 	struct Test {
 		Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QString &file_path);
 		~Test();
@@ -87,6 +75,13 @@ class EXPORT MainWindow : public QMainWindow {
 		void activate_console();
 	};
 	std::list<Test> tests;
+
+	std::unique_ptr<Worker> worker;
+	QThread worker_thread;
+
+	QDialog *path_dialog = nullptr;
+    Ui::MainWindow *ui;
+
 	Test *get_test_from_ui();
 };
 

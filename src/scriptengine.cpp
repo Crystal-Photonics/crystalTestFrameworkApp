@@ -31,12 +31,12 @@ void ScriptEngine::load_script(const QString &path) {
 
 		//bind UI
 		auto ui_table = lua.create_named_table("ui");
-		ui_table.new_usertype<LuaUI::Plot>("plot", //
-										   sol::meta_function::construct, sol::no_constructor, sol::meta_function::construct,
-										   [lua_ui = this->lua_ui]() mutable { return lua_ui.create_plot(); }, //
-										   "add", &LuaUI::Plot::add,                                           //
-										   "clear", &LuaUI::Plot::clear);
-		ui_table["create_table"] = [lua_ui = this->lua_ui]() mutable {
+		ui_table.new_usertype<Plot>("plot",                                                                                  //
+									sol::meta_function::construct, sol::no_constructor,                                      //
+									sol::meta_function::construct, [lua_ui = this->lua_ui] { return lua_ui.create_plot(); }, //
+									"add", &Plot::add,                                                                       //
+									"clear", &Plot::clear);
+		ui_table["create_table"] = [lua_ui = this->lua_ui] {
 			lua_ui.create_plot();
 		};
 
@@ -150,8 +150,7 @@ struct RPCDevice {
 	CommunicationDevice *device = nullptr;
 };
 
-void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function<void (std::list<DeviceProtocol> &)> debug_callback)
-{
+void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function<void(std::list<DeviceProtocol> &)> debug_callback) {
 	try {
 		auto device_list = lua.create_table_with();
 		for (auto &device_protocol : device_protocols) {

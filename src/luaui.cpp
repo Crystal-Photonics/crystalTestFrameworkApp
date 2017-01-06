@@ -1,4 +1,5 @@
 #include "luaui.h"
+#include "mainwindow.h"
 
 #include <QAction>
 #include <QFileDialog>
@@ -6,14 +7,16 @@
 #include <qwt_plot.h>
 #include <qwt_plot_curve.h>
 
-LuaUI::Plot LuaUI::create_plot() {
+MainWindow *LuaUI::mw = nullptr;
+
+Plot LuaUI::create_plot() const {
 	return {parent};
 }
 
 LuaUI::LuaUI(QSplitter *parent)
 	: parent(parent) {}
 
-LuaUI::Plot::Plot(QSplitter *parent)
+Plot::Plot(QSplitter *parent)
 	: plot(new QwtPlot(parent))
 	, curve(new QwtPlotCurve)
 	, save_as_csv_action(std::make_unique<QAction>())
@@ -36,19 +39,20 @@ LuaUI::Plot::Plot(QSplitter *parent)
 	plot->addAction(save_as_csv_action.get());
 }
 
-void LuaUI::Plot::add(double x, double y) {
+void Plot::add(double x, double y) {
 	xvalues->push_back(x);
 	yvalues->push_back(y);
 	update();
 }
 
-void LuaUI::Plot::clear() {
+void Plot::clear() {
 	xvalues->clear();
 	yvalues->clear();
 	update();
 }
 
-void LuaUI::Plot::update() {
+void Plot::update() {
+	//TODO: somehow do this with signals
 	curve->setRawSamples(xvalues->data(), yvalues->data(), xvalues->size());
 	plot->replot();
 }

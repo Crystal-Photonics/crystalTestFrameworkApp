@@ -24,6 +24,7 @@
 #include <QtSerialPort/QSerialPortInfo>
 #include <algorithm>
 #include <cassert>
+#include <future>
 #include <iterator>
 #include <memory>
 
@@ -51,11 +52,14 @@ using namespace std::chrono_literals;
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
+	, worker(std::make_unique<Worker>(this))
 	, ui(new Ui::MainWindow) {
     ui->setupUi(this);
+	worker->moveToThread(&worker_thread);
+	worker_thread.start();
 	Console::console = ui->console_edit;
+	Console::mw = this;
 	ui->update_devices_list_button->click();
-	emit poll_ports();
 	load_scripts();
 }
 
@@ -72,99 +76,46 @@ void MainWindow::align_columns() {
 	}
 }
 
-void MainWindow::poll_ports() {
-	for (auto &device : comport_devices) {
-		if (device.device->isConnected()) {
-			device.device->waitReceived(CommunicationDevice::Duration{0});
-		}
-	}
-	QTimer::singleShot(16, this, &MainWindow::poll_ports);
+void MainWindow::remove_device_entry(QTreeWidgetItem *item) {
+	delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(item));
 }
 
 void MainWindow::forget_device() {
 	auto selected_device_item = ui->devices_list->currentItem();
-	for (auto device_it = std::begin(comport_devices); device_it != std::end(comport_devices); ++device_it) {
-		if (device_it->ui_entry == selected_device_item) {
-			device_it = comport_devices.erase(device_it);
-			delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(selected_device_item));
-			break;
-		}
-	}
+	emit worker->forget_device(selected_device_item);
 }
 
-void MainWindow::on_actionPaths_triggered() {
-	path_dialog = new PathSettingsWindow(this);
-	path_dialog->show();
-}
-
-static bool is_valid_baudrate(QSerialPort::BaudRate baudrate) {
-	switch (baudrate) {
-		case QSerialPort::Baud1200:
-		case QSerialPort::Baud2400:
-		case QSerialPort::Baud4800:
-		case QSerialPort::Baud9600:
-		case QSerialPort::Baud38400:
-		case QSerialPort::Baud57600:
-		case QSerialPort::Baud19200:
-		case QSerialPort::Baud115200:
-			return true;
-		case QSerialPort::UnknownBaud:
-			return false;
-	}
-	return false;
-}
-
-void MainWindow::on_device_detect_button_clicked() {
-	std::vector<ComportDescription *> v;
-	v.reserve(comport_devices.size());
-	for (auto &device : comport_devices) {
-		v.push_back(&device);
-	}
-	detect_devices(v);
-}
-
-void MainWindow::on_update_devices_list_button_clicked() {
-	auto portlist = QSerialPortInfo::availablePorts();
-	for (auto &port : portlist) {
-		auto pos = std::lower_bound(std::begin(comport_devices), std::end(comport_devices), port.systemLocation(),
-									[](const MainWindow::ComportDescription &lhs, const QString &rhs) { return lhs.device->getTarget() < rhs; });
-		if (pos != std::end(comport_devices) && pos->device->getTarget() == port.systemLocation()) {
-			continue;
-		}
-		auto item = std::make_unique<QTreeWidgetItem>(ui->devices_list, QStringList{} << port.portName() + " " + port.description());
-		auto &device = *comport_devices.insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port, item.get(), nullptr})->device;
-		ui->devices_list->addTopLevelItem(item.release());
-		align_columns();
-
-		auto tab = new QPlainTextEdit(ui->tabWidget);
-		tab->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
-		tab->setReadOnly(true);
-		ui->tabWidget->addTab(tab, port.portName() + " " + port.description());
-
-		struct Data {
-			void (CommunicationDevice::*signal)(const QByteArray &);
-			QColor color;
-		};
-		Data data[] = {{&CommunicationDevice::received, Qt::green},
-					   {&CommunicationDevice::decoded_received, Qt::darkGreen},
-					   {&CommunicationDevice::message, Qt::black},
-					   {&CommunicationDevice::sent, Qt::red},
-					   {&CommunicationDevice::decoded_sent, Qt::darkRed}};
-		for (auto &d : data) {
-			connect(&device, d.signal, [ console = tab, color = d.color ](const QByteArray &data) {
-				console->appendHtml("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" + Utility::to_human_readable_binary_data(data) +
-									"</plaintext></font>\n");
-			});
-		}
-	}
-}
-
-void MainWindow::on_tabWidget_tabCloseRequested(int index) {
-	if (ui->tabWidget->tabText(index) == "Console") {
-		Console::note() << tr("Cannot close console window");
+void MainWindow::debug_channel_codec_state(std::list<DeviceProtocol> &protocols) {
+	auto test = get_test_from_ui();
+	if (test == nullptr) {
+		Console::debug() << "Invalid Test";
 		return;
 	}
-	ui->tabWidget->removeTab(index);
+	if (protocols.size() != 1) {
+		Console::debug(test->console) << "Expected 1 protocol, but got" << protocols.size();
+		return;
+	}
+	auto rpc_protocol = dynamic_cast<const RPCProtocol *>(&protocols.front().protocol);
+	if (rpc_protocol == nullptr) {
+		Console::debug(test->console) << "Test is not using RPC Protocol";
+		return;
+	}
+	auto instance = rpc_protocol->debug_get_channel_codec_instance();
+	if (instance == nullptr) {
+		Console::debug(test->console) << "RPC Channel Codec Instance is null";
+		return;
+	}
+	if (instance->i.initialized == false) {
+		Console::debug(test->console) << "RPC Channel Codec Instance is not initialized";
+		return;
+	}
+	auto &rx = instance->i.rxState;
+	Console::debug(test->console) << "State:" << instance->i.ccChannelState                        //
+								  << ',' << "rxBitmask:" << static_cast<int>(rx.bitmask)           //
+								  << ',' << "Buffer Length:" << rx.bufferLength                    //
+								  << ',' << "Index in Block:" << static_cast<int>(rx.indexInBlock) //
+								  << ',' << "Write Pointer:" << rx.writePointer                    //
+								  << ',' << "Buffer: " << QByteArray(rx.buffer).toPercentEncoding(" :\t\\\n!\"§$%&/()=+-*").toStdString();
 }
 
 void MainWindow::load_scripts() {
@@ -175,53 +126,41 @@ void MainWindow::load_scripts() {
 	}
 }
 
-void MainWindow::detect_devices(std::vector<MainWindow::ComportDescription *> comport_device_list) {
-	auto device_protocol_settings_file = QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString();
-	if (device_protocol_settings_file.isEmpty()) {
-		QMessageBox::critical(
-			this, tr("Missing File"),
-			tr("Auto-Detecting devices requires a file that defines which protocols can use which file. Make such a file and add it via Settings->Paths"));
+void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *comport) {
+	ui->devices_list->addTopLevelItem(item);
+	align_columns();
+
+	auto console = new QPlainTextEdit(ui->tabWidget);
+	console->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
+	console->setReadOnly(true);
+	ui->tabWidget->addTab(console, tab_name);
+	worker->connect_to_device_console(console, comport);
+}
+
+void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console)
+{
+	console->appendHtml(text);
+}
+
+void MainWindow::on_actionPaths_triggered() {
+	path_dialog = new PathSettingsWindow(this);
+	path_dialog->show();
+}
+
+void MainWindow::on_device_detect_button_clicked() {
+	emit worker->detect_devices();
+}
+
+void MainWindow::on_update_devices_list_button_clicked() {
+	emit worker->update_devices();
+}
+
+void MainWindow::on_tabWidget_tabCloseRequested(int index) {
+	if (ui->tabWidget->tabText(index) == "Console") {
+		Console::note() << tr("Cannot close console window");
 		return;
 	}
-	QSettings device_protocol_settings{device_protocol_settings_file, QSettings::IniFormat};
-	auto rpc_devices = device_protocol_settings.value("RPC").toStringList();
-	auto check_rpc_protocols = [&](auto &device) {
-		for (auto &rpc_device : rpc_devices) {
-			if (rpc_device.startsWith("COM:") == false) {
-				continue;
-			}
-			const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(rpc_device.split(":")[1].toInt());
-			if (is_valid_baudrate(baudrate) == false) {
-				QMessageBox::critical(this, tr("Input Error"),
-									  tr(R"(Invalid baudrate %1 specified in settings file "%2".)").arg(baudrate).arg(device_protocol_settings_file));
-				continue;
-			}
-			if (device.device->connect(device.info, baudrate) == false) {
-				Console::warning() << tr("Failed opening") << device.device->getTarget();
-				return;
-			}
-			auto protocol = std::make_unique<RPCProtocol>(*device.device);
-			if (protocol->is_correct_protocol()) {
-				protocol->set_ui_description(device.ui_entry);
-				device.protocol = std::move(protocol);
-
-			} else {
-				device.device->close();
-			}
-		}
-		//TODO: Add non-rpc device discovery here
-	};
-	for (auto &device : comport_device_list) {
-		for (auto &protocol_check_function : {check_rpc_protocols}) {
-			if (device->device->isConnected()) {
-				break;
-			}
-			protocol_check_function(*device);
-		}
-		if (device->device->isConnected() == false) { //out of protocols and still not connected
-			Console::note() << tr("No protocol found for %1").arg(device->device->getTarget());
-		}
-	}
+	ui->tabWidget->removeTab(index);
 }
 
 MainWindow::Test *MainWindow::get_test_from_ui() {
@@ -336,15 +275,10 @@ void MainWindow::on_run_test_script_button_clicked() {
 			Console::error(test->console) << tr("The selected script \"%1\" cannot be run, because it did not report the required devices.").arg(test->name);
 		}
 		for (auto &protocol : test->protocols) {
-			std::vector<ComportDescription *> candidates;
-			for (auto &device : comport_devices) { //TODO: do not only loop over comport_devices, but other devices as well
-				if (device.protocol == nullptr) {
-					continue;
-				}
-				if (device.protocol->type == protocol) {
-					candidates.push_back(&device);
-				}
-			}
+			std::promise<std::vector<ComportDescription *>> promise; //TODO: do not only loop over comport_devices, but other devices as well
+			emit worker->get_devices_with_protocol(protocol, promise);
+			std::vector<ComportDescription *> candidates = promise.get_future().get();
+
 			switch (candidates.size()) {
 				case 0:
 					//failed to find suitable device
@@ -373,13 +307,7 @@ void MainWindow::on_run_test_script_button_clicked() {
 								Console::note(test->console) << tr("Device rejected:") << message.value();
 							} else {
 								//acceptable device
-								try {
-									Console::note(test->console) << "Started test";
-									test->script.run({{*device.device, *device.protocol}},
-													 [this](std::list<DeviceProtocol> &protocols) { debug_channel_codec_state(protocols); });
-								} catch (const sol::error &e) {
-									Console::error(test->console) << e.what();
-								}
+								emit worker->run_script(&test->script, test->console, &device);
 							}
 						} else {
 							assert(!"TODO: handle non-RPC protocol");
@@ -454,14 +382,7 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 		QMenu menu(this);
 
 		QAction action_detect(tr("Detect"));
-		connect(&action_detect, &QAction::triggered, [this, item] {
-			for (auto &device : comport_devices) {
-				if (device.ui_entry == item) {
-					detect_devices({&device});
-					break;
-				}
-			}
-		});
+		connect(&action_detect, &QAction::triggered, [this, item] { emit worker->detect_device(item); });
 		menu.addAction(&action_detect);
 
 		QAction action_forget(tr("Forget"));
@@ -482,37 +403,4 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 
 		menu.exec(ui->devices_list->mapToGlobal(pos));
 	}
-}
-
-void MainWindow::debug_channel_codec_state(std::list<DeviceProtocol> &protocols) {
-	auto test = get_test_from_ui();
-	if (test == nullptr) {
-		Console::debug() << "Invalid Test";
-		return;
-	}
-	if (protocols.size() != 1) {
-		Console::debug(test->console) << "Expected 1 protocol, but got" << protocols.size();
-		return;
-	}
-	auto rpc_protocol = dynamic_cast<const RPCProtocol *>(&protocols.front().protocol);
-	if (rpc_protocol == nullptr) {
-		Console::debug(test->console) << "Test is not using RPC Protocol";
-		return;
-	}
-	auto instance = rpc_protocol->debug_get_channel_codec_instance();
-	if (instance == nullptr) {
-		Console::debug(test->console) << "RPC Channel Codec Instance is null";
-		return;
-	}
-	if (instance->i.initialized == false) {
-		Console::debug(test->console) << "RPC Channel Codec Instance is not initialized";
-		return;
-	}
-	auto &rx = instance->i.rxState;
-	Console::debug(test->console) << "State:" << instance->i.ccChannelState                        //
-								  << ',' << "rxBitmask:" << static_cast<int>(rx.bitmask)           //
-								  << ',' << "Buffer Length:" << rx.bufferLength                    //
-								  << ',' << "Index in Block:" << static_cast<int>(rx.indexInBlock) //
-								  << ',' << "Write Pointer:" << rx.writePointer                    //
-								  << ',' << "Buffer: " << QByteArray(rx.buffer).toPercentEncoding(" :\t\\\n!\"§$%&/()=+-*").toStdString();
 }

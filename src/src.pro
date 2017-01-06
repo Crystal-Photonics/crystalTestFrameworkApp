@@ -13,7 +13,8 @@ SOURCES += mainwindow.cpp \
     console.cpp \
     Protocols/protocol.cpp \
     qt_util.cpp \
-    luaui.cpp
+    luaui.cpp \
+    worker.cpp
 SOURCES += scriptengine.cpp
 SOURCES += util.cpp
 SOURCES += CommunicationDevices/communicationdevice.cpp
@@ -28,7 +29,8 @@ HEADERS += mainwindow.h \
     console.h \
     Protocols/protocol.h \
     qt_util.h \
-    luaui.h
+    luaui.h \
+    worker.h
 HEADERS += scriptengine.h
 HEADERS += export.h
 HEADERS += util.h
