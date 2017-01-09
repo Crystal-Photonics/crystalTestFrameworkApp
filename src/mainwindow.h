@@ -8,14 +8,14 @@
 #include "worker.h"
 
 #include <QMainWindow>
-#include <QString>
 #include <QPlainTextEdit>
+#include <QString>
+#include <QThread>
 #include <QtSerialPort/QSerialPortInfo>
 #include <list>
 #include <memory>
 #include <set>
 #include <vector>
-#include <QThread>
 
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -23,6 +23,12 @@ class QTreeWidgetItem;
 namespace Ui {
 	class MainWindow;
 }
+
+namespace detail {
+	extern QThread *gui_thread;
+}
+
+bool currently_in_gui_thread();
 
 class EXPORT MainWindow : public QMainWindow {
     Q_OBJECT

@@ -5,6 +5,7 @@
 #include "mainwindow.h"
 #include "util.h"
 
+#include <QDebug>
 #include <QDirIterator>
 #include <QMessageBox>
 #include <QObject>
@@ -17,6 +18,7 @@ Worker::Worker(MainWindow *parent)
 }
 
 void Worker::poll_ports() {
+	assert(currently_in_gui_thread() == false);
 	for (auto &device : comport_devices) {
 		if (device.device->isConnected()) {
 			device.device->waitReceived(CommunicationDevice::Duration{0});
@@ -59,8 +61,9 @@ void Worker::detect_devices(std::vector<ComportDescription *> comport_device_lis
 			}
 			const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(rpc_device.split(":")[1].toInt());
 			if (is_valid_baudrate(baudrate) == false) {
-				QMessageBox::critical(mw, tr("Input Error"),
-									  tr(R"(Invalid baudrate %1 specified in settings file "%2".)").arg(baudrate).arg(device_protocol_settings_file));
+				QMessageBox::critical(
+					mw, tr("Input Error"),
+					tr(R"(Invalid baudrate %1 specified in settings file "%2".)").arg(QString::number(baudrate), device_protocol_settings_file));
 				continue;
 			}
 			if (device.device->connect(device.info, baudrate) == false) {
@@ -92,6 +95,8 @@ void Worker::detect_devices(std::vector<ComportDescription *> comport_device_lis
 }
 
 void Worker::forget_device(QTreeWidgetItem *item) {
+	assert(currently_in_gui_thread() == false);
+
 	for (auto device_it = std::begin(comport_devices); device_it != std::end(comport_devices); ++device_it) {
 		if (device_it->ui_entry == item) {
 			device_it = comport_devices.erase(device_it);
@@ -102,6 +107,7 @@ void Worker::forget_device(QTreeWidgetItem *item) {
 }
 
 void Worker::update_devices() {
+	assert(currently_in_gui_thread() == false);
 	auto portlist = QSerialPortInfo::availablePorts();
 	for (auto &port : portlist) {
 		auto pos = std::lower_bound(std::begin(comport_devices), std::end(comport_devices), port.systemLocation(),
@@ -117,6 +123,7 @@ void Worker::update_devices() {
 }
 
 void Worker::detect_devices() {
+	assert(currently_in_gui_thread() == false);
 	std::vector<ComportDescription *> descriptions;
 	descriptions.reserve(comport_devices.size());
 	for (auto &comport : comport_devices) {
@@ -126,6 +133,7 @@ void Worker::detect_devices() {
 }
 
 void Worker::detect_device(QTreeWidgetItem *item) {
+	assert(currently_in_gui_thread() == false);
 	for (auto &comport : comport_devices) {
 		if (comport.ui_entry == item) {
 			detect_devices({&comport});
@@ -135,6 +143,7 @@ void Worker::detect_device(QTreeWidgetItem *item) {
 }
 
 void Worker::connect_to_device_console(QPlainTextEdit *console, CommunicationDevice *comport) {
+	assert(currently_in_gui_thread() == false);
 	struct Data {
 		void (CommunicationDevice::*signal)(const QByteArray &);
 		QColor color;
@@ -153,6 +162,7 @@ void Worker::connect_to_device_console(QPlainTextEdit *console, CommunicationDev
 }
 
 void Worker::get_devices_with_protocol(const QString &protocol, std::promise<std::vector<ComportDescription *>> &retval) {
+	assert(currently_in_gui_thread() == false);
 	std::vector<ComportDescription *> candidates;
 	for (auto &device : comport_devices) { //TODO: do not only loop over comport_devices, but other devices as well
 		if (device.protocol == nullptr) {
@@ -166,6 +176,7 @@ void Worker::get_devices_with_protocol(const QString &protocol, std::promise<std
 }
 
 void Worker::run_script(ScriptEngine *script, QPlainTextEdit *console, ComportDescription *device) {
+	assert(currently_in_gui_thread() == false);
 	try {
 		Console::note(console) << "Started test";
 		script->run({{*device->device, *device->protocol}});

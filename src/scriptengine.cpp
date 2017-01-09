@@ -110,7 +110,7 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
 
 struct RPCDevice {
 	sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
-		//Console::note() << QString("RPC Device got called with function \"%1\" and %2 arguments").arg(name.c_str()).arg(va.leftover_count());
+		Console::note() << QString("\"%1\" called").arg(name.c_str());
 		auto function = protocol->encode_function(name);
 		int param_count = 0;
 		for (auto &arg : va) {
@@ -122,7 +122,6 @@ struct RPCDevice {
 			}
 		}
 		if (function.are_all_values_set()) {
-			//TODO: call function and return return value
 			auto result = protocol->call_and_wait(function);
 
 			if (result) {
@@ -134,7 +133,7 @@ struct RPCDevice {
 						return create_lua_object_from_RPC_answer(output_params.front(), *lua);
 					}
 					//else: multiple variables, need to make a table
-					return sol::make_object(lua->lua_state(), "TODO: Parse multiple return values");
+					return sol::make_object(lua->lua_state(), "TODO: Not Implemented: Parse multiple return values");
 				} catch (const sol::error &e) {
 					Console::error() << e.what();
 					throw;

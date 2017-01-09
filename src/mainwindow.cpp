@@ -54,7 +54,8 @@ MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
 	, worker(std::make_unique<Worker>(this))
 	, ui(new Ui::MainWindow) {
-    ui->setupUi(this);
+	detail::gui_thread = QThread::currentThread();
+	ui->setupUi(this);
 	worker->moveToThread(&worker_thread);
 	worker_thread.start();
 	Console::console = ui->console_edit;
@@ -137,8 +138,7 @@ void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name,
 	worker->connect_to_device_console(console, comport);
 }
 
-void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console)
-{
+void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 	console->appendHtml(text);
 }
 
@@ -152,6 +152,7 @@ void MainWindow::on_device_detect_button_clicked() {
 }
 
 void MainWindow::on_update_devices_list_button_clicked() {
+	assert(currently_in_gui_thread());
 	emit worker->update_devices();
 }
 
@@ -197,7 +198,7 @@ MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QStr
 	try {
 		script.load_script(file_path);
 	} catch (const sol::error &e) {
-		Console::error(console) << tr("Failed loading script \"%1\" because %2").arg(file_path).arg(e.what());
+		Console::error(console) << tr("Failed loading script \"%1\" because %2").arg(file_path, e.what());
 		return;
 	}
 	try {
@@ -211,7 +212,7 @@ MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QStr
 			ui_item->setTextColor(1, Qt::darkRed);
 		}
 	} catch (const sol::error &e) {
-		Console::error(console) << tr("Failed retrieving variable \"protocols\" from %1 because %2").arg(file_path).arg(e.what());
+		Console::error(console) << tr("Failed retrieving variable \"protocols\" from %1 because %2").arg(file_path, e.what());
 		ui_item->setText(GUI::Tests::protocol, tr("Failed getting protocols"));
 		ui_item->setTextColor(GUI::Tests::protocol, Qt::darkRed);
 	}
@@ -221,7 +222,7 @@ MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QStr
 			ui_item->setText(GUI::Tests::deviceNames, deviceNames.join(", "));
 		}
 	} catch (const sol::error &e) {
-		Console::warning(console) << tr("Failed retrieving variable \"deviceNames\" from %1 because %2").arg(file_path).arg(e.what());
+		Console::warning(console) << tr("Failed retrieving variable \"deviceNames\" from %1 because %2").arg(file_path, e.what());
 	}
 }
 
@@ -283,8 +284,7 @@ void MainWindow::on_run_test_script_button_clicked() {
 				case 0:
 					//failed to find suitable device
 					Console::error(test->console) << tr("The selected test \"%1\" requires a device with protocol \"%2\", but no such device is available.")
-														 .arg(test->ui_item->text(0))
-														 .arg(protocol);
+														 .arg(test->ui_item->text(0), protocol);
 					break;
 				case 1:
 					//found the only viable option
@@ -403,4 +403,10 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 
 		menu.exec(ui->devices_list->mapToGlobal(pos));
 	}
+}
+
+QThread *detail::gui_thread = nullptr;
+
+bool currently_in_gui_thread() {
+	return QThread::currentThread() == detail::gui_thread;
 }

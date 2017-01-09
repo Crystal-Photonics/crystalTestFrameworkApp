@@ -8,6 +8,7 @@
 #include "rpcruntime_encoded_function_call.h"
 #include "rpcruntime_encoder.h"
 #include "rpcruntime_protocol_description.h"
+#include "mainwindow.h"
 
 #include <QByteArray>
 #include <QDateTime>
@@ -151,6 +152,7 @@ bool RPCProtocol::is_correct_protocol() {
 }
 
 std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration) {
+	assert(is_gui_thread() == false);
 	const auto data = channel_codec.encode(call);
 	device->send(data, call.encode());
 	auto start = std::chrono::high_resolution_clock::now();
