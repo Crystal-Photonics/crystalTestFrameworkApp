@@ -65,103 +65,121 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 MainWindow::~MainWindow() {
+	worker_thread.quit();
+	worker_thread.wait();
 	delete ui;
 }
 
 void MainWindow::align_columns() {
-	for (int i = 0; i < ui->devices_list->columnCount(); i++) {
-		ui->devices_list->resizeColumnToContents(i);
-	}
-	for (int i = 0; i < ui->tests_list->columnCount(); i++) {
-		ui->tests_list->resizeColumnToContents(i);
-	}
+	Utility::thread_call(this, [this] {
+		for (int i = 0; i < ui->devices_list->columnCount(); i++) {
+			ui->devices_list->resizeColumnToContents(i);
+		}
+		for (int i = 0; i < ui->tests_list->columnCount(); i++) {
+			ui->tests_list->resizeColumnToContents(i);
+		}
+	});
 }
 
 void MainWindow::remove_device_entry(QTreeWidgetItem *item) {
-	delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(item));
+	Utility::thread_call(this, [this, item] { delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(item)); });
 }
 
 void MainWindow::forget_device() {
-	auto selected_device_item = ui->devices_list->currentItem();
-	emit worker->forget_device(selected_device_item);
+	Utility::thread_call(this, [this] {
+		auto selected_device_item = ui->devices_list->currentItem();
+		worker->forget_device(selected_device_item);
+	});
 }
 
 void MainWindow::debug_channel_codec_state(std::list<DeviceProtocol> &protocols) {
-	auto test = get_test_from_ui();
-	if (test == nullptr) {
-		Console::debug() << "Invalid Test";
-		return;
-	}
-	if (protocols.size() != 1) {
-		Console::debug(test->console) << "Expected 1 protocol, but got" << protocols.size();
-		return;
-	}
-	auto rpc_protocol = dynamic_cast<const RPCProtocol *>(&protocols.front().protocol);
-	if (rpc_protocol == nullptr) {
-		Console::debug(test->console) << "Test is not using RPC Protocol";
-		return;
-	}
-	auto instance = rpc_protocol->debug_get_channel_codec_instance();
-	if (instance == nullptr) {
-		Console::debug(test->console) << "RPC Channel Codec Instance is null";
-		return;
-	}
-	if (instance->i.initialized == false) {
-		Console::debug(test->console) << "RPC Channel Codec Instance is not initialized";
-		return;
-	}
-	auto &rx = instance->i.rxState;
-	Console::debug(test->console) << "State:" << instance->i.ccChannelState                        //
-								  << ',' << "rxBitmask:" << static_cast<int>(rx.bitmask)           //
-								  << ',' << "Buffer Length:" << rx.bufferLength                    //
-								  << ',' << "Index in Block:" << static_cast<int>(rx.indexInBlock) //
-								  << ',' << "Write Pointer:" << rx.writePointer                    //
-								  << ',' << "Buffer: " << QByteArray(rx.buffer).toPercentEncoding(" :\t\\\n!\"§$%&/()=+-*").toStdString();
+	Utility::thread_call(this, [this, protocols] {
+		auto test = get_test_from_ui();
+		if (test == nullptr) {
+			Console::debug() << "Invalid Test";
+			return;
+		}
+		if (protocols.size() != 1) {
+			Console::debug(test->console) << "Expected 1 protocol, but got" << protocols.size();
+			return;
+		}
+		auto rpc_protocol = dynamic_cast<const RPCProtocol *>(&protocols.front().protocol);
+		if (rpc_protocol == nullptr) {
+			Console::debug(test->console) << "Test is not using RPC Protocol";
+			return;
+		}
+		auto instance = rpc_protocol->debug_get_channel_codec_instance();
+		if (instance == nullptr) {
+			Console::debug(test->console) << "RPC Channel Codec Instance is null";
+			return;
+		}
+		if (instance->i.initialized == false) {
+			Console::debug(test->console) << "RPC Channel Codec Instance is not initialized";
+			return;
+		}
+		auto &rx = instance->i.rxState;
+		Console::debug(test->console) << "State:" << instance->i.ccChannelState                        //
+									  << ',' << "rxBitmask:" << static_cast<int>(rx.bitmask)           //
+									  << ',' << "Buffer Length:" << rx.bufferLength                    //
+									  << ',' << "Index in Block:" << static_cast<int>(rx.indexInBlock) //
+									  << ',' << "Write Pointer:" << rx.writePointer                    //
+									  << ',' << "Buffer: " << QByteArray(rx.buffer).toPercentEncoding(" :\t\\\n!\"§$%&/()=+-*").toStdString();
+	});
 }
 
 void MainWindow::load_scripts() {
-	QDirIterator dit{QSettings{}.value(Globals::test_script_path_settings_key, "").toString(), QStringList{} << "*.lua", QDir::Files};
-	while (dit.hasNext()) {
-		const auto &file_path = dit.next();
-		tests.push_back({ui->tests_list, ui->test_tabs, file_path});
-	}
+	Utility::thread_call(this, [this] {
+		QDirIterator dit{QSettings{}.value(Globals::test_script_path_settings_key, "").toString(), QStringList{} << "*.lua", QDir::Files};
+		while (dit.hasNext()) {
+			const auto &file_path = dit.next();
+			tests.push_back({ui->tests_list, ui->test_tabs, file_path});
+		}
+	});
 }
 
 void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *comport) {
-	ui->devices_list->addTopLevelItem(item);
-	align_columns();
+	Utility::thread_call(this, [this, item, tab_name, comport] {
+		ui->devices_list->addTopLevelItem(item);
+		align_columns();
 
-	auto console = new QPlainTextEdit(ui->tabWidget);
-	console->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
-	console->setReadOnly(true);
-	ui->tabWidget->addTab(console, tab_name);
-	worker->connect_to_device_console(console, comport);
+		auto console = new QPlainTextEdit(ui->tabWidget);
+		console->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
+		console->setReadOnly(true);
+		ui->tabWidget->addTab(console, tab_name);
+		worker->connect_to_device_console(console, comport);
+	});
 }
 
 void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
-	console->appendHtml(text);
+	Utility::thread_call(this, [this, text, console] { console->appendHtml(text); });
 }
 
 void MainWindow::on_actionPaths_triggered() {
-	path_dialog = new PathSettingsWindow(this);
-	path_dialog->show();
+	Utility::thread_call(this, [this] {
+		path_dialog = new PathSettingsWindow(this);
+		path_dialog->show();
+	});
 }
 
 void MainWindow::on_device_detect_button_clicked() {
-	emit worker->detect_devices();
+	Utility::thread_call(this, [this] { worker->detect_devices(); });
 }
 
 void MainWindow::on_update_devices_list_button_clicked() {
-	assert(currently_in_gui_thread());
-	emit worker->update_devices();
+	Utility::thread_call(this, [this] {
+		assert(currently_in_gui_thread());
+		worker->update_devices();
+	});
 }
 
 void MainWindow::on_tabWidget_tabCloseRequested(int index) {
-	if (ui->tabWidget->tabText(index) == "Console") {
-		Console::note() << tr("Cannot close console window");
-		return;
-	}
-	ui->tabWidget->removeTab(index);
+	Utility::thread_call(this, [this, index] {
+		if (ui->tabWidget->tabText(index) == "Console") {
+			Console::note() << tr("Cannot close console window");
+			return;
+		}
+		ui->tabWidget->removeTab(index);
+	});
 }
 
 MainWindow::Test *MainWindow::get_test_from_ui() {
@@ -266,143 +284,153 @@ void MainWindow::Test::activate_console() {
 }
 
 void MainWindow::on_run_test_script_button_clicked() {
-	auto items = ui->tests_list->selectedItems();
-	for (auto &item : items) {
-		auto test = Utility::from_qvariant<MainWindow::Test>(item->data(0, Qt::UserRole));
-		if (test == nullptr) {
-			continue;
-		}
-		if (test->protocols.empty()) {
-			Console::error(test->console) << tr("The selected script \"%1\" cannot be run, because it did not report the required devices.").arg(test->name);
-		}
-		for (auto &protocol : test->protocols) {
-			std::promise<std::vector<ComportDescription *>> promise; //TODO: do not only loop over comport_devices, but other devices as well
-			emit worker->get_devices_with_protocol(protocol, promise);
-			std::vector<ComportDescription *> candidates = promise.get_future().get();
+	Utility::thread_call(this, [this] {
+		auto items = ui->tests_list->selectedItems();
+		for (auto &item : items) {
+			auto test = Utility::from_qvariant<MainWindow::Test>(item->data(0, Qt::UserRole));
+			if (test == nullptr) {
+				continue;
+			}
+			if (test->protocols.empty()) {
+				Console::error(test->console)
+					<< tr("The selected script \"%1\" cannot be run, because it did not report the required devices.").arg(test->name);
+			}
+			for (auto &protocol : test->protocols) {
+				std::promise<std::vector<ComportDescription *>> promise; //TODO: do not only loop over comport_devices, but other devices as well
+				auto future = promise.get_future();
+				worker->get_devices_with_protocol(protocol, promise);
+				std::vector<ComportDescription *> candidates = future.get();
 
-			switch (candidates.size()) {
-				case 0:
-					//failed to find suitable device
-					Console::error(test->console) << tr("The selected test \"%1\" requires a device with protocol \"%2\", but no such device is available.")
-														 .arg(test->ui_item->text(0), protocol);
-					break;
-				case 1:
-					//found the only viable option
-					{
-						auto &device = *candidates.front();
-						auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
-						if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
-							sol::optional<std::string> message;
-							try {
-								sol::table table = test->script.create_table();
-								rpc_protocol->get_lua_device_descriptor(table);
-								message = test->script.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
-							} catch (const sol::error &e) {
-								const auto &message = tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
-								Console::error(test->console) << message;
-								return;
-							}
-							if (message) {
-								//device incompatible, reason should be inside of message
-								Console::note(test->console) << tr("Device rejected:") << message.value();
+				switch (candidates.size()) {
+					case 0:
+						//failed to find suitable device
+						Console::error(test->console) << tr("The selected test \"%1\" requires a device with protocol \"%2\", but no such device is available.")
+															 .arg(test->ui_item->text(0), protocol);
+						break;
+					case 1:
+						//found the only viable option
+						{
+							auto &device = *candidates.front();
+							auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
+							if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
+								sol::optional<std::string> message;
+								try {
+									sol::table table = test->script.create_table();
+									rpc_protocol->get_lua_device_descriptor(table);
+									message = test->script.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
+								} catch (const sol::error &e) {
+									const auto &message = tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
+									Console::error(test->console) << message;
+									return;
+								}
+								if (message) {
+									//device incompatible, reason should be inside of message
+									Console::note(test->console) << tr("Device rejected:") << message.value();
+								} else {
+									//acceptable device
+									worker->run_script(&test->script, test->console, &device);
+								}
 							} else {
-								//acceptable device
-								emit worker->run_script(&test->script, test->console, &device);
+								assert(!"TODO: handle non-RPC protocol");
 							}
-						} else {
-							assert(!"TODO: handle non-RPC protocol");
 						}
-					}
-					break;
-				default:
-					//found multiple viable options
-					QMessageBox::critical(this, "TODO", "TODO: implementation for multiple viable device options");
-					break;
+						break;
+					default:
+						//found multiple viable options
+						QMessageBox::critical(this, "TODO", "TODO: implementation for multiple viable device options");
+						break;
+				}
 			}
 		}
-	}
+	});
 }
 
 void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
 	(void)column;
-	auto test = Utility::from_qvariant<MainWindow::Test>(item->data(0, Qt::UserRole));
-	test->activate_console();
+	Utility::thread_call(this, [this, item] {
+		auto test = Utility::from_qvariant<MainWindow::Test>(item->data(0, Qt::UserRole));
+		test->activate_console();
+	});
 }
 
 void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
-	auto item = ui->tests_list->itemAt(pos);
-	if (item) {
-		get_test_from_ui()->activate_console();
+	Utility::thread_call(this, [this, pos] {
+		auto item = ui->tests_list->itemAt(pos);
+		if (item) {
+			get_test_from_ui()->activate_console();
 
-		QMenu menu(this);
+			QMenu menu(this);
 
-		QAction action_run(tr("Run"));
-		connect(&action_run, &QAction::triggered, [this] { emit on_run_test_script_button_clicked(); });
-		menu.addAction(&action_run);
+			QAction action_run(tr("Run"));
+			connect(&action_run, &QAction::triggered, [this] { emit on_run_test_script_button_clicked(); });
+			menu.addAction(&action_run);
 
-		QAction action_reload(tr("Reload"));
-		connect(&action_reload, &QAction::triggered, [this] {
-			auto selected_test_item = ui->tests_list->currentItem();
-			QString file_path;
-			for (auto test_it = tests.begin(); test_it != tests.end(); ++test_it) {
-				if (test_it->ui_item == selected_test_item) {
-					file_path = test_it->file_path;
-					test_it = tests.erase(test_it);
-					break;
+			QAction action_reload(tr("Reload"));
+			connect(&action_reload, &QAction::triggered, [this] {
+				auto selected_test_item = ui->tests_list->currentItem();
+				QString file_path;
+				for (auto test_it = tests.begin(); test_it != tests.end(); ++test_it) {
+					if (test_it->ui_item == selected_test_item) {
+						file_path = test_it->file_path;
+						test_it = tests.erase(test_it);
+						break;
+					}
 				}
-			}
-			if (file_path.isEmpty() == false) {
-				tests.push_back({ui->tests_list, ui->test_tabs, file_path});
-			}
-		});
-		menu.addAction(&action_reload);
+				if (file_path.isEmpty() == false) {
+					tests.push_back({ui->tests_list, ui->test_tabs, file_path});
+				}
+			});
+			menu.addAction(&action_reload);
 
-		QAction action_editor(tr("Open in Editor"));
-		connect(&action_editor, &QAction::triggered, [this] { get_test_from_ui()->script.launch_editor(); });
-		menu.addAction(&action_editor);
+			QAction action_editor(tr("Open in Editor"));
+			connect(&action_editor, &QAction::triggered, [this] { get_test_from_ui()->script.launch_editor(); });
+			menu.addAction(&action_editor);
 
-		menu.exec(ui->tests_list->mapToGlobal(pos));
-	} else {
-		QMenu menu(this);
+			menu.exec(ui->tests_list->mapToGlobal(pos));
+		} else {
+			QMenu menu(this);
 
-		QAction action(tr("Reload all scripts"));
-		connect(&action, &QAction::triggered, [this] {
-			tests.clear();
-			load_scripts();
-		});
-		menu.addAction(&action);
+			QAction action(tr("Reload all scripts"));
+			connect(&action, &QAction::triggered, [this] {
+				tests.clear();
+				load_scripts();
+			});
+			menu.addAction(&action);
 
-		menu.exec(ui->tests_list->mapToGlobal(pos));
-	}
+			menu.exec(ui->tests_list->mapToGlobal(pos));
+		}
+	});
 }
 
 void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
-	auto item = ui->devices_list->itemAt(pos);
-	if (item) {
-		QMenu menu(this);
+	Utility::thread_call(this, [this, pos] {
+		auto item = ui->devices_list->itemAt(pos);
+		if (item) {
+			QMenu menu(this);
 
-		QAction action_detect(tr("Detect"));
-		connect(&action_detect, &QAction::triggered, [this, item] { emit worker->detect_device(item); });
-		menu.addAction(&action_detect);
+			QAction action_detect(tr("Detect"));
+			connect(&action_detect, &QAction::triggered, [this, item] { worker->detect_device(item); });
+			menu.addAction(&action_detect);
 
-		QAction action_forget(tr("Forget"));
-		connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
-		menu.addAction(&action_forget);
+			QAction action_forget(tr("Forget"));
+			connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
+			menu.addAction(&action_forget);
 
-		menu.exec(ui->devices_list->mapToGlobal(pos));
-	} else {
-		QMenu menu(this);
+			menu.exec(ui->devices_list->mapToGlobal(pos));
+		} else {
+			QMenu menu(this);
 
-		QAction action_update(tr("Update device list"));
-		connect(&action_update, &QAction::triggered, ui->update_devices_list_button, &QPushButton::clicked);
-		menu.addAction(&action_update);
+			QAction action_update(tr("Update device list"));
+			connect(&action_update, &QAction::triggered, ui->update_devices_list_button, &QPushButton::clicked);
+			menu.addAction(&action_update);
 
-		QAction action_detect(tr("Detect device protocols"));
-		connect(&action_detect, &QAction::triggered, ui->device_detect_button, &QPushButton::clicked);
-		menu.addAction(&action_detect);
+			QAction action_detect(tr("Detect device protocols"));
+			connect(&action_detect, &QAction::triggered, ui->device_detect_button, &QPushButton::clicked);
+			menu.addAction(&action_detect);
 
-		menu.exec(ui->devices_list->mapToGlobal(pos));
-	}
+			menu.exec(ui->devices_list->mapToGlobal(pos));
+		}
+	});
 }
 
 QThread *detail::gui_thread = nullptr;

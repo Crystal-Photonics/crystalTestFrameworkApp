@@ -4,6 +4,7 @@
 #include "CommunicationDevices/communicationdevice.h"
 #include "Protocols/protocol.h"
 #include "export.h"
+#include "qt_util.h"
 #include "scriptengine.h"
 #include "worker.h"
 
@@ -36,6 +37,9 @@ class EXPORT MainWindow : public QMainWindow {
 	public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
+
+	template <class Function>
+	void execute_in_gui_thread(Function &&f);
 
 	public slots:
 	void align_columns();
@@ -90,5 +94,10 @@ class EXPORT MainWindow : public QMainWindow {
 
 	Test *get_test_from_ui();
 };
+
+template <class Function>
+void MainWindow::execute_in_gui_thread(Function &&f) {
+	Utility::thread_call(this, std::forward<Function>(f));
+}
 
 #endif // MAINWINDOW_H

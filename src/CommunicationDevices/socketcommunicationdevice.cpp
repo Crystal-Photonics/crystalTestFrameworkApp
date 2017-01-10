@@ -22,7 +22,7 @@ SocketCommunicationDevice::SocketCommunicationDevice()
 		isServer = false;
 		socket = new QTcpSocket;
 		socket->connectToHost(ip, port);
-		receiveSlot = connect(socket, QTcpSocket::readyRead, [this]() { emit this->receiveData(this->socket->readAll()); });
+		receiveSlot = connect(socket, QTcpSocket::readyRead, [this]() { this->receiveData(this->socket->readAll()); });
 		assert(receiveSlot);
 	} else if (type == "server") {
 		isServer = true;
@@ -71,7 +71,7 @@ void SocketCommunicationDevice::setSocket() {
 	socket = server.nextPendingConnection();
 	if (receiveSlot)
 		QObject::disconnect(receiveSlot);
-	receiveSlot = connect(socket, &QTcpSocket::readyRead, [this]() { emit this->receiveData(this->socket->readAll()); });
+	receiveSlot = connect(socket, &QTcpSocket::readyRead, [this]() { this->receiveData(this->socket->readAll()); });
 	assert(receiveSlot);
 }
 

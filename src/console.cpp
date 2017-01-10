@@ -27,7 +27,7 @@ Console::ConsoleProxy::~ConsoleProxy() {
 	if (s.isEmpty()) {
 		return;
 	}
-	emit mw->append_html_to_console("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" + QTime::currentTime().toString(Qt::ISODate) +
-										": " + prefix + ": " + Utility::to_human_readable_binary_data(s.join(" ")) + "</plaintext></font>\n",
-									console);
+	mw->append_html_to_console("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" + QTime::currentTime().toString(Qt::ISODate) + ": " +
+								   prefix + ": " + Utility::to_human_readable_binary_data(s.join(" ")) + "</plaintext></font>\n",
+							   console);
 }
