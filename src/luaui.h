@@ -3,37 +3,34 @@
 
 #include <QAction>
 #include <QObject>
-#include <QSplitter>
+#include <atomic>
 #include <memory>
 #include <vector>
 
 class QwtPlot;
 class QwtPlotCurve;
+class QSplitter;
 class MainWindow;
 
-class Plot {
+class LuaPlot {
 	public:
-	Plot(QSplitter *parent);
+	LuaPlot(MainWindow *mw, QSplitter *splitter);
 	void add(double x, double y);
 	void clear();
-	QwtPlot *plot = nullptr;
-	QwtPlotCurve *curve = nullptr;
-	std::unique_ptr<QAction> save_as_csv_action;
-
-	std::unique_ptr<std::vector<double>> xvalues; //need to have pointers because Plot moves and pointers to xvalues and yvalues must stay valid
-	std::unique_ptr<std::vector<double>> yvalues;
 
 	private:
-	void update();
+	int id = -1;
+	MainWindow *mw = nullptr;
+	static std::atomic<int> current_plot_id;
 };
 
 struct LuaUI {
 	LuaUI(QSplitter *parent);
-	Plot create_plot() const;
+	LuaPlot create_plot() const;
 	static MainWindow *mw;
 
 	private:
-	QSplitter *parent;
+	QSplitter *parent = nullptr;
 };
 
 #endif // LUAUI_H

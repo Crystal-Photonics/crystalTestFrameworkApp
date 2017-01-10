@@ -3,6 +3,7 @@
 #include "config.h"
 #include "console.h"
 #include "pathsettingswindow.h"
+#include "plot.h"
 #include "qt_util.h"
 #include "scriptengine.h"
 #include "ui_mainwindow.h"
@@ -54,7 +55,9 @@ MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
 	, worker(std::make_unique<Worker>(this))
 	, ui(new Ui::MainWindow) {
+	qDebug() << this;
 	detail::gui_thread = QThread::currentThread();
+	LuaUI::mw = this;
 	ui->setupUi(this);
 	worker->moveToThread(&worker_thread);
 	worker_thread.start();
@@ -152,6 +155,20 @@ void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name,
 
 void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 	Utility::thread_call(this, [this, text, console] { console->appendHtml(text); });
+}
+
+static std::map<int, Plot> lua_plots;
+
+void MainWindow::create_plot(int id, QSplitter *splitter) {
+	Utility::thread_call(this, [this, id, splitter] { lua_plots.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second; });
+}
+
+void MainWindow::add_data_to_plot(int id, double x, double y) {
+	Utility::thread_call(this, [id, x, y] { lua_plots.at(id).add(x, y); });
+}
+
+void MainWindow::clear_plot(int id) {
+	Utility::thread_call(this, [this, id] { lua_plots.at(id).clear(); });
 }
 
 void MainWindow::on_actionPaths_triggered() {

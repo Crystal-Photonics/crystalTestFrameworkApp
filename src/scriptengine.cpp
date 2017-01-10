@@ -31,11 +31,11 @@ void ScriptEngine::load_script(const QString &path) {
 
 		//bind UI
 		auto ui_table = lua.create_named_table("ui");
-		ui_table.new_usertype<Plot>("plot",                                                                                  //
-									sol::meta_function::construct, sol::no_constructor,                                      //
-									sol::meta_function::construct, [lua_ui = this->lua_ui] { return lua_ui.create_plot(); }, //
-									"add", &Plot::add,                                                                       //
-									"clear", &Plot::clear);
+		ui_table.new_usertype<LuaPlot>("plot",                                                                                  //
+									   sol::meta_function::construct, sol::no_constructor,                                      //
+									   sol::meta_function::construct, [lua_ui = this->lua_ui] { return lua_ui.create_plot(); }, //
+									   "add", &LuaPlot::add,                                                                    //
+									   "clear", &LuaPlot::clear);
 		ui_table["create_table"] = [lua_ui = this->lua_ui] {
 			lua_ui.create_plot();
 		};

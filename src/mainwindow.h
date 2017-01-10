@@ -46,6 +46,9 @@ class EXPORT MainWindow : public QMainWindow {
 	void remove_device_entry(QTreeWidgetItem *item);
 	void add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *comport);
 	void append_html_to_console(QString text, QPlainTextEdit *console);
+	void create_plot(int id, QSplitter *splitter);
+	void add_data_to_plot(int id, double x, double y);
+	void clear_plot(int id);
 
 	private slots:
 	void forget_device();
