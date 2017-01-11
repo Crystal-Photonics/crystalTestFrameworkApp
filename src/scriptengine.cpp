@@ -111,7 +111,7 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
 
 struct RPCDevice {
 	sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
-		if (QThread::currentThread()->isInterruptionRequested()) {
+		if (QThread::currentThread()->isInterruptionRequested() || engine->state == ScriptEngine::State::aborting) {
 			throw sol::error("Abort Requested");
 		}
 		Console::note() << QString("\"%1\" called").arg(name.c_str());
@@ -151,6 +151,7 @@ struct RPCDevice {
 	sol::state *lua = nullptr;
 	RPCProtocol *protocol = nullptr;
 	CommunicationDevice *device = nullptr;
+	ScriptEngine *engine = nullptr;
 };
 
 void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function<void(std::list<DeviceProtocol> &)> debug_callback) {
@@ -158,7 +159,7 @@ void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function
 		auto device_list = lua.create_table_with();
 		for (auto &device_protocol : device_protocols) {
 			if (auto rpcp = dynamic_cast<RPCProtocol *>(&device_protocol.protocol)) {
-				device_list.add(RPCDevice{&lua, rpcp, &device_protocol.device});
+				device_list.add(RPCDevice{&lua, rpcp, &device_protocol.device, this});
 				auto type_reg = lua.create_simple_usertype<RPCDevice>();
 				for (auto &function : rpcp->get_description().get_functions()) {
 					const auto &function_name = function.get_function_name();
@@ -172,10 +173,13 @@ void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function
 				throw std::runtime_error("invalid protocol: " + device_protocol.protocol.type.toStdString());
 			}
 		}
+		state = State::running;
 		lua["run"](device_list);
+		state = State::idle;
 	} catch (const sol::error &e) {
 		debug_callback(device_protocols);
 		set_error(e);
+		state = State::idle;
 		throw;
 	}
 }

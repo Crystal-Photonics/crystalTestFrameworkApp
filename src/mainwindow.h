@@ -95,7 +95,7 @@ class EXPORT MainWindow : public QMainWindow {
 	QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;
 
-	Test *get_test_from_ui();
+	Test *get_test_from_ui(const QTreeWidgetItem *item = nullptr);
 };
 
 template <class Function>

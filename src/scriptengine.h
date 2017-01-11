@@ -12,9 +12,9 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <functional>
 #include <list>
 #include <memory>
-#include <functional>
 
 struct DeviceProtocol {
 	CommunicationDevice &device;
@@ -23,12 +23,14 @@ struct DeviceProtocol {
 
 class ScriptEngine {
 	public:
+	enum class State { idle, running, aborting } state = State::idle;
+
 	ScriptEngine(LuaUI lua_ui);
 	void load_script(const QString &path);
 	QStringList get_string_list(const QString &name);
 	void launch_editor() const;
 	sol::table create_table();
-	void run(std::list<DeviceProtocol> device_protocols, std::function<void(std::list<DeviceProtocol> &)> debug_callback = [](std::list<DeviceProtocol> &){});
+	void run(std::list<DeviceProtocol> device_protocols, std::function<void(std::list<DeviceProtocol> &)> debug_callback = [](std::list<DeviceProtocol> &) {});
 	template <class ReturnType, class... Arguments>
 	ReturnType call(const char *function_name, Arguments &&... args);
 

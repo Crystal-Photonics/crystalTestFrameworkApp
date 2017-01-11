@@ -38,6 +38,8 @@ class Worker : public QObject {
 	void connect_to_device_console(QPlainTextEdit *console, CommunicationDevice *comport);
 	void get_devices_with_protocol(const QString &protocol, std::promise<std::vector<ComportDescription *>> &retval);
 	void run_script(ScriptEngine *script, QPlainTextEdit *console, ComportDescription *device);
+	ScriptEngine::State get_state(ScriptEngine &script);
+	void abort_script(ScriptEngine &script);
 
 	private slots:
 	void poll_ports();

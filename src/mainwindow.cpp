@@ -200,19 +200,6 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index) {
 	});
 }
 
-MainWindow::Test *MainWindow::get_test_from_ui() {
-	auto item = ui->tests_list->currentItem();
-	if (item == nullptr) {
-		return nullptr;
-	}
-	for (auto &test : tests) {
-		if (test.ui_item == item) {
-			return &test;
-		}
-	}
-	return nullptr;
-}
-
 MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QString &file_path)
 	: parent(test_list)
 	, test_tabs(test_tabs)
@@ -375,13 +362,26 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 	Utility::thread_call(this, [this, pos] {
 		auto item = ui->tests_list->itemAt(pos);
 		if (item) {
-			get_test_from_ui()->activate_console();
+			auto test = get_test_from_ui();
+			test->activate_console();
 
 			QMenu menu(this);
 
-			QAction action_run(tr("Run"));
-			connect(&action_run, &QAction::triggered, [this] { emit on_run_test_script_button_clicked(); });
-			menu.addAction(&action_run);
+			QAction action_run_abort;
+			switch (worker->get_state(test->script)) {
+				case ScriptEngine::State::running:
+					action_run_abort.setText(tr("Abort"));
+					connect(&action_run_abort, &QAction::triggered, [ this, &script = test->script ] { worker->abort_script(script); });
+					menu.addAction(&action_run_abort);
+					break;
+				case ScriptEngine::State::idle:
+					action_run_abort.setText(tr("Run"));
+					connect(&action_run_abort, &QAction::triggered, [this] { emit on_run_test_script_button_clicked(); });
+					menu.addAction(&action_run_abort);
+					break;
+				case ScriptEngine::State::aborting:
+					break;
+			}
 
 			QAction action_reload(tr("Reload"));
 			connect(&action_reload, &QAction::triggered, [this] {
@@ -449,6 +449,21 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 			menu.exec(ui->devices_list->mapToGlobal(pos));
 		}
 	});
+}
+
+MainWindow::Test *MainWindow::get_test_from_ui(const QTreeWidgetItem *item) {
+	if (item == nullptr) {
+		item = ui->tests_list->currentItem();
+	}
+	if (item == nullptr) {
+		return nullptr;
+	}
+	for (auto &test : tests) {
+		if (test.ui_item == item) {
+			return &test;
+		}
+	}
+	return nullptr;
 }
 
 QThread *detail::gui_thread = nullptr;

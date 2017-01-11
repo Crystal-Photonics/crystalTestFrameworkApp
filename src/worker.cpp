@@ -13,6 +13,7 @@
 #include <QObject>
 #include <QSettings>
 #include <QTimer>
+#include <functional>
 
 Worker::Worker(MainWindow *parent)
 	: mw(parent) {
@@ -202,4 +203,15 @@ void Worker::run_script(ScriptEngine *script, QPlainTextEdit *console, ComportDe
 			Console::error(console) << e.what();
 		}
 	});
+}
+
+ScriptEngine::State Worker::get_state(ScriptEngine &script) {
+	std::promise<ScriptEngine::State> state_promise;
+	auto state_future = state_promise.get_future();
+	Utility::thread_call(this, [&script, promise = std::move(state_promise) ]() mutable { promise.set_value(script.state); });
+	return state_future.get();
+}
+
+void Worker::abort_script(ScriptEngine &script) {
+	Utility::thread_call(this, [this, &script] { script.state = ScriptEngine::State::aborting; });
 }
