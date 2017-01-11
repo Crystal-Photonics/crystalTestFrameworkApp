@@ -11,6 +11,7 @@
 #include <QMessageBox>
 #include <QProcess>
 #include <QSettings>
+#include <QThread>
 #include <functional>
 #include <regex>
 #include <string>
@@ -110,6 +111,9 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
 
 struct RPCDevice {
 	sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
+		if (QThread::currentThread()->isInterruptionRequested()) {
+			throw sol::error("Abort Requested");
+		}
 		Console::note() << QString("\"%1\" called").arg(name.c_str());
 		auto function = protocol->encode_function(name);
 		int param_count = 0;

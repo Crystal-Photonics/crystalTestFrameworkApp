@@ -55,7 +55,6 @@ MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
 	, worker(std::make_unique<Worker>(this))
 	, ui(new Ui::MainWindow) {
-	qDebug() << this;
 	detail::gui_thread = QThread::currentThread();
 	LuaUI::mw = this;
 	ui->setupUi(this);
@@ -69,7 +68,9 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow() {
 	worker_thread.quit();
+	worker_thread.requestInterruption();
 	worker_thread.wait();
+	QApplication::processEvents();
 	delete ui;
 }
 
