@@ -330,6 +330,8 @@ void MainWindow::on_run_test_script_button_clicked() {
 									Console::note(test->console) << tr("Device rejected:") << message.value();
 								} else {
 									//acceptable device
+									Utility::replace_tab_widget(ui->test_tabs, 0, ui->test_tab_placeholder, tr("Test Information"));
+									ui->test_tabs->setCurrentIndex(ui->test_tabs->addTab(test->test_console_widget, test->name));
 									worker->run_script(&test->script, test->console, &device);
 								}
 							} else {
@@ -373,7 +375,7 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 					break;
 				case ScriptEngine::State::idle:
 					action_run_abort.setText(tr("Run"));
-					connect(&action_run_abort, &QAction::triggered, [this] { emit on_run_test_script_button_clicked(); });
+					connect(&action_run_abort, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
 					menu.addAction(&action_run_abort);
 					break;
 				case ScriptEngine::State::aborting:
@@ -476,10 +478,9 @@ void MainWindow::test_console_focus(Test *test) {
 	auto index = ui->test_tabs->indexOf(test->test_console_widget);
 	if (index == -1) { //not showing this widget right now
 		Utility::replace_tab_widget(ui->test_tabs, 0, test->test_console_widget, test->name);
-		test->test_console_widget->show();
-	} else {
-		ui->test_tabs->setCurrentIndex(index);
+		index = 0;
 	}
+	ui->test_tabs->setCurrentIndex(index);
 }
 
 QThread *detail::gui_thread = nullptr;
