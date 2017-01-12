@@ -176,8 +176,7 @@ void MainWindow::clear_plot(int id) {
 	Utility::thread_call(this, [this, id] { lua_plots.at(id).clear(); });
 }
 
-void MainWindow::drop_plot(int id)
-{
+void MainWindow::drop_plot(int id) {
 	//The script will not update this plot anymore, but we keep it around so the user can save data or something
 }
 
@@ -276,8 +275,8 @@ MainWindow::Test &MainWindow::Test::operator=(MainWindow::Test &&other) {
 }
 
 void MainWindow::Test::swap(MainWindow::Test &other) {
-	auto t = std::tie(this->parent, this->ui_item, this->script, this->protocols, this->name, this->console, this->file_path);
-	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols, other.name, other.console, other.file_path);
+	auto t = std::tie(this->parent, this->ui_item, this->script, this->protocols, this->name, this->console, this->test_console_widget, this->file_path);
+	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols, other.name, other.console, other.test_console_widget, other.file_path);
 
 	std::swap(t, o);
 }
@@ -464,19 +463,23 @@ MainWindow::Test *MainWindow::get_test_from_ui(const QTreeWidgetItem *item) {
 	return nullptr;
 }
 
-void MainWindow::test_console_add(MainWindow::Test *test)
-{
-	ui->test_tabs->addTab(test->test_console_widget, test->name);
+void MainWindow::test_console_add(MainWindow::Test *test) {
+	//ui->test_tabs->addTab(test->test_console_widget, test->name);
 }
 
-void MainWindow::test_console_remove(Test *test)
-{
-	ui->test_tabs->removeTab(ui->test_tabs->indexOf(test->test_console_widget));
+void MainWindow::test_console_remove(Test *test) {
+	//ui->test_tabs->removeTab(ui->test_tabs->indexOf(test->test_console_widget));
 }
 
-void MainWindow::test_console_focus(Test *test)
-{
-	ui->test_tabs->setCurrentIndex(ui->test_tabs->indexOf(test->test_console_widget));
+void MainWindow::test_console_focus(Test *test) {
+	//ui->test_tabs->setCurrentIndex(ui->test_tabs->indexOf(test->test_console_widget));
+	auto index = ui->test_tabs->indexOf(test->test_console_widget);
+	if (index == -1) { //not showing this widget right now
+		Utility::replace_tab_widget(ui->test_tabs, 0, test->test_console_widget, test->name);
+		test->test_console_widget->show();
+	} else {
+		ui->test_tabs->setCurrentIndex(index);
+	}
 }
 
 QThread *detail::gui_thread = nullptr;

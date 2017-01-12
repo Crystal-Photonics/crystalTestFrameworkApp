@@ -8,6 +8,8 @@
 #include <cassert>
 #include <utility>
 
+class QTabWidget;
+
 namespace Utility {
 	inline QVariant make_qvariant(void *p) {
 		return QVariant::fromValue(p);
@@ -38,6 +40,8 @@ namespace Utility {
 		};
 		QCoreApplication::postEvent(obj->thread() ? obj : qApp, new Event(std::forward<Fun>(fun)));
 	}
+
+	QWidget *replace_tab_widget(QTabWidget *tabs, int index, QWidget *new_widget, const QString &title);
 }
 
 #endif // QT_UTIL_H
