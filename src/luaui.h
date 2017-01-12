@@ -14,20 +14,21 @@ class MainWindow;
 
 class LuaPlot {
 	public:
-	LuaPlot(MainWindow *mw, QSplitter *splitter);
+	LuaPlot(QSplitter *splitter);
+	LuaPlot(LuaPlot &&other);
+	LuaPlot &operator=(LuaPlot &&other);
+	~LuaPlot();
 	void add(double x, double y);
 	void clear();
 
 	private:
 	int id = -1;
-	MainWindow *mw = nullptr;
 	static std::atomic<int> current_plot_id;
 };
 
 struct LuaUI {
 	LuaUI(QSplitter *parent);
 	LuaPlot create_plot() const;
-	static MainWindow *mw;
 
 	private:
 	QSplitter *parent = nullptr;

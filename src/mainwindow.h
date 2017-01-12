@@ -37,6 +37,7 @@ class EXPORT MainWindow : public QMainWindow {
 	public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
+	static MainWindow *mw;
 
 	template <class Function>
 	void execute_in_gui_thread(Function &&f);
@@ -49,6 +50,7 @@ class EXPORT MainWindow : public QMainWindow {
 	void create_plot(int id, QSplitter *splitter);
 	void add_data_to_plot(int id, double x, double y);
 	void clear_plot(int id);
+	void drop_plot(int id);
 
 	private slots:
 	void forget_device();
@@ -66,7 +68,7 @@ class EXPORT MainWindow : public QMainWindow {
 
 	private:
 	struct Test {
-		Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QString &file_path);
+		Test(QTreeWidget *test_list, const QString &file_path);
 		~Test();
 		Test(const Test &) = delete;
 		Test(Test &&other);
@@ -76,17 +78,15 @@ class EXPORT MainWindow : public QMainWindow {
 
 		QTreeWidget *parent = nullptr;
 		QTreeWidgetItem *ui_item = nullptr;
-		QTabWidget *test_tabs = nullptr;
 		QPlainTextEdit *console = nullptr;
-		QSplitter *splitter = nullptr;
+		QSplitter *test_console_widget = nullptr;
 		ScriptEngine script;
 		std::vector<QString> protocols;
 		QString name;
 		QString file_path;
 		bool operator==(QTreeWidgetItem *item);
-		int get_tab_id() const;
-		void activate_console();
 	};
+	friend struct MainWindow::Test;
 	std::list<Test> tests;
 
 	std::unique_ptr<Worker> worker;
@@ -96,6 +96,9 @@ class EXPORT MainWindow : public QMainWindow {
     Ui::MainWindow *ui;
 
 	Test *get_test_from_ui(const QTreeWidgetItem *item = nullptr);
+	void test_console_add(Test *test);
+	void test_console_remove(Test *test);
+	void test_console_focus(Test *test);
 };
 
 template <class Function>

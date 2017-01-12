@@ -3,26 +3,38 @@
 
 #include <QDebug>
 
-MainWindow *LuaUI::mw = nullptr;
-
 std::atomic<int> LuaPlot::current_plot_id{0};
 
-LuaPlot::LuaPlot(MainWindow *mw, QSplitter *splitter)
-	: id(current_plot_id++)
-	, mw(mw) {
-	mw->create_plot(id, splitter);
+LuaPlot::LuaPlot(QSplitter *splitter)
+	: id(current_plot_id++) {
+	MainWindow::mw->create_plot(id, splitter);
+}
+
+LuaPlot::LuaPlot(LuaPlot &&other)
+	: id(-1) {
+	std::swap(id, other.id);
+}
+
+LuaPlot &LuaPlot::operator=(LuaPlot &&other) {
+	std::swap(id, other.id);
+	return *this;
+}
+
+LuaPlot::~LuaPlot()
+{
+	MainWindow::mw->drop_plot(id);
 }
 
 void LuaPlot::add(double x, double y) {
-	mw->add_data_to_plot(id, x, y);
+	MainWindow::mw->add_data_to_plot(id, x, y);
 }
 
 void LuaPlot::clear() {
-	mw->clear_plot(id);
+	MainWindow::mw->clear_plot(id);
 }
 
 LuaPlot LuaUI::create_plot() const {
-	return {mw, parent};
+	return {parent};
 }
 
 LuaUI::LuaUI(QSplitter *parent)

@@ -51,12 +51,14 @@ namespace GUI {
 
 using namespace std::chrono_literals;
 
+MainWindow *MainWindow::mw = nullptr;
+
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
 	, worker(std::make_unique<Worker>(this))
 	, ui(new Ui::MainWindow) {
 	detail::gui_thread = QThread::currentThread();
-	LuaUI::mw = this;
+	mw = this;
 	ui->setupUi(this);
 	worker->moveToThread(&worker_thread);
 	worker_thread.start();
@@ -70,6 +72,8 @@ MainWindow::~MainWindow() {
 	worker_thread.quit();
 	worker_thread.requestInterruption();
 	worker_thread.wait();
+	QApplication::processEvents();
+	tests.clear();
 	QApplication::processEvents();
 	delete ui;
 }
@@ -136,7 +140,7 @@ void MainWindow::load_scripts() {
 		QDirIterator dit{QSettings{}.value(Globals::test_script_path_settings_key, "").toString(), QStringList{} << "*.lua", QDir::Files};
 		while (dit.hasNext()) {
 			const auto &file_path = dit.next();
-			tests.push_back({ui->tests_list, ui->test_tabs, file_path});
+			tests.push_back({ui->tests_list, file_path});
 		}
 	});
 }
@@ -172,6 +176,11 @@ void MainWindow::clear_plot(int id) {
 	Utility::thread_call(this, [this, id] { lua_plots.at(id).clear(); });
 }
 
+void MainWindow::drop_plot(int id)
+{
+	//The script will not update this plot anymore, but we keep it around so the user can save data or something
+}
+
 void MainWindow::on_actionPaths_triggered() {
 	Utility::thread_call(this, [this] {
 		path_dialog = new PathSettingsWindow(this);
@@ -200,20 +209,19 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index) {
 	});
 }
 
-MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QString &file_path)
+MainWindow::Test::Test(QTreeWidget *test_list, const QString &file_path)
 	: parent(test_list)
-	, test_tabs(test_tabs)
-	, splitter(new QSplitter(Qt::Vertical, test_tabs))
-	, script(splitter)
+	, test_console_widget(new QSplitter(Qt::Vertical))
+	, script(test_console_widget)
 	, file_path(file_path) {
 	name = QString{file_path.data() + file_path.lastIndexOf('/') + 1};
 	if (name.endsWith(".lua")) {
 		name.chop(4);
 	}
-	console = new QPlainTextEdit(splitter);
+	console = new QPlainTextEdit(test_console_widget);
 	console->setReadOnly(true);
-	splitter->addWidget(console);
-	test_tabs->addTab(splitter, name);
+	test_console_widget->addWidget(console);
+	MainWindow::mw->test_console_add(this);
 
 	ui_item = new QTreeWidgetItem(test_list, QStringList{} << name);
 	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
@@ -252,9 +260,7 @@ MainWindow::Test::Test(QTreeWidget *test_list, QTabWidget *test_tabs, const QStr
 MainWindow::Test::~Test() {
 	if (ui_item != nullptr) {
 		delete parent->takeTopLevelItem(parent->indexOfTopLevelItem(ui_item));
-	}
-	if (console != nullptr) {
-		test_tabs->removeTab(test_tabs->indexOf(console));
+		MainWindow::mw->test_console_remove(this);
 	}
 }
 
@@ -270,22 +276,14 @@ MainWindow::Test &MainWindow::Test::operator=(MainWindow::Test &&other) {
 }
 
 void MainWindow::Test::swap(MainWindow::Test &other) {
-	auto t = std::tie(this->parent, this->ui_item, this->script, this->protocols, this->name, this->test_tabs, this->console, this->file_path);
-	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols, other.name, other.test_tabs, other.console, other.file_path);
+	auto t = std::tie(this->parent, this->ui_item, this->script, this->protocols, this->name, this->console, this->file_path);
+	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols, other.name, other.console, other.file_path);
 
 	std::swap(t, o);
 }
 
 bool MainWindow::Test::operator==(QTreeWidgetItem *item) {
 	return item == ui_item;
-}
-
-int MainWindow::Test::get_tab_id() const {
-	return test_tabs->indexOf(static_cast<QWidget *>(console->parent()));
-}
-
-void MainWindow::Test::activate_console() {
-	test_tabs->setCurrentIndex(get_tab_id());
 }
 
 void MainWindow::on_run_test_script_button_clicked() {
@@ -354,7 +352,7 @@ void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
 	(void)column;
 	Utility::thread_call(this, [this, item] {
 		auto test = Utility::from_qvariant<MainWindow::Test>(item->data(0, Qt::UserRole));
-		test->activate_console();
+		test_console_focus(test);
 	});
 }
 
@@ -363,7 +361,7 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 		auto item = ui->tests_list->itemAt(pos);
 		if (item) {
 			auto test = get_test_from_ui();
-			test->activate_console();
+			test_console_focus(test);
 
 			QMenu menu(this);
 
@@ -395,7 +393,7 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 					}
 				}
 				if (file_path.isEmpty() == false) {
-					tests.push_back({ui->tests_list, ui->test_tabs, file_path});
+					tests.push_back({ui->tests_list, file_path});
 				}
 			});
 			menu.addAction(&action_reload);
@@ -464,6 +462,21 @@ MainWindow::Test *MainWindow::get_test_from_ui(const QTreeWidgetItem *item) {
 		}
 	}
 	return nullptr;
+}
+
+void MainWindow::test_console_add(MainWindow::Test *test)
+{
+	ui->test_tabs->addTab(test->test_console_widget, test->name);
+}
+
+void MainWindow::test_console_remove(Test *test)
+{
+	ui->test_tabs->removeTab(ui->test_tabs->indexOf(test->test_console_widget));
+}
+
+void MainWindow::test_console_focus(Test *test)
+{
+	ui->test_tabs->setCurrentIndex(ui->test_tabs->indexOf(test->test_console_widget));
 }
 
 QThread *detail::gui_thread = nullptr;
