@@ -15,6 +15,7 @@
 #include <functional>
 #include <list>
 #include <memory>
+#include <mutex>
 
 struct DeviceProtocol {
 	CommunicationDevice &device;
@@ -43,6 +44,7 @@ class ScriptEngine {
 	QString path;
 	int error_line = 0;
 	LuaUI lua_ui;
+	std::unique_ptr<std::mutex> state_is_idle = std::make_unique<std::mutex>(); //is free when state==idle and locked otherwise
 };
 
 template <class ReturnType, class... Arguments>

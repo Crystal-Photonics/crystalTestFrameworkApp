@@ -3,9 +3,11 @@
 
 #include <QAction>
 #include <vector>
+#include <memory>
+#include <qwt_plot.h>
 
+//class QwtPlot;
 class QSplitter;
-class QwtPlot;
 class QwtPlotCurve;
 
 class Plot {
@@ -13,7 +15,7 @@ class Plot {
 	Plot(QSplitter *parent);
 	void add(double x, double y);
 	void clear();
-	QwtPlot *plot = nullptr;
+	std::unique_ptr<QwtPlot> plot;
 	QwtPlotCurve *curve = nullptr;
 	QAction save_as_csv_action;
 

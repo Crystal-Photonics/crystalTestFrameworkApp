@@ -173,6 +173,7 @@ void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function
 				throw std::runtime_error("invalid protocol: " + device_protocol.protocol.type.toStdString());
 			}
 		}
+		std::lock_guard<std::mutex> state_lock(*state_is_idle);
 		state = State::running;
 		lua["run"](device_list);
 		state = State::idle;

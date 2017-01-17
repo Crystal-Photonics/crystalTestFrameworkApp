@@ -21,10 +21,8 @@ Worker::Worker(MainWindow *parent)
 }
 
 void Worker::await_idle(ScriptEngine &script) {
-	std::promise<void> p;
-	auto f = p.get_future();
-	throw "TODO";
-	return f.get();
+	abort_script(script);
+	std::lock_guard<std::mutex> lock(*script.state_is_idle);
 }
 
 QStringList Worker::get_string_list(ScriptEngine &script, const QString &name) {

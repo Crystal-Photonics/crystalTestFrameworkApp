@@ -165,7 +165,10 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 static std::map<int, Plot> lua_plots;
 
 void MainWindow::create_plot(int id, QSplitter *splitter) {
-	Utility::thread_call(this, [this, id, splitter] { lua_plots.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second; });
+	Utility::thread_call(this, [this, id, splitter] {
+		auto success = lua_plots.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second;
+		assert(success);
+	});
 }
 
 void MainWindow::add_data_to_plot(int id, double x, double y) {
@@ -177,7 +180,10 @@ void MainWindow::clear_plot(int id) {
 }
 
 void MainWindow::drop_plot(int id) {
-	//The script will not update this plot anymore, but we keep it around so the user can save data or something
+	Utility::thread_call(this, [id] {
+		assert(lua_plots.count(id));
+		lua_plots.erase(id);
+	});
 }
 
 void MainWindow::on_actionPaths_triggered() {
@@ -500,10 +506,12 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 			if (worker->get_state(test.script) == ScriptEngine::State::running) {
 				if (QMessageBox::question(this, tr(""), tr("Selected script %1 is still running. Abort it now?").arg(test.name),
 										  QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
-					worker->abort_script(test.script);
 					worker->await_idle(test.script);
+				} else {
+					return; //canceled closing the tab
 				}
 			}
+			ui->test_tabs->removeTab(index);
 		}
 	}
 }

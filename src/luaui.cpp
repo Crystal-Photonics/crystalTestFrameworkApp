@@ -20,9 +20,10 @@ LuaPlot &LuaPlot::operator=(LuaPlot &&other) {
 	return *this;
 }
 
-LuaPlot::~LuaPlot()
-{
-	MainWindow::mw->drop_plot(id);
+LuaPlot::~LuaPlot() {
+	if (id != -1) {
+		MainWindow::mw->drop_plot(id);
+	}
 }
 
 void LuaPlot::add(double x, double y) {
