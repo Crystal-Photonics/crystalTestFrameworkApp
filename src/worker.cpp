@@ -20,6 +20,21 @@ Worker::Worker(MainWindow *parent)
 	//poll_ports();
 }
 
+void Worker::await_idle(ScriptEngine &script) {
+	std::promise<void> p;
+	auto f = p.get_future();
+	throw "TODO";
+	return f.get();
+}
+
+QStringList Worker::get_string_list(ScriptEngine &script, const QString &name) {
+	return Utility::promised_thread_call(this, [&script, &name] { return script.get_string_list(name); });
+}
+
+sol::table Worker::create_table(ScriptEngine &script) {
+	return Utility::promised_thread_call(this, [&script] { return script.create_table(); });
+}
+
 void Worker::poll_ports() {
 	Utility::thread_call(this, [this] {
 		assert(currently_in_gui_thread() == false);
@@ -206,10 +221,7 @@ void Worker::run_script(ScriptEngine *script, QPlainTextEdit *console, ComportDe
 }
 
 ScriptEngine::State Worker::get_state(ScriptEngine &script) {
-	std::promise<ScriptEngine::State> state_promise;
-	auto state_future = state_promise.get_future();
-	Utility::thread_call(this, [&script, promise = std::move(state_promise) ]() mutable { promise.set_value(script.state); });
-	return state_future.get();
+	return Utility::promised_thread_call(this, [&script]() { return script.state; });
 }
 
 void Worker::abort_script(ScriptEngine &script) {

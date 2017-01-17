@@ -23,18 +23,21 @@ struct DeviceProtocol {
 
 class ScriptEngine {
 	public:
-	enum class State { idle, running, aborting } state = State::idle;
+	enum class State { idle, running, aborting };
+	friend class Worker;
+	friend struct RPCDevice;
 
 	ScriptEngine(LuaUI lua_ui);
 	void load_script(const QString &path);
-	QStringList get_string_list(const QString &name);
 	void launch_editor() const;
+	private:
 	sol::table create_table();
+	State state = State::idle;
+	QStringList get_string_list(const QString &name);
 	void run(std::list<DeviceProtocol> device_protocols, std::function<void(std::list<DeviceProtocol> &)> debug_callback = [](std::list<DeviceProtocol> &) {});
 	template <class ReturnType, class... Arguments>
 	ReturnType call(const char *function_name, Arguments &&... args);
 
-	private:
 	void set_error(const sol::error &error);
 	sol::state lua;
 	QString path;

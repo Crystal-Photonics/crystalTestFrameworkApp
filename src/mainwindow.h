@@ -65,6 +65,7 @@ class EXPORT MainWindow : public QMainWindow {
 	void on_tests_list_itemClicked(QTreeWidgetItem *item, int column);
 	void on_tests_list_customContextMenuRequested(const QPoint &pos);
 	void on_devices_list_customContextMenuRequested(const QPoint &pos);
+	void on_test_tabs_tabCloseRequested(int index);
 
 	private:
 	struct Test {

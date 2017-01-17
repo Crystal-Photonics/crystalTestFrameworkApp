@@ -232,7 +232,7 @@ MainWindow::Test::Test(QTreeWidget *test_list, const QString &file_path)
 		return;
 	}
 	try {
-		QStringList protocols = script.get_string_list("protocols");
+		QStringList protocols = MainWindow::mw->worker->get_string_list(script, "protocols");
 		std::copy(protocols.begin(), protocols.end(), std::back_inserter(this->protocols));
 		std::sort(this->protocols.begin(), this->protocols.end());
 		if (protocols.empty() == false) {
@@ -247,7 +247,7 @@ MainWindow::Test::Test(QTreeWidget *test_list, const QString &file_path)
 		ui_item->setTextColor(GUI::Tests::protocol, Qt::darkRed);
 	}
 	try {
-		auto deviceNames = script.get_string_list("deviceNames");
+		auto deviceNames = MainWindow::mw->worker->get_string_list(script, "deviceNames");
 		if (deviceNames.isEmpty() == false) {
 			ui_item->setText(GUI::Tests::deviceNames, deviceNames.join(", "));
 		}
@@ -317,9 +317,9 @@ void MainWindow::on_run_test_script_button_clicked() {
 							if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
 								sol::optional<std::string> message;
 								try {
-									sol::table table = test->script.create_table();
+									sol::table table = worker->create_table(test->script);
 									rpc_protocol->get_lua_device_descriptor(table);
-									message = test->script.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
+									message = worker->call<sol::optional<std::string>>(test->script, "RPC_acceptable", std::move(table));
 								} catch (const sol::error &e) {
 									const auto &message = tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
 									Console::error(test->console) << message;
@@ -487,4 +487,23 @@ QThread *detail::gui_thread = nullptr;
 
 bool currently_in_gui_thread() {
 	return QThread::currentThread() == detail::gui_thread;
+}
+
+void MainWindow::on_test_tabs_tabCloseRequested(int index) {
+	if (index == 0) {
+		//first tab never gets closed
+		return;
+	}
+	auto tab_widget = ui->test_tabs->widget(index);
+	for (auto &test : tests) {
+		if (test.test_console_widget == tab_widget) {
+			if (worker->get_state(test.script) == ScriptEngine::State::running) {
+				if (QMessageBox::question(this, tr(""), tr("Selected script %1 is still running. Abort it now?").arg(test.name),
+										  QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
+					worker->abort_script(test.script);
+					worker->await_idle(test.script);
+				}
+			}
+		}
+	}
 }
