@@ -32,15 +32,11 @@ void ScriptEngine::load_script(const QString &path) {
 
 		//bind UI
 		auto ui_table = lua.create_named_table("ui");
-		ui_table.new_usertype<LuaPlot>("plot",                                                                                  //
-									   sol::meta_function::construct, sol::no_constructor,                                      //
-									   sol::meta_function::construct, [lua_ui = this->lua_ui] { return lua_ui.create_plot(); }, //
-									   "add", &LuaPlot::add,                                                                    //
+		ui_table.new_usertype<LuaPlot>("plot",                                                                                     //
+									   sol::meta_function::construct, sol::no_constructor,                                         //
+									   sol::meta_function::construct, [lua_ui = this->lua_ui] { return lua_ui.create_plot(); },    //
+									   "add", &LuaPlot::add,                                                                       //
 									   "clear", &LuaPlot::clear);
-		ui_table["create_table"] = [lua_ui = this->lua_ui] {
-			lua_ui.create_plot();
-		};
-
 	} catch (const sol::error &error) {
 		set_error(error);
 		throw;
@@ -156,6 +152,11 @@ struct RPCDevice {
 
 void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function<void(std::list<DeviceProtocol> &)> debug_callback) {
 	try {
+		if (state == State::done){
+			lua = sol::state{};
+			load_script(path);
+			state = State::idle;
+		}
 		auto device_list = lua.create_table_with();
 		for (auto &device_protocol : device_protocols) {
 			if (auto rpcp = dynamic_cast<RPCProtocol *>(&device_protocol.protocol)) {
@@ -176,11 +177,12 @@ void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function
 		std::lock_guard<std::mutex> state_lock(*state_is_idle);
 		state = State::running;
 		lua["run"](device_list);
-		state = State::idle;
+		lua.collect_garbage();
+		state = State::done;
 	} catch (const sol::error &e) {
 		debug_callback(device_protocols);
 		set_error(e);
-		state = State::idle;
+		state = State::done;
 		throw;
 	}
 }

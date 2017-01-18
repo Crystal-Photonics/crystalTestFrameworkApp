@@ -24,7 +24,7 @@ struct DeviceProtocol {
 
 class ScriptEngine {
 	public:
-	enum class State { idle, running, aborting };
+	enum class State { idle, running, aborting, done };
 	friend class Worker;
 	friend struct RPCDevice;
 

@@ -183,6 +183,7 @@ void MainWindow::drop_plot(int id) {
 	Utility::thread_call(this, [id] {
 		assert(lua_plots.count(id));
 		lua_plots.erase(id);
+		assert(!lua_plots.count(id));
 	});
 }
 
@@ -373,12 +374,14 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 			QMenu menu(this);
 
 			QAction action_run_abort;
-			switch (worker->get_state(test->script)) {
+			auto state = worker->get_state(test->script);
+			switch (state) {
 				case ScriptEngine::State::running:
 					action_run_abort.setText(tr("Abort"));
 					connect(&action_run_abort, &QAction::triggered, [ this, &script = test->script ] { worker->abort_script(script); });
 					menu.addAction(&action_run_abort);
 					break;
+				case ScriptEngine::State::done:
 				case ScriptEngine::State::idle:
 					action_run_abort.setText(tr("Run"));
 					connect(&action_run_abort, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
@@ -389,21 +392,23 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 			}
 
 			QAction action_reload(tr("Reload"));
-			connect(&action_reload, &QAction::triggered, [this] {
-				auto selected_test_item = ui->tests_list->currentItem();
-				QString file_path;
-				for (auto test_it = tests.begin(); test_it != tests.end(); ++test_it) {
-					if (test_it->ui_item == selected_test_item) {
-						file_path = test_it->file_path;
-						test_it = tests.erase(test_it);
-						break;
+			if (state == ScriptEngine::State::idle || state == ScriptEngine::State::done) {
+				connect(&action_reload, &QAction::triggered, [this] {
+					auto selected_test_item = ui->tests_list->currentItem();
+					QString file_path;
+					for (auto test_it = tests.begin(); test_it != tests.end(); ++test_it) {
+						if (test_it->ui_item == selected_test_item) {
+							file_path = test_it->file_path;
+							test_it = tests.erase(test_it);
+							break;
+						}
 					}
-				}
-				if (file_path.isEmpty() == false) {
-					tests.push_back({ui->tests_list, file_path});
-				}
-			});
-			menu.addAction(&action_reload);
+					if (file_path.isEmpty() == false) {
+						tests.push_back({ui->tests_list, file_path});
+					}
+				});
+				menu.addAction(&action_reload);
+			}
 
 			QAction action_editor(tr("Open in Editor"));
 			connect(&action_editor, &QAction::triggered, [this] { get_test_from_ui()->script.launch_editor(); });
@@ -511,7 +516,8 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 					return; //canceled closing the tab
 				}
 			}
-			ui->test_tabs->removeTab(index);
+			break;
 		}
 	}
+	ui->test_tabs->removeTab(index);
 }
