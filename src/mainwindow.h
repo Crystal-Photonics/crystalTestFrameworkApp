@@ -42,15 +42,20 @@ class EXPORT MainWindow : public QMainWindow {
 	template <class Function>
 	void execute_in_gui_thread(Function &&f);
 
+	void create_plot(int id, QSplitter *splitter);
+	void add_data_to_plot(int id, double x, double y);
+	void clear_plot(int id);
+	void drop_plot(int id);
+	void create_spectrum(int id, QSplitter *splitter);
+	void add_data_to_spectrum(int id, const std::vector<int> &data);
+	void clear_spectrum(int id);
+	void drop_spectrum(int id);
+
 	public slots:
 	void align_columns();
 	void remove_device_entry(QTreeWidgetItem *item);
 	void add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *comport);
 	void append_html_to_console(QString text, QPlainTextEdit *console);
-	void create_plot(int id, QSplitter *splitter);
-	void add_data_to_plot(int id, double x, double y);
-	void clear_plot(int id);
-	void drop_plot(int id);
 
 	private slots:
 	void forget_device();

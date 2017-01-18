@@ -6,6 +6,7 @@
 #include "plot.h"
 #include "qt_util.h"
 #include "scriptengine.h"
+#include "spectrum.h"
 #include "ui_mainwindow.h"
 #include "util.h"
 
@@ -184,6 +185,35 @@ void MainWindow::drop_plot(int id) {
 		assert(lua_plots.count(id));
 		lua_plots.erase(id);
 		assert(!lua_plots.count(id));
+	});
+}
+
+static std::map<int, Spectrum> lua_spectrums;
+
+void MainWindow::create_spectrum(int id, QSplitter *splitter)
+{
+	Utility::thread_call(this, [this, id, splitter] {
+		auto success = lua_spectrums.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second;
+		assert(success);
+	});
+}
+
+void MainWindow::add_data_to_spectrum(int id, const std::vector<int> &data) {
+	lua_spectrums.at(id).add(data);
+}
+
+void MainWindow::clear_spectrum(int id) {
+	Utility::thread_call(this, [id] {
+		assert(lua_spectrums.count(id));
+		lua_spectrums.at(id).clear();
+	});
+}
+
+void MainWindow::drop_spectrum(int id) {
+	Utility::thread_call(this, [id] {
+		assert(lua_spectrums.count(id));
+		lua_spectrums.erase(id);
+		assert(!lua_spectrums.count(id));
 	});
 }
 

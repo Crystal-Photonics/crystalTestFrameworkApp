@@ -15,7 +15,8 @@ SOURCES += mainwindow.cpp \
     qt_util.cpp \
     luaui.cpp \
     worker.cpp \
-    plot.cpp
+    plot.cpp \
+    spectrum.cpp
 SOURCES += scriptengine.cpp
 SOURCES += util.cpp
 SOURCES += CommunicationDevices/communicationdevice.cpp
@@ -32,7 +33,8 @@ HEADERS += mainwindow.h \
     qt_util.h \
     luaui.h \
     worker.h \
-    plot.h
+    plot.h \
+    spectrum.h
 HEADERS += scriptengine.h
 HEADERS += export.h
 HEADERS += util.h
