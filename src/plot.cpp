@@ -32,6 +32,11 @@ void Plot::add(double x, double y) {
 	update();
 }
 
+void Plot::add(const std::vector<int> &data) {
+	resize(data.size());
+	std::transform(std::begin(data), std::end(data), std::begin(yvalues), std::begin(yvalues), std::plus<>());
+}
+
 void Plot::clear() {
 	xvalues.clear();
 	yvalues.clear();
@@ -41,4 +46,18 @@ void Plot::clear() {
 void Plot::update() {
 	curve->setRawSamples(xvalues.data(), yvalues.data(), xvalues.size());
 	plot->replot();
+}
+
+void Plot::resize(std::size_t size) {
+	if (xvalues.size() > size) {
+		xvalues.resize(size);
+		yvalues.resize(size);
+	} else if (xvalues.size() < size) {
+		auto old_size = xvalues.size();
+		xvalues.resize(size);
+		for (auto i = old_size; i < size; i++) {
+			xvalues[i] = i;
+		}
+		yvalues.resize(size, 0.);
+	}
 }

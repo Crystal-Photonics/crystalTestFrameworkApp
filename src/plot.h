@@ -14,6 +14,7 @@ class Plot {
 	public:
 	Plot(QSplitter *parent);
 	void add(double x, double y);
+	void add(const std::vector<int> &data);
 	void clear();
 	std::unique_ptr<QwtPlot> plot;
 	QwtPlotCurve *curve = nullptr;
@@ -24,6 +25,7 @@ class Plot {
 
 	private:
 	void update();
+	void resize(std::size_t size);
 };
 
 

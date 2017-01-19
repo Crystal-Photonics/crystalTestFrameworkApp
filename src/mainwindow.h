@@ -44,12 +44,9 @@ class EXPORT MainWindow : public QMainWindow {
 
 	void create_plot(int id, QSplitter *splitter);
 	void add_data_to_plot(int id, double x, double y);
+	void add_data_to_plot(int id, const std::vector<int> &data);
 	void clear_plot(int id);
 	void drop_plot(int id);
-	void create_spectrum(int id, QSplitter *splitter);
-	void add_data_to_spectrum(int id, const std::vector<int> &data);
-	void clear_spectrum(int id);
-	void drop_spectrum(int id);
 
 	public slots:
 	void align_columns();

@@ -18,21 +18,8 @@ class LuaPlot {
 	LuaPlot(LuaPlot &&other);
 	LuaPlot &operator=(LuaPlot &&other);
 	~LuaPlot();
-	void add(double x, double y);
-	void clear();
-
-	private:
-	int id = -1;
-	static std::atomic<int> current_id;
-};
-
-class LuaSpectrum{
-	public:
-	LuaSpectrum(QSplitter *splitter);
-	LuaSpectrum(LuaSpectrum &&other);
-	LuaSpectrum &operator=(LuaSpectrum &&other);
-	~LuaSpectrum();
-	void add(const std::vector<int> &data);
+	void add_point(double x, double y);
+	void add_spectrum(const std::vector<int> &data);
 	void clear();
 
 	private:
@@ -43,7 +30,6 @@ class LuaSpectrum{
 struct LuaUI {
 	LuaUI(QSplitter *parent);
 	LuaPlot create_plot() const;
-	LuaSpectrum create_spectrum() const;
 
 	private:
 	QSplitter *parent = nullptr;

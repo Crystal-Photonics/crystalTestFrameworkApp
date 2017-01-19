@@ -6,7 +6,6 @@
 #include "plot.h"
 #include "qt_util.h"
 #include "scriptengine.h"
-#include "spectrum.h"
 #include "ui_mainwindow.h"
 #include "util.h"
 
@@ -48,6 +47,7 @@ namespace GUI {
 			connectedDevices,
 		};
 	}
+	static std::map<int, Plot> lua_plots;
 }
 
 using namespace std::chrono_literals;
@@ -75,6 +75,7 @@ MainWindow::~MainWindow() {
 	worker_thread.wait();
 	QApplication::processEvents();
 	tests.clear();
+	GUI::lua_plots.clear();
 	QApplication::processEvents();
 	delete ui;
 }
@@ -163,57 +164,31 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 	Utility::thread_call(this, [this, text, console] { console->appendHtml(text); });
 }
 
-static std::map<int, Plot> lua_plots;
-
 void MainWindow::create_plot(int id, QSplitter *splitter) {
 	Utility::thread_call(this, [this, id, splitter] {
-		auto success = lua_plots.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second;
+		auto success = GUI::lua_plots.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second;
 		assert(success);
 	});
 }
 
 void MainWindow::add_data_to_plot(int id, double x, double y) {
-	Utility::thread_call(this, [id, x, y] { lua_plots.at(id).add(x, y); });
+	Utility::thread_call(this, [id, x, y] { GUI::lua_plots.at(id).add(x, y); });
+}
+
+void MainWindow::add_data_to_plot(int id, const std::vector<int> &data) {
+	Utility::thread_call(this, [id, &data] { GUI::lua_plots.at(id).add(data); });
 }
 
 void MainWindow::clear_plot(int id) {
-	Utility::thread_call(this, [this, id] { lua_plots.at(id).clear(); });
+	Utility::thread_call(this, [this, id] { GUI::lua_plots.at(id).clear(); });
 }
 
 void MainWindow::drop_plot(int id) {
+	return;
 	Utility::thread_call(this, [id] {
-		assert(lua_plots.count(id));
-		lua_plots.erase(id);
-		assert(!lua_plots.count(id));
-	});
-}
-
-static std::map<int, Spectrum> lua_spectrums;
-
-void MainWindow::create_spectrum(int id, QSplitter *splitter)
-{
-	Utility::thread_call(this, [this, id, splitter] {
-		auto success = lua_spectrums.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second;
-		assert(success);
-	});
-}
-
-void MainWindow::add_data_to_spectrum(int id, const std::vector<int> &data) {
-	lua_spectrums.at(id).add(data);
-}
-
-void MainWindow::clear_spectrum(int id) {
-	Utility::thread_call(this, [id] {
-		assert(lua_spectrums.count(id));
-		lua_spectrums.at(id).clear();
-	});
-}
-
-void MainWindow::drop_spectrum(int id) {
-	Utility::thread_call(this, [id] {
-		assert(lua_spectrums.count(id));
-		lua_spectrums.erase(id);
-		assert(!lua_spectrums.count(id));
+		assert(GUI::lua_plots.count(id));
+		GUI::lua_plots.erase(id);
+		assert(!GUI::lua_plots.count(id));
 	});
 }
 
