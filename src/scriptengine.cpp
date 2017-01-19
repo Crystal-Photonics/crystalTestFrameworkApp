@@ -36,14 +36,14 @@ void ScriptEngine::load_script(const QString &path) {
 		ui_table.new_usertype<LuaPlot>("plot",                                                                                  //
 									   sol::meta_function::construct, sol::no_constructor,                                      //
 									   sol::meta_function::construct, [lua_ui = this->lua_ui] { return lua_ui.create_plot(); }, //
-									   "add", &LuaPlot::add,                                                                    //
+									   "add", &LuaPlot::add_point,                                                              //
 									   "clear", &LuaPlot::clear);
 		//bind spectrum
-		ui_table.new_usertype<LuaSpectrum>("spectrum",                                                                                  //
-										   sol::meta_function::construct, sol::no_constructor,                                          //
-										   sol::meta_function::construct, [lua_ui = this->lua_ui] { return lua_ui.create_spectrum(); }, //
-										   "add", &LuaSpectrum::add,                                                                    //
-										   "clear", &LuaSpectrum::clear);
+		ui_table.new_usertype<LuaPlot>("spectrum",                                                                              //
+									   sol::meta_function::construct, sol::no_constructor,                                      //
+									   sol::meta_function::construct, [lua_ui = this->lua_ui] { return lua_ui.create_plot(); }, //
+									   "add_spectrum", &LuaPlot::add_spectrum,                                                  //
+									   "clear", &LuaPlot::clear);
 	} catch (const sol::error &error) {
 		set_error(error);
 		throw;
