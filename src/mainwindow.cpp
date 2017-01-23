@@ -85,6 +85,7 @@ MainWindow::~MainWindow() {
 	QApplication::processEvents();
 	tests.clear();
 	GUI::lua_plots.clear();
+	GUI::lua_buttons.clear();
 	QApplication::processEvents();
 	delete ui;
 }
@@ -177,6 +178,7 @@ void MainWindow::plot_create(int id, QSplitter *splitter) {
 	Utility::thread_call(this, [this, id, splitter] {
 		auto success = GUI::lua_plots.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second;
 		assert(success);
+		qDebug() << "created plot" << GUI::lua_plots.at(id).plot << "with ID" << id;
 	});
 }
 
@@ -185,7 +187,10 @@ void MainWindow::plot_add_data(int id, double x, double y) {
 }
 
 void MainWindow::plot_add_data(int id, const std::vector<double> &data) {
-	Utility::thread_call(this, [id, data] { GUI::lua_plots.at(id).add(data); });
+	Utility::thread_call(this, [id, data] {
+		qDebug() << "adding data to plot" << GUI::lua_plots.at(id).plot << "with ID" << id;
+		GUI::lua_plots.at(id).add(data);
+	});
 }
 
 void MainWindow::plot_clear(int id) {

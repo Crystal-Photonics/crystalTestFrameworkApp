@@ -6,7 +6,7 @@
 #include <qwt_plot.h>
 #include <vector>
 
-//class QwtPlot;
+class QwtPlot;
 class QSplitter;
 class QwtPlotCurve;
 
@@ -19,7 +19,7 @@ class Plot {
 	void set_offset(double offset);
 	void set_gain(double gain);
 
-	std::unique_ptr<QwtPlot> plot;
+	QwtPlot *plot = nullptr;
 	QwtPlotCurve *curve = nullptr;
 	QAction save_as_csv_action;
 

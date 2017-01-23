@@ -9,13 +9,13 @@
 Plot::Plot(QSplitter *parent)
 	: plot(new QwtPlot)
 	, curve(new QwtPlotCurve) {
-	parent->addWidget(plot.get());
-	curve->attach(plot.get());
+	parent->addWidget(plot);
+	curve->attach(plot);
 	plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
 
 	save_as_csv_action.setText(QObject::tr("save_as_csv"));
 	QObject::connect(&save_as_csv_action, &QAction::triggered, [this] {
-		auto file = QFileDialog::getSaveFileName(plot.get(), QObject::tr("Select File to save data in"), "date.csv", "*.csv");
+		auto file = QFileDialog::getSaveFileName(plot, QObject::tr("Select File to save data in"), "date.csv", "*.csv");
 		if (file.isEmpty() == false) {
 			std::ofstream f{file.toStdString()};
 			for (std::size_t i = 0; i < xvalues.size(); i++) {
@@ -24,6 +24,10 @@ Plot::Plot(QSplitter *parent)
 		}
 	});
 	plot->addAction(&save_as_csv_action);
+}
+
+Plot::~Plot() {
+	plot->removeAction(&save_as_csv_action);
 }
 
 void Plot::add(double x, double y) {
@@ -44,15 +48,13 @@ void Plot::clear() {
 	update();
 }
 
-void Plot::set_offset(double offset)
-{
+void Plot::set_offset(double offset) {
 	this->offset = offset;
 	xvalues.clear();
 	resize(yvalues.size());
 }
 
-void Plot::set_gain(double gain)
-{
+void Plot::set_gain(double gain) {
 	this->gain = gain;
 	xvalues.clear();
 	resize(yvalues.size());
