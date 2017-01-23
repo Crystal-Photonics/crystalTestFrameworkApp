@@ -182,8 +182,8 @@ void Worker::connect_to_device_console(QPlainTextEdit *console, CommunicationDev
 					   {&CommunicationDevice::decoded_sent, Qt::darkRed}};
 		for (auto &d : data) {
 			connect(comport, d.signal, [ console = console, color = d.color, mw = this->mw ](const QByteArray &data) {
-				mw->append_html_to_console("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" +
-											   Utility::to_human_readable_binary_data(data) + "</plaintext></font>\n",
+				mw->append_html_to_console("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" + Utility::to_C_hex_encoding(data) +
+											   "</plaintext></font>\n",
 										   console);
 			});
 		}

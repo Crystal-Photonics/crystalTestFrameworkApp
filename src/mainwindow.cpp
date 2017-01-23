@@ -175,8 +175,8 @@ void MainWindow::add_data_to_plot(int id, double x, double y) {
 	Utility::thread_call(this, [id, x, y] { GUI::lua_plots.at(id).add(x, y); });
 }
 
-void MainWindow::add_data_to_plot(int id, const std::vector<int> &data) {
-	Utility::thread_call(this, [id, &data] { GUI::lua_plots.at(id).add(data); });
+void MainWindow::add_data_to_plot(int id, const std::vector<double> &data) {
+	Utility::thread_call(this, [id, data] { GUI::lua_plots.at(id).add(data); });
 }
 
 void MainWindow::clear_plot(int id) {
@@ -184,12 +184,20 @@ void MainWindow::clear_plot(int id) {
 }
 
 void MainWindow::drop_plot(int id) {
-	return;
+	//the script is done with the plot, but maybe the user is not
 	Utility::thread_call(this, [id] {
 		assert(GUI::lua_plots.count(id));
 		GUI::lua_plots.erase(id);
 		assert(!GUI::lua_plots.count(id));
 	});
+}
+
+void MainWindow::set_offset(int id, double offset) {
+	Utility::thread_call(this, [id, offset] { GUI::lua_plots.at(id).set_offset(offset); });
+}
+
+void MainWindow::set_gain(int id, double gain) {
+	Utility::thread_call(this, [id, gain] { GUI::lua_plots.at(id).set_gain(gain); });
 }
 
 void MainWindow::on_actionPaths_triggered() {
@@ -520,6 +528,14 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 				} else {
 					return; //canceled closing the tab
 				}
+			}
+			//delete all but the first splitter child
+			bool first = true;
+			for (auto w : test.test_console_widget->findChildren<QWidget *>("", Qt::FindDirectChildrenOnly)) {
+				if (first) {
+					continue;
+				}
+				delete w;
 			}
 			break;
 		}

@@ -2,9 +2,9 @@
 #define PLOT_H
 
 #include <QAction>
-#include <vector>
 #include <memory>
 #include <qwt_plot.h>
+#include <vector>
 
 //class QwtPlot;
 class QSplitter;
@@ -14,19 +14,22 @@ class Plot {
 	public:
 	Plot(QSplitter *parent);
 	void add(double x, double y);
-	void add(const std::vector<int> &data);
+	void add(const std::vector<double> &data);
 	void clear();
+	void set_offset(double offset);
+	void set_gain(double gain);
+
 	std::unique_ptr<QwtPlot> plot;
 	QwtPlotCurve *curve = nullptr;
 	QAction save_as_csv_action;
 
-	std::vector<double> xvalues;
-	std::vector<double> yvalues;
-
 	private:
 	void update();
 	void resize(std::size_t size);
+	std::vector<double> xvalues;
+	std::vector<double> yvalues;
+	double offset = 0;
+	double gain = 1;
 };
-
 
 #endif // PLOT_H

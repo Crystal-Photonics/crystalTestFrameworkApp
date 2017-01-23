@@ -56,6 +56,7 @@ namespace Utility {
 
 	QString to_human_readable_binary_data(const QByteArray &data);
 	QString to_human_readable_binary_data(const QString &data);
+	QString to_C_hex_encoding(const QByteArray &data);
 }
 
 #endif // UTILITY_H

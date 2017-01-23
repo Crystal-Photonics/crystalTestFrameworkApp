@@ -19,8 +19,10 @@ class LuaPlot {
 	LuaPlot &operator=(LuaPlot &&other);
 	~LuaPlot();
 	void add_point(double x, double y);
-	void add_spectrum(const std::vector<int> &data);
+	void add_spectrum(const std::vector<double> &data);
 	void clear();
+	void set_offset(double offset);
+	void set_gain(double gain);
 
 	private:
 	int id = -1;

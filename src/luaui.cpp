@@ -30,12 +30,22 @@ void LuaPlot::add_point(double x, double y) {
 	MainWindow::mw->add_data_to_plot(id, x, y);
 }
 
-void LuaPlot::add_spectrum(const std::vector<int> &data) {
+void LuaPlot::add_spectrum(const std::vector<double> &data) {
 	MainWindow::mw->add_data_to_plot(id, data);
 }
 
 void LuaPlot::clear() {
 	MainWindow::mw->clear_plot(id);
+}
+
+void LuaPlot::set_offset(double offset)
+{
+	MainWindow::mw->set_offset(id, offset);
+}
+
+void LuaPlot::set_gain(double gain)
+{
+	MainWindow::mw->set_gain(id, gain);
 }
 
 LuaUI::LuaUI(QSplitter *parent)

@@ -32,15 +32,30 @@ void Plot::add(double x, double y) {
 	update();
 }
 
-void Plot::add(const std::vector<int> &data) {
+void Plot::add(const std::vector<double> &data) {
 	resize(data.size());
 	std::transform(std::begin(data), std::end(data), std::begin(yvalues), std::begin(yvalues), std::plus<>());
+	update();
 }
 
 void Plot::clear() {
 	xvalues.clear();
 	yvalues.clear();
 	update();
+}
+
+void Plot::set_offset(double offset)
+{
+	this->offset = offset;
+	xvalues.clear();
+	resize(yvalues.size());
+}
+
+void Plot::set_gain(double gain)
+{
+	this->gain = gain;
+	xvalues.clear();
+	resize(yvalues.size());
 }
 
 void Plot::update() {
@@ -56,7 +71,7 @@ void Plot::resize(std::size_t size) {
 		auto old_size = xvalues.size();
 		xvalues.resize(size);
 		for (auto i = old_size; i < size; i++) {
-			xvalues[i] = i;
+			xvalues[i] = offset + gain * i;
 		}
 		yvalues.resize(size, 0.);
 	}

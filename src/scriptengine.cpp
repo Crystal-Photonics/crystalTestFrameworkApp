@@ -36,14 +36,20 @@ void ScriptEngine::load_script(const QString &path) {
 		ui_table.new_usertype<LuaPlot>("plot",                                                                                  //
 									   sol::meta_function::construct, sol::no_constructor,                                      //
 									   sol::meta_function::construct, [lua_ui = this->lua_ui] { return lua_ui.create_plot(); }, //
-									   "add", &LuaPlot::add_point,                                                              //
-									   "clear", &LuaPlot::clear);
-		//bind spectrum
-		ui_table.new_usertype<LuaPlot>("spectrum",                                                                              //
-									   sol::meta_function::construct, sol::no_constructor,                                      //
-									   sol::meta_function::construct, [lua_ui = this->lua_ui] { return lua_ui.create_plot(); }, //
-									   "add_spectrum", &LuaPlot::add_spectrum,                                                  //
-									   "clear", &LuaPlot::clear);
+									   "add_point", &LuaPlot::add_point,                                                        //
+									   "add_spectrum",
+									   [](LuaPlot &plot, const sol::table &table) {
+										   std::vector<double> data;
+										   data.reserve(table.size());
+										   for (std::size_t i = 0; i < table.size(); i++) {
+											   data.push_back(table[i]);
+										   }
+										   plot.add_spectrum(data);
+									   }, //
+									   "clear",
+									   &LuaPlot::clear,                    //
+									   "set_offset", &LuaPlot::set_offset, //
+									   "set_gain", &LuaPlot::set_gain);
 	} catch (const sol::error &error) {
 		set_error(error);
 		throw;
@@ -97,7 +103,11 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
 			if (array.size() == 1) {
 				return create_lua_object_from_RPC_answer(array.front(), lua);
 			}
-			return sol::make_object(lua.lua_state(), "TODO: Parse return value of type array");
+			auto table = lua.create_table_with();
+			for (std::size_t i = 0; i < array.size(); i++) {
+				table[i] = create_lua_object_from_RPC_answer(array[i], lua);
+			}
+			return table;
 		}
 		case RPCRuntimeParameterDescription::Type::character:
 			return sol::make_object(lua.lua_state(), "TODO: Parse return value of type character");

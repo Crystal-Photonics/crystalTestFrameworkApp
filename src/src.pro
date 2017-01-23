@@ -32,7 +32,8 @@ HEADERS += mainwindow.h \
     qt_util.h \
     luaui.h \
     worker.h \
-    plot.h
+    plot.h \
+    luaui.h
 HEADERS += scriptengine.h
 HEADERS += export.h
 HEADERS += util.h
