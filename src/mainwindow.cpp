@@ -48,6 +48,15 @@ namespace GUI {
 		};
 	}
 	static std::map<int, Plot> lua_plots;
+	struct Button {
+		Button(QPushButton *button, std::function<void()> callback)
+			: button(button)
+			, callback(std::move(callback)) {}
+		QPushButton *button = nullptr;
+		std::function<void()> callback;
+	};
+
+	static std::map<int, Button> lua_buttons;
 }
 
 using namespace std::chrono_literals;
@@ -164,26 +173,26 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 	Utility::thread_call(this, [this, text, console] { console->appendHtml(text); });
 }
 
-void MainWindow::create_plot(int id, QSplitter *splitter) {
+void MainWindow::plot_create(int id, QSplitter *splitter) {
 	Utility::thread_call(this, [this, id, splitter] {
 		auto success = GUI::lua_plots.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second;
 		assert(success);
 	});
 }
 
-void MainWindow::add_data_to_plot(int id, double x, double y) {
+void MainWindow::plot_add_data(int id, double x, double y) {
 	Utility::thread_call(this, [id, x, y] { GUI::lua_plots.at(id).add(x, y); });
 }
 
-void MainWindow::add_data_to_plot(int id, const std::vector<double> &data) {
+void MainWindow::plot_add_data(int id, const std::vector<double> &data) {
 	Utility::thread_call(this, [id, data] { GUI::lua_plots.at(id).add(data); });
 }
 
-void MainWindow::clear_plot(int id) {
+void MainWindow::plot_clear(int id) {
 	Utility::thread_call(this, [this, id] { GUI::lua_plots.at(id).clear(); });
 }
 
-void MainWindow::drop_plot(int id) {
+void MainWindow::plot_drop(int id) {
 	//the script is done with the plot, but maybe the user is not
 	Utility::thread_call(this, [id] {
 		assert(GUI::lua_plots.count(id));
@@ -192,12 +201,25 @@ void MainWindow::drop_plot(int id) {
 	});
 }
 
-void MainWindow::set_offset(int id, double offset) {
+void MainWindow::plot_set_offset(int id, double offset) {
 	Utility::thread_call(this, [id, offset] { GUI::lua_plots.at(id).set_offset(offset); });
 }
 
-void MainWindow::set_gain(int id, double gain) {
+void MainWindow::plot_set_gain(int id, double gain) {
 	Utility::thread_call(this, [id, gain] { GUI::lua_plots.at(id).set_gain(gain); });
+}
+
+void MainWindow::button_create(int id, QSplitter *splitter, const std::string &title, std::function<void()> callback) {
+	Utility::thread_call(this, [ this, id, splitter, title, callback = std::move(callback) ]() mutable {
+		auto button = new QPushButton(title.c_str(), splitter);
+		splitter->addWidget(button);
+		connect(button, &QPushButton::pressed, callback);
+		GUI::lua_buttons.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(button, std::move(callback)));
+	});
+}
+
+void MainWindow::button_drop(int id) {
+	Utility::thread_call(this, [this, id] { GUI::lua_buttons.erase(id); });
 }
 
 void MainWindow::on_actionPaths_triggered() {

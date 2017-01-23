@@ -42,13 +42,16 @@ class EXPORT MainWindow : public QMainWindow {
 	template <class Function>
 	void execute_in_gui_thread(Function &&f);
 
-	void create_plot(int id, QSplitter *splitter);
-	void add_data_to_plot(int id, double x, double y);
-	void add_data_to_plot(int id, const std::vector<double> &data);
-	void clear_plot(int id);
-	void drop_plot(int id);
-	void set_offset(int id, double offset);
-	void set_gain(int id, double gain);
+	void plot_create(int id, QSplitter *splitter);
+	void plot_add_data(int id, double x, double y);
+	void plot_add_data(int id, const std::vector<double> &data);
+	void plot_clear(int id);
+	void plot_drop(int id);
+	void plot_set_offset(int id, double offset);
+	void plot_set_gain(int id, double gain);
+
+	void button_create(int id, QSplitter *splitter, const std::string &title, std::function<void()> callback);
+	void button_drop(int id);
 
 	public slots:
 	void align_columns();

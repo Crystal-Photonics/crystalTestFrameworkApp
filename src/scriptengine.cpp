@@ -50,6 +50,11 @@ void ScriptEngine::load_script(const QString &path) {
 									   &LuaPlot::clear,                    //
 									   "set_offset", &LuaPlot::set_offset, //
 									   "set_gain", &LuaPlot::set_gain);
+		//bind button
+		ui_table.new_usertype<LuaButton>("button", //
+										 sol::meta_function::construct,
+										 [lua_ui = this->lua_ui](const std::string &title) { return lua_ui.create_button(title); }, //
+										 "has_been_pressed", &LuaButton::has_been_pressed);
 	} catch (const sol::error &error) {
 		set_error(error);
 		throw;

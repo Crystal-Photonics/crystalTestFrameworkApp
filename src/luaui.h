@@ -5,6 +5,7 @@
 #include <QObject>
 #include <atomic>
 #include <memory>
+#include <string>
 #include <vector>
 
 class QwtPlot;
@@ -29,9 +30,24 @@ class LuaPlot {
 	static std::atomic<int> current_id;
 };
 
+class LuaButton {
+	public:
+	LuaButton(QSplitter *splitter, const std::string &title);
+	LuaButton(LuaButton &&other);
+	LuaButton &operator=(LuaButton &&other);
+	~LuaButton();
+	bool has_been_pressed() const;
+
+	private:
+	int id = -1;
+	std::unique_ptr<bool> pressed = std::make_unique<bool>(false);
+	static std::atomic<int> current_id;
+};
+
 struct LuaUI {
 	LuaUI(QSplitter *parent);
 	LuaPlot create_plot() const;
+	LuaButton create_button(const std::__cxx11::string &title) const;
 
 	private:
 	QSplitter *parent = nullptr;
