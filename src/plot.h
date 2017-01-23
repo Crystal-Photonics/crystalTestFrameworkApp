@@ -13,6 +13,7 @@ class QwtPlotCurve;
 class Plot {
 	public:
 	Plot(QSplitter *parent);
+	~Plot();
 	void add(double x, double y);
 	void add(const std::vector<double> &data);
 	void clear();
