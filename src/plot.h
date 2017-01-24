@@ -22,7 +22,7 @@ class Plot {
 
 	QwtPlot *plot = nullptr;
 	QwtPlotCurve *curve = nullptr;
-	QAction save_as_csv_action;
+	QAction *save_as_csv_action = nullptr;
 
 	private:
 	void update();

@@ -58,7 +58,8 @@ LuaButton LuaUI::create_button(const std::string &title) const {
 	return {parent, title};
 }
 
-LuaButton::LuaButton(QSplitter *splitter, const std::string &title) {
+LuaButton::LuaButton(QSplitter *splitter, const std::string &title)
+	: id(current_id++) {
 	MainWindow::mw->button_create(id, splitter, title, [&pressed = *pressed] { pressed = true; });
 }
 

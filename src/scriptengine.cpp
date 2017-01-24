@@ -13,6 +13,7 @@
 #include <QSettings>
 #include <QThread>
 #include <functional>
+#include <memory>
 #include <regex>
 #include <string>
 #include <vector>
@@ -173,12 +174,12 @@ struct RPCDevice {
 };
 
 void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function<void(std::list<DeviceProtocol> &)> debug_callback) {
+	auto lua_state_resetter = Utility::RAII_do([this] { //reset lua state
+		lua.~state();
+		new (&lua) sol::state();
+		load_script(path);
+	});
 	try {
-		if (state == State::done) {
-			lua = sol::state{};
-			load_script(path);
-			state = State::idle;
-		}
 		auto device_list = lua.create_table_with();
 		for (auto &device_protocol : device_protocols) {
 			if (auto rpcp = dynamic_cast<RPCProtocol *>(&device_protocol.protocol)) {
@@ -199,7 +200,6 @@ void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function
 		std::lock_guard<std::mutex> state_lock(*state_is_idle);
 		state = State::running;
 		lua["run"](device_list);
-		lua.collect_garbage();
 		state = State::done;
 	} catch (const sol::error &e) {
 		debug_callback(device_protocols);

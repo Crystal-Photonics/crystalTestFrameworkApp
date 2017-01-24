@@ -51,9 +51,17 @@ namespace GUI {
 	struct Button {
 		Button(QPushButton *button, std::function<void()> callback)
 			: button(button)
-			, callback(std::move(callback)) {}
+			, callback(std::move(callback)) {
+			connection = QObject::connect(button, &QPushButton::pressed, this->callback);
+		}
+		~Button(){
+			QObject::disconnect(connection);
+			button->setEnabled(false);
+		}
+
 		QPushButton *button = nullptr;
 		std::function<void()> callback;
+		QMetaObject::Connection connection;
 	};
 
 	static std::map<int, Button> lua_buttons;
@@ -178,7 +186,6 @@ void MainWindow::plot_create(int id, QSplitter *splitter) {
 	Utility::thread_call(this, [this, id, splitter] {
 		auto success = GUI::lua_plots.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second;
 		assert(success);
-		qDebug() << "created plot" << GUI::lua_plots.at(id).plot << "with ID" << id;
 	});
 }
 
@@ -188,7 +195,6 @@ void MainWindow::plot_add_data(int id, double x, double y) {
 
 void MainWindow::plot_add_data(int id, const std::vector<double> &data) {
 	Utility::thread_call(this, [id, data] {
-		qDebug() << "adding data to plot" << GUI::lua_plots.at(id).plot << "with ID" << id;
 		GUI::lua_plots.at(id).add(data);
 	});
 }
@@ -218,7 +224,6 @@ void MainWindow::button_create(int id, QSplitter *splitter, const std::string &t
 	Utility::thread_call(this, [ this, id, splitter, title, callback = std::move(callback) ]() mutable {
 		auto button = new QPushButton(title.c_str(), splitter);
 		splitter->addWidget(button);
-		connect(button, &QPushButton::pressed, callback);
 		GUI::lua_buttons.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(button, std::move(callback)));
 	});
 }
