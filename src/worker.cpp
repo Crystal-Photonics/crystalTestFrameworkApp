@@ -18,7 +18,7 @@
 
 Worker::Worker(MainWindow *parent)
 	: mw(parent) {
-	//poll_ports();
+	poll_ports();
 }
 
 void Worker::await_idle(ScriptEngine &script) {

@@ -600,5 +600,6 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 		}
 	}
 	ui->test_tabs->removeTab(index);
+	QApplication::processEvents();
 	delete tab_widget;
 }
