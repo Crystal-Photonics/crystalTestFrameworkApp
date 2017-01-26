@@ -48,6 +48,14 @@ void Plot::add(const std::vector<double> &data) {
 	update();
 }
 
+void Plot::add(const unsigned int spectrum_start_channel, const std::vector<double> &data) {
+    size_t s = std::max(xvalues.size(),data.size()+spectrum_start_channel);
+    resize(s);
+    std::transform(std::begin(data), std::end(data), std::begin(yvalues)+spectrum_start_channel, std::begin(yvalues)+spectrum_start_channel, std::plus<>());
+    update();
+}
+
+
 void Plot::clear() {
 	xvalues.clear();
 	yvalues.clear();

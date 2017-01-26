@@ -16,6 +16,7 @@ class Plot {
 	~Plot();
 	void add(double x, double y);
 	void add(const std::vector<double> &data);
+    void add(const unsigned int spectrum_start_channel, const std::vector<double> &data);
 	void clear();
 	void set_offset(double offset);
 	void set_gain(double gain);

@@ -201,6 +201,13 @@ void MainWindow::plot_add_data(int id, const std::vector<double> &data) {
 	});
 }
 
+void MainWindow::plot_add_data(int id, const unsigned int spectrum_start_channel, const std::vector<double> &data) {
+    Utility::thread_call(this, [id, spectrum_start_channel, data] {
+        GUI::lua_plots.at(id).add(spectrum_start_channel, data);
+        qDebug() << "added data to plot" << id << "for" << GUI::lua_plots.at(id).plot->parent();
+    });
+}
+
 void MainWindow::plot_clear(int id) {
 	Utility::thread_call(this, [this, id] { GUI::lua_plots.at(id).clear(); });
 }

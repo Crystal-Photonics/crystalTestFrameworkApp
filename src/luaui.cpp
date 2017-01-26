@@ -32,7 +32,12 @@ void LuaPlot::add_point(double x, double y) {
 }
 
 void LuaPlot::add_spectrum(const std::vector<double> &data) {
-	MainWindow::mw->plot_add_data(id, data);
+    MainWindow::mw->plot_add_data(id, data);
+}
+
+void LuaPlot::add_spectrum(const unsigned int spectrum_start_channel, std::vector<double> &data)
+{
+    MainWindow::mw->plot_add_data(id, data);
 }
 
 void LuaPlot::clear() {
