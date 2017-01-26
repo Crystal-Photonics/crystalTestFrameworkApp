@@ -47,8 +47,16 @@ void ScriptEngine::load_script(const QString &path) {
 										   }
 										   plot.add_spectrum(data);
 									   }, //
-									   "clear",
-									   &LuaPlot::clear,                    //
+                                        "add_spectrum",
+                                        [](LuaPlot &plot, const unsigned int spectrum_start_channel, const sol::table &table) {
+                                            std::vector<double> data;
+                                            data.reserve(table.size());
+                                            for (std::size_t i = 0; i < table.size(); i++) {
+                                                data.push_back(table[i]);
+                                            }
+                                            plot.add_spectrum(spectrum_start_channel, data);
+                                        }, //
+                                       "clear", &LuaPlot::clear,                    //
 									   "set_offset", &LuaPlot::set_offset, //
 									   "set_gain", &LuaPlot::set_gain);
 		//bind button

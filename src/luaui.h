@@ -21,6 +21,7 @@ class LuaPlot {
 	~LuaPlot();
 	void add_point(double x, double y);
 	void add_spectrum(const std::vector<double> &data);
+    void add_spectrum(const unsigned int spectrum_start_channel, std::vector<double> &data);
 	void clear();
 	void set_offset(double offset);
 	void set_gain(double gain);

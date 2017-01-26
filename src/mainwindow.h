@@ -46,6 +46,7 @@ class EXPORT MainWindow : public QMainWindow {
 	void plot_create(int id, QSplitter *splitter);
 	void plot_add_data(int id, double x, double y);
 	void plot_add_data(int id, const std::vector<double> &data);
+    void plot_add_data(int id, const unsigned int spectrum_start_channel, const std::vector<double> &data);
 	void plot_clear(int id);
 	void plot_drop(int id);
 	void plot_set_offset(int id, double offset);
