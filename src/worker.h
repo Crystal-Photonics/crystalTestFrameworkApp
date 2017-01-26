@@ -35,6 +35,7 @@ class Worker : public QObject {
 	template <class ReturnType, class... Arguments>
 	ReturnType call(ScriptEngine &script, const char *function_name, Arguments &&... args);
 	sol::table create_table(ScriptEngine &script);
+	void set_gui_parent(ScriptEngine &script, QSplitter *parent);
 
 	public slots:
 	void forget_device(QTreeWidgetItem *item);

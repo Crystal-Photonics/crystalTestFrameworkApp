@@ -47,7 +47,8 @@ class LuaButton {
 struct LuaUI {
 	LuaUI(QSplitter *parent);
 	LuaPlot create_plot() const;
-	LuaButton create_button(const std::__cxx11::string &title) const;
+	LuaButton create_button(const std::string &title) const;
+	void set_parent(QSplitter *parent);
 
 	private:
 	QSplitter *parent = nullptr;

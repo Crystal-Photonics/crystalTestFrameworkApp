@@ -54,7 +54,7 @@ namespace GUI {
 			, callback(std::move(callback)) {
 			connection = QObject::connect(button, &QPushButton::pressed, this->callback);
 		}
-		~Button(){
+		~Button() {
 			QObject::disconnect(connection);
 			button->setEnabled(false);
 		}
@@ -186,6 +186,7 @@ void MainWindow::plot_create(int id, QSplitter *splitter) {
 	Utility::thread_call(this, [this, id, splitter] {
 		auto success = GUI::lua_plots.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second;
 		assert(success);
+		qDebug() << "created plot" << id << "for" << GUI::lua_plots.at(id).plot->parent();
 	});
 }
 
@@ -196,6 +197,7 @@ void MainWindow::plot_add_data(int id, double x, double y) {
 void MainWindow::plot_add_data(int id, const std::vector<double> &data) {
 	Utility::thread_call(this, [id, data] {
 		GUI::lua_plots.at(id).add(data);
+		qDebug() << "added data to plot" << id << "for" << GUI::lua_plots.at(id).plot->parent();
 	});
 }
 
@@ -206,9 +208,8 @@ void MainWindow::plot_clear(int id) {
 void MainWindow::plot_drop(int id) {
 	//the script is done with the plot, but maybe the user is not
 	Utility::thread_call(this, [id] {
-		assert(GUI::lua_plots.count(id));
+		qDebug() << "dropping plot" << id << "for" << GUI::lua_plots.at(id).plot->parent();
 		GUI::lua_plots.erase(id);
-		assert(!GUI::lua_plots.count(id));
 	});
 }
 
@@ -230,6 +231,22 @@ void MainWindow::button_create(int id, QSplitter *splitter, const std::string &t
 
 void MainWindow::button_drop(int id) {
 	Utility::thread_call(this, [this, id] { GUI::lua_buttons.erase(id); });
+}
+
+void MainWindow::show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon) {
+	Utility::thread_call(this, [this, title, message, icon] {
+		switch (icon) {
+			default:
+			case QMessageBox::Critical:
+				QMessageBox::critical(this, title, message);
+				break;
+			case QMessageBox::Warning:
+				QMessageBox::warning(this, title, message);
+				break;
+			case QMessageBox::Information:
+				QMessageBox::information(this, title, message);
+		}
+	});
 }
 
 void MainWindow::on_actionPaths_triggered() {
@@ -333,6 +350,15 @@ void MainWindow::Test::swap(MainWindow::Test &other) {
 	std::swap(t, o);
 }
 
+void MainWindow::Test::reset_ui() {
+	test_console_widget = new QSplitter(Qt::Vertical);
+	console = new QPlainTextEdit(test_console_widget);
+	console->setReadOnly(true);
+	test_console_widget->addWidget(console);
+	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
+	MainWindow::mw->worker->set_gui_parent(script, test_console_widget);
+}
+
 bool MainWindow::Test::operator==(QTreeWidgetItem *item) {
 	return item == ui_item;
 }
@@ -381,8 +407,16 @@ void MainWindow::on_run_test_script_button_clicked() {
 									//device incompatible, reason should be inside of message
 									Console::note(test->console) << tr("Device rejected:") << message.value();
 								} else {
-									//acceptable device
-									Utility::replace_tab_widget(ui->test_tabs, 0, ui->test_tab_placeholder, tr("Test Information"));
+									//acceptable device found
+									auto tab_index = ui->test_tabs->indexOf(test->test_console_widget);
+									if (tab_index == 0) {
+										//we are in the first tab, so we just move out
+										Utility::replace_tab_widget(ui->test_tabs, 0, ui->test_tab_placeholder, tr("Test Information"));
+									} else {
+										//we already have an old test tab open. We leave it be and just open a new tab.
+										assert(tab_index > 0);
+										test->reset_ui();
+									}
 									ui->test_tabs->setCurrentIndex(ui->test_tabs->addTab(test->test_console_widget, test->name));
 									worker->run_script(&test->script, test->console, &device);
 								}
@@ -561,16 +595,10 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 					return; //canceled closing the tab
 				}
 			}
-			//delete all but the first splitter child
-			bool first = true;
-			for (auto w : test.test_console_widget->findChildren<QWidget *>("", Qt::FindDirectChildrenOnly)) {
-				if (first) {
-					continue;
-				}
-				delete w;
-			}
+			test.reset_ui();
 			break;
 		}
 	}
 	ui->test_tabs->removeTab(index);
+	delete tab_widget;
 }

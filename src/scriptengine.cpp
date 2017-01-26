@@ -19,7 +19,7 @@
 #include <vector>
 
 ScriptEngine::ScriptEngine(LuaUI lua_ui)
-	: lua_ui(std::move(lua_ui)) {}
+	: lua_ui(std::make_unique<LuaUI>(std::move(lua_ui))) {}
 
 void ScriptEngine::load_script(const QString &path) {
 	//NOTE: When using lambdas do not capture this or by reference, because it breaks when the ScriptEngine is moved
@@ -34,10 +34,10 @@ void ScriptEngine::load_script(const QString &path) {
 		//bind UI
 		auto ui_table = lua.create_named_table("ui");
 		//bind plot
-		ui_table.new_usertype<LuaPlot>("plot",                                                                                  //
-									   sol::meta_function::construct, sol::no_constructor,                                      //
-									   sol::meta_function::construct, [lua_ui = this->lua_ui] { return lua_ui.create_plot(); }, //
-									   "add_point", &LuaPlot::add_point,                                                        //
+		ui_table.new_usertype<LuaPlot>("plot",                                                                                         //
+									   sol::meta_function::construct, sol::no_constructor,                                             //
+									   sol::meta_function::construct, [lua_ui = this->lua_ui.get()] { return lua_ui->create_plot(); }, //
+									   "add_point", &LuaPlot::add_point,                                                               //
 									   "add_spectrum",
 									   [](LuaPlot &plot, const sol::table &table) {
 										   std::vector<double> data;
@@ -54,7 +54,7 @@ void ScriptEngine::load_script(const QString &path) {
 		//bind button
 		ui_table.new_usertype<LuaButton>("button", //
 										 sol::meta_function::construct,
-										 [lua_ui = this->lua_ui](const std::string &title) { return lua_ui.create_button(title); }, //
+										 [lua_ui = this->lua_ui.get()](const std::string &title) { return lua_ui->create_button(title); }, //
 										 "has_been_pressed", &LuaButton::has_been_pressed);
 	} catch (const sol::error &error) {
 		set_error(error);
@@ -96,6 +96,10 @@ void ScriptEngine::launch_editor() const {
 		parameter << path;
 	}
 	QProcess::startDetached(QSettings{}.value(Globals::lua_editor_path_settings_key, R"(C:\Qt\Tools\QtCreator\bin\qtcreator.exe)").toString(), parameter);
+}
+
+LuaUI &ScriptEngine::get_ui() {
+	return *lua_ui;
 }
 
 sol::table ScriptEngine::create_table() {
@@ -174,37 +178,41 @@ struct RPCDevice {
 };
 
 void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function<void(std::list<DeviceProtocol> &)> debug_callback) {
-	auto lua_state_resetter = Utility::RAII_do([this] { //reset lua state
+	auto lua_state_resetter = [this] {
 		lua.~state();
 		new (&lua) sol::state();
 		load_script(path);
-	});
+	};
 	try {
-		auto device_list = lua.create_table_with();
-		for (auto &device_protocol : device_protocols) {
-			if (auto rpcp = dynamic_cast<RPCProtocol *>(&device_protocol.protocol)) {
-				device_list.add(RPCDevice{&lua, rpcp, &device_protocol.device, this});
-				auto type_reg = lua.create_simple_usertype<RPCDevice>();
-				for (auto &function : rpcp->get_description().get_functions()) {
-					const auto &function_name = function.get_function_name();
-					type_reg.set(function_name,
-								 [function_name](RPCDevice &device, const sol::variadic_args &va) { return device.call_rpc_function(function_name, va); });
-				}
-				const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
-				lua.set_usertype(type_name, type_reg);
-			} else {
-				//TODO: other protocols
-				throw std::runtime_error("invalid protocol: " + device_protocol.protocol.type.toStdString());
-			}
-		}
 		std::lock_guard<std::mutex> state_lock(*state_is_idle);
-		state = State::running;
-		lua["run"](device_list);
-		state = State::done;
+		{
+			auto device_list = lua.create_table_with();
+			for (auto &device_protocol : device_protocols) {
+				if (auto rpcp = dynamic_cast<RPCProtocol *>(&device_protocol.protocol)) {
+					device_list.add(RPCDevice{&lua, rpcp, &device_protocol.device, this});
+					auto type_reg = lua.create_simple_usertype<RPCDevice>();
+					for (auto &function : rpcp->get_description().get_functions()) {
+						const auto &function_name = function.get_function_name();
+						type_reg.set(function_name,
+									 [function_name](RPCDevice &device, const sol::variadic_args &va) { return device.call_rpc_function(function_name, va); });
+					}
+					const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
+					lua.set_usertype(type_name, type_reg);
+				} else {
+					//TODO: other protocols
+					throw std::runtime_error("invalid protocol: " + device_protocol.protocol.type.toStdString());
+				}
+			}
+			state = State::running;
+			lua["run"](device_list);
+			state = State::done;
+			lua_state_resetter();
+		}
 	} catch (const sol::error &e) {
 		debug_callback(device_protocols);
 		set_error(e);
 		state = State::done;
+		lua_state_resetter();
 		throw;
 	}
 }

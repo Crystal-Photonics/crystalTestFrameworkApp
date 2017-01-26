@@ -6,6 +6,7 @@
 #include "qt_util.h"
 #include "util.h"
 
+#include <QApplication>
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDirIterator>
@@ -23,6 +24,7 @@ Worker::Worker(MainWindow *parent)
 void Worker::await_idle(ScriptEngine &script) {
 	abort_script(script);
 	std::lock_guard<std::mutex> lock(*script.state_is_idle);
+	QApplication::processEvents();
 }
 
 QStringList Worker::get_string_list(ScriptEngine &script, const QString &name) {
@@ -31,6 +33,10 @@ QStringList Worker::get_string_list(ScriptEngine &script, const QString &name) {
 
 sol::table Worker::create_table(ScriptEngine &script) {
 	return Utility::promised_thread_call(this, [&script] { return script.create_table(); });
+}
+
+void Worker::set_gui_parent(ScriptEngine &script, QSplitter *parent) {
+	script.get_ui().set_parent(parent);
 }
 
 void Worker::poll_ports() {
@@ -65,9 +71,10 @@ static bool is_valid_baudrate(QSerialPort::BaudRate baudrate) {
 void Worker::detect_devices(std::vector<ComportDescription *> comport_device_list) {
 	auto device_protocol_settings_file = QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString();
 	if (device_protocol_settings_file.isEmpty()) {
-		QMessageBox::critical(
-			mw, tr("Missing File"),
-			tr("Auto-Detecting devices requires a file that defines which protocols can use which file. Make such a file and add it via Settings->Paths"));
+		MainWindow::mw->show_message_box(
+			tr("Missing File"),
+			tr("Auto-Detecting devices requires a file that defines which protocols can use which file. Make such a file and add it via Settings->Paths"),
+			QMessageBox::Critical);
 		return;
 	}
 	QSettings device_protocol_settings{device_protocol_settings_file, QSettings::IniFormat};
@@ -79,9 +86,10 @@ void Worker::detect_devices(std::vector<ComportDescription *> comport_device_lis
 			}
 			const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(rpc_device.split(":")[1].toInt());
 			if (is_valid_baudrate(baudrate) == false) {
-				QMessageBox::critical(
-					mw, tr("Input Error"),
-					tr(R"(Invalid baudrate %1 specified in settings file "%2".)").arg(QString::number(baudrate), device_protocol_settings_file));
+				MainWindow::mw->show_message_box(
+					tr("Input Error"),
+					tr(R"(Invalid baudrate %1 specified in settings file "%2".)").arg(QString::number(baudrate), device_protocol_settings_file),
+					QMessageBox::Critical);
 				continue;
 			}
 			if (device.device->connect(device.info, baudrate) == false) {
@@ -182,8 +190,8 @@ void Worker::connect_to_device_console(QPlainTextEdit *console, CommunicationDev
 					   {&CommunicationDevice::decoded_sent, Qt::darkRed}};
 		for (auto &d : data) {
 			connect(comport, d.signal, [ console = console, color = d.color, mw = this->mw ](const QByteArray &data) {
-				mw->append_html_to_console("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" + Utility::to_C_hex_encoding(data) +
-											   "</plaintext></font>\n",
+				mw->append_html_to_console("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" +
+											   Utility::to_human_readable_binary_data(data) + "</plaintext></font>\n",
 										   console);
 			});
 		}

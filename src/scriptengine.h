@@ -22,6 +22,7 @@ struct DeviceProtocol {
 	Protocol &protocol;
 };
 
+
 class ScriptEngine {
 	public:
 	enum class State { idle, running, aborting, done };
@@ -31,7 +32,9 @@ class ScriptEngine {
 	ScriptEngine(LuaUI lua_ui);
 	void load_script(const QString &path);
 	void launch_editor() const;
-	private:
+
+	private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
+	LuaUI &get_ui();
 	sol::table create_table();
 	State state = State::idle;
 	QStringList get_string_list(const QString &name);
@@ -43,7 +46,7 @@ class ScriptEngine {
 	sol::state lua;
 	QString path;
 	int error_line = 0;
-	LuaUI lua_ui;
+	std::unique_ptr<LuaUI> lua_ui;
 	std::unique_ptr<std::mutex> state_is_idle = std::make_unique<std::mutex>(); //is free when state==idle and locked otherwise
 };
 

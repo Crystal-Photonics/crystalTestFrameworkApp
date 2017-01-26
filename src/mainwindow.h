@@ -17,6 +17,7 @@
 #include <memory>
 #include <set>
 #include <vector>
+#include <QMessageBox>
 
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -52,6 +53,7 @@ class EXPORT MainWindow : public QMainWindow {
 
 	void button_create(int id, QSplitter *splitter, const std::string &title, std::function<void()> callback);
 	void button_drop(int id);
+	void show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon);
 
 	public slots:
 	void align_columns();
@@ -83,6 +85,7 @@ class EXPORT MainWindow : public QMainWindow {
 		Test &operator=(const Test &) = delete;
 		Test &operator=(Test &&other);
 		void swap(Test &other);
+		void reset_ui();
 
 		QTreeWidget *parent = nullptr;
 		QTreeWidgetItem *ui_item = nullptr;

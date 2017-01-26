@@ -11,7 +11,7 @@ void message_handler(QtMsgType type, const QMessageLogContext &context, const QS
 		case QtWarningMsg:
 		case QtCriticalMsg:
 		case QtFatalMsg:
-			assert(false);
+			//assert(false);
 		case QtDebugMsg:
 		case QtInfoMsg:;
 	}
