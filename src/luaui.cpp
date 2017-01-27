@@ -37,7 +37,7 @@ void LuaPlot::add_spectrum(const std::vector<double> &data) {
 
 void LuaPlot::add_spectrum(const unsigned int spectrum_start_channel, std::vector<double> &data)
 {
-    MainWindow::mw->plot_add_data(id, data);
+    MainWindow::mw->plot_add_data(id, spectrum_start_channel, data);
 }
 
 void LuaPlot::clear() {
