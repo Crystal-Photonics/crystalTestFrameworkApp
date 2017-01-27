@@ -27,8 +27,10 @@ void ScriptEngine::load_script(const QString &path) {
     this->path = path;
     try {
         lua.open_libraries(sol::lib::base); //load the standard lib if necessary
+        lua.open_libraries(sol::lib::table); //load the standard lib if necessary
         lua.set_function("show_warning", [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
-            MainWindow::mw->show_message_box(QString::fromStdString(title.value_or("nil")) + " from " + path, QString::fromStdString(message.value_or("nil")), QMessageBox::Warning);
+            MainWindow::mw->show_message_box(QString::fromStdString(title.value_or("nil")) + " from " + path, QString::fromStdString(message.value_or("nil")),
+                                             QMessageBox::Warning);
         });
 
         lua.set_function("sleep_ms", [](const unsigned int timeout_ms) { QThread::msleep(timeout_ms); });
@@ -56,8 +58,8 @@ void ScriptEngine::load_script(const QString &path) {
                                        [](LuaPlot &plot, const unsigned int spectrum_start_channel, const sol::table &table) {
                                            std::vector<double> data;
                                            data.reserve(table.size());
-                                           for (std::size_t i = 0; i < table.size(); i++) {
-                                               data.push_back(table[i]);
+                                           for (auto &i : table) {
+                                               data.push_back(i.second.as<double>());
                                            }
                                            plot.add_spectrum(spectrum_start_channel, data);
                                        }, //
@@ -130,7 +132,7 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
             }
             auto table = lua.create_table_with();
             for (std::size_t i = 0; i < array.size(); i++) {
-                table[i] = create_lua_object_from_RPC_answer(array[i], lua);
+                table.add(create_lua_object_from_RPC_answer(array[i], lua));
             }
             return table;
         }
