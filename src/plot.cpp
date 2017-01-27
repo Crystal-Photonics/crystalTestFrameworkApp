@@ -23,7 +23,7 @@ Plot::Plot(QSplitter *parent)
 			auto size = data->size();
 			for (std::size_t i = 0; i < size; i++) {
 				const auto &point = data->sample(i);
-				f << point.x() << ',' << point.y() << '\n';
+				f << point.x() << ';' << point.y() << '\n';
 			}
 		}
 	});
