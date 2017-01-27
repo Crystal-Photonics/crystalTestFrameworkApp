@@ -49,8 +49,8 @@ void ScriptEngine::load_script(const QString &path) {
                                        [](LuaPlot &plot, const sol::table &table) {
                                            std::vector<double> data;
                                            data.reserve(table.size());
-                                           for (std::size_t i = 0; i < table.size(); i++) {
-                                               data.push_back(table[i]);
+                                           for (auto &i : table) {
+                                               data.push_back(i.second.as<double>());
                                            }
                                            plot.add_spectrum(data);
                                        }, //
