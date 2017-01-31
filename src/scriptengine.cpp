@@ -19,11 +19,11 @@
 #include <string>
 #include <vector>
 
-ScriptEngine::ScriptEngine(LuaUI lua_ui)
+ScriptEngine::ScriptEngine(LuaUI &&lua_ui)
     : lua_ui(std::make_unique<LuaUI>(std::move(lua_ui))) {}
 
 void ScriptEngine::load_script(const QString &path) {
-    //NOTE: When using lambdas do not capture this or by reference, because it breaks when the ScriptEngine is moved
+	//NOTE: When using lambdas do not capture `this` or by reference, because it breaks when the ScriptEngine is moved
     this->path = path;
     try {
         lua.open_libraries(sol::lib::base); //load the standard lib if necessary

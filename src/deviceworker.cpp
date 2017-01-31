@@ -1,53 +1,21 @@
-#include "worker.h"
+#include "deviceworker.h"
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
 #include "console.h"
 #include "mainwindow.h"
-#include "qt_util.h"
 #include "util.h"
 
-#include <QApplication>
-#include <QCoreApplication>
-#include <QDebug>
-#include <QDirIterator>
-#include <QMessageBox>
-#include <QObject>
 #include <QSettings>
 #include <QTimer>
-#include <functional>
 
-Worker::Worker(MainWindow *parent)
-	: mw(parent) {
-	poll_ports();
-}
-
-void Worker::await_idle(ScriptEngine &script) {
-	abort_script(script);
-	std::lock_guard<std::mutex> lock(*script.state_is_idle);
-	QApplication::processEvents();
-}
-
-QStringList Worker::get_string_list(ScriptEngine &script, const QString &name) {
-	return Utility::promised_thread_call(this, [&script, &name] { return script.get_string_list(name); });
-}
-
-sol::table Worker::create_table(ScriptEngine &script) {
-	return Utility::promised_thread_call(this, [&script] { return script.create_table(); });
-}
-
-void Worker::set_gui_parent(ScriptEngine &script, QSplitter *parent) {
-	script.get_ui().set_parent(parent);
-}
-
-void Worker::poll_ports() {
+void DeviceWorker::poll_ports() {
 	Utility::thread_call(this, [this] {
-		assert(currently_in_gui_thread() == false);
 		for (auto &device : comport_devices) {
 			if (device.device->isConnected()) {
 				device.device->waitReceived(CommunicationDevice::Duration{0});
 			}
 		}
-		QTimer::singleShot(16, this, &Worker::poll_ports);
+		QTimer::singleShot(16, this, &DeviceWorker::poll_ports);
 	});
 }
 
@@ -68,7 +36,7 @@ static bool is_valid_baudrate(QSerialPort::BaudRate baudrate) {
 	return false;
 }
 
-void Worker::detect_devices(std::vector<ComportDescription *> comport_device_list) {
+void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_device_list) {
 	auto device_protocol_settings_file = QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString();
 	if (device_protocol_settings_file.isEmpty()) {
 		MainWindow::mw->show_message_box(
@@ -98,7 +66,7 @@ void Worker::detect_devices(std::vector<ComportDescription *> comport_device_lis
 			}
 			auto protocol = std::make_unique<RPCProtocol>(*device.device);
 			if (protocol->is_correct_protocol()) {
-				mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { protocol->set_ui_description(ui_entry); });
+				MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { protocol->set_ui_description(ui_entry); });
 				device.protocol = std::move(protocol);
 
 			} else {
@@ -120,7 +88,7 @@ void Worker::detect_devices(std::vector<ComportDescription *> comport_device_lis
 	}
 }
 
-void Worker::forget_device(QTreeWidgetItem *item) {
+void DeviceWorker::forget_device(QTreeWidgetItem *item) {
 	Utility::thread_call(this, [this, item] {
 		assert(currently_in_gui_thread() == false);
 		for (auto device_it = std::begin(comport_devices); device_it != std::end(comport_devices); ++device_it) {
@@ -133,7 +101,7 @@ void Worker::forget_device(QTreeWidgetItem *item) {
 	});
 }
 
-void Worker::update_devices() {
+void DeviceWorker::update_devices() {
 	Utility::thread_call(this, [this] {
 		assert(currently_in_gui_thread() == false);
 		auto portlist = QSerialPortInfo::availablePorts();
@@ -147,12 +115,12 @@ void Worker::update_devices() {
 
 			auto &device =
 				*comport_devices.insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port, item.get(), nullptr})->device;
-			mw->add_device_item(item.release(), port.portName() + " " + port.description(), &device);
+			MainWindow::mw->add_device_item(item.release(), port.portName() + " " + port.description(), &device);
 		}
 	});
 }
 
-void Worker::detect_devices() {
+void DeviceWorker::detect_devices() {
 	Utility::thread_call(this, [this] {
 		assert(currently_in_gui_thread() == false);
 		std::vector<ComportDescription *> descriptions;
@@ -164,7 +132,7 @@ void Worker::detect_devices() {
 	});
 }
 
-void Worker::detect_device(QTreeWidgetItem *item) {
+void DeviceWorker::detect_device(QTreeWidgetItem *item) {
 	Utility::thread_call(this, [this, item] {
 		assert(currently_in_gui_thread() == false);
 		for (auto &comport : comport_devices) {
@@ -176,7 +144,7 @@ void Worker::detect_device(QTreeWidgetItem *item) {
 	});
 }
 
-void Worker::connect_to_device_console(QPlainTextEdit *console, CommunicationDevice *comport) {
+void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, CommunicationDevice *comport) {
 	Utility::thread_call(this, [this, console, comport] {
 		assert(currently_in_gui_thread() == false);
 		struct Data {
@@ -189,16 +157,16 @@ void Worker::connect_to_device_console(QPlainTextEdit *console, CommunicationDev
 					   {&CommunicationDevice::sent, Qt::red},
 					   {&CommunicationDevice::decoded_sent, Qt::darkRed}};
 		for (auto &d : data) {
-			connect(comport, d.signal, [ console = console, color = d.color, mw = this->mw ](const QByteArray &data) {
-				mw->append_html_to_console("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" +
-											   Utility::to_human_readable_binary_data(data) + "</plaintext></font>\n",
-										   console);
+			connect(comport, d.signal, [ console = console, color = d.color ](const QByteArray &data) {
+				MainWindow::mw->append_html_to_console("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" +
+														   Utility::to_human_readable_binary_data(data) + "</plaintext></font>\n",
+													   console);
 			});
 		}
 	});
 }
 
-void Worker::get_devices_with_protocol(const QString &protocol, std::promise<std::vector<ComportDescription *>> &retval) {
+void DeviceWorker::get_devices_with_protocol(const QString &protocol, std::promise<std::vector<ComportDescription *>> &retval) {
 	Utility::thread_call(this, [ this, protocol, retval = std::move(retval) ]() mutable {
 		assert(currently_in_gui_thread() == false);
 		std::vector<ComportDescription *> candidates;
@@ -214,22 +182,6 @@ void Worker::get_devices_with_protocol(const QString &protocol, std::promise<std
 	});
 }
 
-void Worker::run_script(ScriptEngine *script, QPlainTextEdit *console, ComportDescription *device) {
-	Utility::thread_call(this, [this, script, console, device] {
-		assert(currently_in_gui_thread() == false);
-		try {
-			Console::note(console) << "Started test";
-			script->run({{*device->device, *device->protocol}});
-		} catch (const sol::error &e) {
-			Console::error(console) << e.what();
-		}
-	});
-}
-
-ScriptEngine::State Worker::get_state(ScriptEngine &script) {
-	return Utility::promised_thread_call(this, [&script]() { return script.state; });
-}
-
-void Worker::abort_script(ScriptEngine &script) {
-	Utility::thread_call(this, [this, &script] { script.state = ScriptEngine::State::aborting; });
+QStringList DeviceWorker::get_string_list(ScriptEngine &script, const QString &name) {
+	return Utility::promised_thread_call(this, [&script, &name] { return script.get_string_list(name); });
 }

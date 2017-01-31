@@ -4,9 +4,10 @@
 #include "channel_codec_wrapper.h"
 
 #include <QColor>
-#include <QStringList>
 #include <QPlainTextEdit>
+#include <QStringList>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -20,9 +21,13 @@ struct Console {
 	public:
 	static QPlainTextEdit *console;
 	static ConsoleProxy warning(QPlainTextEdit *console = nullptr);
+	static ConsoleProxy warning(std::unique_ptr<QPlainTextEdit> &console);
 	static ConsoleProxy note(QPlainTextEdit *console = nullptr);
+	static ConsoleProxy note(std::unique_ptr<QPlainTextEdit> &console);
 	static ConsoleProxy error(QPlainTextEdit *console = nullptr);
+	static ConsoleProxy error(std::unique_ptr<QPlainTextEdit> &console);
 	static ConsoleProxy debug(QPlainTextEdit *console = nullptr);
+	static ConsoleProxy debug(std::unique_ptr<QPlainTextEdit> &console);
 	static MainWindow *mw;
 
 	private:

@@ -26,10 +26,12 @@ struct DeviceProtocol {
 class ScriptEngine {
 	public:
 	enum class State { idle, running, aborting, done };
-	friend class Worker;
+	friend class TestRunner;
+	friend class TestDescriptionLoader;
+	friend class DeviceWorker;
 	friend struct RPCDevice;
 
-	ScriptEngine(LuaUI lua_ui);
+	ScriptEngine(LuaUI &&lua_ui);
 	void load_script(const QString &path);
 	void launch_editor() const;
 

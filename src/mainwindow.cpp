@@ -2,6 +2,7 @@
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
 #include "console.h"
+#include "deviceworker.h"
 #include "pathsettingswindow.h"
 #include "plot.h"
 #include "qt_util.h"
@@ -71,15 +72,21 @@ using namespace std::chrono_literals;
 
 MainWindow *MainWindow::mw = nullptr;
 
+QThread *detail::gui_thread;
+
+bool currently_in_gui_thread() {
+	return QThread::currentThread() == detail::gui_thread;
+}
+
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
-	, worker(std::make_unique<Worker>(this))
+	, device_worker(std::make_unique<DeviceWorker>())
 	, ui(new Ui::MainWindow) {
 	detail::gui_thread = QThread::currentThread();
 	mw = this;
 	ui->setupUi(this);
-	worker->moveToThread(&worker_thread);
-	worker_thread.start();
+	device_worker->moveToThread(&devices_thread);
+	devices_thread.start();
 	Console::console = ui->console_edit;
 	Console::mw = this;
 	ui->update_devices_list_button->click();
@@ -87,11 +94,16 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 MainWindow::~MainWindow() {
-	worker_thread.quit();
-	worker_thread.requestInterruption();
-	worker_thread.wait();
+	devices_thread.quit();
+	devices_thread.wait();
+	for (auto &test : test_runners) {
+		test->interrupt();
+	}
+	for (auto &test : test_runners) {
+		test->join();
+	}
 	QApplication::processEvents();
-	tests.clear();
+	test_runners.clear();
 	GUI::lua_plots.clear();
 	GUI::lua_buttons.clear();
 	QApplication::processEvents();
@@ -116,42 +128,7 @@ void MainWindow::remove_device_entry(QTreeWidgetItem *item) {
 void MainWindow::forget_device() {
 	Utility::thread_call(this, [this] {
 		auto selected_device_item = ui->devices_list->currentItem();
-		worker->forget_device(selected_device_item);
-	});
-}
-
-void MainWindow::debug_channel_codec_state(std::list<DeviceProtocol> &protocols) {
-	Utility::thread_call(this, [this, protocols] {
-		auto test = get_test_from_ui();
-		if (test == nullptr) {
-			Console::debug() << "Invalid Test";
-			return;
-		}
-		if (protocols.size() != 1) {
-			Console::debug(test->console) << "Expected 1 protocol, but got" << protocols.size();
-			return;
-		}
-		auto rpc_protocol = dynamic_cast<const RPCProtocol *>(&protocols.front().protocol);
-		if (rpc_protocol == nullptr) {
-			Console::debug(test->console) << "Test is not using RPC Protocol";
-			return;
-		}
-		auto instance = rpc_protocol->debug_get_channel_codec_instance();
-		if (instance == nullptr) {
-			Console::debug(test->console) << "RPC Channel Codec Instance is null";
-			return;
-		}
-		if (instance->i.initialized == false) {
-			Console::debug(test->console) << "RPC Channel Codec Instance is not initialized";
-			return;
-		}
-		auto &rx = instance->i.rxState;
-		Console::debug(test->console) << "State:" << instance->i.ccChannelState                        //
-									  << ',' << "rxBitmask:" << static_cast<int>(rx.bitmask)           //
-									  << ',' << "Buffer Length:" << rx.bufferLength                    //
-									  << ',' << "Index in Block:" << static_cast<int>(rx.indexInBlock) //
-									  << ',' << "Write Pointer:" << rx.writePointer                    //
-									  << ',' << "Buffer: " << QByteArray(rx.buffer).toPercentEncoding(" :\t\\\n!\"§$%&/()=+-*").toStdString();
+		device_worker->forget_device(selected_device_item);
 	});
 }
 
@@ -160,7 +137,7 @@ void MainWindow::load_scripts() {
 		QDirIterator dit{QSettings{}.value(Globals::test_script_path_settings_key, "").toString(), QStringList{} << "*.lua", QDir::Files};
 		while (dit.hasNext()) {
 			const auto &file_path = dit.next();
-			tests.push_back({ui->tests_list, file_path});
+			test_descriptions.push_back({ui->tests_list, file_path});
 		}
 	});
 }
@@ -174,7 +151,7 @@ void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name,
 		console->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
 		console->setReadOnly(true);
 		ui->tabWidget->addTab(console, tab_name);
-		worker->connect_to_device_console(console, comport);
+		device_worker->connect_to_device_console(console, comport);
 	});
 }
 
@@ -264,13 +241,13 @@ void MainWindow::on_actionPaths_triggered() {
 }
 
 void MainWindow::on_device_detect_button_clicked() {
-	Utility::thread_call(this, [this] { worker->detect_devices(); });
+	Utility::thread_call(this, [this] { device_worker->detect_devices(); });
 }
 
 void MainWindow::on_update_devices_list_button_clicked() {
 	Utility::thread_call(this, [this] {
 		assert(currently_in_gui_thread());
-		worker->update_devices();
+		device_worker->update_devices();
 	});
 }
 
@@ -284,127 +261,44 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index) {
 	});
 }
 
-MainWindow::Test::Test(QTreeWidget *test_list, const QString &file_path)
-	: parent(test_list)
-	, test_console_widget(new QSplitter(Qt::Vertical))
-	, script(test_console_widget)
-	, file_path(file_path) {
-	name = QString{file_path.data() + file_path.lastIndexOf('/') + 1};
-	if (name.endsWith(".lua")) {
-		name.chop(4);
-	}
-	console = new QPlainTextEdit(test_console_widget);
-	console->setReadOnly(true);
-	test_console_widget->addWidget(console);
-	MainWindow::mw->test_console_add(this);
-
-	ui_item = new QTreeWidgetItem(test_list, QStringList{} << name);
-	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
-	parent->addTopLevelItem(ui_item);
-	try {
-		script.load_script(file_path);
-	} catch (const sol::error &e) {
-		Console::error(console) << tr("Failed loading script \"%1\" because %2").arg(file_path, e.what());
-		return;
-	}
-	try {
-		QStringList protocols = MainWindow::mw->worker->get_string_list(script, "protocols");
-		std::copy(protocols.begin(), protocols.end(), std::back_inserter(this->protocols));
-		std::sort(this->protocols.begin(), this->protocols.end());
-		if (protocols.empty() == false) {
-			ui_item->setText(GUI::Tests::protocol, protocols.join(", "));
-		} else {
-			ui_item->setText(GUI::Tests::protocol, tr("None"));
-			ui_item->setTextColor(1, Qt::darkRed);
-		}
-	} catch (const sol::error &e) {
-		Console::error(console) << tr("Failed retrieving variable \"protocols\" from %1 because %2").arg(file_path, e.what());
-		ui_item->setText(GUI::Tests::protocol, tr("Failed getting protocols"));
-		ui_item->setTextColor(GUI::Tests::protocol, Qt::darkRed);
-	}
-	try {
-		auto deviceNames = MainWindow::mw->worker->get_string_list(script, "deviceNames");
-		if (deviceNames.isEmpty() == false) {
-			ui_item->setText(GUI::Tests::deviceNames, deviceNames.join(", "));
-		}
-	} catch (const sol::error &e) {
-		Console::warning(console) << tr("Failed retrieving variable \"deviceNames\" from %1 because %2").arg(file_path, e.what());
-	}
-}
-
-MainWindow::Test::~Test() {
-	if (ui_item != nullptr) {
-		delete parent->takeTopLevelItem(parent->indexOfTopLevelItem(ui_item));
-		MainWindow::mw->test_console_remove(this);
-	}
-}
-
-MainWindow::Test::Test(MainWindow::Test &&other)
-	: script(nullptr) {
-	swap(other);
-	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
-}
-
-MainWindow::Test &MainWindow::Test::operator=(MainWindow::Test &&other) {
-	swap(other);
-	return *this;
-}
-
-void MainWindow::Test::swap(MainWindow::Test &other) {
-	auto t = std::tie(this->parent, this->ui_item, this->script, this->protocols, this->name, this->console, this->test_console_widget, this->file_path);
-	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols, other.name, other.console, other.test_console_widget, other.file_path);
-
-	std::swap(t, o);
-}
-
-void MainWindow::Test::reset_ui() {
-	test_console_widget = new QSplitter(Qt::Vertical);
-	console = new QPlainTextEdit(test_console_widget);
-	console->setReadOnly(true);
-	test_console_widget->addWidget(console);
-	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
-	MainWindow::mw->worker->set_gui_parent(script, test_console_widget);
-}
-
-bool MainWindow::Test::operator==(QTreeWidgetItem *item) {
-	return item == ui_item;
-}
-
 void MainWindow::on_run_test_script_button_clicked() {
 	Utility::thread_call(this, [this] {
 		auto items = ui->tests_list->selectedItems();
 		for (auto &item : items) {
-			auto test = Utility::from_qvariant<MainWindow::Test>(item->data(0, Qt::UserRole));
+			auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
 			if (test == nullptr) {
 				continue;
 			}
-			if (test->protocols.empty()) {
+			if (test->get_protocols().empty()) {
 				Console::error(test->console)
-					<< tr("The selected script \"%1\" cannot be run, because it did not report the required devices.").arg(test->name);
+					<< tr("The selected script \"%1\" cannot be run, because it did not report the required devices.").arg(test->get_name());
 			}
-			for (auto &protocol : test->protocols) {
+			for (auto &protocol : test->get_protocols()) {
 				std::promise<std::vector<ComportDescription *>> promise; //TODO: do not only loop over comport_devices, but other devices as well
 				auto future = promise.get_future();
-				worker->get_devices_with_protocol(protocol, promise);
+				device_worker->get_devices_with_protocol(protocol, promise);
 				std::vector<ComportDescription *> candidates = future.get();
 
 				switch (candidates.size()) {
 					case 0:
 						//failed to find suitable device
 						Console::error(test->console) << tr("The selected test \"%1\" requires a device with protocol \"%2\", but no such device is available.")
-															 .arg(test->ui_item->text(0), protocol);
+															 .arg(test->get_name(), protocol);
 						break;
 					case 1:
 						//found the only viable option
 						{
+							test_runners.push_back(std::make_unique<TestRunner>());
+							auto &runner = *test_runners.back();
+							ui->test_tabs->setCurrentIndex(ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name()));
 							auto &device = *candidates.front();
 							auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
 							if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
 								sol::optional<std::string> message;
 								try {
-									sol::table table = worker->create_table(test->script);
+									sol::table table = runner.create_table();
 									rpc_protocol->get_lua_device_descriptor(table);
-									message = worker->call<sol::optional<std::string>>(test->script, "RPC_acceptable", std::move(table));
+									message = runner.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
 								} catch (const sol::error &e) {
 									const auto &message = tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
 									Console::error(test->console) << message;
@@ -415,17 +309,7 @@ void MainWindow::on_run_test_script_button_clicked() {
 									Console::note(test->console) << tr("Device rejected:") << message.value();
 								} else {
 									//acceptable device found
-									auto tab_index = ui->test_tabs->indexOf(test->test_console_widget);
-									if (tab_index == 0) {
-										//we are in the first tab, so we just move out
-										Utility::replace_tab_widget(ui->test_tabs, 0, ui->test_tab_placeholder, tr("Test Information"));
-									} else {
-										//we already have an old test tab open. We leave it be and just open a new tab.
-										assert(tab_index > 0);
-										test->reset_ui();
-									}
-									ui->test_tabs->setCurrentIndex(ui->test_tabs->addTab(test->test_console_widget, test->name));
-									worker->run_script(&test->script, test->console, &device);
+									runner.run_script(device);
 								}
 							} else {
 								assert(!"TODO: handle non-RPC protocol");
@@ -445,8 +329,9 @@ void MainWindow::on_run_test_script_button_clicked() {
 void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
 	(void)column;
 	Utility::thread_call(this, [this, item] {
-		auto test = Utility::from_qvariant<MainWindow::Test>(item->data(0, Qt::UserRole));
-		test_console_focus(test);
+		auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
+		Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
+		ui->test_tabs->setCurrentIndex(0);
 	});
 }
 
@@ -455,49 +340,19 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 		auto item = ui->tests_list->itemAt(pos);
 		if (item) {
 			auto test = get_test_from_ui();
-			test_console_focus(test);
 
 			QMenu menu(this);
 
-			QAction action_run_abort;
-			auto state = worker->get_state(test->script);
-			switch (state) {
-				case ScriptEngine::State::running:
-					action_run_abort.setText(tr("Abort"));
-					connect(&action_run_abort, &QAction::triggered, [ this, &script = test->script ] { worker->abort_script(script); });
-					menu.addAction(&action_run_abort);
-					break;
-				case ScriptEngine::State::done:
-				case ScriptEngine::State::idle:
-					action_run_abort.setText(tr("Run"));
-					connect(&action_run_abort, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
-					menu.addAction(&action_run_abort);
-					break;
-				case ScriptEngine::State::aborting:
-					break;
-			}
+			QAction action_run(tr("Run"));
+			connect(&action_run, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
+			menu.addAction(&action_run);
 
 			QAction action_reload(tr("Reload"));
-			if (state == ScriptEngine::State::idle || state == ScriptEngine::State::done) {
-				connect(&action_reload, &QAction::triggered, [this] {
-					auto selected_test_item = ui->tests_list->currentItem();
-					QString file_path;
-					for (auto test_it = tests.begin(); test_it != tests.end(); ++test_it) {
-						if (test_it->ui_item == selected_test_item) {
-							file_path = test_it->file_path;
-							test_it = tests.erase(test_it);
-							break;
-						}
-					}
-					if (file_path.isEmpty() == false) {
-						tests.push_back({ui->tests_list, file_path});
-					}
-				});
-				menu.addAction(&action_reload);
-			}
+			connect(&action_reload, &QAction::triggered, [test] { test->reload(); });
+			menu.addAction(&action_reload);
 
 			QAction action_editor(tr("Open in Editor"));
-			connect(&action_editor, &QAction::triggered, [this] { get_test_from_ui()->script.launch_editor(); });
+			connect(&action_editor, &QAction::triggered, [test] { test->launch_editor(); });
 			menu.addAction(&action_editor);
 
 			menu.exec(ui->tests_list->mapToGlobal(pos));
@@ -506,7 +361,7 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 
 			QAction action(tr("Reload all scripts"));
 			connect(&action, &QAction::triggered, [this] {
-				tests.clear();
+				test_descriptions.clear();
 				load_scripts();
 			});
 			menu.addAction(&action);
@@ -523,7 +378,7 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 			QMenu menu(this);
 
 			QAction action_detect(tr("Detect"));
-			connect(&action_detect, &QAction::triggered, [this, item] { worker->detect_device(item); });
+			connect(&action_detect, &QAction::triggered, [this, item] { device_worker->detect_device(item); });
 			menu.addAction(&action_detect);
 
 			QAction action_forget(tr("Forget"));
@@ -547,43 +402,19 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 	});
 }
 
-MainWindow::Test *MainWindow::get_test_from_ui(const QTreeWidgetItem *item) {
+TestDescriptionLoader *MainWindow::get_test_from_ui(const QTreeWidgetItem *item) {
 	if (item == nullptr) {
 		item = ui->tests_list->currentItem();
 	}
 	if (item == nullptr) {
 		return nullptr;
 	}
-	for (auto &test : tests) {
-		if (test.ui_item == item) {
+	for (auto &test : test_descriptions) {
+		if (test.ui_entry == item) {
 			return &test;
 		}
 	}
 	return nullptr;
-}
-
-void MainWindow::test_console_add(MainWindow::Test *test) {
-	//ui->test_tabs->addTab(test->test_console_widget, test->name);
-}
-
-void MainWindow::test_console_remove(Test *test) {
-	//ui->test_tabs->removeTab(ui->test_tabs->indexOf(test->test_console_widget));
-}
-
-void MainWindow::test_console_focus(Test *test) {
-	//ui->test_tabs->setCurrentIndex(ui->test_tabs->indexOf(test->test_console_widget));
-	auto index = ui->test_tabs->indexOf(test->test_console_widget);
-	if (index == -1) { //not showing this widget right now
-		Utility::replace_tab_widget(ui->test_tabs, 0, test->test_console_widget, test->name);
-		index = 0;
-	}
-	ui->test_tabs->setCurrentIndex(index);
-}
-
-QThread *detail::gui_thread = nullptr;
-
-bool currently_in_gui_thread() {
-	return QThread::currentThread() == detail::gui_thread;
 }
 
 void MainWindow::on_test_tabs_tabCloseRequested(int index) {
@@ -592,21 +423,23 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 		return;
 	}
 	auto tab_widget = ui->test_tabs->widget(index);
-	for (auto &test : tests) {
-		if (test.test_console_widget == tab_widget) {
-			if (worker->get_state(test.script) == ScriptEngine::State::running) {
-				if (QMessageBox::question(this, tr(""), tr("Selected script %1 is still running. Abort it now?").arg(test.name),
-										  QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
-					worker->await_idle(test.script);
-				} else {
-					return; //canceled closing the tab
-				}
-			}
-			test.reset_ui();
-			break;
+	auto runner_it = std::find_if(std::begin(test_runners), std::end(test_runners), [tab_widget](const auto &runner){
+		return runner->get_lua_ui_container() == tab_widget;
+	});
+	if (runner_it == std::end(test_runners)){
+		return;
+	}
+	auto &runner = **runner_it;
+	if (runner.is_running()){
+		if (QMessageBox::question(this, tr(""), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
+								  QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
+			runner.interrupt();
+			runner.join();
+		} else {
+			return; //canceled closing the tab
 		}
 	}
 	ui->test_tabs->removeTab(index);
+	test_runners.erase(runner_it);
 	QApplication::processEvents();
-	delete tab_widget;
 }

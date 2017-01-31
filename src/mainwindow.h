@@ -2,25 +2,26 @@
 #define MAINWINDOW_H
 
 #include "CommunicationDevices/communicationdevice.h"
+#include "CommunicationDevices/comportcommunicationdevice.h"
 #include "Protocols/protocol.h"
 #include "export.h"
 #include "qt_util.h"
 #include "scriptengine.h"
-#include "worker.h"
+#include "testdescriptionloader.h"
+#include "testrunner.h"
 
 #include <QMainWindow>
+#include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QString>
 #include <QThread>
 #include <QtSerialPort/QSerialPortInfo>
-#include <list>
 #include <memory>
-#include <set>
 #include <vector>
-#include <QMessageBox>
 
 class QTreeWidget;
 class QTreeWidgetItem;
+class DeviceWorker;
 
 namespace Ui {
 	class MainWindow;
@@ -31,6 +32,13 @@ namespace detail {
 }
 
 bool currently_in_gui_thread();
+
+struct ComportDescription {
+	std::unique_ptr<ComportCommunicationDevice> device;
+	QSerialPortInfo info;
+	QTreeWidgetItem *ui_entry;
+	std::unique_ptr<Protocol> protocol;
+};
 
 class EXPORT MainWindow : public QMainWindow {
     Q_OBJECT
@@ -64,7 +72,6 @@ class EXPORT MainWindow : public QMainWindow {
 
 	private slots:
 	void forget_device();
-	void debug_channel_codec_state(std::list<DeviceProtocol> &protocols);
 	void load_scripts();
 
 	void on_actionPaths_triggered();
@@ -78,40 +85,27 @@ class EXPORT MainWindow : public QMainWindow {
 	void on_test_tabs_tabCloseRequested(int index);
 
 	private:
-	struct Test {
-		Test(QTreeWidget *test_list, const QString &file_path);
-		~Test();
-		Test(const Test &) = delete;
-		Test(Test &&other);
-		Test &operator=(const Test &) = delete;
-		Test &operator=(Test &&other);
-		void swap(Test &other);
-		void reset_ui();
+	std::vector<TestDescriptionLoader> test_descriptions;
+	std::vector<std::unique_ptr<TestRunner>> test_runners;
 
-		QTreeWidget *parent = nullptr;
-		QTreeWidgetItem *ui_item = nullptr;
-		QPlainTextEdit *console = nullptr;
-		QSplitter *test_console_widget = nullptr;
-		ScriptEngine script;
-		std::vector<QString> protocols;
-		QString name;
-		QString file_path;
-		bool operator==(QTreeWidgetItem *item);
-	};
-	friend struct MainWindow::Test;
-	std::list<Test> tests;
-
-	std::unique_ptr<Worker> worker;
-	QThread worker_thread;
+	std::unique_ptr<DeviceWorker> device_worker;
+	QThread devices_thread;
 
 	QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;
 
-	Test *get_test_from_ui(const QTreeWidgetItem *item = nullptr);
-	void test_console_add(Test *test);
-	void test_console_remove(Test *test);
-	void test_console_focus(Test *test);
+	TestDescriptionLoader *get_test_from_ui(const QTreeWidgetItem *item = nullptr);
 };
+
+template <class T>
+bool operator==(const std::unique_ptr<T> &lhs, const T *rhs) {
+	return lhs.get() == rhs;
+}
+
+template <class T>
+bool operator==(const T *lhs, const std::unique_ptr<T> &rhs) {
+	return lhs == rhs.get();
+}
 
 template <class Function>
 void MainWindow::execute_in_gui_thread(Function &&f) {
