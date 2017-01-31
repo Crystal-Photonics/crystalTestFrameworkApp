@@ -1,6 +1,7 @@
 #include "testdescriptionloader.h"
 #include "mainwindow.h"
 #include "scriptengine.h"
+#include "console.h"
 
 #include <QDebug>
 #include <QStringList>
@@ -110,6 +111,7 @@ TestDescriptionLoader::TestDescriptionLoader(QTreeWidget *test_list, const QStri
 	ui_entry = std::make_unique<QTreeWidgetItem>(test_list, QStringList{} << name);
 	ui_entry->setData(0, Qt::UserRole, Utility::make_qvariant(this));
 	test_list->addTopLevelItem(ui_entry.get());
+	reload();
 }
 
 TestDescriptionLoader::TestDescriptionLoader(TestDescriptionLoader &&other)
@@ -131,19 +133,29 @@ const QString &TestDescriptionLoader::get_name() const {
 	return name;
 }
 
-void TestDescriptionLoader::reload() {}
+const QString &TestDescriptionLoader::get_filepath() const
+{
+	return file_path;
+}
+
+void TestDescriptionLoader::reload() {
+	load_description();
+}
 
 void TestDescriptionLoader::launch_editor() {
 	throw "TODO";
 }
 
 void TestDescriptionLoader::load_description() {
+	ui_entry->setText(1, "");
 	try {
 		ScriptEngine script{nullptr};
 		script.load_script(file_path);
 		auto prots = script.get_string_list("protocols");
 		protocols.clear();
 		std::copy(prots.begin(), prots.end(), std::back_inserter(protocols));
+		ui_entry->setText(1, prots.join(", "));
 	} catch (const std::runtime_error &e) {
+		Console::error(console) << "Failed loading protocols: " << e.what();
 	}
 }

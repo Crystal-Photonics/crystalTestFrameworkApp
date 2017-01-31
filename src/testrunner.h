@@ -13,11 +13,12 @@ class QPlainTextEdit;
 class QSplitter;
 struct LuaUI;
 struct ComportDescription;
+class TestDescriptionLoader;
 
 class TestRunner : QObject {
 	Q_OBJECT
 	public:
-	TestRunner();
+	TestRunner(const TestDescriptionLoader &description);
 	~TestRunner();
 	void interrupt();
 	void join();
@@ -45,39 +46,5 @@ ReturnType TestRunner::call(const char *function_name, Arguments &&... args) {
 	});
 	return f.get();
 }
-
-#if 0
-struct Test {
-	Test(QTreeWidget *test_list, const QString &file_path);
-	~Test();
-	Test(const Test &) = delete;
-	Test(Test &&other);
-	Test &operator=(const Test &) = delete;
-	Test &operator=(Test &&other);
-	void swap(Test &other);
-	void reset_ui();
-
-	QTreeWidget *parent = nullptr;
-	QTreeWidgetItem *ui_item = nullptr;
-	QPlainTextEdit *console = nullptr;
-	QSplitter *test_console_widget = nullptr;
-	ScriptEngine script;
-	std::vector<QString> protocols;
-	QString name;
-	QString file_path;
-	bool operator==(QTreeWidgetItem *item);
-	std::unique_ptr<Worker> worker;
-	std::unique_ptr<QThread> worker_thread;
-};
-#endif
-
-#if 0
-void await_idle(ScriptEngine &script);
-void set_gui_parent(ScriptEngine &script, QSplitter *parent);
-
-public slots:
-ScriptEngine::State get_state(ScriptEngine &script);
-void abort_script(ScriptEngine &script);
-#endif
 
 #endif // TESTRUNNER_H

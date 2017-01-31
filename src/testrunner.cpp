@@ -1,12 +1,15 @@
 #include "testrunner.h"
 #include "mainwindow.h"
+#include "testdescriptionloader.h"
 
 #include <QSplitter>
 
-TestRunner::TestRunner()
+TestRunner::TestRunner(const TestDescriptionLoader &description)
 	: lua_ui_container(new QSplitter(MainWindow::mw))
 	, script(lua_ui_container) {
 	moveToThread(&thread);
+	thread.start();
+	script.load_script(description.get_filepath());
 }
 
 TestRunner::~TestRunner() {

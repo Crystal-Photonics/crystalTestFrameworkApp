@@ -18,6 +18,7 @@ class TestDescriptionLoader {
 	std::unique_ptr<QPlainTextEdit> console;
 	std::unique_ptr<QTreeWidgetItem> ui_entry;
 	const QString &get_name() const;
+	const QString &get_filepath() const;
 	void reload();
 	void launch_editor();
 
@@ -27,30 +28,5 @@ class TestDescriptionLoader {
 	QString file_path;
 	std::vector<QString> protocols;
 };
-
-#if 0
-struct Test {
-	Test(QTreeWidget *test_list, const QString &file_path);
-	~Test();
-	Test(const Test &) = delete;
-	Test(Test &&other);
-	Test &operator=(const Test &) = delete;
-	Test &operator=(Test &&other);
-	void swap(Test &other);
-	void reset_ui();
-
-	QTreeWidget *parent = nullptr;
-	QTreeWidgetItem *ui_item = nullptr;
-	QPlainTextEdit *console = nullptr;
-	QSplitter *test_console_widget = nullptr;
-	ScriptEngine script;
-	std::vector<QString> protocols;
-	QString name;
-	QString file_path;
-	bool operator==(QTreeWidgetItem *item);
-	std::unique_ptr<Worker> worker;
-	std::unique_ptr<QThread> worker_thread;
-};
-#endif
 
 #endif // TESTDESCRIPTIONLOADER_H

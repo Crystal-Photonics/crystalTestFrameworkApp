@@ -288,7 +288,7 @@ void MainWindow::on_run_test_script_button_clicked() {
 					case 1:
 						//found the only viable option
 						{
-							test_runners.push_back(std::make_unique<TestRunner>());
+							test_runners.push_back(std::make_unique<TestRunner>(*test));
 							auto &runner = *test_runners.back();
 							ui->test_tabs->setCurrentIndex(ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name()));
 							auto &device = *candidates.front();
