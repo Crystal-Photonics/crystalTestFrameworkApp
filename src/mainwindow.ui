@@ -183,6 +183,9 @@
         </layout>
        </widget>
        <widget class="QTabWidget" name="test_tabs">
+        <property name="contextMenuPolicy">
+         <enum>Qt::CustomContextMenu</enum>
+        </property>
         <property name="tabsClosable">
          <bool>true</bool>
         </property>

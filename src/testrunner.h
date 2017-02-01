@@ -30,6 +30,7 @@ class TestRunner : QObject {
 	void run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices);
 	bool is_running();
 	const QString &get_name() const;
+	void launch_editor() const;
 
 	private:
 	QThread thread;

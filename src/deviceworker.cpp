@@ -150,17 +150,21 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
 		struct Data {
 			void (CommunicationDevice::*signal)(const QByteArray &);
 			QColor color;
+			bool fat;
 		};
-		Data data[] = {{&CommunicationDevice::received, Qt::green},
-					   {&CommunicationDevice::decoded_received, Qt::darkGreen},
-					   {&CommunicationDevice::message, Qt::black},
-					   {&CommunicationDevice::sent, Qt::red},
-					   {&CommunicationDevice::decoded_sent, Qt::darkRed}};
+		Data data[] = {{&CommunicationDevice::received, Qt::darkGreen, false},
+					   {&CommunicationDevice::decoded_received, Qt::darkGreen, true},
+					   {&CommunicationDevice::message, Qt::black, false},
+					   {&CommunicationDevice::sent, Qt::darkRed, false},
+					   {&CommunicationDevice::decoded_sent, Qt::darkRed, true}};
+
+		static const QString normal_html = R"("<font color="#%1"><plaintext>%2</plaintext></font>)";
+		static const QString fat_html = R"("<font color="#%1"><b><plaintext>%2</plaintext></b></font>)";
+
 		for (auto &d : data) {
-			connect(comport, d.signal, [ console = console, color = d.color ](const QByteArray &data) {
-				MainWindow::mw->append_html_to_console("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" +
-														   Utility::to_human_readable_binary_data(data) + "</plaintext></font>\n",
-													   console);
+			connect(comport, d.signal, [ console = console, color = d.color, fat = d.fat ](const QByteArray &data) {
+				MainWindow::mw->append_html_to_console(
+					(fat ? fat_html : normal_html).arg(QString::number(color.rgb(), 16), Utility::to_human_readable_binary_data(data)), console);
 			});
 		}
 	});

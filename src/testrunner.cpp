@@ -38,8 +38,9 @@ void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protoco
 	try {
 		script.run(devices);
 	} catch (const std::runtime_error &e) {
-		MainWindow::mw->execute_in_gui_thread([this, message = std::string{e.what()}] { Console::error(console) << message; });
+		MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] { Console::error(console) << message; });
 	}
+	thread.quit();
 }
 
 bool TestRunner::is_running() {
@@ -48,6 +49,10 @@ bool TestRunner::is_running() {
 
 const QString &TestRunner::get_name() const {
 	return name;
+}
+
+void TestRunner::launch_editor() const {
+	script.launch_editor();
 }
 
 #if 0

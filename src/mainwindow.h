@@ -84,6 +84,8 @@ class EXPORT MainWindow : public QMainWindow {
 	void on_devices_list_customContextMenuRequested(const QPoint &pos);
 	void on_test_tabs_tabCloseRequested(int index);
 
+	void on_test_tabs_customContextMenuRequested(const QPoint &pos);
+
 	private:
 	std::vector<TestDescriptionLoader> test_descriptions;
 	std::vector<std::unique_ptr<TestRunner>> test_runners;
@@ -95,6 +97,7 @@ class EXPORT MainWindow : public QMainWindow {
     Ui::MainWindow *ui;
 
 	TestDescriptionLoader *get_test_from_ui(const QTreeWidgetItem *item = nullptr);
+	TestRunner *get_runner_from_tab_index(int index);
 };
 
 template <class T>

@@ -372,34 +372,32 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 }
 
 void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
-	Utility::thread_call(this, [this, pos] {
-		auto item = ui->devices_list->itemAt(pos);
-		if (item) {
-			QMenu menu(this);
+	auto item = ui->devices_list->itemAt(pos);
+	if (item) {
+		QMenu menu(this);
 
-			QAction action_detect(tr("Detect"));
-			connect(&action_detect, &QAction::triggered, [this, item] { device_worker->detect_device(item); });
-			menu.addAction(&action_detect);
+		QAction action_detect(tr("Detect"));
+		connect(&action_detect, &QAction::triggered, [this, item] { device_worker->detect_device(item); });
+		menu.addAction(&action_detect);
 
-			QAction action_forget(tr("Forget"));
-			connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
-			menu.addAction(&action_forget);
+		QAction action_forget(tr("Forget"));
+		connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
+		menu.addAction(&action_forget);
 
-			menu.exec(ui->devices_list->mapToGlobal(pos));
-		} else {
-			QMenu menu(this);
+		menu.exec(ui->devices_list->mapToGlobal(pos));
+	} else {
+		QMenu menu(this);
 
-			QAction action_update(tr("Update device list"));
-			connect(&action_update, &QAction::triggered, ui->update_devices_list_button, &QPushButton::clicked);
-			menu.addAction(&action_update);
+		QAction action_update(tr("Update device list"));
+		connect(&action_update, &QAction::triggered, ui->update_devices_list_button, &QPushButton::clicked);
+		menu.addAction(&action_update);
 
-			QAction action_detect(tr("Detect device protocols"));
-			connect(&action_detect, &QAction::triggered, ui->device_detect_button, &QPushButton::clicked);
-			menu.addAction(&action_detect);
+		QAction action_detect(tr("Detect device protocols"));
+		connect(&action_detect, &QAction::triggered, ui->device_detect_button, &QPushButton::clicked);
+		menu.addAction(&action_detect);
 
-			menu.exec(ui->devices_list->mapToGlobal(pos));
-		}
-	});
+		menu.exec(ui->devices_list->mapToGlobal(pos));
+	}
 }
 
 TestDescriptionLoader *MainWindow::get_test_from_ui(const QTreeWidgetItem *item) {
@@ -417,20 +415,29 @@ TestDescriptionLoader *MainWindow::get_test_from_ui(const QTreeWidgetItem *item)
 	return nullptr;
 }
 
+TestRunner *MainWindow::get_runner_from_tab_index(int index) {
+	for (auto &r : test_runners) {
+		auto runner_index = ui->test_tabs->indexOf(r->get_lua_ui_container());
+		if (runner_index == index) {
+			return r.get();
+		}
+	}
+	return nullptr;
+}
+
 void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 	if (index == 0) {
 		//first tab never gets closed
 		return;
 	}
 	auto tab_widget = ui->test_tabs->widget(index);
-	auto runner_it = std::find_if(std::begin(test_runners), std::end(test_runners), [tab_widget](const auto &runner){
-		return runner->get_lua_ui_container() == tab_widget;
-	});
-	if (runner_it == std::end(test_runners)){
+	auto runner_it = std::find_if(std::begin(test_runners), std::end(test_runners),
+								  [tab_widget](const auto &runner) { return runner->get_lua_ui_container() == tab_widget; });
+	if (runner_it == std::end(test_runners)) {
 		return;
 	}
 	auto &runner = **runner_it;
-	if (runner.is_running()){
+	if (runner.is_running()) {
 		if (QMessageBox::question(this, tr(""), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
 								  QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
 			runner.interrupt();
@@ -442,4 +449,30 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 	ui->test_tabs->removeTab(index);
 	test_runners.erase(runner_it);
 	QApplication::processEvents();
+}
+
+void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
+	auto tab_index = ui->test_tabs->tabBar()->tabAt(pos);
+	if (tab_index <= 0) {
+		//clicked on the overview list
+		QMenu menu(this);
+
+		QAction action_close_finished(tr("Close finished Tests"));
+		//connect(&action_close_finished, &QAction::triggered, [this] { QMessageBox::information(MainWindow::mw, "test", "bla"); });
+		action_close_finished.setDisabled(true);
+		menu.addAction(&action_close_finished);
+
+		menu.exec(ui->test_tabs->mapToGlobal(pos));
+	} else {
+		auto runner = get_runner_from_tab_index(tab_index);
+		assert(runner);
+
+		QMenu menu(this);
+
+		QAction action_open_script(tr("Open in Editor"));
+		connect(&action_open_script, &QAction::triggered, [this, runner] { runner->launch_editor(); });
+		menu.addAction(&action_open_script);
+
+		menu.exec(ui->test_tabs->mapToGlobal(pos));
+	}
 }
