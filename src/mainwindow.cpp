@@ -309,7 +309,7 @@ void MainWindow::on_run_test_script_button_clicked() {
 									Console::note(test->console) << tr("Device rejected:") << message.value();
 								} else {
 									//acceptable device found
-									runner.run_script(device);
+									runner.run_script({{device.device.get(), device.protocol.get()}});
 								}
 							} else {
 								assert(!"TODO: handle non-RPC protocol");

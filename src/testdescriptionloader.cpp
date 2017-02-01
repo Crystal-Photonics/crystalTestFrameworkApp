@@ -143,7 +143,7 @@ void TestDescriptionLoader::reload() {
 }
 
 void TestDescriptionLoader::launch_editor() {
-	throw "TODO";
+	ScriptEngine::launch_editor(file_path);
 }
 
 void TestDescriptionLoader::load_description() {

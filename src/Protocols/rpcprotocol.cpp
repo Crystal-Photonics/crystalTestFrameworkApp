@@ -2,6 +2,7 @@
 #include "channel_codec_wrapper.h"
 #include "config.h"
 #include "console.h"
+#include "qt_util.h"
 #include "rpc_ui.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_decoder.h"
@@ -151,8 +152,8 @@ bool RPCProtocol::is_correct_protocol() {
 }
 
 std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration) {
-	const auto data = channel_codec.encode(call);
-	device->send(data, call.encode());
+	Utility::thread_call(device,
+						 [ device = this->device, data = channel_codec.encode(call), display_data = call.encode() ] { device->send(data, display_data); });
 	auto start = std::chrono::high_resolution_clock::now();
 	auto check_received = [this, &start, &duration, &call]() -> std::unique_ptr<RPCRuntimeDecodedFunctionCall> {
 		device->waitReceived(duration - (std::chrono::high_resolution_clock::now() - start));

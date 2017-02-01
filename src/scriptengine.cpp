@@ -26,7 +26,7 @@ void ScriptEngine::load_script(const QString &path) {
 	//NOTE: When using lambdas do not capture `this` or by reference, because it breaks when the ScriptEngine is moved
     this->path = path;
     try {
-        lua.open_libraries(sol::lib::base); //load the standard lib if necessary
+		lua.open_libraries(sol::lib::base);  //load the standard lib if necessary
         lua.open_libraries(sol::lib::table); //load the standard lib if necessary
         lua.set_function("show_warning", [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
             MainWindow::mw->show_message_box(QString::fromStdString(title.value_or("nil")) + " from " + path, QString::fromStdString(message.value_or("nil")),
@@ -76,24 +76,7 @@ void ScriptEngine::load_script(const QString &path) {
     } catch (const sol::error &error) {
         set_error(error);
         throw;
-    }
-}
-
-QStringList ScriptEngine::get_string_list(const QString &name) {
-    QStringList retval;
-    sol::table t = lua.get<sol::table>(name.toStdString());
-    try {
-        if (t.valid() == false) {
-            return retval;
-        }
-        for (auto &s : t) {
-            retval << s.second.as<std::string>().c_str();
-        }
-    } catch (const sol::error &error) {
-        set_error(error);
-        throw;
-    }
-    return retval;
+	}
 }
 
 void ScriptEngine::set_error(const sol::error &error) {
@@ -105,14 +88,17 @@ void ScriptEngine::set_error(const sol::error &error) {
     }
 }
 
+void ScriptEngine::launch_editor(QString path, int error_line) {
+	auto editor = QSettings{}.value(Globals::lua_editor_path_settings_key, R"(C:\Qt\Tools\QtCreator\bin\qtcreator.exe)").toString();
+	auto parameters = QSettings{}.value(Globals::lua_editor_parameters_settings_key, R"(%1)").toString().split(" ");
+	for (auto &parameter : parameters) {
+		parameter = parameter.replace("%1", path).replace("%2", QString::number(error_line));
+	}
+	QProcess::startDetached(editor, parameters);
+}
+
 void ScriptEngine::launch_editor() const {
-    QStringList parameter;
-    if (error_line != 0) {
-        parameter << path + ":" + QString::number(error_line);
-    } else {
-        parameter << path;
-    }
-    QProcess::startDetached(QSettings{}.value(Globals::lua_editor_path_settings_key, R"(C:\Qt\Tools\QtCreator\bin\qtcreator.exe)").toString(), parameter);
+	launch_editor(path, error_line);
 }
 
 LuaUI &ScriptEngine::get_ui() {
@@ -121,6 +107,23 @@ LuaUI &ScriptEngine::get_ui() {
 
 sol::table ScriptEngine::create_table() {
     return lua.create_table_with();
+}
+
+QStringList ScriptEngine::get_string_list(const QString &name) {
+	QStringList retval;
+	sol::table t = lua.get<sol::table>(name.toStdString());
+	try {
+		if (t.valid() == false) {
+			return retval;
+		}
+		for (auto &s : t) {
+			retval << s.second.as<std::string>().c_str();
+		}
+	} catch (const sol::error &error) {
+		set_error(error);
+		throw;
+	}
+	return retval;
 }
 
 static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedParam &param, sol::state &lua) {
@@ -151,7 +154,7 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
 
 struct RPCDevice {
     sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
-        if (QThread::currentThread()->isInterruptionRequested() || engine->state == ScriptEngine::State::aborting) {
+		if (QThread::currentThread()->isInterruptionRequested()) {
             throw sol::error("Abort Requested");
         }
         Console::note() << QString("\"%1\" called").arg(name.c_str());
@@ -194,8 +197,9 @@ struct RPCDevice {
     ScriptEngine *engine = nullptr;
 };
 
-void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function<void(std::list<DeviceProtocol> &)> debug_callback) {
-    auto lua_state_resetter = [this] {
+void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *> > &devices) {
+	auto reset_lua_state = [this] {
+		//this is a bit of a hack, but the usual lua = sol::state(); does not reset the state properly
         lua.~state();
         new (&lua) sol::state();
         load_script(path);
@@ -204,9 +208,9 @@ void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function
         std::lock_guard<std::mutex> state_lock(*state_is_idle);
         {
             auto device_list = lua.create_table_with();
-            for (auto &device_protocol : device_protocols) {
-                if (auto rpcp = dynamic_cast<RPCProtocol *>(&device_protocol.protocol)) {
-                    device_list.add(RPCDevice{&lua, rpcp, &device_protocol.device, this});
+			for (auto &device_protocol : devices) {
+				if (auto rpcp = dynamic_cast<RPCProtocol *>(device_protocol.second)) {
+					device_list.add(RPCDevice{&lua, rpcp, device_protocol.first, this});
                     auto type_reg = lua.create_simple_usertype<RPCDevice>();
                     for (auto &function : rpcp->get_description().get_functions()) {
                         const auto &function_name = function.get_function_name();
@@ -217,19 +221,15 @@ void ScriptEngine::run(std::list<DeviceProtocol> device_protocols, std::function
                     lua.set_usertype(type_name, type_reg);
                 } else {
                     //TODO: other protocols
-                    throw std::runtime_error("invalid protocol: " + device_protocol.protocol.type.toStdString());
+					throw std::runtime_error("invalid protocol: " + device_protocol.second->type.toStdString());
                 }
             }
-            state = State::running;
             lua["run"](device_list);
-            state = State::done;
-            lua_state_resetter();
+			reset_lua_state();
         }
     } catch (const sol::error &e) {
-        debug_callback(device_protocols);
         set_error(e);
-        state = State::done;
-        lua_state_resetter();
+		reset_lua_state();
         throw;
     }
 }

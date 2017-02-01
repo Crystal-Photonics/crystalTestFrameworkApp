@@ -1,9 +1,9 @@
 #ifndef TESTRUNNER_H
 #define TESTRUNNER_H
 
+#include "qt_util.h"
 #include "scriptengine.h"
 #include "sol.hpp"
-#include "qt_util.h"
 
 #include <QObject>
 #include <QThread>
@@ -12,8 +12,9 @@
 class QPlainTextEdit;
 class QSplitter;
 struct LuaUI;
-struct ComportDescription;
+class CommunicationDevice;
 class TestDescriptionLoader;
+struct Protocol;
 
 class TestRunner : QObject {
 	Q_OBJECT
@@ -26,24 +27,23 @@ class TestRunner : QObject {
 	template <class ReturnType, class... Arguments>
 	ReturnType call(const char *function_name, Arguments &&... args);
 	QSplitter *get_lua_ui_container() const;
-	void run_script(ComportDescription &device);
+	void run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices);
 	bool is_running();
-	QString get_name();
+	const QString &get_name() const;
 
 	private:
 	QThread thread;
 	QSplitter *lua_ui_container = nullptr;
 	QPlainTextEdit *console = nullptr;
 	ScriptEngine script;
+	QString name;
 };
 
 template <class ReturnType, class... Arguments>
 ReturnType TestRunner::call(const char *function_name, Arguments &&... args) {
 	std::promise<ReturnType> p;
 	auto f = p.get_future();
-	Utility::thread_call(this, [this, function_name, &p, &args...]{
-		p.set_value(script.call<ReturnType>(function_name, std::forward<Arguments>(args)...));
-	});
+	Utility::thread_call(this, [this, function_name, &p, &args...] { p.set_value(script.call<ReturnType>(function_name, std::forward<Arguments>(args)...)); });
 	return f.get();
 }
 

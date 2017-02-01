@@ -1,4 +1,5 @@
 #include "testrunner.h"
+#include "console.h"
 #include "mainwindow.h"
 #include "testdescriptionloader.h"
 
@@ -6,7 +7,8 @@
 
 TestRunner::TestRunner(const TestDescriptionLoader &description)
 	: lua_ui_container(new QSplitter(MainWindow::mw))
-	, script(lua_ui_container) {
+	, script(lua_ui_container)
+	, name(description.get_name()) {
 	moveToThread(&thread);
 	thread.start();
 	script.load_script(description.get_filepath());
@@ -28,24 +30,24 @@ sol::table TestRunner::create_table() {
 	return Utility::promised_thread_call(this, [this] { return script.create_table(); });
 }
 
-QSplitter *TestRunner::get_lua_ui_container() const
-{
+QSplitter *TestRunner::get_lua_ui_container() const {
 	return lua_ui_container;
 }
 
-void TestRunner::run_script(ComportDescription &device)
-{
-	throw "TODO";
+void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protocol *> > devices) {
+	try {
+		script.run(devices);
+	} catch (const std::runtime_error &e) {
+		MainWindow::mw->execute_in_gui_thread([this, message = std::string{e.what()}] { Console::error(console) << message; });
+	}
 }
 
-bool TestRunner::is_running()
-{
-	throw "TODO";
+bool TestRunner::is_running() {
+	return thread.isRunning();
 }
 
-QString TestRunner::get_name()
-{
-	throw "TODO";
+const QString &TestRunner::get_name() const {
+	return name;
 }
 
 #if 0
@@ -96,47 +98,6 @@ MainWindow::Test::Test(QTreeWidget *test_list, const QString &file_path)
 	} catch (const sol::error &e) {
 		Console::warning(console) << tr("Failed retrieving variable \"deviceNames\" from %1 because %2").arg(file_path, e.what());
 	}
-}
-
-MainWindow::Test::~Test() {
-	if (ui_item != nullptr) {
-		delete parent->takeTopLevelItem(parent->indexOfTopLevelItem(ui_item));
-		MainWindow::mw->test_console_remove(this);
-	}
-}
-
-MainWindow::Test::Test(MainWindow::Test &&other)
-	: script(nullptr)
-	, worker(std::move(other.worker)) {
-	swap(other);
-	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
-}
-
-MainWindow::Test &MainWindow::Test::operator=(MainWindow::Test &&other) {
-	swap(other);
-	return *this;
-}
-
-void MainWindow::Test::swap(MainWindow::Test &other) {
-	auto t = std::tie(this->parent, this->ui_item, this->script, this->protocols, this->name, this->console, this->test_console_widget, this->file_path,
-					  this->worker, this->worker_thread);
-	auto o = std::tie(other.parent, other.ui_item, other.script, other.protocols, other.name, other.console, other.test_console_widget, other.file_path,
-					  other.worker, other.worker_thread);
-
-	std::swap(t, o);
-}
-
-void MainWindow::Test::reset_ui() {
-	test_console_widget = new QSplitter(Qt::Vertical);
-	console = new QPlainTextEdit(test_console_widget);
-	console->setReadOnly(true);
-	test_console_widget->addWidget(console);
-	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
-	worker->set_gui_parent(script, test_console_widget);
-}
-
-bool MainWindow::Test::operator==(QTreeWidgetItem *item) {
-	return item == ui_item;
 }
 
 #endif

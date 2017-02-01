@@ -15,6 +15,7 @@ PathSettingsWindow::PathSettingsWindow(QWidget *parent)
 	ui->device_description_path_text->setText(QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString());
 	ui->rpc_xml_files_path_text->setText(QSettings{}.value(Globals::rpc_xml_files_path_settings_key, "").toString());
 	ui->lua_editor_path_text->setText(QSettings{}.value(Globals::lua_editor_path_settings_key, "").toString());
+	ui->lua_editor_parameters_text->setText(QSettings{}.value(Globals::lua_editor_parameters_settings_key, "").toString());
 }
 
 PathSettingsWindow::~PathSettingsWindow() {
@@ -26,6 +27,7 @@ void PathSettingsWindow::on_settings_confirmation_accepted() {
 	QSettings{}.setValue(Globals::device_protocols_file_settings_key, ui->device_description_path_text->text());
 	QSettings{}.setValue(Globals::rpc_xml_files_path_settings_key, ui->rpc_xml_files_path_text->text());
 	QSettings{}.setValue(Globals::lua_editor_path_settings_key, ui->lua_editor_path_text->text());
+	QSettings{}.setValue(Globals::lua_editor_parameters_settings_key, ui->lua_editor_parameters_text->text());
 	close();
 }
 
