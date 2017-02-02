@@ -42,7 +42,6 @@ void ScriptEngine::load_script(const QString &path) {
 
         //bind plot
         ui_table.new_usertype<LuaPlot>("plot",                                                                                         //
-                                       sol::meta_function::construct, sol::no_constructor,                                             //
                                        sol::meta_function::construct, [lua_ui = this->lua_ui.get()] { return lua_ui->create_plot(); }, //
                                        "add_point", &LuaPlot::add_point,                                                               //
                                        "add_spectrum",
@@ -54,7 +53,7 @@ void ScriptEngine::load_script(const QString &path) {
                                            }
                                            plot.add_spectrum(data);
                                        }, //
-                                       "add_spectrum",
+									   "add_spectrum_at",
                                        [](LuaPlot &plot, const unsigned int spectrum_start_channel, const sol::table &table) {
                                            std::vector<double> data;
                                            data.reserve(table.size());
@@ -70,7 +69,7 @@ void ScriptEngine::load_script(const QString &path) {
         //bind button
         ui_table.new_usertype<LuaButton>("button", //
                                          sol::meta_function::construct,
-                                         [lua_ui = this->lua_ui.get()](const std::string &title) { return lua_ui->create_button(title); }, //
+										 [lua_ui = this->lua_ui.get()](const std::string &title) { return lua_ui->create_button(title); }, //
                                          "has_been_pressed", &LuaButton::has_been_pressed);
 
     } catch (const sol::error &error) {
@@ -204,29 +203,28 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *> 
         new (&lua) sol::state();
         load_script(path);
     };
-    try {
-        std::lock_guard<std::mutex> state_lock(*state_is_idle);
-        {
-            auto device_list = lua.create_table_with();
+	try {
+		{
+			auto device_list = lua.create_table_with();
 			for (auto &device_protocol : devices) {
 				if (auto rpcp = dynamic_cast<RPCProtocol *>(device_protocol.second)) {
 					device_list.add(RPCDevice{&lua, rpcp, device_protocol.first, this});
-                    auto type_reg = lua.create_simple_usertype<RPCDevice>();
-                    for (auto &function : rpcp->get_description().get_functions()) {
-                        const auto &function_name = function.get_function_name();
-                        type_reg.set(function_name,
-                                     [function_name](RPCDevice &device, const sol::variadic_args &va) { return device.call_rpc_function(function_name, va); });
-                    }
-                    const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
-                    lua.set_usertype(type_name, type_reg);
-                } else {
-                    //TODO: other protocols
+					auto type_reg = lua.create_simple_usertype<RPCDevice>();
+					for (auto &function : rpcp->get_description().get_functions()) {
+						const auto &function_name = function.get_function_name();
+						type_reg.set(function_name,
+									 [function_name](RPCDevice &device, const sol::variadic_args &va) { return device.call_rpc_function(function_name, va); });
+					}
+					const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
+					lua.set_usertype(type_name, type_reg);
+				} else {
+					//TODO: other protocols
 					throw std::runtime_error("invalid protocol: " + device_protocol.second->type.toStdString());
                 }
-            }
-            lua["run"](device_list);
-			reset_lua_state();
-        }
+			}
+			lua["run"](device_list);
+		}
+		reset_lua_state();
     } catch (const sol::error &e) {
         set_error(e);
 		reset_lua_state();

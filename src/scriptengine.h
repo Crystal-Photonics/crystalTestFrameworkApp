@@ -14,7 +14,6 @@
 #include <QStringList>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <vector>
 
 class ScriptEngine {
@@ -41,7 +40,6 @@ class ScriptEngine {
 	QString path;
 	int error_line = 0;
 	std::unique_ptr<LuaUI> lua_ui;
-	std::unique_ptr<std::mutex> state_is_idle = std::make_unique<std::mutex>(); //is free when state==idle and locked otherwise
 };
 
 template <class ReturnType, class... Arguments>

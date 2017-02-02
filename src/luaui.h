@@ -41,7 +41,7 @@ class LuaButton {
 
 	private:
 	int id = -1;
-	std::unique_ptr<bool> pressed = std::make_unique<bool>(false);
+	std::unique_ptr<std::atomic<bool>> pressed = std::make_unique<std::atomic<bool>>(false);
 	static std::atomic<int> current_id;
 };
 

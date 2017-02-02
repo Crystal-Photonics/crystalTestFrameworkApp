@@ -158,8 +158,8 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
 					   {&CommunicationDevice::sent, Qt::darkRed, false},
 					   {&CommunicationDevice::decoded_sent, Qt::darkRed, true}};
 
-		static const QString normal_html = R"("<font color="#%1"><plaintext>%2</plaintext></font>)";
-		static const QString fat_html = R"("<font color="#%1"><b><plaintext>%2</plaintext></b></font>)";
+		static const QString normal_html = R"(<font color="#%1"><plaintext>%2</plaintext></font>)";
+		static const QString fat_html = R"(<font color="#%1"><b><plaintext>%2</plaintext></b></font>)";
 
 		for (auto &d : data) {
 			connect(comport, d.signal, [ console = console, color = d.color, fat = d.fat ](const QByteArray &data) {

@@ -4,11 +4,13 @@
 #include "testdescriptionloader.h"
 
 #include <QSplitter>
+#include <QDebug>
 
 TestRunner::TestRunner(const TestDescriptionLoader &description)
 	: lua_ui_container(new QSplitter(MainWindow::mw))
 	, script(lua_ui_container)
 	, name(description.get_name()) {
+	lua_ui_container->setOrientation(Qt::Vertical);
 	moveToThread(&thread);
 	thread.start();
 	script.load_script(description.get_filepath());
