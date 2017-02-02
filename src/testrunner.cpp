@@ -1,5 +1,6 @@
 #include "testrunner.h"
 #include "console.h"
+#include "deviceworker.h"
 #include "luaui.h"
 #include "mainwindow.h"
 #include "scriptengine.h"
@@ -38,12 +39,18 @@ QSplitter *TestRunner::get_lua_ui_container() const {
 	return lua_ui_container;
 }
 
-void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices) {
-	Utility::thread_call(this, [ this, devices = std::move(devices) ]() mutable {
+void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices, const DeviceWorker &device_worker) {
+	Utility::thread_call(this, [ this, devices = std::move(devices), &device_worker ]() mutable {
+		for (auto &dev_prot : devices) {
+			device_worker.set_currently_running_test(dev_prot.first, name);
+		}
 		try {
 			script.run(devices);
 		} catch (const std::runtime_error &e) {
 			MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] { Console::error(console) << message; });
+		}
+		for (auto &dev_prot : devices) {
+			device_worker.set_currently_running_test(dev_prot.first, "");
 		}
 		moveToThread(MainWindow::gui_thread);
 		thread.quit();

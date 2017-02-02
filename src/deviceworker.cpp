@@ -189,6 +189,15 @@ void DeviceWorker::get_devices_with_protocol(const QString &protocol, std::promi
 	});
 }
 
+void DeviceWorker::set_currently_running_test(CommunicationDevice *com_device, const QString &test_name) const {
+	for (auto &device : comport_devices) {
+		if (device.device.get() == com_device) {
+			MainWindow::mw->execute_in_gui_thread([ item = device.ui_entry, test_name ] { item->setText(3, test_name); });
+			break;
+		}
+	}
+}
+
 QStringList DeviceWorker::get_string_list(ScriptEngine &script, const QString &name) {
 	return Utility::promised_thread_call(this, [&script, &name] { return script.get_string_list(name); });
 }

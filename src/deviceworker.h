@@ -25,6 +25,7 @@ class DeviceWorker : public QObject {
 	void detect_device(QTreeWidgetItem *item);
 	void connect_to_device_console(QPlainTextEdit *console, CommunicationDevice *comport);
 	void get_devices_with_protocol(const QString &protocol, std::promise<std::vector<ComportDescription *>> &retval);
+	void set_currently_running_test(CommunicationDevice *com_device, const QString &test_name) const;
 	QStringList get_string_list(ScriptEngine &script, const QString &name);
 
 	private slots:

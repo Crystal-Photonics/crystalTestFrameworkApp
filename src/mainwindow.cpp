@@ -134,6 +134,9 @@ void MainWindow::forget_device() {
 		if (!selected_device_item) {
 			return;
 		}
+		while (ui->devices_list->indexOfTopLevelItem(selected_device_item) == -1) {
+			selected_device_item = selected_device_item->parent();
+		}
 		device_worker->forget_device(selected_device_item);
 		delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(selected_device_item));
 	});
@@ -307,7 +310,7 @@ void MainWindow::on_run_test_script_button_clicked() {
 									Console::note(test->console) << tr("Device rejected:") << message.value();
 								} else {
 									//acceptable device found
-									runner.run_script({{device.device.get(), device.protocol.get()}});
+									runner.run_script({{device.device.get(), device.protocol.get()}}, *device_worker);
 								}
 							} else {
 								assert(!"TODO: handle non-RPC protocol");
@@ -372,6 +375,9 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 	auto item = ui->devices_list->itemAt(pos);
 	if (item) {
+		while (ui->devices_list->indexOfTopLevelItem(item) == -1) {
+			item = item->parent();
+		}
 		QMenu menu(this);
 
 		QAction action_detect(tr("Detect"));
@@ -379,7 +385,11 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 		menu.addAction(&action_detect);
 
 		QAction action_forget(tr("Forget"));
-		connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
+		if (item->text(3).isEmpty() == false) {
+			action_forget.setDisabled(true);
+		} else {
+			connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
+		}
 		menu.addAction(&action_forget);
 
 		menu.exec(ui->devices_list->mapToGlobal(pos));

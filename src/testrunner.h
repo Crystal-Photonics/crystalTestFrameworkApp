@@ -10,6 +10,7 @@
 #include <future>
 
 class CommunicationDevice;
+class DeviceWorker;
 class QPlainTextEdit;
 class QSplitter;
 class TestDescriptionLoader;
@@ -27,7 +28,7 @@ class TestRunner : QObject {
 	template <class ReturnType, class... Arguments>
 	ReturnType call(const char *function_name, Arguments &&... args);
 	QSplitter *get_lua_ui_container() const;
-	void run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices);
+	void run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices, const DeviceWorker &device_worker);
 	bool is_running();
 	const QString &get_name() const;
 	void launch_editor() const;
