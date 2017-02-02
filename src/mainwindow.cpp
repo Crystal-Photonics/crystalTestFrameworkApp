@@ -128,7 +128,11 @@ void MainWindow::remove_device_entry(QTreeWidgetItem *item) {
 void MainWindow::forget_device() {
 	Utility::thread_call(this, [this] {
 		auto selected_device_item = ui->devices_list->currentItem();
+		if (!selected_device_item){
+			return;
+		}
 		device_worker->forget_device(selected_device_item);
+		delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(selected_device_item));
 	});
 }
 

@@ -94,7 +94,6 @@ void DeviceWorker::forget_device(QTreeWidgetItem *item) {
 		for (auto device_it = std::begin(comport_devices); device_it != std::end(comport_devices); ++device_it) {
 			if (device_it->ui_entry == item) {
 				device_it = comport_devices.erase(device_it);
-
 				break;
 			}
 		}

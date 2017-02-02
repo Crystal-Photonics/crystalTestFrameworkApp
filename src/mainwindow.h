@@ -37,11 +37,11 @@ struct ComportDescription {
 };
 
 class EXPORT MainWindow : public QMainWindow {
-    Q_OBJECT
+	Q_OBJECT
 
 	public:
-    explicit MainWindow(QWidget *parent = 0);
-    ~MainWindow();
+	explicit MainWindow(QWidget *parent = 0);
+	~MainWindow();
 	static MainWindow *mw;
 	static QThread *gui_thread;
 
@@ -51,7 +51,7 @@ class EXPORT MainWindow : public QMainWindow {
 	void plot_create(int id, QSplitter *splitter);
 	void plot_add_data(int id, double x, double y);
 	void plot_add_data(int id, const std::vector<double> &data);
-    void plot_add_data(int id, const unsigned int spectrum_start_channel, const std::vector<double> &data);
+	void plot_add_data(int id, const unsigned int spectrum_start_channel, const std::vector<double> &data);
 	void plot_clear(int id);
 	void plot_drop(int id);
 	void plot_set_offset(int id, double offset);
@@ -91,7 +91,7 @@ class EXPORT MainWindow : public QMainWindow {
 	QThread devices_thread;
 
 	QDialog *path_dialog = nullptr;
-    Ui::MainWindow *ui;
+	Ui::MainWindow *ui;
 
 	TestDescriptionLoader *get_test_from_ui(const QTreeWidgetItem *item = nullptr);
 	TestRunner *get_runner_from_tab_index(int index);
