@@ -72,17 +72,17 @@ using namespace std::chrono_literals;
 
 MainWindow *MainWindow::mw = nullptr;
 
-QThread *detail::gui_thread;
+QThread *MainWindow::gui_thread;
 
 bool currently_in_gui_thread() {
-	return QThread::currentThread() == detail::gui_thread;
+	return QThread::currentThread() == MainWindow::gui_thread;
 }
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
 	, device_worker(std::make_unique<DeviceWorker>())
 	, ui(new Ui::MainWindow) {
-	detail::gui_thread = QThread::currentThread();
+	MainWindow::gui_thread = QThread::currentThread();
 	mw = this;
 	ui->setupUi(this);
 	device_worker->moveToThread(&devices_thread);
@@ -160,11 +160,8 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 }
 
 void MainWindow::plot_create(int id, QSplitter *splitter) {
-	Utility::thread_call(this, [this, id, splitter] {
-		auto success = GUI::lua_plots.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second;
-		assert(success);
-		qDebug() << "created plot" << id << "for" << GUI::lua_plots.at(id).plot->parent();
-	});
+	Utility::thread_call(this,
+						 [this, id, splitter] { GUI::lua_plots.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second; });
 }
 
 void MainWindow::plot_add_data(int id, double x, double y) {
@@ -172,17 +169,11 @@ void MainWindow::plot_add_data(int id, double x, double y) {
 }
 
 void MainWindow::plot_add_data(int id, const std::vector<double> &data) {
-	Utility::thread_call(this, [id, data] {
-		GUI::lua_plots.at(id).add(data);
-        //qDebug() << "added data to plot" << id << "for" << GUI::lua_plots.at(id).plot->parent();
-	});
+	Utility::thread_call(this, [id, data] { GUI::lua_plots.at(id).add(data); });
 }
 
 void MainWindow::plot_add_data(int id, const unsigned int spectrum_start_channel, const std::vector<double> &data) {
-    Utility::thread_call(this, [id, spectrum_start_channel, data] {
-        GUI::lua_plots.at(id).add(spectrum_start_channel, data);
-        //qDebug() << "added data to plot" << id << "for" << GUI::lua_plots.at(id).plot->parent();
-    });
+	Utility::thread_call(this, [id, spectrum_start_channel, data] { GUI::lua_plots.at(id).add(spectrum_start_channel, data); });
 }
 
 void MainWindow::plot_clear(int id) {
@@ -190,11 +181,7 @@ void MainWindow::plot_clear(int id) {
 }
 
 void MainWindow::plot_drop(int id) {
-	//the script is done with the plot, but maybe the user is not
-	Utility::thread_call(this, [id] {
-		qDebug() << "dropping plot" << id << "for" << GUI::lua_plots.at(id).plot->parent();
-		GUI::lua_plots.erase(id);
-	});
+	Utility::thread_call(this, [id] { GUI::lua_plots.erase(id); });
 }
 
 void MainWindow::plot_set_offset(int id, double offset) {
@@ -229,6 +216,10 @@ void MainWindow::show_message_box(const QString &title, const QString &message, 
 				break;
 			case QMessageBox::Information:
 				QMessageBox::information(this, title, message);
+				break;
+			case QMessageBox::Question:
+				QMessageBox::question(this, title, message);
+				break;
 		}
 	});
 }
@@ -447,8 +438,8 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 		}
 	}
 	ui->test_tabs->removeTab(index);
-	test_runners.erase(runner_it);
 	QApplication::processEvents();
+	test_runners.erase(runner_it);
 }
 
 void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
@@ -469,9 +460,18 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 
 		QMenu menu(this);
 
-		QAction action_open_script(tr("Open in Editor"));
-		connect(&action_open_script, &QAction::triggered, [this, runner] { runner->launch_editor(); });
-		menu.addAction(&action_open_script);
+		QAction action_abort_script(tr("Abort Script"));
+		if (runner->is_running()) {
+			connect(&action_abort_script, &QAction::triggered, [this, runner] {
+				runner->interrupt();
+				runner->join();
+			});
+			menu.addAction(&action_abort_script);
+		}
+
+		QAction action_open_script_in_editor(tr("Open in Editor"));
+		connect(&action_open_script_in_editor, &QAction::triggered, [this, runner] { runner->launch_editor(); });
+		menu.addAction(&action_open_script_in_editor);
 
 		menu.exec(ui->test_tabs->mapToGlobal(pos));
 	}

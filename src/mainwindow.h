@@ -27,10 +27,6 @@ namespace Ui {
 	class MainWindow;
 }
 
-namespace detail {
-	extern QThread *gui_thread;
-}
-
 bool currently_in_gui_thread();
 
 struct ComportDescription {
@@ -47,6 +43,7 @@ class EXPORT MainWindow : public QMainWindow {
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 	static MainWindow *mw;
+	static QThread *gui_thread;
 
 	template <class Function>
 	void execute_in_gui_thread(Function &&f);

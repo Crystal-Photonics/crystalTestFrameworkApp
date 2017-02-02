@@ -35,8 +35,7 @@ void LuaPlot::add_spectrum(const std::vector<double> &data) {
     MainWindow::mw->plot_add_data(id, data);
 }
 
-void LuaPlot::add_spectrum(const unsigned int spectrum_start_channel, std::vector<double> &data)
-{
+void LuaPlot::add_spectrum(const unsigned int spectrum_start_channel, std::vector<double> &data) {
     MainWindow::mw->plot_add_data(id, spectrum_start_channel, data);
 }
 
@@ -61,11 +60,6 @@ LuaPlot LuaUI::create_plot() const {
 
 LuaButton LuaUI::create_button(const std::string &title) const {
 	return {parent, title};
-}
-
-void LuaUI::set_parent(QSplitter *parent) {
-	qDebug() << "LuaUI parent changed from" << this->parent << "to" << parent;
-	this->parent = parent;
 }
 
 LuaButton::LuaButton(QSplitter *splitter, const std::string &title)

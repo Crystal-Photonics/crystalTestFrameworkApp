@@ -34,13 +34,16 @@ QSplitter *TestRunner::get_lua_ui_container() const {
 	return lua_ui_container;
 }
 
-void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protocol *> > devices) {
-	try {
-		script.run(devices);
-	} catch (const std::runtime_error &e) {
-		MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] { Console::error(console) << message; });
-	}
-	thread.quit();
+void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices) {
+	Utility::thread_call(this, [ this, devices = std::move(devices) ]() mutable {
+		try {
+			script.run(devices);
+		} catch (const std::runtime_error &e) {
+			MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] { Console::error(console) << message; });
+		}
+		moveToThread(MainWindow::gui_thread);
+		thread.quit();
+	});
 }
 
 bool TestRunner::is_running() {
