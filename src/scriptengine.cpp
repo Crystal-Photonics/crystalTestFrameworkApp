@@ -2,6 +2,7 @@
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
 #include "console.h"
+#include "luaui.h"
 #include "mainwindow.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_encoded_function_call.h"
@@ -20,7 +21,9 @@
 #include <vector>
 
 ScriptEngine::ScriptEngine(LuaUI &&lua_ui)
-    : lua_ui(std::make_unique<LuaUI>(std::move(lua_ui))) {}
+	: lua_ui(std::make_unique<LuaUI>(std::move(lua_ui))) {}
+
+ScriptEngine::~ScriptEngine() {}
 
 void ScriptEngine::load_script(const QString &path) {
 	//NOTE: When using lambdas do not capture `this` or by reference, because it breaks when the ScriptEngine is moved

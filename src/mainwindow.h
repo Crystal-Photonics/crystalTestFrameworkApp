@@ -1,27 +1,27 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "CommunicationDevices/communicationdevice.h"
-#include "CommunicationDevices/comportcommunicationdevice.h"
-#include "Protocols/protocol.h"
 #include "export.h"
 #include "qt_util.h"
-#include "scriptengine.h"
-#include "testdescriptionloader.h"
-#include "testrunner.h"
 
 #include <QMainWindow>
 #include <QMessageBox>
-#include <QPlainTextEdit>
-#include <QString>
 #include <QThread>
 #include <QtSerialPort/QSerialPortInfo>
 #include <memory>
 #include <vector>
 
+class CommunicationDevice;
+class ComportCommunicationDevice;
+class DeviceWorker;
+class QPlainTextEdit;
+class QSplitter;
+class QString;
 class QTreeWidget;
 class QTreeWidgetItem;
-class DeviceWorker;
+class TestDescriptionLoader;
+class TestRunner;
+struct Protocol;
 
 namespace Ui {
 	class MainWindow;

@@ -1,13 +1,13 @@
 #ifndef PLOT_H
 #define PLOT_H
 
-#include <QAction>
 #include <memory>
 #include <qwt_plot.h>
 #include <vector>
 
-class QwtPlot;
+class QAction;
 class QSplitter;
+class QwtPlot;
 class QwtPlotCurve;
 
 class Plot {

@@ -1,17 +1,15 @@
 #ifndef LUAUI_H
 #define LUAUI_H
 
-#include <QAction>
-#include <QObject>
 #include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
 
+class MainWindow;
+class QSplitter;
 class QwtPlot;
 class QwtPlotCurve;
-class QSplitter;
-class MainWindow;
 
 class LuaPlot {
 	public:

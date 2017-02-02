@@ -1,26 +1,24 @@
 #ifndef DEVICEWORKER_H
 #define DEVICEWORKER_H
 
-#include "CommunicationDevices/comportcommunicationdevice.h"
 #include "Protocols/protocol.h"
-#include "mainwindow.h"
 #include "qt_util.h"
 #include "scriptengine.h"
 
-#include <QPlainTextEdit>
-#include <QSplitter>
-#include <QTreeWidgetItem>
-#include <QtSerialPort/QSerialPort>
-#include <functional>
 #include <future>
 #include <list>
-#include <memory>
+#include <vector>
 
+class CommunicationDevice;
 class MainWindow;
+class QPlainTextEdit;
+class QTreeWidgetItem;
+struct ComportDescription;
 
 class DeviceWorker : public QObject {
 	Q_OBJECT
 	public:
+	~DeviceWorker();
 	void forget_device(QTreeWidgetItem *item);
 	void update_devices();
 	void detect_devices();

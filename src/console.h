@@ -1,18 +1,15 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
-#include "channel_codec_wrapper.h"
-
 #include <QColor>
-#include <QPlainTextEdit>
 #include <QStringList>
-#include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <type_traits>
 
 class MainWindow;
+class QPlainTextEdit;
 
 struct Console {
 	private:

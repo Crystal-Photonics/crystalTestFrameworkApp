@@ -1,5 +1,6 @@
 #include "plot.h"
 
+#include <QAction>
 #include <QFileDialog>
 #include <QSplitter>
 #include <fstream>
@@ -15,7 +16,7 @@ Plot::Plot(QSplitter *parent)
 	plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
 
 	save_as_csv_action->setText(QObject::tr("save_as_csv"));
-	QObject::connect(save_as_csv_action, &QAction::triggered, [plot = this->plot, curve = this->curve] {
+	QObject::connect(save_as_csv_action, &QAction::triggered, [ plot = this->plot, curve = this->curve ] {
 		auto file = QFileDialog::getSaveFileName(plot, QObject::tr("Select File to save data in"), "date.csv", "*.csv");
 		if (file.isEmpty() == false) {
 			std::ofstream f{file.toStdString()};
@@ -49,12 +50,11 @@ void Plot::add(const std::vector<double> &data) {
 }
 
 void Plot::add(const unsigned int spectrum_start_channel, const std::vector<double> &data) {
-    size_t s = std::max(xvalues.size(),data.size()+spectrum_start_channel);
+	size_t s = std::max(xvalues.size(), data.size() + spectrum_start_channel);
     resize(s);
-    std::transform(std::begin(data), std::end(data), std::begin(yvalues)+spectrum_start_channel, std::begin(yvalues)+spectrum_start_channel, std::plus<>());
+	std::transform(std::begin(data), std::end(data), std::begin(yvalues) + spectrum_start_channel, std::begin(yvalues) + spectrum_start_channel, std::plus<>());
     update();
 }
-
 
 void Plot::clear() {
 	xvalues.clear();

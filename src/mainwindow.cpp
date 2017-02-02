@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "CommunicationDevices/comportcommunicationdevice.h"
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
 #include "console.h"
@@ -7,6 +8,8 @@
 #include "plot.h"
 #include "qt_util.h"
 #include "scriptengine.h"
+#include "testdescriptionloader.h"
+#include "testrunner.h"
 #include "ui_mainwindow.h"
 #include "util.h"
 
@@ -128,7 +131,7 @@ void MainWindow::remove_device_entry(QTreeWidgetItem *item) {
 void MainWindow::forget_device() {
 	Utility::thread_call(this, [this] {
 		auto selected_device_item = ui->devices_list->currentItem();
-		if (!selected_device_item){
+		if (!selected_device_item) {
 			return;
 		}
 		device_worker->forget_device(selected_device_item);

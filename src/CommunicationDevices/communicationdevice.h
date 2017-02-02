@@ -2,10 +2,12 @@
 #define COMMUNICATIONDEVICE_H
 
 #include "export.h"
-#include <QByteArray>
+
 #include <QObject>
 #include <chrono>
 #include <memory>
+
+class QByteArray;
 
 class EXPORT CommunicationDevice : public QObject {
 	Q_OBJECT

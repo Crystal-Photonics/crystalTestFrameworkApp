@@ -9,11 +9,11 @@
 #include <QThread>
 #include <future>
 
+class CommunicationDevice;
 class QPlainTextEdit;
 class QSplitter;
-struct LuaUI;
-class CommunicationDevice;
 class TestDescriptionLoader;
+struct LuaUI;
 struct Protocol;
 
 class TestRunner : QObject {

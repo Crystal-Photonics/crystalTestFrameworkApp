@@ -7,13 +7,12 @@
 #include "rpcruntime_decoder.h"
 #include "rpcruntime_encoder.h"
 #include "rpcruntime_protocol_description.h"
-#include "rpcruntime_transfer.h"
 
 #include <memory>
 #include <sol.hpp>
 
-class RPCRuntimeEncodedFunctionCall;
 class QTreeWidgetItem;
+class RPCRuntimeEncodedFunctionCall;
 
 struct Device_data {
 	QString githash;

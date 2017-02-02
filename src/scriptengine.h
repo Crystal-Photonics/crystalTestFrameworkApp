@@ -1,20 +1,17 @@
 #ifndef SCRIPTENGINE_H
 #define SCRIPTENGINE_H
 
-#include "CommunicationDevices/communicationdevice.h"
-#include "Protocols/protocol.h"
-#include "export.h"
-#include "luaui.h"
 #include "sol.hpp"
 
-#include <QFile>
-#include <QList>
-#include <QObject>
 #include <QString>
-#include <QStringList>
 #include <functional>
 #include <memory>
 #include <vector>
+
+class CommunicationDevice;
+class QStringList;
+struct LuaUI;
+struct Protocol;
 
 class ScriptEngine {
 	public:
@@ -23,6 +20,7 @@ class ScriptEngine {
 	friend class DeviceWorker;
 
 	ScriptEngine(LuaUI &&lua_ui);
+	~ScriptEngine();
 	void load_script(const QString &path);
 	static void launch_editor(QString path, int error_line = 1);
 	void launch_editor() const;

@@ -1,4 +1,5 @@
 #include "deviceworker.h"
+#include "CommunicationDevices/comportcommunicationdevice.h"
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
 #include "console.h"
@@ -7,6 +8,7 @@
 
 #include <QSettings>
 #include <QTimer>
+#include <QTreeWidgetItem>
 
 void DeviceWorker::poll_ports() {
 	Utility::thread_call(this, [this] {
@@ -87,6 +89,8 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
 		}
 	}
 }
+
+DeviceWorker::~DeviceWorker() {}
 
 void DeviceWorker::forget_device(QTreeWidgetItem *item) {
 	Utility::thread_call(this, [this, item] {
