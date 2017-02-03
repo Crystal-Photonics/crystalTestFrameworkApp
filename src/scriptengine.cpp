@@ -14,6 +14,7 @@
 #include <QProcess>
 #include <QSettings>
 #include <QThread>
+#include <QTimer>
 #include <functional>
 #include <memory>
 #include <regex>
@@ -36,7 +37,15 @@ void ScriptEngine::load_script(const QString &path) {
                                              QMessageBox::Warning);
         });
 
-        lua.set_function("sleep_ms", [](const unsigned int timeout_ms) { QThread::msleep(timeout_ms); });
+		lua.set_function("sleep_ms", [](const unsigned int timeout_ms) {
+			QEventLoop event_loop;
+			static const auto secret_exit_code = -0xF42F;
+			QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
+			auto exit_value = event_loop.exec();
+			if (exit_value != secret_exit_code){
+				throw sol::error("Interrupted");
+			}
+		});
 
         lua.script_file(path.toStdString());
 
@@ -75,7 +84,7 @@ void ScriptEngine::load_script(const QString &path) {
 										 [lua_ui = this->lua_ui.get()](const std::string &title) { return lua_ui->create_button(title); }, //
                                          "has_been_pressed", &LuaButton::has_been_pressed);
 
-    } catch (const sol::error &error) {
+	} catch (const sol::error &error) {
         set_error(error);
         throw;
 	}
@@ -201,9 +210,8 @@ struct RPCDevice {
 
 void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *> > &devices) {
 	auto reset_lua_state = [this] {
-		//this is a bit of a hack, but the usual lua = sol::state(); does not reset the state properly
-        lua.~state();
-        new (&lua) sol::state();
+		sol::state default_state;
+		std::swap(lua, default_state);
         load_script(path);
     };
 	try {

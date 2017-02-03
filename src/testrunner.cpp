@@ -24,6 +24,8 @@ TestRunner::~TestRunner() {
 }
 
 void TestRunner::interrupt() {
+	thread.exit(-1);
+	thread.exit(-1);
 	thread.requestInterruption();
 }
 

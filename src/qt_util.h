@@ -43,6 +43,7 @@ namespace Utility {
 		if (obj->thread() == QThread::currentThread()) {
 			return fun();
 		}
+		assert(obj->thread() == nullptr || obj->thread()->isRunning());
 		struct Event : public QEvent {
 			Fun fun;
 			Event(Fun &&fun)
