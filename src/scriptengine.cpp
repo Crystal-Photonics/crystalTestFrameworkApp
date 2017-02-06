@@ -4,6 +4,7 @@
 #include "console.h"
 #include "luaui.h"
 #include "mainwindow.h"
+#include "plot.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_encoded_function_call.h"
 #include "util.h"
@@ -20,6 +21,54 @@
 #include <regex>
 #include <string>
 #include <vector>
+
+template <class T>
+struct Lua_UI_Wrapper {
+	Lua_UI_Wrapper(QSplitter *parent) {
+		Utility::thread_call(MainWindow::mw, [ id = id, parent ] { MainWindow::mw->add_lua_UI_class<T>(id, parent); });
+	}
+	Lua_UI_Wrapper(Lua_UI_Wrapper &&other)
+		: id(other.id) {
+		other.id = -1;
+	}
+	Lua_UI_Wrapper &operator=(Lua_UI_Wrapper &&other) {
+		std::swap(id, other.id);
+	}
+	~Lua_UI_Wrapper() {
+		if (id != -1) {
+			Utility::thread_call(MainWindow::mw, [id = this->id] { MainWindow::mw->remove_lua_UI_class<T>(id); });
+		}
+	}
+
+	int id = id_counter++;
+	static int id_counter;
+};
+
+template <class T>
+int Lua_UI_Wrapper<T>::id_counter;
+
+template <class ReturnType, class UI_class, template <class...> class Params, class... Args, std::size_t... I>
+ReturnType call_helper(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<Args...> const &params, std::index_sequence<I...>) {
+	return (ui.*func)(std::get<I>(params)...);
+}
+
+template <class ReturnType, class UI_class, template <class...> class Params, class... Args>
+ReturnType call(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<Args...> const &params) {
+	return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
+}
+
+template <class ReturnType, class UI_class, class... Args>
+auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
+	return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
+		//TODO: Decide if we should use promised_thread_call or thread_call
+		//promised_thread_call lets us get return values while thread_call does not
+		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
+		return Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
+			UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
+			call(function, ui, std::move(args));
+		});
+	};
+}
 
 ScriptEngine::ScriptEngine(LuaUI &&lua_ui)
 	: lua_ui(std::make_unique<LuaUI>(std::move(lua_ui))) {}
@@ -42,7 +91,7 @@ void ScriptEngine::load_script(const QString &path) {
 			static const auto secret_exit_code = -0xF42F;
 			QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
 			auto exit_value = event_loop.exec();
-			if (exit_value != secret_exit_code){
+			if (exit_value != secret_exit_code) {
 				throw sol::error("Interrupted");
 			}
 		});
@@ -52,38 +101,43 @@ void ScriptEngine::load_script(const QString &path) {
         //bind UI
         auto ui_table = lua.create_named_table("ui");
 
-        //bind plot
-        ui_table.new_usertype<LuaPlot>("plot",                                                                                         //
-                                       sol::meta_function::construct, [lua_ui = this->lua_ui.get()] { return lua_ui->create_plot(); }, //
-                                       "add_point", &LuaPlot::add_point,                                                               //
-                                       "add_spectrum",
-                                       [](LuaPlot &plot, const sol::table &table) {
-                                           std::vector<double> data;
-                                           data.reserve(table.size());
-                                           for (auto &i : table) {
-                                               data.push_back(i.second.as<double>());
-                                           }
-                                           plot.add_spectrum(data);
-                                       }, //
-									   "add_spectrum_at",
-                                       [](LuaPlot &plot, const unsigned int spectrum_start_channel, const sol::table &table) {
-                                           std::vector<double> data;
-                                           data.reserve(table.size());
-                                           for (auto &i : table) {
-                                               data.push_back(i.second.as<double>());
-                                           }
-                                           plot.add_spectrum(spectrum_start_channel, data);
-                                       }, //
-                                       "clear",
-                                       &LuaPlot::clear,                    //
-                                       "set_offset", &LuaPlot::set_offset, //
-                                       "set_gain", &LuaPlot::set_gain);
         //bind button
         ui_table.new_usertype<LuaButton>("button", //
                                          sol::meta_function::construct,
 										 [lua_ui = this->lua_ui.get()](const std::string &title) { return lua_ui->create_button(title); }, //
                                          "has_been_pressed", &LuaButton::has_been_pressed);
-
+		//bind plot
+		ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("plot",                                                                                            //
+													sol::meta_function::construct, [parent = lua_ui->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
+													"add_point", thread_call_wrapper<void, Plot, double, double>(&Plot::add),                          //
+													"add_spectrum",
+													[](Lua_UI_Wrapper<Plot> &plot, const sol::table &table) {
+														std::vector<double> data;
+														data.reserve(table.size());
+														for (auto &i : table) {
+															data.push_back(i.second.as<double>());
+														}
+														Utility::thread_call(MainWindow::mw, [ id = plot.id, data = std::move(data) ] {
+															auto &plot = MainWindow::mw->get_lua_UI_class<Plot>(id);
+															plot.add(data);
+														});
+													}, //
+													"add_spectrum_at",
+													[](Lua_UI_Wrapper<Plot> &plot, const unsigned int spectrum_start_channel, const sol::table &table) {
+														std::vector<double> data;
+														data.reserve(table.size());
+														for (auto &i : table) {
+															data.push_back(i.second.as<double>());
+														}
+														Utility::thread_call(MainWindow::mw, [ id = plot.id, data = std::move(data), spectrum_start_channel ] {
+															auto &plot = MainWindow::mw->get_lua_UI_class<Plot>(id);
+															plot.add(spectrum_start_channel, data);
+														});
+													}, //
+													"clear",
+													thread_call_wrapper(&Plot::clear),                    //
+													"set_offset", thread_call_wrapper(&Plot::set_offset), //
+													"set_gain", thread_call_wrapper(&Plot::set_gain));
 	} catch (const sol::error &error) {
         set_error(error);
         throw;
@@ -208,7 +262,7 @@ struct RPCDevice {
     ScriptEngine *engine = nullptr;
 };
 
-void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *> > &devices) {
+void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices) {
 	auto reset_lua_state = [this] {
 		sol::state default_state;
 		std::swap(lua, default_state);

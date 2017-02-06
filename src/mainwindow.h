@@ -8,6 +8,7 @@
 #include <QMessageBox>
 #include <QThread>
 #include <QtSerialPort/QSerialPortInfo>
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -48,14 +49,12 @@ class EXPORT MainWindow : public QMainWindow {
 	template <class Function>
 	void execute_in_gui_thread(Function &&f);
 
-	void plot_create(int id, QSplitter *splitter);
-	void plot_add_data(int id, double x, double y);
-	void plot_add_data(int id, const std::vector<double> &data);
-	void plot_add_data(int id, const unsigned int spectrum_start_channel, const std::vector<double> &data);
-	void plot_clear(int id);
-	void plot_drop(int id);
-	void plot_set_offset(int id, double offset);
-	void plot_set_gain(int id, double gain);
+	template <class Lua_UI_class>
+	void add_lua_UI_class(int id, QSplitter *parent);
+	template <class Lua_UI_class>
+	void remove_lua_UI_class(int id);
+	template <class Lua_UI_class>
+	Lua_UI_class &get_lua_UI_class(int id);
 
 	void button_create(int id, QSplitter *splitter, const std::string &title, std::function<void()> callback);
 	void button_drop(int id);
@@ -110,6 +109,24 @@ bool operator==(const T *lhs, const std::unique_ptr<T> &rhs) {
 template <class Function>
 void MainWindow::execute_in_gui_thread(Function &&f) {
 	Utility::thread_call(this, std::forward<Function>(f));
+}
+
+template <class Lua_UI_class>
+std::map<int, Lua_UI_class> lua_classes;
+
+template <class Lua_UI_class>
+void MainWindow::add_lua_UI_class(int id, QSplitter *parent) {
+	lua_classes<Lua_UI_class>.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(parent));
+}
+
+template <class Lua_UI_class>
+void MainWindow::remove_lua_UI_class(int id) {
+	lua_classes<Lua_UI_class>.erase(id);
+}
+
+template <class Lua_UI_class>
+Lua_UI_class &MainWindow::get_lua_UI_class(int id) {
+	return lua_classes<Lua_UI_class>.at(id);
 }
 
 #endif // MAINWINDOW_H

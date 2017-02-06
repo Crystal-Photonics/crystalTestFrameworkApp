@@ -170,39 +170,6 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 	Utility::thread_call(this, [this, text, console] { console->appendHtml(text); });
 }
 
-void MainWindow::plot_create(int id, QSplitter *splitter) {
-	Utility::thread_call(this,
-						 [this, id, splitter] { GUI::lua_plots.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second; });
-}
-
-void MainWindow::plot_add_data(int id, double x, double y) {
-	Utility::thread_call(this, [id, x, y] { GUI::lua_plots.at(id).add(x, y); });
-}
-
-void MainWindow::plot_add_data(int id, const std::vector<double> &data) {
-	Utility::thread_call(this, [id, data] { GUI::lua_plots.at(id).add(data); });
-}
-
-void MainWindow::plot_add_data(int id, const unsigned int spectrum_start_channel, const std::vector<double> &data) {
-	Utility::thread_call(this, [id, spectrum_start_channel, data] { GUI::lua_plots.at(id).add(spectrum_start_channel, data); });
-}
-
-void MainWindow::plot_clear(int id) {
-	Utility::thread_call(this, [this, id] { GUI::lua_plots.at(id).clear(); });
-}
-
-void MainWindow::plot_drop(int id) {
-	Utility::thread_call(this, [id] { GUI::lua_plots.erase(id); });
-}
-
-void MainWindow::plot_set_offset(int id, double offset) {
-	Utility::thread_call(this, [id, offset] { GUI::lua_plots.at(id).set_offset(offset); });
-}
-
-void MainWindow::plot_set_gain(int id, double gain) {
-	Utility::thread_call(this, [id, gain] { GUI::lua_plots.at(id).set_gain(gain); });
-}
-
 void MainWindow::button_create(int id, QSplitter *splitter, const std::string &title, std::function<void()> callback) {
 	Utility::thread_call(this, [ this, id, splitter, title, callback = std::move(callback) ]() mutable {
 		auto button = new QPushButton(title.c_str(), splitter);
