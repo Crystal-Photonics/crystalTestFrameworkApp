@@ -436,10 +436,6 @@ TestRunner *MainWindow::get_runner_from_tab_index(int index) {
 }
 
 void MainWindow::on_test_tabs_tabCloseRequested(int index) {
-	if (index == 0) {
-		//first tab never gets closed
-		return;
-	}
 	auto tab_widget = ui->test_tabs->widget(index);
 	auto runner_it = std::find_if(std::begin(test_runners), std::end(test_runners),
 								  [tab_widget](const auto &runner) { return runner->get_lua_ui_container() == tab_widget; });
