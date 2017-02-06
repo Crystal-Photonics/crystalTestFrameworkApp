@@ -14,7 +14,9 @@ void DeviceWorker::poll_ports() {
 	Utility::thread_call(this, [this] {
 		for (auto &device : comport_devices) {
 			if (device.device->isConnected()) {
-				device.device->waitReceived(CommunicationDevice::Duration{0});
+				if (device.device->is_waiting_for_message() == false) {
+					device.device->waitReceived(CommunicationDevice::Duration{0});
+				}
 			}
 		}
 		QTimer::singleShot(16, this, &DeviceWorker::poll_ports);

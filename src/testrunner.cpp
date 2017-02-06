@@ -7,12 +7,17 @@
 #include "testdescriptionloader.h"
 
 #include <QDebug>
+#include <QPlainTextEdit>
 #include <QSplitter>
 
 TestRunner::TestRunner(const TestDescriptionLoader &description)
 	: lua_ui_container(new QSplitter(MainWindow::mw))
 	, script(lua_ui_container)
 	, name(description.get_name()) {
+	console = new QPlainTextEdit();
+	console->setReadOnly(true);
+	Console::note(console) << "Script started";
+	lua_ui_container->addWidget(console);
 	lua_ui_container->setOrientation(Qt::Vertical);
 	moveToThread(&thread);
 	thread.start();
@@ -24,6 +29,7 @@ TestRunner::~TestRunner() {
 }
 
 void TestRunner::interrupt() {
+	MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script interrupted"; });
 	thread.exit(-1);
 	thread.exit(-1);
 	thread.requestInterruption();
@@ -56,6 +62,7 @@ void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protoco
 		}
 		moveToThread(MainWindow::gui_thread);
 		thread.quit();
+		MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script stopped"; });
 	});
 }
 

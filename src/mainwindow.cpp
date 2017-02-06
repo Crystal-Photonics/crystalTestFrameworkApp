@@ -302,12 +302,14 @@ void MainWindow::on_run_test_script_button_clicked() {
 									message = runner.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
 								} catch (const sol::error &e) {
 									const auto &message = tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
-									Console::error(test->console) << message;
+									Console::error(runner.console) << message;
+									runner.interrupt();
 									return;
 								}
 								if (message) {
 									//device incompatible, reason should be inside of message
-									Console::note(test->console) << tr("Device rejected:") << message.value();
+									Console::note(runner.console) << tr("Device rejected:") << message.value();
+									runner.interrupt();
 								} else {
 									//acceptable device found
 									runner.run_script({{device.device.get(), device.protocol.get()}}, *device_worker);

@@ -32,11 +32,11 @@ class TestRunner : QObject {
 	bool is_running();
 	const QString &get_name() const;
 	void launch_editor() const;
+	QPlainTextEdit *console = nullptr;
 
 	private:
 	QThread thread;
 	QSplitter *lua_ui_container = nullptr;
-	QPlainTextEdit *console = nullptr;
 	ScriptEngine script;
 	QString name;
 };
