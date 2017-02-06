@@ -97,8 +97,6 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 MainWindow::~MainWindow() {
-	devices_thread.quit();
-	devices_thread.wait();
 	for (auto &test : test_runners) {
 		test->interrupt();
 	}
@@ -109,6 +107,9 @@ MainWindow::~MainWindow() {
 	test_runners.clear();
 	GUI::lua_plots.clear();
 	GUI::lua_buttons.clear();
+	QApplication::processEvents();
+	devices_thread.quit();
+	devices_thread.wait();
 	QApplication::processEvents();
 	delete ui;
 }
@@ -459,20 +460,8 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 
 void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 	auto tab_index = ui->test_tabs->tabBar()->tabAt(pos);
-	if (tab_index <= 0) {
-		//clicked on the overview list
-		QMenu menu(this);
-
-		QAction action_close_finished(tr("Close finished Tests"));
-		//connect(&action_close_finished, &QAction::triggered, [this] { QMessageBox::information(MainWindow::mw, "test", "bla"); });
-		action_close_finished.setDisabled(true);
-		menu.addAction(&action_close_finished);
-
-		menu.exec(ui->test_tabs->mapToGlobal(pos));
-	} else {
-		auto runner = get_runner_from_tab_index(tab_index);
-		assert(runner);
-
+	auto runner = get_runner_from_tab_index(tab_index);
+	if (runner){
 		QMenu menu(this);
 
 		QAction action_abort_script(tr("Abort Script"));
@@ -487,6 +476,17 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 		QAction action_open_script_in_editor(tr("Open in Editor"));
 		connect(&action_open_script_in_editor, &QAction::triggered, [this, runner] { runner->launch_editor(); });
 		menu.addAction(&action_open_script_in_editor);
+
+		menu.exec(ui->test_tabs->mapToGlobal(pos));
+	}
+	else{
+		//clicked on the overview list
+		QMenu menu(this);
+
+		QAction action_close_finished(tr("Close finished Tests"));
+		//connect(&action_close_finished, &QAction::triggered, [this] { QMessageBox::information(MainWindow::mw, "test", "bla"); });
+		action_close_finished.setDisabled(true);
+		menu.addAction(&action_close_finished);
 
 		menu.exec(ui->test_tabs->mapToGlobal(pos));
 	}
