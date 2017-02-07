@@ -397,6 +397,7 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 		if (QMessageBox::question(this, tr(""), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
 								  QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
 			runner.interrupt();
+			QApplication::processEvents();
 			runner.join();
 		} else {
 			return; //canceled closing the tab

@@ -126,10 +126,10 @@ void ScriptEngine::load_script(const QString &path) {
         lua.script_file(path.toStdString());
 
         //bind UI
-        auto ui_table = lua.create_named_table("ui");
+		auto ui_table = lua.create_named_table("Ui");
 
 		//bind plot
-		ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("plot",                                                                                          //
+		ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot",                                                                                          //
 													sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
 													"add_point", thread_call_wrapper<void, Plot, double, double>(&Plot::add),                        //
 													"add_spectrum",
@@ -161,7 +161,7 @@ void ScriptEngine::load_script(const QString &path) {
 													"set_offset", thread_call_wrapper(&Plot::set_offset), //
 													"set_gain", thread_call_wrapper(&Plot::set_gain));
 		//bind button
-		ui_table.new_usertype<Lua_UI_Wrapper<Button>>("button", //
+		ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //
 													  sol::meta_function::construct,
 													  [parent = this->parent](const std::string &title) {
 														  return Lua_UI_Wrapper<Button>{parent, title};
