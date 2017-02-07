@@ -26,6 +26,7 @@ struct Console {
 	static ConsoleProxy debug(QPlainTextEdit *console = nullptr);
 	static ConsoleProxy debug(std::unique_ptr<QPlainTextEdit> &console);
 	static MainWindow *mw;
+	static bool use_human_readable_encoding;
 
 	private:
 	struct ConsoleProxy {

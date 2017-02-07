@@ -17,7 +17,9 @@ SOURCES += mainwindow.cpp \
     deviceworker.cpp \
     testrunner.cpp \
     testdescriptionloader.cpp \
-    LuaUI/button.cpp
+    LuaUI/button.cpp \
+    LuaUI/lineedit.cpp \
+    LuaUI/window.cpp
 SOURCES += scriptengine.cpp
 SOURCES += util.cpp
 SOURCES += CommunicationDevices/communicationdevice.cpp
@@ -36,7 +38,9 @@ HEADERS += mainwindow.h \
     deviceworker.h \
     testrunner.h \
     testdescriptionloader.h \
-    LuaUI/button.h
+    LuaUI/button.h \
+    LuaUI/lineedit.h \
+    LuaUI/window.h
 HEADERS += scriptengine.h
 HEADERS += export.h
 HEADERS += util.h

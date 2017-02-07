@@ -57,6 +57,7 @@ class EXPORT MainWindow : public QMainWindow {
 	Lua_UI_class &get_lua_UI_class(int id);
 
 	void show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon);
+	void remove_test_runner(TestRunner *runner);
 
 	public slots:
 	void align_columns();
@@ -79,6 +80,8 @@ class EXPORT MainWindow : public QMainWindow {
 	void on_test_tabs_tabCloseRequested(int index);
 
 	void on_test_tabs_customContextMenuRequested(const QPoint &pos);
+
+	void on_use_human_readable_encoding_toggled(bool checked);
 
 	private:
 	std::vector<TestDescriptionLoader> test_descriptions;

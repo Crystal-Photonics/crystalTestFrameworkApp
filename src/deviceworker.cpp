@@ -168,8 +168,11 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
 
 		for (auto &d : data) {
 			connect(comport, d.signal, [ console = console, color = d.color, fat = d.fat ](const QByteArray &data) {
-				MainWindow::mw->append_html_to_console(
-					(fat ? fat_html : normal_html).arg(QString::number(color.rgb(), 16), Utility::to_human_readable_binary_data(data)), console);
+				MainWindow::mw->append_html_to_console((fat ? fat_html : normal_html)
+														   .arg(QString::number(color.rgb(), 16), Console::use_human_readable_encoding ?
+																									  Utility::to_human_readable_binary_data(data) :
+																									  Utility::to_C_hex_encoding(data)),
+													   console);
 			});
 		}
 	});

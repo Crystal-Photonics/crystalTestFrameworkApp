@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "CommunicationDevices/comportcommunicationdevice.h"
 #include "LuaUI/plot.h"
+#include "LuaUI/window.h"
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
 #include "console.h"
@@ -150,20 +151,6 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 	Utility::thread_call(this, [this, text, console] { console->appendHtml(text); });
 }
 
-#if 0
-void MainWindow::button_create(int id, QSplitter *splitter, const std::string &title, std::function<void()> callback) {
-	Utility::thread_call(this, [ this, id, splitter, title, callback = std::move(callback) ]() mutable {
-		auto button = new QPushButton(title.c_str(), splitter);
-		splitter->addWidget(button);
-		GUI::lua_buttons.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(button, std::move(callback)));
-	});
-}
-
-void MainWindow::button_drop(int id) {
-	Utility::thread_call(this, [this, id] { GUI::lua_buttons.erase(id); });
-}
-#endif
-
 void MainWindow::show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon) {
 	Utility::thread_call(this, [this, title, message, icon] {
 		switch (icon) {
@@ -182,6 +169,10 @@ void MainWindow::show_message_box(const QString &title, const QString &message, 
 				break;
 		}
 	});
+}
+
+void MainWindow::remove_test_runner(TestRunner *runner) {
+	test_runners.erase(std::find(std::begin(test_runners), std::end(test_runners), runner));
 }
 
 void MainWindow::on_actionPaths_triggered() {
@@ -292,6 +283,12 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 	Utility::thread_call(this, [this, pos] {
 		auto item = ui->tests_list->itemAt(pos);
 		if (item) {
+			while (ui->tests_list->indexOfTopLevelItem(item) == -1) {
+				item = item->parent();
+			}
+
+			emit on_tests_list_itemClicked(item, 0);
+
 			auto test = get_test_from_ui();
 
 			QMenu menu(this);
@@ -410,7 +407,7 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 	auto tab_index = ui->test_tabs->tabBar()->tabAt(pos);
 	auto runner = get_runner_from_tab_index(tab_index);
-	if (runner){
+	if (runner) {
 		QMenu menu(this);
 
 		QAction action_abort_script(tr("Abort Script"));
@@ -426,9 +423,16 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 		connect(&action_open_script_in_editor, &QAction::triggered, [this, runner] { runner->launch_editor(); });
 		menu.addAction(&action_open_script_in_editor);
 
+		QAction action_pop_out(tr("Open in extra Window"));
+		connect(&action_pop_out, &QAction::triggered, [this, runner] {
+			auto container = runner->get_lua_ui_container();
+			ui->test_tabs->removeTab(ui->test_tabs->indexOf(container));
+			new Window(runner);
+		});
+		menu.addAction(&action_pop_out);
+
 		menu.exec(ui->test_tabs->mapToGlobal(pos));
-	}
-	else{
+	} else {
 		//clicked on the overview list
 		QMenu menu(this);
 
@@ -439,4 +443,8 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 
 		menu.exec(ui->test_tabs->mapToGlobal(pos));
 	}
+}
+
+void MainWindow::on_use_human_readable_encoding_toggled(bool checked) {
+	Console::use_human_readable_encoding = checked;
 }

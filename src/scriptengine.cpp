@@ -1,5 +1,6 @@
 #include "scriptengine.h"
 #include "LuaUI/button.h"
+#include "LuaUI/lineedit.h"
 #include "LuaUI/plot.h"
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
@@ -50,21 +51,21 @@ int Lua_UI_Wrapper<T>::id_counter;
 
 namespace detail {
 	//this might be replacable by std::invoke once C++17 is available
-	template <class ReturnType, class UI_class, template <class...> class Params, class... Args, std::size_t... I>
-	ReturnType call_helper(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<Args...> const &params, std::index_sequence<I...>) {
+	template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs, std::size_t... I>
+	ReturnType call_helper(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<ParamArgs...> const &params, std::index_sequence<I...>) {
 		return (ui.*func)(std::get<I>(params)...);
 	}
-	template <class ReturnType, class UI_class, template <class...> class Params, class... Args, std::size_t... I>
-	ReturnType call_helper(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<Args...> const &params, std::index_sequence<I...>) {
+	template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs, std::size_t... I>
+	ReturnType call_helper(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<ParamArgs...> const &params, std::index_sequence<I...>) {
 		return (ui.*func)(std::get<I>(params)...);
 	}
 
-	template <class ReturnType, class UI_class, template <class...> class Params, class... Args>
-	ReturnType call(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<Args...> const &params) {
+	template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs>
+	ReturnType call(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<ParamArgs...> const &params) {
 		return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
 	}
-	template <class ReturnType, class UI_class, template <class...> class Params, class... Args>
-	ReturnType call(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<Args...> const &params) {
+	template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs>
+	ReturnType call(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<ParamArgs...> const &params) {
 		return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
 	}
 }
@@ -76,7 +77,7 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
 		//promised_thread_call lets us get return values while thread_call does not
 		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
 		//using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
-		return Utility::promised_thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
+		return Utility::promised_thread_call(MainWindow::mw, [ function, id = lui.id, args = std::forward_as_tuple(std::forward<Args>(args)...) ]() mutable {
 			UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
 			return detail::call(function, ui, std::move(args));
 		});
@@ -90,7 +91,7 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
 		//promised_thread_call lets us get return values while thread_call does not
 		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
 		//using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
-		return Utility::promised_thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
+		return Utility::promised_thread_call(MainWindow::mw, [ function, id = lui.id, args = std::forward_as_tuple(std::forward<Args>(args)...) ]() mutable {
 			UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
 			return detail::call(function, ui, std::move(args));
 		});
@@ -169,9 +170,15 @@ void ScriptEngine::load_script(const QString &path) {
 													  "has_been_pressed",
 													  thread_call_wrapper(&Button::has_been_pressed) //
 													  );
+		//bind edit field
+		ui_table.new_usertype<Lua_UI_Wrapper<LineEdit>>("LineEdit",                                                                                          //
+														sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<LineEdit>(parent); }, //
+														"set_placeholder_text", thread_call_wrapper(&LineEdit::set_placeholder_text),                        //
+														"get_text", thread_call_wrapper(&LineEdit::get_text)                                                 //
+														);
 	} catch (const sol::error &error) {
-        set_error(error);
-        throw;
+		set_error(error);
+		throw;
 	}
 }
 
