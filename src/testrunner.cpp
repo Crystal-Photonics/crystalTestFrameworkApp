@@ -5,6 +5,7 @@
 #include "scriptengine.h"
 #include "testdescriptionloader.h"
 
+#include <QApplication>
 #include <QDebug>
 #include <QPlainTextEdit>
 #include <QSplitter>
@@ -35,7 +36,9 @@ void TestRunner::interrupt() {
 }
 
 void TestRunner::join() {
-	thread.wait();
+	while (!thread.wait(16)) {
+		QApplication::processEvents();
+	}
 }
 
 sol::table TestRunner::create_table() {
