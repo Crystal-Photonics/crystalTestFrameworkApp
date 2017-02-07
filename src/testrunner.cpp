@@ -1,7 +1,6 @@
 #include "testrunner.h"
 #include "console.h"
 #include "deviceworker.h"
-#include "luaui.h"
 #include "mainwindow.h"
 #include "scriptengine.h"
 #include "testdescriptionloader.h"

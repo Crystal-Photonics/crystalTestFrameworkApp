@@ -49,15 +49,13 @@ class EXPORT MainWindow : public QMainWindow {
 	template <class Function>
 	void execute_in_gui_thread(Function &&f);
 
-	template <class Lua_UI_class>
-	void add_lua_UI_class(int id, QSplitter *parent);
+	template <class Lua_UI_class, class... Args>
+	void add_lua_UI_class(int id, QSplitter *parent, Args &&... args);
 	template <class Lua_UI_class>
 	void remove_lua_UI_class(int id);
 	template <class Lua_UI_class>
 	Lua_UI_class &get_lua_UI_class(int id);
 
-	void button_create(int id, QSplitter *splitter, const std::string &title, std::function<void()> callback);
-	void button_drop(int id);
 	void show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon);
 
 	public slots:
@@ -114,9 +112,9 @@ void MainWindow::execute_in_gui_thread(Function &&f) {
 template <class Lua_UI_class>
 std::map<int, Lua_UI_class> lua_classes;
 
-template <class Lua_UI_class>
-void MainWindow::add_lua_UI_class(int id, QSplitter *parent) {
-	lua_classes<Lua_UI_class>.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(parent));
+template <class Lua_UI_class, class... Args>
+void MainWindow::add_lua_UI_class(int id, QSplitter *parent, Args &&... args) {
+	lua_classes<Lua_UI_class>.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(parent, std::forward<Args>(args)...));
 }
 
 template <class Lua_UI_class>

@@ -1,6 +1,5 @@
 #include "testdescriptionloader.h"
 #include "console.h"
-#include "luaui.h"
 #include "mainwindow.h"
 #include "scriptengine.h"
 

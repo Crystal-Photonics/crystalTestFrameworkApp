@@ -51,23 +51,6 @@ namespace GUI {
 			connectedDevices,
 		};
 	}
-	struct Button {
-		Button(QPushButton *button, std::function<void()> callback)
-			: button(button)
-			, callback(std::move(callback)) {
-			connection = QObject::connect(button, &QPushButton::pressed, this->callback);
-		}
-		~Button() {
-			QObject::disconnect(connection);
-			button->setEnabled(false);
-		}
-
-		QPushButton *button = nullptr;
-		std::function<void()> callback;
-		QMetaObject::Connection connection;
-	};
-
-	static std::map<int, Button> lua_buttons;
 }
 
 using namespace std::chrono_literals;
@@ -104,7 +87,6 @@ MainWindow::~MainWindow() {
 	}
 	QApplication::processEvents();
 	test_runners.clear();
-	GUI::lua_buttons.clear();
 	QApplication::processEvents();
 	devices_thread.quit();
 	devices_thread.wait();
@@ -168,6 +150,7 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 	Utility::thread_call(this, [this, text, console] { console->appendHtml(text); });
 }
 
+#if 0
 void MainWindow::button_create(int id, QSplitter *splitter, const std::string &title, std::function<void()> callback) {
 	Utility::thread_call(this, [ this, id, splitter, title, callback = std::move(callback) ]() mutable {
 		auto button = new QPushButton(title.c_str(), splitter);
@@ -179,6 +162,7 @@ void MainWindow::button_create(int id, QSplitter *splitter, const std::string &t
 void MainWindow::button_drop(int id) {
 	Utility::thread_call(this, [this, id] { GUI::lua_buttons.erase(id); });
 }
+#endif
 
 void MainWindow::show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon) {
 	Utility::thread_call(this, [this, title, message, icon] {

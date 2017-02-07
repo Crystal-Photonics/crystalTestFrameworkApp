@@ -13,11 +13,11 @@ SOURCES += mainwindow.cpp \
     console.cpp \
     Protocols/protocol.cpp \
     qt_util.cpp \
-    luaui.cpp \
 	LuaUI/plot.cpp \
     deviceworker.cpp \
     testrunner.cpp \
-    testdescriptionloader.cpp
+    testdescriptionloader.cpp \
+    LuaUI/button.cpp
 SOURCES += scriptengine.cpp
 SOURCES += util.cpp
 SOURCES += CommunicationDevices/communicationdevice.cpp
@@ -32,12 +32,11 @@ HEADERS += mainwindow.h \
     console.h \
     Protocols/protocol.h \
     qt_util.h \
-    luaui.h \
 	LuaUI/plot.h \
-    luaui.h \
     deviceworker.h \
     testrunner.h \
-    testdescriptionloader.h
+    testdescriptionloader.h \
+    LuaUI/button.h
 HEADERS += scriptengine.h
 HEADERS += export.h
 HEADERS += util.h

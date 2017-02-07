@@ -10,6 +10,7 @@
 
 class CommunicationDevice;
 class QStringList;
+class QSplitter;
 struct LuaUI;
 struct Protocol;
 
@@ -19,14 +20,13 @@ class ScriptEngine {
 	friend class TestDescriptionLoader;
 	friend class DeviceWorker;
 
-	ScriptEngine(LuaUI &&lua_ui);
+	ScriptEngine(QSplitter *parent);
 	~ScriptEngine();
 	void load_script(const QString &path);
 	static void launch_editor(QString path, int error_line = 1);
 	void launch_editor() const;
 
 	private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
-	LuaUI &get_ui();
 	sol::table create_table();
 	QStringList get_string_list(const QString &name);
 	void run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices);
@@ -37,7 +37,7 @@ class ScriptEngine {
 	sol::state lua;
 	QString path;
 	int error_line = 0;
-	std::unique_ptr<LuaUI> lua_ui;
+	QSplitter *parent = nullptr;
 };
 
 template <class ReturnType, class... Arguments>
