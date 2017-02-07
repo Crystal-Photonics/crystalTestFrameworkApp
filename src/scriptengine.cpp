@@ -1,10 +1,10 @@
 #include "scriptengine.h"
+#include "LuaUI/plot.h"
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
 #include "console.h"
 #include "luaui.h"
 #include "mainwindow.h"
-#include "plot.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_encoded_function_call.h"
 #include "util.h"
@@ -47,14 +47,17 @@ struct Lua_UI_Wrapper {
 template <class T>
 int Lua_UI_Wrapper<T>::id_counter;
 
-template <class ReturnType, class UI_class, template <class...> class Params, class... Args, std::size_t... I>
-ReturnType call_helper(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<Args...> const &params, std::index_sequence<I...>) {
-	return (ui.*func)(std::get<I>(params)...);
-}
+namespace detail {
+	//this might be replacable by std::invoke once C++17 is available
+	template <class ReturnType, class UI_class, template <class...> class Params, class... Args, std::size_t... I>
+	ReturnType call_helper(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<Args...> const &params, std::index_sequence<I...>) {
+		return (ui.*func)(std::get<I>(params)...);
+	}
 
-template <class ReturnType, class UI_class, template <class...> class Params, class... Args>
-ReturnType call(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<Args...> const &params) {
-	return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
+	template <class ReturnType, class UI_class, template <class...> class Params, class... Args>
+	ReturnType call(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<Args...> const &params) {
+		return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
+	}
 }
 
 template <class ReturnType, class UI_class, class... Args>
@@ -63,9 +66,10 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
 		//TODO: Decide if we should use promised_thread_call or thread_call
 		//promised_thread_call lets us get return values while thread_call does not
 		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
+		//using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
 		return Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
 			UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
-			call(function, ui, std::move(args));
+			detail::call(function, ui, std::move(args));
 		});
 	};
 }
@@ -101,11 +105,6 @@ void ScriptEngine::load_script(const QString &path) {
         //bind UI
         auto ui_table = lua.create_named_table("ui");
 
-        //bind button
-        ui_table.new_usertype<LuaButton>("button", //
-                                         sol::meta_function::construct,
-										 [lua_ui = this->lua_ui.get()](const std::string &title) { return lua_ui->create_button(title); }, //
-                                         "has_been_pressed", &LuaButton::has_been_pressed);
 		//bind plot
 		ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("plot",                                                                                            //
 													sol::meta_function::construct, [parent = lua_ui->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
@@ -138,6 +137,11 @@ void ScriptEngine::load_script(const QString &path) {
 													thread_call_wrapper(&Plot::clear),                    //
 													"set_offset", thread_call_wrapper(&Plot::set_offset), //
 													"set_gain", thread_call_wrapper(&Plot::set_gain));
+		//bind button
+		ui_table.new_usertype<LuaButton>("button", //
+										 sol::meta_function::construct,
+										 [lua_ui = this->lua_ui.get()](const std::string &title) { return lua_ui->create_button(title); }, //
+										 "has_been_pressed", &LuaButton::has_been_pressed);
 	} catch (const sol::error &error) {
         set_error(error);
         throw;

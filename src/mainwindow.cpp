@@ -1,11 +1,11 @@
 #include "mainwindow.h"
 #include "CommunicationDevices/comportcommunicationdevice.h"
+#include "LuaUI/plot.h"
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
 #include "console.h"
 #include "deviceworker.h"
 #include "pathsettingswindow.h"
-#include "plot.h"
 #include "qt_util.h"
 #include "scriptengine.h"
 #include "testdescriptionloader.h"
@@ -51,7 +51,6 @@ namespace GUI {
 			connectedDevices,
 		};
 	}
-	static std::map<int, Plot> lua_plots;
 	struct Button {
 		Button(QPushButton *button, std::function<void()> callback)
 			: button(button)
@@ -105,7 +104,6 @@ MainWindow::~MainWindow() {
 	}
 	QApplication::processEvents();
 	test_runners.clear();
-	GUI::lua_plots.clear();
 	GUI::lua_buttons.clear();
 	QApplication::processEvents();
 	devices_thread.quit();

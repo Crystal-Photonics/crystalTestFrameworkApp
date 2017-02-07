@@ -14,7 +14,7 @@ SOURCES += mainwindow.cpp \
     Protocols/protocol.cpp \
     qt_util.cpp \
     luaui.cpp \
-    plot.cpp \
+	LuaUI/plot.cpp \
     deviceworker.cpp \
     testrunner.cpp \
     testdescriptionloader.cpp
@@ -33,7 +33,7 @@ HEADERS += mainwindow.h \
     Protocols/protocol.h \
     qt_util.h \
     luaui.h \
-    plot.h \
+	LuaUI/plot.h \
     luaui.h \
     deviceworker.h \
     testrunner.h \
