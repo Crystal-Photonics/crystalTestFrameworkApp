@@ -12,6 +12,7 @@
 
 #include <QDebug>
 #include <QDir>
+#include <QEventLoop>
 #include <QMessageBox>
 #include <QProcess>
 #include <QSettings>
@@ -43,6 +44,8 @@ struct Lua_UI_Wrapper {
 	}
 
 	int id = id_counter++;
+
+	private:
 	static int id_counter;
 };
 
@@ -174,7 +177,16 @@ void ScriptEngine::load_script(const QString &path) {
 		ui_table.new_usertype<Lua_UI_Wrapper<LineEdit>>("LineEdit",                                                                                          //
 														sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<LineEdit>(parent); }, //
 														"set_placeholder_text", thread_call_wrapper(&LineEdit::set_placeholder_text),                        //
-														"get_text", thread_call_wrapper(&LineEdit::get_text)                                                 //
+														"get_text", thread_call_wrapper(&LineEdit::get_text),                                                //
+														"await_return",
+														[](const Lua_UI_Wrapper<LineEdit> &lew) {
+															auto le = MainWindow::mw->get_lua_UI_class<LineEdit>(lew.id);
+															le.set_single_shot_return_pressed_callback([thread = QThread::currentThread()] { thread->exit(); });
+															QEventLoop loop;
+															loop.exec();
+															auto text = Utility::promised_thread_call(MainWindow::mw, [&le] { return le.get_text(); });
+															return text;
+														} //
 														);
 	} catch (const sol::error &error) {
 		set_error(error);

@@ -10,6 +10,7 @@ LineEdit::LineEdit(QSplitter *parent)
 
 LineEdit::~LineEdit() {
 	edit->setReadOnly(true);
+	QObject::disconnect(callback_connection);
 }
 
 void LineEdit::set_placeholder_text(const std::string &text) {
@@ -18,4 +19,12 @@ void LineEdit::set_placeholder_text(const std::string &text) {
 
 std::string LineEdit::get_text() const {
 	return edit->text().toStdString();
+}
+
+void LineEdit::set_single_shot_return_pressed_callback(std::function<void()> callback) {
+	callback_connection =
+		QObject::connect(edit, &QLineEdit::returnPressed, [&callback_connection = this->callback_connection, callback = std::move(callback) ] {
+			callback();
+			QObject::disconnect(callback_connection);
+		});
 }
