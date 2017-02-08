@@ -33,6 +33,7 @@ void Window::closeEvent(QCloseEvent *event) {
 			return; //canceled closing the window
 		}
 	}
+	QApplication::processEvents();
 	MainWindow::mw->remove_test_runner(test);
 	QApplication::processEvents();
 	event->accept();

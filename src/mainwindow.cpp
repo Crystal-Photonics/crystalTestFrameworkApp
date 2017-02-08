@@ -399,9 +399,10 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 			return; //canceled closing the tab
 		}
 	}
-	ui->test_tabs->removeTab(index);
 	QApplication::processEvents();
 	test_runners.erase(runner_it);
+	QApplication::processEvents();
+	ui->test_tabs->removeTab(index);
 }
 
 void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
