@@ -37,8 +37,12 @@ QString Utility::to_human_readable_binary_data(const QString &data) {
 QString Utility::to_C_hex_encoding(const QByteArray &data) {
 	QStringList l;
 	for (char c : data) {
-
-        l << "0x" + QString("%1").arg(static_cast<unsigned char>(c), 2, 16, QChar('0'));
+		auto hex = QString::number(static_cast<unsigned char>(c), 16);
+		if (hex.size() == 1) {
+			l << "0x0" + hex;
+		} else {
+			l << "0x" + hex;
+		}
 	}
-	return l.join(", ");
+	return l.join(",");
 }

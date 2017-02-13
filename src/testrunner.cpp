@@ -1,15 +1,23 @@
 #include "testrunner.h"
 #include "console.h"
+#include "deviceworker.h"
 #include "mainwindow.h"
+#include "scriptengine.h"
 #include "testdescriptionloader.h"
 
-#include <QSplitter>
+#include <QApplication>
 #include <QDebug>
+#include <QPlainTextEdit>
+#include <QSplitter>
 
 TestRunner::TestRunner(const TestDescriptionLoader &description)
 	: lua_ui_container(new QSplitter(MainWindow::mw))
 	, script(lua_ui_container)
 	, name(description.get_name()) {
+	console = new QPlainTextEdit();
+	console->setReadOnly(true);
+	Console::note(console) << "Script started";
+	lua_ui_container->addWidget(console);
 	lua_ui_container->setOrientation(Qt::Vertical);
 	moveToThread(&thread);
 	thread.start();
@@ -21,11 +29,16 @@ TestRunner::~TestRunner() {
 }
 
 void TestRunner::interrupt() {
+	MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script interrupted"; });
+	thread.exit(-1);
+	thread.exit(-1);
 	thread.requestInterruption();
 }
 
 void TestRunner::join() {
-	thread.wait();
+	while (!thread.wait(16)) {
+		QApplication::processEvents();
+	}
 }
 
 sol::table TestRunner::create_table() {
@@ -36,15 +49,22 @@ QSplitter *TestRunner::get_lua_ui_container() const {
 	return lua_ui_container;
 }
 
-void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices) {
-	Utility::thread_call(this, [ this, devices = std::move(devices) ]() mutable {
+void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices, const DeviceWorker &device_worker) {
+	Utility::thread_call(this, [ this, devices = std::move(devices), &device_worker ]() mutable {
+		for (auto &dev_prot : devices) {
+			device_worker.set_currently_running_test(dev_prot.first, name);
+		}
 		try {
 			script.run(devices);
 		} catch (const std::runtime_error &e) {
 			MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] { Console::error(console) << message; });
 		}
+		for (auto &dev_prot : devices) {
+			device_worker.set_currently_running_test(dev_prot.first, "");
+		}
 		moveToThread(MainWindow::gui_thread);
 		thread.quit();
+		MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script stopped"; });
 	});
 }
 
@@ -59,55 +79,3 @@ const QString &TestRunner::get_name() const {
 void TestRunner::launch_editor() const {
 	script.launch_editor();
 }
-
-#if 0
-MainWindow::Test::Test(QTreeWidget *test_list, const QString &file_path)
-	: parent(test_list)
-	, test_console_widget(new QSplitter(Qt::Vertical))
-	, script(test_console_widget)
-	, file_path(file_path)
-	, worker(std::make_unique<Worker>(MainWindow::mw)) {
-	name = QString{file_path.data() + file_path.lastIndexOf('/') + 1};
-	if (name.endsWith(".lua")) {
-		name.chop(4);
-	}
-	console = new QPlainTextEdit(test_console_widget);
-	console->setReadOnly(true);
-	test_console_widget->addWidget(console);
-	MainWindow::mw->test_console_add(this);
-
-	ui_item = new QTreeWidgetItem(test_list, QStringList{} << name);
-	ui_item->setData(0, Qt::UserRole, Utility::make_qvariant(this));
-	parent->addTopLevelItem(ui_item);
-	try {
-		script.load_script(file_path);
-	} catch (const sol::error &e) {
-		Console::error(console) << tr("Failed loading script \"%1\" because %2").arg(file_path, e.what());
-		return;
-	}
-	try {
-		QStringList protocols = MainWindow::mw->device_worker->get_string_list(script, "protocols");
-		std::copy(protocols.begin(), protocols.end(), std::back_inserter(this->protocols));
-		std::sort(this->protocols.begin(), this->protocols.end());
-		if (protocols.empty() == false) {
-			ui_item->setText(GUI::Tests::protocol, protocols.join(", "));
-		} else {
-			ui_item->setText(GUI::Tests::protocol, tr("None"));
-			ui_item->setTextColor(1, Qt::darkRed);
-		}
-	} catch (const sol::error &e) {
-		Console::error(console) << tr("Failed retrieving variable \"protocols\" from %1 because %2").arg(file_path, e.what());
-		ui_item->setText(GUI::Tests::protocol, tr("Failed getting protocols"));
-		ui_item->setTextColor(GUI::Tests::protocol, Qt::darkRed);
-	}
-	try {
-		auto deviceNames = MainWindow::mw->device_worker->get_string_list(script, "deviceNames");
-		if (deviceNames.isEmpty() == false) {
-			ui_item->setText(GUI::Tests::deviceNames, deviceNames.join(", "));
-		}
-	} catch (const sol::error &e) {
-		Console::warning(console) << tr("Failed retrieving variable \"deviceNames\" from %1 because %2").arg(file_path, e.what());
-	}
-}
-
-#endif

@@ -8,10 +8,10 @@ static QtMessageHandler old_handler;
 
 void message_handler(QtMsgType type, const QMessageLogContext &context, const QString &msg) {
 	switch (type) {
-		case QtWarningMsg:
 		case QtCriticalMsg:
 		case QtFatalMsg:
 			assert(false);
+		case QtWarningMsg:
 		case QtDebugMsg:
 		case QtInfoMsg:;
 	}

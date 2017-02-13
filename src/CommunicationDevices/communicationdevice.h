@@ -2,10 +2,12 @@
 #define COMMUNICATIONDEVICE_H
 
 #include "export.h"
-#include <QByteArray>
+
 #include <QObject>
 #include <chrono>
 #include <memory>
+
+class QByteArray;
 
 class EXPORT CommunicationDevice : public QObject {
 	Q_OBJECT
@@ -23,6 +25,7 @@ class EXPORT CommunicationDevice : public QObject {
 	virtual void close() = 0;
 	bool operator==(const QString &target) const;
 	const QString &getTarget() const;
+	bool is_waiting_for_message() const;
 
 	signals:
 	void connected();
@@ -35,6 +38,7 @@ class EXPORT CommunicationDevice : public QObject {
 	public slots:
 	protected:
 	QString target;
+	bool currently_in_waitReceived = false;
 };
 
 #endif // COMMUNICATIONDEVICE_H

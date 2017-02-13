@@ -9,11 +9,12 @@
 #include <QThread>
 #include <future>
 
+class CommunicationDevice;
+class DeviceWorker;
 class QPlainTextEdit;
 class QSplitter;
-struct LuaUI;
-class CommunicationDevice;
 class TestDescriptionLoader;
+struct LuaUI;
 struct Protocol;
 
 class TestRunner : QObject {
@@ -27,15 +28,15 @@ class TestRunner : QObject {
 	template <class ReturnType, class... Arguments>
 	ReturnType call(const char *function_name, Arguments &&... args);
 	QSplitter *get_lua_ui_container() const;
-	void run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices);
+	void run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices, const DeviceWorker &device_worker);
 	bool is_running();
 	const QString &get_name() const;
 	void launch_editor() const;
+	QPlainTextEdit *console = nullptr;
 
 	private:
 	QThread thread;
 	QSplitter *lua_ui_container = nullptr;
-	QPlainTextEdit *console = nullptr;
 	ScriptEngine script;
 	QString name;
 };

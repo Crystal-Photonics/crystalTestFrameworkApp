@@ -1,13 +1,13 @@
 #ifndef PLOT_H
 #define PLOT_H
 
-#include <QAction>
 #include <memory>
 #include <qwt_plot.h>
 #include <vector>
 
-class QwtPlot;
+class QAction;
 class QSplitter;
+class QwtPlot;
 class QwtPlotCurve;
 
 class Plot {
@@ -16,7 +16,7 @@ class Plot {
 	~Plot();
 	void add(double x, double y);
 	void add(const std::vector<double> &data);
-    void add(const unsigned int spectrum_start_channel, const std::vector<double> &data);
+	void add(const unsigned int spectrum_start_channel, const std::vector<double> &data);
 	void clear();
 	void set_offset(double offset);
 	void set_gain(double gain);

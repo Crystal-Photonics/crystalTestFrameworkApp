@@ -1,4 +1,7 @@
 #include "scriptengine.h"
+#include "LuaUI/button.h"
+#include "LuaUI/lineedit.h"
+#include "LuaUI/plot.h"
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
 #include "console.h"
@@ -9,18 +12,99 @@
 
 #include <QDebug>
 #include <QDir>
+#include <QEventLoop>
 #include <QMessageBox>
 #include <QProcess>
 #include <QSettings>
 #include <QThread>
+#include <QTimer>
 #include <functional>
 #include <memory>
 #include <regex>
 #include <string>
 #include <vector>
 
-ScriptEngine::ScriptEngine(LuaUI &&lua_ui)
-    : lua_ui(std::make_unique<LuaUI>(std::move(lua_ui))) {}
+template <class T>
+struct Lua_UI_Wrapper {
+	template <class... Args>
+	Lua_UI_Wrapper(QSplitter *parent, Args &&... args) {
+		Utility::thread_call(MainWindow::mw, [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); });
+	}
+	Lua_UI_Wrapper(Lua_UI_Wrapper &&other)
+		: id(other.id) {
+		other.id = -1;
+	}
+	Lua_UI_Wrapper &operator=(Lua_UI_Wrapper &&other) {
+		std::swap(id, other.id);
+	}
+	~Lua_UI_Wrapper() {
+		if (id != -1) {
+			Utility::thread_call(MainWindow::mw, [id = this->id] { MainWindow::mw->remove_lua_UI_class<T>(id); });
+		}
+	}
+
+	int id = id_counter++;
+
+	private:
+	static int id_counter;
+};
+
+template <class T>
+int Lua_UI_Wrapper<T>::id_counter;
+
+namespace detail {
+	//this might be replacable by std::invoke once C++17 is available
+	template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs, std::size_t... I>
+	ReturnType call_helper(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<ParamArgs...> const &params, std::index_sequence<I...>) {
+		return (ui.*func)(std::get<I>(params)...);
+	}
+	template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs, std::size_t... I>
+	ReturnType call_helper(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<ParamArgs...> const &params, std::index_sequence<I...>) {
+		return (ui.*func)(std::get<I>(params)...);
+	}
+
+	template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs>
+	ReturnType call(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<ParamArgs...> const &params) {
+		return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
+	}
+	template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs>
+	ReturnType call(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<ParamArgs...> const &params) {
+		return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
+	}
+}
+
+template <class ReturnType, class UI_class, class... Args>
+auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
+	return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
+		//TODO: Decide if we should use promised_thread_call or thread_call
+		//promised_thread_call lets us get return values while thread_call does not
+		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
+		//using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
+		return Utility::promised_thread_call(MainWindow::mw, [ function, id = lui.id, args = std::forward_as_tuple(std::forward<Args>(args)...) ]() mutable {
+			UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
+			return detail::call(function, ui, std::move(args));
+		});
+	};
+}
+
+template <class ReturnType, class UI_class, class... Args>
+auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
+	return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
+		//TODO: Decide if we should use promised_thread_call or thread_call
+		//promised_thread_call lets us get return values while thread_call does not
+		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
+		//using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
+		return Utility::promised_thread_call(MainWindow::mw, [ function, id = lui.id, args = std::forward_as_tuple(std::forward<Args>(args)...) ]() mutable {
+			UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
+			return detail::call(function, ui, std::move(args));
+		});
+	};
+}
+
+ScriptEngine::ScriptEngine(QSplitter *parent)
+	: parent(parent) {}
+
+ScriptEngine::~ScriptEngine() {}
 
 void ScriptEngine::load_script(const QString &path) {
 	//NOTE: When using lambdas do not capture `this` or by reference, because it breaks when the ScriptEngine is moved
@@ -33,48 +117,80 @@ void ScriptEngine::load_script(const QString &path) {
                                              QMessageBox::Warning);
         });
 
-        lua.set_function("sleep_ms", [](const unsigned int timeout_ms) { QThread::msleep(timeout_ms); });
+		lua.set_function("sleep_ms", [](const unsigned int timeout_ms) {
+			QEventLoop event_loop;
+			static const auto secret_exit_code = -0xF42F;
+			QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
+			auto exit_value = event_loop.exec();
+			if (exit_value != secret_exit_code) {
+				throw sol::error("Interrupted");
+			}
+		});
 
         lua.script_file(path.toStdString());
 
         //bind UI
-        auto ui_table = lua.create_named_table("ui");
+		auto ui_table = lua.create_named_table("Ui");
 
-        //bind plot
-        ui_table.new_usertype<LuaPlot>("plot",                                                                                         //
-                                       sol::meta_function::construct, [lua_ui = this->lua_ui.get()] { return lua_ui->create_plot(); }, //
-                                       "add_point", &LuaPlot::add_point,                                                               //
-                                       "add_spectrum",
-                                       [](LuaPlot &plot, const sol::table &table) {
-                                           std::vector<double> data;
-                                           data.reserve(table.size());
-                                           for (auto &i : table) {
-                                               data.push_back(i.second.as<double>());
-                                           }
-                                           plot.add_spectrum(data);
-                                       }, //
-									   "add_spectrum_at",
-                                       [](LuaPlot &plot, const unsigned int spectrum_start_channel, const sol::table &table) {
-                                           std::vector<double> data;
-                                           data.reserve(table.size());
-                                           for (auto &i : table) {
-                                               data.push_back(i.second.as<double>());
-                                           }
-                                           plot.add_spectrum(spectrum_start_channel, data);
-                                       }, //
-                                       "clear",
-                                       &LuaPlot::clear,                    //
-                                       "set_offset", &LuaPlot::set_offset, //
-                                       "set_gain", &LuaPlot::set_gain);
-        //bind button
-        ui_table.new_usertype<LuaButton>("button", //
-                                         sol::meta_function::construct,
-										 [lua_ui = this->lua_ui.get()](const std::string &title) { return lua_ui->create_button(title); }, //
-                                         "has_been_pressed", &LuaButton::has_been_pressed);
-
-    } catch (const sol::error &error) {
-        set_error(error);
-        throw;
+		//bind plot
+		ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot",                                                                                          //
+													sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
+													"add_point", thread_call_wrapper<void, Plot, double, double>(&Plot::add),                        //
+													"add_spectrum",
+													[](Lua_UI_Wrapper<Plot> &plot, const sol::table &table) {
+														std::vector<double> data;
+														data.reserve(table.size());
+														for (auto &i : table) {
+															data.push_back(i.second.as<double>());
+														}
+														Utility::thread_call(MainWindow::mw, [ id = plot.id, data = std::move(data) ] {
+															auto &plot = MainWindow::mw->get_lua_UI_class<Plot>(id);
+															plot.add(data);
+														});
+													}, //
+													"add_spectrum_at",
+													[](Lua_UI_Wrapper<Plot> &plot, const unsigned int spectrum_start_channel, const sol::table &table) {
+														std::vector<double> data;
+														data.reserve(table.size());
+														for (auto &i : table) {
+															data.push_back(i.second.as<double>());
+														}
+														Utility::thread_call(MainWindow::mw, [ id = plot.id, data = std::move(data), spectrum_start_channel ] {
+															auto &plot = MainWindow::mw->get_lua_UI_class<Plot>(id);
+															plot.add(spectrum_start_channel, data);
+														});
+													}, //
+													"clear",
+													thread_call_wrapper(&Plot::clear),                    //
+													"set_offset", thread_call_wrapper(&Plot::set_offset), //
+													"set_gain", thread_call_wrapper(&Plot::set_gain));
+		//bind button
+		ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //
+													  sol::meta_function::construct,
+													  [parent = this->parent](const std::string &title) {
+														  return Lua_UI_Wrapper<Button>{parent, title};
+													  }, //
+													  "has_been_pressed",
+													  thread_call_wrapper(&Button::has_been_pressed) //
+													  );
+		//bind edit field
+		ui_table.new_usertype<Lua_UI_Wrapper<LineEdit>>("LineEdit",                                                                                          //
+														sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<LineEdit>(parent); }, //
+														"set_placeholder_text", thread_call_wrapper(&LineEdit::set_placeholder_text),                        //
+														"get_text", thread_call_wrapper(&LineEdit::get_text),                                                //
+														"await_return",
+														[](const Lua_UI_Wrapper<LineEdit> &lew) {
+															auto le = MainWindow::mw->get_lua_UI_class<LineEdit>(lew.id);
+															le.set_single_shot_return_pressed_callback([thread = QThread::currentThread()] { thread->exit(); });
+															QEventLoop loop;
+															loop.exec();
+															auto text = Utility::promised_thread_call(MainWindow::mw, [&le] { return le.get_text(); });
+															return text;
+														} //
+														);
+	} catch (const sol::error &error) {
+		set_error(error);
+		throw;
 	}
 }
 
@@ -98,10 +214,6 @@ void ScriptEngine::launch_editor(QString path, int error_line) {
 
 void ScriptEngine::launch_editor() const {
 	launch_editor(path, error_line);
-}
-
-LuaUI &ScriptEngine::get_ui() {
-    return *lua_ui;
 }
 
 sol::table ScriptEngine::create_table() {
@@ -196,11 +308,10 @@ struct RPCDevice {
     ScriptEngine *engine = nullptr;
 };
 
-void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *> > &devices) {
+void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices) {
 	auto reset_lua_state = [this] {
-		//this is a bit of a hack, but the usual lua = sol::state(); does not reset the state properly
-        lua.~state();
-        new (&lua) sol::state();
+		sol::state default_state;
+		std::swap(lua, default_state);
         load_script(path);
     };
 	try {

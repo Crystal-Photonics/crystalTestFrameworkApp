@@ -35,3 +35,8 @@ bool CommunicationDevice::operator==(const QString &target) const {
 const QString &CommunicationDevice::getTarget() const {
 	return target;
 }
+
+bool CommunicationDevice::is_waiting_for_message() const
+{
+	return currently_in_waitReceived;
+}

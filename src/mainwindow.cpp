@@ -1,12 +1,16 @@
 #include "mainwindow.h"
+#include "CommunicationDevices/comportcommunicationdevice.h"
+#include "LuaUI/plot.h"
+#include "LuaUI/window.h"
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
 #include "console.h"
 #include "deviceworker.h"
 #include "pathsettingswindow.h"
-#include "plot.h"
 #include "qt_util.h"
 #include "scriptengine.h"
+#include "testdescriptionloader.h"
+#include "testrunner.h"
 #include "ui_mainwindow.h"
 #include "util.h"
 
@@ -48,24 +52,6 @@ namespace GUI {
 			connectedDevices,
 		};
 	}
-	static std::map<int, Plot> lua_plots;
-	struct Button {
-		Button(QPushButton *button, std::function<void()> callback)
-			: button(button)
-			, callback(std::move(callback)) {
-			connection = QObject::connect(button, &QPushButton::pressed, this->callback);
-		}
-		~Button() {
-			QObject::disconnect(connection);
-			button->setEnabled(false);
-		}
-
-		QPushButton *button = nullptr;
-		std::function<void()> callback;
-		QMetaObject::Connection connection;
-	};
-
-	static std::map<int, Button> lua_buttons;
 }
 
 using namespace std::chrono_literals;
@@ -94,8 +80,6 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 MainWindow::~MainWindow() {
-	devices_thread.quit();
-	devices_thread.wait();
 	for (auto &test : test_runners) {
 		test->interrupt();
 	}
@@ -104,8 +88,9 @@ MainWindow::~MainWindow() {
 	}
 	QApplication::processEvents();
 	test_runners.clear();
-	GUI::lua_plots.clear();
-	GUI::lua_buttons.clear();
+	QApplication::processEvents();
+	devices_thread.quit();
+	devices_thread.wait();
 	QApplication::processEvents();
 	delete ui;
 }
@@ -128,7 +113,14 @@ void MainWindow::remove_device_entry(QTreeWidgetItem *item) {
 void MainWindow::forget_device() {
 	Utility::thread_call(this, [this] {
 		auto selected_device_item = ui->devices_list->currentItem();
+		if (!selected_device_item) {
+			return;
+		}
+		while (ui->devices_list->indexOfTopLevelItem(selected_device_item) == -1) {
+			selected_device_item = selected_device_item->parent();
+		}
 		device_worker->forget_device(selected_device_item);
+		delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(selected_device_item));
 	});
 }
 
@@ -159,51 +151,6 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 	Utility::thread_call(this, [this, text, console] { console->appendHtml(text); });
 }
 
-void MainWindow::plot_create(int id, QSplitter *splitter) {
-	Utility::thread_call(this,
-						 [this, id, splitter] { GUI::lua_plots.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(splitter)).second; });
-}
-
-void MainWindow::plot_add_data(int id, double x, double y) {
-	Utility::thread_call(this, [id, x, y] { GUI::lua_plots.at(id).add(x, y); });
-}
-
-void MainWindow::plot_add_data(int id, const std::vector<double> &data) {
-	Utility::thread_call(this, [id, data] { GUI::lua_plots.at(id).add(data); });
-}
-
-void MainWindow::plot_add_data(int id, const unsigned int spectrum_start_channel, const std::vector<double> &data) {
-	Utility::thread_call(this, [id, spectrum_start_channel, data] { GUI::lua_plots.at(id).add(spectrum_start_channel, data); });
-}
-
-void MainWindow::plot_clear(int id) {
-	Utility::thread_call(this, [this, id] { GUI::lua_plots.at(id).clear(); });
-}
-
-void MainWindow::plot_drop(int id) {
-	Utility::thread_call(this, [id] { GUI::lua_plots.erase(id); });
-}
-
-void MainWindow::plot_set_offset(int id, double offset) {
-	Utility::thread_call(this, [id, offset] { GUI::lua_plots.at(id).set_offset(offset); });
-}
-
-void MainWindow::plot_set_gain(int id, double gain) {
-	Utility::thread_call(this, [id, gain] { GUI::lua_plots.at(id).set_gain(gain); });
-}
-
-void MainWindow::button_create(int id, QSplitter *splitter, const std::string &title, std::function<void()> callback) {
-	Utility::thread_call(this, [ this, id, splitter, title, callback = std::move(callback) ]() mutable {
-		auto button = new QPushButton(title.c_str(), splitter);
-		splitter->addWidget(button);
-		GUI::lua_buttons.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(button, std::move(callback)));
-	});
-}
-
-void MainWindow::button_drop(int id) {
-	Utility::thread_call(this, [this, id] { GUI::lua_buttons.erase(id); });
-}
-
 void MainWindow::show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon) {
 	Utility::thread_call(this, [this, title, message, icon] {
 		switch (icon) {
@@ -222,6 +169,10 @@ void MainWindow::show_message_box(const QString &title, const QString &message, 
 				break;
 		}
 	});
+}
+
+void MainWindow::remove_test_runner(TestRunner *runner) {
+	test_runners.erase(std::find(std::begin(test_runners), std::end(test_runners), runner));
 }
 
 void MainWindow::on_actionPaths_triggered() {
@@ -292,15 +243,17 @@ void MainWindow::on_run_test_script_button_clicked() {
 									message = runner.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
 								} catch (const sol::error &e) {
 									const auto &message = tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
-									Console::error(test->console) << message;
+									Console::error(runner.console) << message;
+									runner.interrupt();
 									return;
 								}
 								if (message) {
 									//device incompatible, reason should be inside of message
-									Console::note(test->console) << tr("Device rejected:") << message.value();
+									Console::note(runner.console) << tr("Device rejected:") << message.value();
+									runner.interrupt();
 								} else {
 									//acceptable device found
-									runner.run_script({{device.device.get(), device.protocol.get()}});
+									runner.run_script({{device.device.get(), device.protocol.get()}}, *device_worker);
 								}
 							} else {
 								assert(!"TODO: handle non-RPC protocol");
@@ -330,6 +283,12 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 	Utility::thread_call(this, [this, pos] {
 		auto item = ui->tests_list->itemAt(pos);
 		if (item) {
+			while (ui->tests_list->indexOfTopLevelItem(item) == -1) {
+				item = item->parent();
+			}
+
+			emit on_tests_list_itemClicked(item, 0);
+
 			auto test = get_test_from_ui();
 
 			QMenu menu(this);
@@ -365,6 +324,9 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 	auto item = ui->devices_list->itemAt(pos);
 	if (item) {
+		while (ui->devices_list->indexOfTopLevelItem(item) == -1) {
+			item = item->parent();
+		}
 		QMenu menu(this);
 
 		QAction action_detect(tr("Detect"));
@@ -372,7 +334,11 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 		menu.addAction(&action_detect);
 
 		QAction action_forget(tr("Forget"));
-		connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
+		if (item->text(3).isEmpty() == false) {
+			action_forget.setDisabled(true);
+		} else {
+			connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
+		}
 		menu.addAction(&action_forget);
 
 		menu.exec(ui->devices_list->mapToGlobal(pos));
@@ -417,10 +383,6 @@ TestRunner *MainWindow::get_runner_from_tab_index(int index) {
 }
 
 void MainWindow::on_test_tabs_tabCloseRequested(int index) {
-	if (index == 0) {
-		//first tab never gets closed
-		return;
-	}
 	auto tab_widget = ui->test_tabs->widget(index);
 	auto runner_it = std::find_if(std::begin(test_runners), std::end(test_runners),
 								  [tab_widget](const auto &runner) { return runner->get_lua_ui_container() == tab_widget; });
@@ -437,27 +399,16 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 			return; //canceled closing the tab
 		}
 	}
-	ui->test_tabs->removeTab(index);
 	QApplication::processEvents();
 	test_runners.erase(runner_it);
+	QApplication::processEvents();
+	ui->test_tabs->removeTab(index);
 }
 
 void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 	auto tab_index = ui->test_tabs->tabBar()->tabAt(pos);
-	if (tab_index <= 0) {
-		//clicked on the overview list
-		QMenu menu(this);
-
-		QAction action_close_finished(tr("Close finished Tests"));
-		//connect(&action_close_finished, &QAction::triggered, [this] { QMessageBox::information(MainWindow::mw, "test", "bla"); });
-		action_close_finished.setDisabled(true);
-		menu.addAction(&action_close_finished);
-
-		menu.exec(ui->test_tabs->mapToGlobal(pos));
-	} else {
-		auto runner = get_runner_from_tab_index(tab_index);
-		assert(runner);
-
+	auto runner = get_runner_from_tab_index(tab_index);
+	if (runner) {
 		QMenu menu(this);
 
 		QAction action_abort_script(tr("Abort Script"));
@@ -473,6 +424,28 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 		connect(&action_open_script_in_editor, &QAction::triggered, [this, runner] { runner->launch_editor(); });
 		menu.addAction(&action_open_script_in_editor);
 
+		QAction action_pop_out(tr("Open in extra Window"));
+		connect(&action_pop_out, &QAction::triggered, [this, runner] {
+			auto container = runner->get_lua_ui_container();
+			ui->test_tabs->removeTab(ui->test_tabs->indexOf(container));
+			new Window(runner);
+		});
+		menu.addAction(&action_pop_out);
+
+		menu.exec(ui->test_tabs->mapToGlobal(pos));
+	} else {
+		//clicked on the overview list
+		QMenu menu(this);
+
+		QAction action_close_finished(tr("Close finished Tests"));
+		//connect(&action_close_finished, &QAction::triggered, [this] { QMessageBox::information(MainWindow::mw, "test", "bla"); });
+		action_close_finished.setDisabled(true);
+		menu.addAction(&action_close_finished);
+
 		menu.exec(ui->test_tabs->mapToGlobal(pos));
 	}
+}
+
+void MainWindow::on_use_human_readable_encoding_toggled(bool checked) {
+	Console::use_human_readable_encoding = checked;
 }

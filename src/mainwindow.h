@@ -1,27 +1,28 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "CommunicationDevices/communicationdevice.h"
-#include "CommunicationDevices/comportcommunicationdevice.h"
-#include "Protocols/protocol.h"
 #include "export.h"
 #include "qt_util.h"
-#include "scriptengine.h"
-#include "testdescriptionloader.h"
-#include "testrunner.h"
 
 #include <QMainWindow>
 #include <QMessageBox>
-#include <QPlainTextEdit>
-#include <QString>
 #include <QThread>
 #include <QtSerialPort/QSerialPortInfo>
+#include <map>
 #include <memory>
 #include <vector>
 
+class CommunicationDevice;
+class ComportCommunicationDevice;
+class DeviceWorker;
+class QPlainTextEdit;
+class QSplitter;
+class QString;
 class QTreeWidget;
 class QTreeWidgetItem;
-class DeviceWorker;
+class TestDescriptionLoader;
+class TestRunner;
+struct Protocol;
 
 namespace Ui {
 	class MainWindow;
@@ -37,29 +38,26 @@ struct ComportDescription {
 };
 
 class EXPORT MainWindow : public QMainWindow {
-    Q_OBJECT
+	Q_OBJECT
 
 	public:
-    explicit MainWindow(QWidget *parent = 0);
-    ~MainWindow();
+	explicit MainWindow(QWidget *parent = 0);
+	~MainWindow();
 	static MainWindow *mw;
 	static QThread *gui_thread;
 
 	template <class Function>
 	void execute_in_gui_thread(Function &&f);
 
-	void plot_create(int id, QSplitter *splitter);
-	void plot_add_data(int id, double x, double y);
-	void plot_add_data(int id, const std::vector<double> &data);
-    void plot_add_data(int id, const unsigned int spectrum_start_channel, const std::vector<double> &data);
-	void plot_clear(int id);
-	void plot_drop(int id);
-	void plot_set_offset(int id, double offset);
-	void plot_set_gain(int id, double gain);
+	template <class Lua_UI_class, class... Args>
+	void add_lua_UI_class(int id, QSplitter *parent, Args &&... args);
+	template <class Lua_UI_class>
+	void remove_lua_UI_class(int id);
+	template <class Lua_UI_class>
+	Lua_UI_class &get_lua_UI_class(int id);
 
-	void button_create(int id, QSplitter *splitter, const std::string &title, std::function<void()> callback);
-	void button_drop(int id);
 	void show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon);
+	void remove_test_runner(TestRunner *runner);
 
 	public slots:
 	void align_columns();
@@ -83,6 +81,8 @@ class EXPORT MainWindow : public QMainWindow {
 
 	void on_test_tabs_customContextMenuRequested(const QPoint &pos);
 
+	void on_use_human_readable_encoding_toggled(bool checked);
+
 	private:
 	std::vector<TestDescriptionLoader> test_descriptions;
 	std::vector<std::unique_ptr<TestRunner>> test_runners;
@@ -91,7 +91,7 @@ class EXPORT MainWindow : public QMainWindow {
 	QThread devices_thread;
 
 	QDialog *path_dialog = nullptr;
-    Ui::MainWindow *ui;
+	Ui::MainWindow *ui;
 
 	TestDescriptionLoader *get_test_from_ui(const QTreeWidgetItem *item = nullptr);
 	TestRunner *get_runner_from_tab_index(int index);
@@ -110,6 +110,24 @@ bool operator==(const T *lhs, const std::unique_ptr<T> &rhs) {
 template <class Function>
 void MainWindow::execute_in_gui_thread(Function &&f) {
 	Utility::thread_call(this, std::forward<Function>(f));
+}
+
+template <class Lua_UI_class>
+std::map<int, Lua_UI_class> lua_classes;
+
+template <class Lua_UI_class, class... Args>
+void MainWindow::add_lua_UI_class(int id, QSplitter *parent, Args &&... args) {
+	lua_classes<Lua_UI_class>.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(parent, std::forward<Args>(args)...));
+}
+
+template <class Lua_UI_class>
+void MainWindow::remove_lua_UI_class(int id) {
+	lua_classes<Lua_UI_class>.erase(id);
+}
+
+template <class Lua_UI_class>
+Lua_UI_class &MainWindow::get_lua_UI_class(int id) {
+	return lua_classes<Lua_UI_class>.at(id);
 }
 
 #endif // MAINWINDOW_H

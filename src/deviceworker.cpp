@@ -1,4 +1,5 @@
 #include "deviceworker.h"
+#include "CommunicationDevices/comportcommunicationdevice.h"
 #include "Protocols/rpcprotocol.h"
 #include "config.h"
 #include "console.h"
@@ -7,12 +8,15 @@
 
 #include <QSettings>
 #include <QTimer>
+#include <QTreeWidgetItem>
 
 void DeviceWorker::poll_ports() {
 	Utility::thread_call(this, [this] {
 		for (auto &device : comport_devices) {
 			if (device.device->isConnected()) {
-				device.device->waitReceived(CommunicationDevice::Duration{0});
+				if (device.device->is_waiting_for_message() == false) {
+					device.device->waitReceived(CommunicationDevice::Duration{0});
+				}
 			}
 		}
 		QTimer::singleShot(16, this, &DeviceWorker::poll_ports);
@@ -88,13 +92,14 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
 	}
 }
 
+DeviceWorker::~DeviceWorker() {}
+
 void DeviceWorker::forget_device(QTreeWidgetItem *item) {
 	Utility::thread_call(this, [this, item] {
 		assert(currently_in_gui_thread() == false);
 		for (auto device_it = std::begin(comport_devices); device_it != std::end(comport_devices); ++device_it) {
 			if (device_it->ui_entry == item) {
 				device_it = comport_devices.erase(device_it);
-
 				break;
 			}
 		}
@@ -163,8 +168,11 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
 
 		for (auto &d : data) {
 			connect(comport, d.signal, [ console = console, color = d.color, fat = d.fat ](const QByteArray &data) {
-				MainWindow::mw->append_html_to_console(
-					(fat ? fat_html : normal_html).arg(QString::number(color.rgb(), 16), Utility::to_human_readable_binary_data(data)), console);
+				MainWindow::mw->append_html_to_console((fat ? fat_html : normal_html)
+														   .arg(QString::number(color.rgb(), 16), Console::use_human_readable_encoding ?
+																									  Utility::to_human_readable_binary_data(data) :
+																									  Utility::to_C_hex_encoding(data)),
+													   console);
 			});
 		}
 	});
@@ -184,6 +192,15 @@ void DeviceWorker::get_devices_with_protocol(const QString &protocol, std::promi
 		}
 		retval.set_value(candidates);
 	});
+}
+
+void DeviceWorker::set_currently_running_test(CommunicationDevice *com_device, const QString &test_name) const {
+	for (auto &device : comport_devices) {
+		if (device.device.get() == com_device) {
+			MainWindow::mw->execute_in_gui_thread([ item = device.ui_entry, test_name ] { item->setText(3, test_name); });
+			break;
+		}
+	}
 }
 
 QStringList DeviceWorker::get_string_list(ScriptEngine &script, const QString &name) {
