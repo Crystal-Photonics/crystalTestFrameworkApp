@@ -13,6 +13,7 @@ TestDescriptionLoader::TestDescriptionLoader(QTreeWidget *test_list, const QStri
 	: console(std::make_unique<QPlainTextEdit>())
 	, file_path(file_path) {
 	console->setReadOnly(true);
+	console->setMaximumBlockCount(1000);
 	name = QString{file_path.data() + file_path.lastIndexOf('/') + 1};
 	if (name.endsWith(".lua")) {
 		name.chop(4);

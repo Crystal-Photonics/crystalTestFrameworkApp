@@ -142,6 +142,7 @@ void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name,
 		auto console = new QPlainTextEdit(ui->tabWidget);
 		console->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
 		console->setReadOnly(true);
+		console->setMaximumBlockCount(1000);
 		ui->tabWidget->addTab(console, tab_name);
 		device_worker->connect_to_device_console(console, comport);
 	});
