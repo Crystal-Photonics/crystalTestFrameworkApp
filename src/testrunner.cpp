@@ -16,6 +16,7 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
 	, name(description.get_name()) {
 	console = new QPlainTextEdit();
 	console->setReadOnly(true);
+	console->setMaximumBlockCount(1000);
 	Console::note(console) << "Script started";
 	lua_ui_container->addWidget(console);
 	lua_ui_container->setOrientation(Qt::Vertical);
