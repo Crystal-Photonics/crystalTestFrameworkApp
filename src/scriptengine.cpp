@@ -268,6 +268,9 @@ struct RPCDevice {
 		if (QThread::currentThread()->isInterruptionRequested()) {
             throw sol::error("Abort Requested");
         }
+        lua->collect_garbage();
+        qDebug() << QString("lua memory used ") + QString::number(lua->memory_used()/1024) + QString("kb\n");
+
         Console::note() << QString("\"%1\" called").arg(name.c_str());
         auto function = protocol->encode_function(name);
         int param_count = 0;

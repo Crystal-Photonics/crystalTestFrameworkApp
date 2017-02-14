@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <QDebug>
 
 class CommunicationDevice;
 class QStringList;
@@ -42,7 +43,8 @@ class ScriptEngine {
 
 template <class ReturnType, class... Arguments>
 ReturnType ScriptEngine::call(const char *function_name, Arguments &&... args) {
-	sol::protected_function f = lua[function_name];
+
+    sol::protected_function f = lua[function_name];
 	auto call_res = f(std::forward<Arguments>(args)...);
 	if (call_res.valid()) {
 		return call_res;
