@@ -101,8 +101,9 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
 	};
 }
 
-ScriptEngine::ScriptEngine(QSplitter *parent)
-	: parent(parent) {}
+ScriptEngine::ScriptEngine(QSplitter *parent, QPlainTextEdit *console)
+	: parent(parent)
+	, console(console) {}
 
 ScriptEngine::~ScriptEngine() {}
 
@@ -112,12 +113,27 @@ void ScriptEngine::load_script(const QString &path) {
     try {
 		lua.open_libraries(sol::lib::base);  //load the standard lib if necessary
         lua.open_libraries(sol::lib::table); //load the standard lib if necessary
-        lua.set_function("show_warning", [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
+		lua["show_warning"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
             MainWindow::mw->show_message_box(QString::fromStdString(title.value_or("nil")) + " from " + path, QString::fromStdString(message.value_or("nil")),
                                              QMessageBox::Warning);
-        });
+		};
+		lua["print"] = [console = console](const sol::variadic_args &args) {
+			std::string text;
+			for (auto &object : args) {
+				if (sol::optional<int> i = object) {
+					text = std::to_string(i.value());
+				} else if (sol::optional<double> d = object) {
+					text = std::to_string(d.value());
+				} else if (sol::optional<std::string> s = object) {
+					text = s.value();
+				} else {
+					assert(!"TODO: add types to print");
+				}
+			}
+			Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
+		};
 
-		lua.set_function("sleep_ms", [](const unsigned int timeout_ms) {
+		lua["sleep_ms"] = [](const unsigned int timeout_ms) {
 			QEventLoop event_loop;
 			static const auto secret_exit_code = -0xF42F;
 			QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
@@ -125,7 +141,7 @@ void ScriptEngine::load_script(const QString &path) {
 			if (exit_value != secret_exit_code) {
 				throw sol::error("Interrupted");
 			}
-		});
+		};
 
         lua.script_file(path.toStdString());
 
@@ -137,7 +153,7 @@ void ScriptEngine::load_script(const QString &path) {
 													sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
 													"add_point", thread_call_wrapper<void, Plot, double, double>(&Plot::add),                        //
 													"add_spectrum",
-													[](Lua_UI_Wrapper<Plot> &plot, const sol::table &table) {
+													[](Lua_UI_Wrapper<Plot> &plot, sol::table table) {
 														std::vector<double> data;
 														data.reserve(table.size());
 														for (auto &i : table) {
@@ -259,7 +275,7 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
         case RPCRuntimeParameterDescription::Type::integer:
             return sol::make_object(lua.lua_state(), param.as_integer());
     }
-    assert("Invalid type of RPCRuntimeParameterDescription");
+	assert(!"Invalid type of RPCRuntimeParameterDescription");
     return sol::nil;
 }
 
@@ -280,7 +296,14 @@ struct RPCDevice {
             }
         }
         if (function.are_all_values_set()) {
-            auto result = protocol->call_and_wait(function);
+			if (name == "get_spectrum_recording") {
+				auto table = lua->create_table_with();
+				for (int64_t i = 0; i < 256; i++) {
+					table.add(sol::make_object(lua->lua_state(), i));
+				}
+				return table;
+			}
+			auto result = protocol->call_and_wait(function);
 
             if (result) {
                 try {

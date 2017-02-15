@@ -11,12 +11,15 @@
 #include <QSplitter>
 
 TestRunner::TestRunner(const TestDescriptionLoader &description)
-	: lua_ui_container(new QSplitter(MainWindow::mw))
-	, script(lua_ui_container)
+	: console([] {
+		auto console = new QPlainTextEdit();
+		console->setReadOnly(true);
+		console->setMaximumBlockCount(1000);
+		return console;
+	}())
+	, lua_ui_container(new QSplitter(MainWindow::mw))
+	, script(lua_ui_container, console)
 	, name(description.get_name()) {
-	console = new QPlainTextEdit();
-	console->setReadOnly(true);
-	console->setMaximumBlockCount(1000);
 	Console::note(console) << "Script started";
 	lua_ui_container->addWidget(console);
 	lua_ui_container->setOrientation(Qt::Vertical);

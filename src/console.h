@@ -25,6 +25,7 @@ struct Console {
 	static ConsoleProxy error(std::unique_ptr<QPlainTextEdit> &console);
 	static ConsoleProxy debug(QPlainTextEdit *console = nullptr);
 	static ConsoleProxy debug(std::unique_ptr<QPlainTextEdit> &console);
+	static ConsoleProxy script(QPlainTextEdit *console);
 	static MainWindow *mw;
 	static bool use_human_readable_encoding;
 
@@ -37,6 +38,7 @@ struct Console {
 		QStringList s;
 		QString prefix;
 		QColor color;
+		bool fat = false;
 	};
 	static std::false_type qstringlist_appandable(...);
 	template <class T>

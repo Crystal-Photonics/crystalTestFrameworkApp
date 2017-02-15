@@ -58,7 +58,7 @@ void TestDescriptionLoader::launch_editor() {
 void TestDescriptionLoader::load_description() {
 	ui_entry->setText(1, "");
 	try {
-		ScriptEngine script{nullptr};
+		ScriptEngine script{nullptr, nullptr};
 		script.load_script(file_path);
 		auto prots = script.get_string_list("protocols");
 		protocols.clear();

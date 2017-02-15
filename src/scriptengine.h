@@ -11,6 +11,7 @@
 class CommunicationDevice;
 class QStringList;
 class QSplitter;
+class QPlainTextEdit;
 struct LuaUI;
 struct Protocol;
 
@@ -20,7 +21,7 @@ class ScriptEngine {
 	friend class TestDescriptionLoader;
 	friend class DeviceWorker;
 
-	ScriptEngine(QSplitter *parent);
+	ScriptEngine(QSplitter *parent, QPlainTextEdit *console);
 	~ScriptEngine();
 	void load_script(const QString &path);
 	static void launch_editor(QString path, int error_line = 1);
@@ -38,6 +39,7 @@ class ScriptEngine {
 	QString path;
 	int error_line = 0;
 	QSplitter *parent = nullptr;
+	QPlainTextEdit *console = nullptr;
 };
 
 template <class ReturnType, class... Arguments>
