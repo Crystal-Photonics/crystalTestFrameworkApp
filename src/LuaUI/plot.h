@@ -18,6 +18,7 @@ class Plot {
 	void add(const std::vector<double> &data);
 	void add(const unsigned int spectrum_start_channel, const std::vector<double> &data);
 	void clear();
+    double integrate_ci(double integral_start_ci, double integral_end_ci);
 	void set_offset(double offset);
 	void set_gain(double gain);
 

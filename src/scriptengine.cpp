@@ -111,8 +111,11 @@ void ScriptEngine::load_script(const QString &path) {
 	//NOTE: When using lambdas do not capture `this` or by reference, because it breaks when the ScriptEngine is moved
     this->path = path;
     try {
-		lua.open_libraries(sol::lib::base);  //load the standard lib if necessary
-        lua.open_libraries(sol::lib::table); //load the standard lib if necessary
+		//load the standard libs if necessary
+		lua.open_libraries(sol::lib::base);
+		lua.open_libraries(sol::lib::table);
+		lua.open_libraries(sol::lib::math);
+		lua.open_libraries(sol::lib::string);
 		lua["show_warning"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
             MainWindow::mw->show_message_box(QString::fromStdString(title.value_or("nil")) + " from " + path, QString::fromStdString(message.value_or("nil")),
                                              QMessageBox::Warning);
@@ -177,8 +180,9 @@ void ScriptEngine::load_script(const QString &path) {
 														});
 													}, //
 													"clear",
-													thread_call_wrapper(&Plot::clear),                    //
-													"set_offset", thread_call_wrapper(&Plot::set_offset), //
+													thread_call_wrapper(&Plot::clear),                        //
+													"set_offset", thread_call_wrapper(&Plot::set_offset),     //
+                                                    "integrate_ci", thread_call_wrapper(&Plot::integrate_ci), //
 													"set_gain", thread_call_wrapper(&Plot::set_gain));
 		//bind button
 		ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //
@@ -284,6 +288,9 @@ struct RPCDevice {
 		if (QThread::currentThread()->isInterruptionRequested()) {
             throw sol::error("Abort Requested");
         }
+        lua->collect_garbage();
+        //qDebug() << QString("lua memory used ") + QString::number(lua->memory_used()/1024) + QString("kb\n");
+
         Console::note() << QString("\"%1\" called").arg(name.c_str());
         auto function = protocol->encode_function(name);
         int param_count = 0;
