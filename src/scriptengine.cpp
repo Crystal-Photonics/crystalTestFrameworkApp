@@ -112,10 +112,9 @@ void ScriptEngine::load_script(const QString &path) {
     this->path = path;
     try {
 		//load the standard libs if necessary
-		lua.open_libraries(sol::lib::base);
-		lua.open_libraries(sol::lib::table);
-		lua.open_libraries(sol::lib::math);
-		lua.open_libraries(sol::lib::string);
+		lua.open_libraries();
+
+		//add generic function
 		lua["show_warning"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
             MainWindow::mw->show_message_box(QString::fromStdString(title.value_or("nil")) + " from " + path, QString::fromStdString(message.value_or("nil")),
                                              QMessageBox::Warning);
@@ -135,7 +134,6 @@ void ScriptEngine::load_script(const QString &path) {
 			}
 			Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
 		};
-
 		lua["sleep_ms"] = [](const unsigned int timeout_ms) {
 			QEventLoop event_loop;
 			static const auto secret_exit_code = -0xF42F;
@@ -271,11 +269,11 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
             return table;
         }
         case RPCRuntimeParameterDescription::Type::character:
-            return sol::make_object(lua.lua_state(), "TODO: Parse return value of type character");
+			throw sol::error("TODO: Parse return value of type character");
         case RPCRuntimeParameterDescription::Type::enumeration:
-            return sol::make_object(lua.lua_state(), "TODO: Parse return value of type enumeration");
+			return sol::make_object(lua.lua_state(), param.as_enum().value);
         case RPCRuntimeParameterDescription::Type::structure:
-            return sol::make_object(lua.lua_state(), "TODO: Parse return value of type structure");
+			throw sol::error("TODO: Parse return value of type structure");
         case RPCRuntimeParameterDescription::Type::integer:
             return sol::make_object(lua.lua_state(), param.as_integer());
     }
@@ -338,6 +336,33 @@ struct RPCDevice {
     ScriptEngine *engine = nullptr;
 };
 
+void add_enum_type(const RPCRuntimeParameterDescription &param, sol::state &lua) {
+	if (param.get_type() == RPCRuntimeParameterDescription::Type::enumeration) {
+		const auto &enum_description = param.as_enumeration();
+		auto table = lua.create_named_table(enum_description.enum_name);
+		for (auto &value : enum_description.values) {
+			table[value.name] = value.to_int();
+			table["to_string"] = [enum_description](int enum_value_param) -> std::string {
+				for (const auto &enum_value : enum_description.values) {
+					if (enum_value.to_int() == enum_value_param) {
+						return enum_value.name;
+					}
+				}
+				return "";
+			};
+		}
+	}
+}
+
+void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua) {
+	for (auto &param : function.get_request_parameters()) {
+		add_enum_type(param, lua);
+	}
+	for (auto &param : function.get_reply_parameters()) {
+		add_enum_type(param, lua);
+	}
+}
+
 void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices) {
 	auto reset_lua_state = [this] {
 		sol::state default_state;
@@ -355,6 +380,7 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
 						const auto &function_name = function.get_function_name();
 						type_reg.set(function_name,
 									 [function_name](RPCDevice &device, const sol::variadic_args &va) { return device.call_rpc_function(function_name, va); });
+						add_enum_types(function, lua);
 					}
 					const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
 					lua.set_usertype(type_name, type_reg);
