@@ -114,7 +114,7 @@ std::string to_string(const sol::object &o) {
 		case sol::type::function:
 			return "function";
 		case sol::type::number:
-			return std::to_string(o.as<int>());
+            return std::to_string(o.as<double>());
 		case sol::type::nil:
 		case sol::type::none:
 			return "nil";
@@ -200,6 +200,79 @@ void ScriptEngine::load_script(const QString &path) {
             retval *= faktor;
             retval = round(retval);
 			return retval / faktor;
+        };
+
+        lua["table_sum"] = [](sol::table table) {
+            double retval = 0;
+            for (auto &i : table) {
+                retval += i.second.as<double>();
+            }
+            return retval;
+        };
+
+        lua["table_mean"] = [](sol::table table) {
+            double retval = 0;
+            int count = 0;
+            for (auto &i : table) {
+                retval += i.second.as<double>();
+                count += 1;
+            }
+            if(count){
+                retval /= count;
+            }
+            return retval;
+        };
+
+        lua["table_max"] = [](sol::table table) {
+            double max = 0;
+            bool first = true;
+            for (auto &i : table) {
+                double val = i.second.as<double>();
+                if ((val > max) || first){
+                    max = val;
+                }
+                first = false;
+            }
+            return max;
+        };
+
+        lua["table_min"] = [](sol::table table) {
+            double min = 0;
+            bool first = true;
+            for (auto &i : table) {
+                double val = i.second.as<double>();
+                if ((val < min) || first){
+                    min = val;
+                }
+                first = false;
+            }
+            return min;
+        };
+
+        lua["table_max_abs"] = [](sol::table table) {
+            double max = 0;
+            bool first = true;
+            for (auto &i : table) {
+                double val = abs(i.second.as<double>());
+                if ((val > max) || first){
+                    max = val;
+                }
+                first = false;
+            }
+            return max;
+        };
+
+        lua["table_min_abs"] = [](sol::table table) {
+            double min = 0;
+            bool first = true;
+            for (auto &i : table) {
+                double val = abs(i.second.as<double>());
+                if ((val < min) || first){
+                    min = val;
+                }
+                first = false;
+            }
+            return min;
         };
 
         lua.script_file(path.toStdString());
