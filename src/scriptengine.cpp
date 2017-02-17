@@ -107,6 +107,64 @@ ScriptEngine::ScriptEngine(QSplitter *parent, QPlainTextEdit *console)
 
 ScriptEngine::~ScriptEngine() {}
 
+std::string to_string(const sol::object &o) {
+	switch (o.get_type()) {
+		case sol::type::boolean:
+			return o.as<bool>() ? "true" : "false";
+		case sol::type::function:
+			return "function";
+		case sol::type::number:
+			return std::to_string(o.as<int>());
+		case sol::type::nil:
+		case sol::type::none:
+			return "nil";
+		case sol::type::string:
+			return "\"" + o.as<std::string>() + "\"";
+		case sol::type::table: {
+			auto table = o.as<sol::table>();
+			if (table.size() == 0) {
+				return "{}";
+			}
+			std::string retval{"{"};
+			for (auto &object : table) {
+				retval += to_string(object.first) + ":" + to_string(object.second);
+				retval += ",";
+			}
+			retval.back() = '}';
+			return retval;
+		}
+		default:
+			return "unknown type " + std::to_string(static_cast<int>(o.get_type()));
+	}
+}
+
+std::string to_string(const sol::stack_proxy &object) {
+	if (sol::optional<int> i = object) {
+		return std::to_string(i.value());
+	} else if (sol::optional<double> d = object) {
+		return std::to_string(d.value());
+	} else if (sol::optional<std::string> s = object) {
+		return s.value();
+	} else if (sol::optional<sol::nil_t> n = object) {
+		return "nil";
+	} else if (sol::optional<sol::table> table = object) {
+		sol::table t = table.value();
+		if (t.size() == 0) {
+			return "{}";
+		}
+		std::string retval = "{";
+		for (auto &o : t) {
+			retval += to_string(o.second);
+			retval += ", ";
+		}
+		retval.pop_back();
+		retval.back() = '}';
+		return retval;
+	} else {
+		throw std::runtime_error("TODO: add types to print");
+	}
+}
+
 void ScriptEngine::load_script(const QString &path) {
     //NOTE: When using lambdas do not capture `this` or by reference, because it breaks when the ScriptEngine is moved
     this->path = path;
@@ -122,15 +180,7 @@ void ScriptEngine::load_script(const QString &path) {
         lua["print"] = [console = console](const sol::variadic_args &args) {
             std::string text;
             for (auto &object : args) {
-                if (sol::optional<int> i = object) {
-                    text = std::to_string(i.value());
-                } else if (sol::optional<double> d = object) {
-                    text = std::to_string(d.value());
-                } else if (sol::optional<std::string> s = object) {
-                    text = s.value();
-                } else {
-                    assert(!"TODO: add types to print");
-                }
+				text += to_string(object);
             }
             Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
         };
@@ -144,12 +194,12 @@ void ScriptEngine::load_script(const QString &path) {
             }
         };
 
-        lua["round"] = [](const double value, const unsigned int precision=0 ) {
-            double faktor =  pow(10,precision);
+		lua["round"] = [](const double value, const unsigned int precision = 0) {
+			double faktor = pow(10, precision);
             double retval = value;
             retval *= faktor;
             retval = round(retval);
-            return retval/faktor;
+			return retval / faktor;
         };
 
         lua.script_file(path.toStdString());
@@ -186,8 +236,8 @@ void ScriptEngine::load_script(const QString &path) {
                                                         });
                                                     }, //
                                                     "clear",
-                                                    thread_call_wrapper(&Plot::clear),                    //
-                                                    "set_offset", thread_call_wrapper(&Plot::set_offset), //
+													thread_call_wrapper(&Plot::clear),                                            //
+													"set_offset", thread_call_wrapper(&Plot::set_offset),                         //
                                                     "set_enable_median", thread_call_wrapper(&Plot::set_enable_median),           //
                                                     "set_median_kernel_size", thread_call_wrapper(&Plot::set_median_kernel_size), //
                                                     "integrate_ci", thread_call_wrapper(&Plot::integrate_ci),                     //
