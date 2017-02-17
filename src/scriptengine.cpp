@@ -144,12 +144,12 @@ void ScriptEngine::load_script(const QString &path) {
             }
         };
 
-        lua["round"] = [](const double value, const unsigned int precision=0 ) {
-            double faktor =  pow(10,precision);
+        lua["round"] = [](const double value, const unsigned int precision = 0) {
+            double faktor = pow(10, precision);
             double retval = value;
             retval *= faktor;
             retval = round(retval);
-            return retval/faktor;
+            return retval / faktor;
         };
 
         lua.script_file(path.toStdString());
@@ -186,8 +186,8 @@ void ScriptEngine::load_script(const QString &path) {
                                                         });
                                                     }, //
                                                     "clear",
-                                                    thread_call_wrapper(&Plot::clear),                    //
-                                                    "set_offset", thread_call_wrapper(&Plot::set_offset), //
+                                                    thread_call_wrapper(&Plot::clear),                                            //
+                                                    "set_offset", thread_call_wrapper(&Plot::set_offset),                         //
                                                     "set_enable_median", thread_call_wrapper(&Plot::set_enable_median),           //
                                                     "set_median_kernel_size", thread_call_wrapper(&Plot::set_median_kernel_size), //
                                                     "integrate_ci", thread_call_wrapper(&Plot::integrate_ci),                     //
@@ -206,6 +206,10 @@ void ScriptEngine::load_script(const QString &path) {
                                                         sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<LineEdit>(parent); }, //
                                                         "set_placeholder_text", thread_call_wrapper(&LineEdit::set_placeholder_text),                        //
                                                         "get_text", thread_call_wrapper(&LineEdit::get_text),                                                //
+                                                        "set_name", thread_call_wrapper(&LineEdit::set_name),                                                //
+                                                        "get_name", thread_call_wrapper(&LineEdit::get_name),                                                //
+                                                        "get_number", thread_call_wrapper(&LineEdit::get_number),                                            //
+
                                                         "await_return",
                                                         [](const Lua_UI_Wrapper<LineEdit> &lew) {
                                                             auto le = MainWindow::mw->get_lua_UI_class<LineEdit>(lew.id);
