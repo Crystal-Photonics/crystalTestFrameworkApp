@@ -144,7 +144,7 @@ void ScriptEngine::load_script(const QString &path) {
             }
         };
 
-        lua["round"] = [](const double value, const int precision=0 ) {
+        lua["round"] = [](const double value, const unsigned int precision=0 ) {
             double faktor =  pow(10,precision);
             double retval = value;
             retval *= faktor;
