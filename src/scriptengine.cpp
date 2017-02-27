@@ -102,7 +102,8 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
 }
 
 ScriptEngine::ScriptEngine(QSplitter *parent, QPlainTextEdit *console)
-    : parent(parent)
+	: lua(std::make_unique<sol::state>())
+	, parent(parent)
     , console(console) {}
 
 ScriptEngine::~ScriptEngine() {}
@@ -161,22 +162,22 @@ void ScriptEngine::load_script(const QString &path) {
     this->path = path;
     try {
         //load the standard libs if necessary
-        lua.open_libraries();
+		lua->open_libraries();
 
         //add generic function
 		{
-			lua["show_warning"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
+			(*lua)["show_warning"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
 				MainWindow::mw->show_message_box(QString::fromStdString(title.value_or("nil")) + " from " + path,
 												 QString::fromStdString(message.value_or("nil")), QMessageBox::Warning);
 			};
-			lua["print"] = [console = console](const sol::variadic_args &args) {
+			(*lua)["print"] = [console = console](const sol::variadic_args &args) {
 				std::string text;
 				for (auto &object : args) {
 					text += to_string(object);
 				}
 				Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
 			};
-			lua["sleep_ms"] = [](const unsigned int timeout_ms) {
+			(*lua)["sleep_ms"] = [](const unsigned int timeout_ms) {
 				QEventLoop event_loop;
 				static const auto secret_exit_code = -0xF42F;
 				QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
@@ -186,7 +187,7 @@ void ScriptEngine::load_script(const QString &path) {
 				}
 			};
 
-			lua["round"] = [](const double value, const unsigned int precision = 0) {
+			(*lua)["round"] = [](const double value, const unsigned int precision = 0) {
 				double faktor = pow(10, precision);
 				double retval = value;
 				retval *= faktor;
@@ -196,7 +197,7 @@ void ScriptEngine::load_script(const QString &path) {
 		}
 		//table functions
 		{
-			lua["table_sum"] = [](sol::table table) {
+			(*lua)["table_sum"] = [](sol::table table) {
 				double retval = 0;
 				for (auto &i : table) {
 					retval += i.second.as<double>();
@@ -204,7 +205,7 @@ void ScriptEngine::load_script(const QString &path) {
 				return retval;
 			};
 
-			lua["table_mean"] = [](sol::table table) {
+			(*lua)["table_mean"] = [](sol::table table) {
 				double retval = 0;
 				int count = 0;
 				for (auto &i : table) {
@@ -217,8 +218,8 @@ void ScriptEngine::load_script(const QString &path) {
 				return retval;
 			};
 
-			lua["table_add_table"] = [this](sol::table a, sol::table b) {
-				sol::table retval = create_table();
+			(*lua)["table_add_table"] = [&lua = *lua](sol::table a, sol::table b) {
+				sol::table retval = lua.create_table_with();
 				for (size_t i = 1; i <= a.size(); i++) {
 					double sum_i = a[i].get<double>() + b[i].get<double>();
 					retval.add(sum_i);
@@ -226,8 +227,8 @@ void ScriptEngine::load_script(const QString &path) {
 				return retval;
 			};
 
-			lua["table_add_constant"] = [this](sol::table a, double b) {
-				sol::table retval = create_table();
+			(*lua)["table_add_constant"] = [&lua = *lua](sol::table a, double b) {
+				sol::table retval = lua.create_table_with();
 				for (size_t i = 1; i <= a.size(); i++) {
 					double sum_i = a[i].get<double>() + b;
 					retval.add(sum_i);
@@ -235,16 +236,16 @@ void ScriptEngine::load_script(const QString &path) {
 				return retval;
 			};
 
-			lua["table_equal_table"] = [this](sol::table a, sol::table b) {
+			(*lua)["table_equal_table"] = [](sol::table a, sol::table b) {
 				for (size_t i = 1; i <= a.size(); i++) {
-					if (a[i].get<double>() != b[i].get<double>()) {
+					if (a[i].get<double>() != b[i].get<double>()) { //TODO: fix double comparison
 						return false;
 					}
 				}
 				return true;
 			};
 
-			lua["table_max"] = [](sol::table table) {
+			(*lua)["table_max"] = [](sol::table table) {
 				double max = 0;
 				bool first = true;
 				for (auto &i : table) {
@@ -257,7 +258,7 @@ void ScriptEngine::load_script(const QString &path) {
 				return max;
 			};
 
-			lua["table_min"] = [](sol::table table) {
+			(*lua)["table_min"] = [](sol::table table) {
 				double min = 0;
 				bool first = true;
 				for (auto &i : table) {
@@ -270,11 +271,11 @@ void ScriptEngine::load_script(const QString &path) {
 				return min;
 			};
 
-			lua["table_max_abs"] = [](sol::table table) {
+			(*lua)["table_max_abs"] = [](sol::table table) {
 				double max = 0;
 				bool first = true;
 				for (auto &i : table) {
-					double val = abs(i.second.as<double>());
+					double val = std::abs(i.second.as<double>());
 					if ((val > max) || first) {
 						max = val;
 					}
@@ -283,11 +284,11 @@ void ScriptEngine::load_script(const QString &path) {
 				return max;
 			};
 
-			lua["table_min_abs"] = [](sol::table table) {
+			(*lua)["table_min_abs"] = [](sol::table table) {
 				double min = 0;
 				bool first = true;
 				for (auto &i : table) {
-					double val = abs(i.second.as<double>());
+					double val = std::abs(i.second.as<double>());
 					if ((val < min) || first) {
 						min = val;
 					}
@@ -298,7 +299,7 @@ void ScriptEngine::load_script(const QString &path) {
 		}
 
         //bind UI
-        auto ui_table = lua.create_named_table("Ui");
+		auto ui_table = lua->create_named_table("Ui");
 
         //bind plot
 		{
@@ -371,7 +372,7 @@ void ScriptEngine::load_script(const QString &path) {
 				} //
 				);
 		}
-		lua.script_file(path.toStdString());
+		lua->script_file(path.toStdString());
 	} catch (const sol::error &error) {
         set_error(error);
         throw;
@@ -401,12 +402,12 @@ void ScriptEngine::launch_editor() const {
 }
 
 sol::table ScriptEngine::create_table() {
-    return lua.create_table_with();
+	return lua->create_table_with();
 }
 
 QStringList ScriptEngine::get_string_list(const QString &name) {
     QStringList retval;
-    sol::table t = lua.get<sol::table>(name.toStdString());
+	sol::table t = lua->get<sol::table>(name.toStdString());
     try {
         if (t.valid() == false) {
             return retval;
@@ -428,7 +429,7 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
             if (array.size() == 1) {
                 return create_lua_object_from_RPC_answer(array.front(), lua);
             }
-            auto table = lua.create_table_with();
+			auto table = lua.create_table_with();
 			for (auto &element : array) {
 				table.add(create_lua_object_from_RPC_answer(element, lua));
             }
@@ -437,7 +438,7 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
         case RPCRuntimeParameterDescription::Type::character:
             throw sol::error("TODO: Parse return value of type character");
         case RPCRuntimeParameterDescription::Type::enumeration:
-            return sol::make_object(lua.lua_state(), param.as_enum().value);
+			return sol::make_object(lua.lua_state(), param.as_enum().value);
 		case RPCRuntimeParameterDescription::Type::structure: {
 			auto table = lua.create_table_with();
 			for (auto &element : param.as_struct()) {
@@ -446,7 +447,7 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
 			return table;
 		}
         case RPCRuntimeParameterDescription::Type::integer:
-            return sol::make_object(lua.lua_state(), param.as_integer());
+			return sol::make_object(lua.lua_state(), param.as_integer());
     }
     assert(!"Invalid type of RPCRuntimeParameterDescription");
     return sol::nil;
@@ -510,7 +511,7 @@ struct RPCDevice {
 void add_enum_type(const RPCRuntimeParameterDescription &param, sol::state &lua) {
     if (param.get_type() == RPCRuntimeParameterDescription::Type::enumeration) {
         const auto &enum_description = param.as_enumeration();
-        auto table = lua.create_named_table(enum_description.enum_name);
+		auto table = lua.create_named_table(enum_description.enum_name);
         for (auto &value : enum_description.values) {
             table[value.name] = value.to_int();
             table["to_string"] = [enum_description](int enum_value_param) -> std::string {
@@ -536,31 +537,30 @@ void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua) {
 
 void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices) {
     auto reset_lua_state = [this] {
-        sol::state default_state;
-        std::swap(lua, default_state);
+		lua = std::make_unique<sol::state>();
         load_script(path);
     };
     try {
         {
-            auto device_list = lua.create_table_with();
+			auto device_list = lua->create_table_with();
             for (auto &device_protocol : devices) {
                 if (auto rpcp = dynamic_cast<RPCProtocol *>(device_protocol.second)) {
-                    device_list.add(RPCDevice{&lua, rpcp, device_protocol.first, this});
-                    auto type_reg = lua.create_simple_usertype<RPCDevice>();
+					device_list.add(RPCDevice{&*lua, rpcp, device_protocol.first, this});
+					auto type_reg = lua->create_simple_usertype<RPCDevice>();
                     for (auto &function : rpcp->get_description().get_functions()) {
                         const auto &function_name = function.get_function_name();
                         type_reg.set(function_name,
                                      [function_name](RPCDevice &device, const sol::variadic_args &va) { return device.call_rpc_function(function_name, va); });
-                        add_enum_types(function, lua);
+						add_enum_types(function, *lua);
                     }
                     const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
-                    lua.set_usertype(type_name, type_reg);
+					lua->set_usertype(type_name, type_reg);
                 } else {
                     //TODO: other protocols
                     throw std::runtime_error("invalid protocol: " + device_protocol.second->type.toStdString());
                 }
             }
-            lua["run"](device_list);
+			(*lua)["run"](device_list);
         }
         reset_lua_state();
     } catch (const sol::error &e) {
