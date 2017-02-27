@@ -453,24 +453,55 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
     return sol::nil;
 }
 
+static void set_runtime_parameter(RPCRuntimeEncodedParam &param, sol::object object) {
+	if (param.get_description()->get_type() == RPCRuntimeParameterDescription::Type::array && param.get_description()->as_array().number_of_elements == 1) {
+		return set_runtime_parameter(param[0], object);
+	}
+	switch (object.get_type()) {
+		case sol::type::boolean:
+			param.set_value(object.as<bool>() ? 1 : 0);
+			break;
+		case sol::type::function:
+			throw sol::error("Cannot pass an object of type function to RPC");
+		case sol::type::number:
+			param.set_value(object.as<int64_t>());
+			break;
+		case sol::type::nil:
+		case sol::type::none:
+			throw sol::error("Cannot pass an object of type nil to RPC");
+		case sol::type::string:
+			param.set_value(object.as<std::string>());
+			break;
+		case sol::type::table: {
+			sol::table t = object.as<sol::table>();
+			if (t.size()) {
+				for (std::size_t i = 0; i < t.size(); i++) {
+					set_runtime_parameter(param[i], t[i]);
+				}
+			} else {
+				for (auto &v : t) {
+					set_runtime_parameter(param[v.first.as<std::string>()], v.second);
+				}
+			}
+			break;
+		}
+		default:
+			throw sol::error("Cannot pass an object of unknown type " + std::to_string(static_cast<int>(object.get_type())) + " to RPC");
+	}
+}
+
 struct RPCDevice {
     sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
         if (QThread::currentThread()->isInterruptionRequested()) {
             throw sol::error("Abort Requested");
         }
-        lua->collect_garbage();
-        //qDebug() << QString("lua memory used ") + QString::number(lua->memory_used()/1024) + QString("kb\n");
 
         Console::note() << QString("\"%1\" called").arg(name.c_str());
         auto function = protocol->encode_function(name);
         int param_count = 0;
         for (auto &arg : va) {
             auto &param = function.get_parameter(param_count++);
-            if (param.is_integral_type()) {
-                param = arg.get<int>();
-            } else {
-                param = arg.get<std::string>();
-            }
+			set_runtime_parameter(param, arg);
         }
         if (function.are_all_values_set()) {
             if (name == "get_spectrum_recording") {
