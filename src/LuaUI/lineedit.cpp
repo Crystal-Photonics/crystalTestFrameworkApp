@@ -1,8 +1,8 @@
 #include "lineedit.h"
 
+#include <QInputDialog>
 #include <QLineEdit>
 #include <QSplitter>
-#include <QInputDialog>
 #include <QString>
 
 LineEdit::LineEdit(QSplitter *parent)
@@ -23,22 +23,20 @@ std::string LineEdit::get_text() const {
     return edit->text().toStdString();
 }
 
-void LineEdit::set_name(const std::string &text)
-{
+void LineEdit::set_name(const std::string &text) {
     name = text;
 }
 
-std::string LineEdit::get_name() const
-{
+std::string LineEdit::get_name() const {
     return name;
 }
 
-double LineEdit::get_number() const
-{
+double LineEdit::get_number() const {
     bool ok = true;
     double retval = edit->text().toDouble(&ok);
-    if (ok == false){
-       retval = QInputDialog::getDouble(edit, "Invalid value", "Der Wert \"" +edit->text()+ "\" im Feld \"" +QString::fromStdString(name) + "\" ist keine Nummer. Bitte tragen Sie die nach.");
+	if (ok == false) {
+		retval = QInputDialog::getDouble(edit, "Invalid value", "Der Wert \"" + edit->text() + "\" im Feld \"" + QString::fromStdString(name) +
+																	"\" ist keine Nummer. Bitte tragen Sie die nach.");
     }
     return retval;
 }

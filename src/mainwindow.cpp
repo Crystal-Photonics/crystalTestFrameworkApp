@@ -439,8 +439,18 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 		QMenu menu(this);
 
 		QAction action_close_finished(tr("Close finished Tests"));
-		//connect(&action_close_finished, &QAction::triggered, [this] { QMessageBox::information(MainWindow::mw, "test", "bla"); });
-		action_close_finished.setDisabled(true);
+		connect(&action_close_finished, &QAction::triggered, [this] {
+			test_runners.erase(std::remove_if(std::begin(test_runners), std::end(test_runners),
+											  [this](const auto &test) {
+												  if (test->is_running()) {
+													  return false;
+												  }
+												  auto container = test->get_lua_ui_container();
+												  ui->test_tabs->removeTab(ui->test_tabs->indexOf(container));
+												  return true;
+											  }),
+							   std::end(test_runners));
+		});
 		menu.addAction(&action_close_finished);
 
 		menu.exec(ui->test_tabs->mapToGlobal(pos));
