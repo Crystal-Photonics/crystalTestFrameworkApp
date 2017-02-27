@@ -108,61 +108,61 @@ ScriptEngine::ScriptEngine(QSplitter *parent, QPlainTextEdit *console)
 ScriptEngine::~ScriptEngine() {}
 
 std::string to_string(const sol::object &o) {
-	switch (o.get_type()) {
-		case sol::type::boolean:
-			return o.as<bool>() ? "true" : "false";
-		case sol::type::function:
-			return "function";
-		case sol::type::number:
+    switch (o.get_type()) {
+        case sol::type::boolean:
+            return o.as<bool>() ? "true" : "false";
+        case sol::type::function:
+            return "function";
+        case sol::type::number:
             return std::to_string(o.as<double>());
-		case sol::type::nil:
-		case sol::type::none:
-			return "nil";
-		case sol::type::string:
-			return "\"" + o.as<std::string>() + "\"";
-		case sol::type::table: {
-			auto table = o.as<sol::table>();
-			if (table.size() == 0) {
-				return "{}";
-			}
-			std::string retval{"{"};
-			for (auto &object : table) {
-				retval += to_string(object.first) + ":" + to_string(object.second);
-				retval += ",";
-			}
-			retval.back() = '}';
-			return retval;
-		}
-		default:
-			return "unknown type " + std::to_string(static_cast<int>(o.get_type()));
-	}
+        case sol::type::nil:
+        case sol::type::none:
+            return "nil";
+        case sol::type::string:
+            return "\"" + o.as<std::string>() + "\"";
+        case sol::type::table: {
+            auto table = o.as<sol::table>();
+            if (table.size() == 0) {
+                return "{}";
+            }
+            std::string retval{"{"};
+            for (auto &object : table) {
+                retval += to_string(object.first) + ":" + to_string(object.second);
+                retval += ",";
+            }
+            retval.back() = '}';
+            return retval;
+        }
+        default:
+            return "unknown type " + std::to_string(static_cast<int>(o.get_type()));
+    }
 }
 
 std::string to_string(const sol::stack_proxy &object) {
-	if (sol::optional<int> i = object) {
-		return std::to_string(i.value());
-	} else if (sol::optional<double> d = object) {
-		return std::to_string(d.value());
-	} else if (sol::optional<std::string> s = object) {
-		return s.value();
-	} else if (sol::optional<sol::nil_t> n = object) {
-		return "nil";
-	} else if (sol::optional<sol::table> table = object) {
-		sol::table t = table.value();
-		if (t.size() == 0) {
-			return "{}";
-		}
-		std::string retval = "{";
-		for (auto &o : t) {
-			retval += to_string(o.second);
-			retval += ", ";
-		}
-		retval.pop_back();
-		retval.back() = '}';
-		return retval;
-	} else {
-		throw std::runtime_error("TODO: add types to print");
-	}
+    if (sol::optional<int> i = object) {
+        return std::to_string(i.value());
+    } else if (sol::optional<double> d = object) {
+        return std::to_string(d.value());
+    } else if (sol::optional<std::string> s = object) {
+        return s.value();
+    } else if (sol::optional<sol::nil_t> n = object) {
+        return "nil";
+    } else if (sol::optional<sol::table> table = object) {
+        sol::table t = table.value();
+        if (t.size() == 0) {
+            return "{}";
+        }
+        std::string retval = "{";
+        for (auto &o : t) {
+            retval += to_string(o.second);
+            retval += ", ";
+        }
+        retval.pop_back();
+        retval.back() = '}';
+        return retval;
+    } else {
+        throw std::runtime_error("TODO: add types to print");
+    }
 }
 
 void ScriptEngine::load_script(const QString &path) {
@@ -180,7 +180,7 @@ void ScriptEngine::load_script(const QString &path) {
         lua["print"] = [console = console](const sol::variadic_args &args) {
             std::string text;
             for (auto &object : args) {
-				text += to_string(object);
+                text += to_string(object);
             }
             Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
         };
@@ -194,12 +194,12 @@ void ScriptEngine::load_script(const QString &path) {
             }
         };
 
-		lua["round"] = [](const double value, const unsigned int precision = 0) {
-			double faktor = pow(10, precision);
+        lua["round"] = [](const double value, const unsigned int precision = 0) {
+            double faktor = pow(10, precision);
             double retval = value;
             retval *= faktor;
             retval = round(retval);
-			return retval / faktor;
+            return retval / faktor;
         };
 
         lua["table_sum"] = [](sol::table table) {
@@ -217,18 +217,47 @@ void ScriptEngine::load_script(const QString &path) {
                 retval += i.second.as<double>();
                 count += 1;
             }
-            if(count){
+            if (count) {
                 retval /= count;
             }
             return retval;
         };
+
+        lua["table_add_table"] = [this](sol::table a, sol::table b) {
+            sol::table retval = create_table();
+            for (size_t i = 1; i <= a.size(); i++) {
+                double sum_i = a[i].get<double>() + b[i].get<double>();
+                retval.add(sum_i);
+            }
+            return retval;
+        };
+
+        lua["table_add_constant"] = [this](sol::table a, double b) {
+            sol::table retval = create_table();
+            for (size_t i = 1; i <= a.size(); i++) {
+                double sum_i = a[i].get<double>() + b;
+                retval.add(sum_i);
+            }
+            return retval;
+        };
+
+
+        lua["table_equal_table"] = [this](sol::table a, sol::table b) {
+            for (size_t i = 1; i <= a.size(); i++) {
+                if (a[i].get<double>() != b[i].get<double>()){
+                    return false;
+                }
+            }
+            return true;
+        };
+
 
         lua["table_max"] = [](sol::table table) {
             double max = 0;
             bool first = true;
             for (auto &i : table) {
                 double val = i.second.as<double>();
-                if ((val > max) || first){
+                if ((val > max) || first) {
                     max = val;
                 }
                 first = false;
@@ -241,7 +270,7 @@ void ScriptEngine::load_script(const QString &path) {
             bool first = true;
             for (auto &i : table) {
                 double val = i.second.as<double>();
-                if ((val < min) || first){
+                if ((val < min) || first) {
                     min = val;
                 }
                 first = false;
@@ -254,7 +283,7 @@ void ScriptEngine::load_script(const QString &path) {
             bool first = true;
             for (auto &i : table) {
                 double val = abs(i.second.as<double>());
-                if ((val > max) || first){
+                if ((val > max) || first) {
                     max = val;
                 }
                 first = false;
@@ -267,7 +296,7 @@ void ScriptEngine::load_script(const QString &path) {
             bool first = true;
             for (auto &i : table) {
                 double val = abs(i.second.as<double>());
-                if ((val < min) || first){
+                if ((val < min) || first) {
                     min = val;
                 }
                 first = false;
@@ -309,8 +338,8 @@ void ScriptEngine::load_script(const QString &path) {
                                                         });
                                                     }, //
                                                     "clear",
-													thread_call_wrapper(&Plot::clear),                                            //
-													"set_offset", thread_call_wrapper(&Plot::set_offset),                         //
+                                                    thread_call_wrapper(&Plot::clear),                                            //
+                                                    "set_offset", thread_call_wrapper(&Plot::set_offset),                         //
                                                     "set_enable_median", thread_call_wrapper(&Plot::set_enable_median),           //
                                                     "set_median_kernel_size", thread_call_wrapper(&Plot::set_median_kernel_size), //
                                                     "integrate_ci", thread_call_wrapper(&Plot::integrate_ci),                     //
