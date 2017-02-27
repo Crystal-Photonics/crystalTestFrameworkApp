@@ -121,7 +121,8 @@ RPCProtocol::~RPCProtocol() {
 }
 
 bool RPCProtocol::is_correct_protocol() {
-	auto result = call_and_wait(encoder.encode(0));
+    const CommunicationDevice::Duration TIMEOUT = std::chrono::milliseconds{500};
+    auto result = call_and_wait(encoder.encode(0),TIMEOUT);
 	if (result) {
 		const auto &hash = QByteArray::fromStdString(result->get_parameter_by_name("hash_out")->as_string()).toHex();
 		device->message(QObject::tr("Received Hash: ").toUtf8() + hash);
@@ -136,7 +137,7 @@ bool RPCProtocol::is_correct_protocol() {
 			if (description.has_function("get_device_descriptor")) {
 				auto get_device_descriptor_function = RPCRuntimeEncodedFunctionCall{description.get_function("get_device_descriptor")};
 				if (get_device_descriptor_function.are_all_values_set()) {
-					descriptor_answer = call_and_wait(get_device_descriptor_function);
+                    descriptor_answer = call_and_wait(get_device_descriptor_function,TIMEOUT);
 					if (descriptor_answer) {
 						device_data = get_description_data(*descriptor_answer);
 					}

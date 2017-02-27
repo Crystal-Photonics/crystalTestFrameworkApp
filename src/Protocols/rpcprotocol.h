@@ -45,7 +45,7 @@ class RPCProtocol : public Protocol {
 	RPCProtocol(RPCProtocol &&other) = delete;
 	bool is_correct_protocol();
 	std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call,
-																 CommunicationDevice::Duration duration = std::chrono::seconds{1});
+                                                                 CommunicationDevice::Duration duration = std::chrono::seconds{2});
 	const RPCRunTimeProtocolDescription &get_description();
 	void set_ui_description(QTreeWidgetItem *ui_entry);
 	RPCProtocol &operator=(const RPCProtocol &&) = delete;
