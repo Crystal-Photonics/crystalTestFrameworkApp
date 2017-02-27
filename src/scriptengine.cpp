@@ -107,6 +107,13 @@ ScriptEngine::ScriptEngine(QSplitter *parent, QPlainTextEdit *console)
 
 ScriptEngine::~ScriptEngine() {}
 
+std::string to_string(double d) {
+	if (std::fmod(d, 1.) == 0) {
+		return std::to_string(static_cast<int>(d));
+	}
+	return std::to_string(d);
+}
+
 std::string to_string(const sol::object &o) {
     switch (o.get_type()) {
         case sol::type::boolean:
@@ -114,7 +121,7 @@ std::string to_string(const sol::object &o) {
         case sol::type::function:
             return "function";
         case sol::type::number:
-            return std::to_string(o.as<double>());
+			return to_string(o.as<double>());
         case sol::type::nil:
         case sol::type::none:
             return "nil";
@@ -122,16 +129,23 @@ std::string to_string(const sol::object &o) {
             return "\"" + o.as<std::string>() + "\"";
         case sol::type::table: {
             auto table = o.as<sol::table>();
-            if (table.size() == 0) {
-                return "{}";
-            }
             std::string retval{"{"};
+			int index = 1;
             for (auto &object : table) {
-                retval += to_string(object.first) + ":" + to_string(object.second);
-                retval += ",";
+				auto first_object_string = to_string(object.first);
+				if (first_object_string == std::to_string(index++)) {
+					retval += to_string(object.second);
+				} else {
+					retval += '[' + std::move(first_object_string) + "]=" + to_string(object.second);
+				}
+				retval += ", ";
             }
-            retval.back() = '}';
-            return retval;
+			if (retval.size() > 1) {
+				retval.pop_back();
+				retval.back() = '}';
+				return retval;
+			}
+			return "{}";
         }
         default:
             return "unknown type " + std::to_string(static_cast<int>(o.get_type()));
@@ -139,30 +153,7 @@ std::string to_string(const sol::object &o) {
 }
 
 std::string to_string(const sol::stack_proxy &object) {
-    if (sol::optional<int> i = object) {
-        return std::to_string(i.value());
-    } else if (sol::optional<double> d = object) {
-        return std::to_string(d.value());
-    } else if (sol::optional<std::string> s = object) {
-        return s.value();
-    } else if (sol::optional<sol::nil_t> n = object) {
-        return "nil";
-    } else if (sol::optional<sol::table> table = object) {
-        sol::table t = table.value();
-        if (t.size() == 0) {
-            return "{}";
-        }
-        std::string retval = "{";
-        for (auto &o : t) {
-            retval += to_string(o.second);
-            retval += ", ";
-        }
-        retval.pop_back();
-        retval.back() = '}';
-        return retval;
-    } else {
-        throw std::runtime_error("TODO: add types to print");
-    }
+	return to_string(sol::object{object});
 }
 
 void ScriptEngine::load_script(const QString &path) {
@@ -173,206 +164,215 @@ void ScriptEngine::load_script(const QString &path) {
         lua.open_libraries();
 
         //add generic function
-        lua["show_warning"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
-            MainWindow::mw->show_message_box(QString::fromStdString(title.value_or("nil")) + " from " + path, QString::fromStdString(message.value_or("nil")),
-                                             QMessageBox::Warning);
-        };
-        lua["print"] = [console = console](const sol::variadic_args &args) {
-            std::string text;
-            for (auto &object : args) {
-                text += to_string(object);
-            }
-            Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
-        };
-        lua["sleep_ms"] = [](const unsigned int timeout_ms) {
-            QEventLoop event_loop;
-            static const auto secret_exit_code = -0xF42F;
-            QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
-            auto exit_value = event_loop.exec();
-            if (exit_value != secret_exit_code) {
-                throw sol::error("Interrupted");
-            }
-        };
+		{
+			lua["show_warning"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
+				MainWindow::mw->show_message_box(QString::fromStdString(title.value_or("nil")) + " from " + path,
+												 QString::fromStdString(message.value_or("nil")), QMessageBox::Warning);
+			};
+			lua["print"] = [console = console](const sol::variadic_args &args) {
+				std::string text;
+				for (auto &object : args) {
+					text += to_string(object);
+				}
+				Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
+			};
+			lua["sleep_ms"] = [](const unsigned int timeout_ms) {
+				QEventLoop event_loop;
+				static const auto secret_exit_code = -0xF42F;
+				QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
+				auto exit_value = event_loop.exec();
+				if (exit_value != secret_exit_code) {
+					throw sol::error("Interrupted");
+				}
+			};
 
-        lua["round"] = [](const double value, const unsigned int precision = 0) {
-            double faktor = pow(10, precision);
-            double retval = value;
-            retval *= faktor;
-            retval = round(retval);
-            return retval / faktor;
-        };
+			lua["round"] = [](const double value, const unsigned int precision = 0) {
+				double faktor = pow(10, precision);
+				double retval = value;
+				retval *= faktor;
+				retval = round(retval);
+				return retval / faktor;
+			};
+		}
+		//table functions
+		{
+			lua["table_sum"] = [](sol::table table) {
+				double retval = 0;
+				for (auto &i : table) {
+					retval += i.second.as<double>();
+				}
+				return retval;
+			};
 
-        lua["table_sum"] = [](sol::table table) {
-            double retval = 0;
-            for (auto &i : table) {
-                retval += i.second.as<double>();
-            }
-            return retval;
-        };
+			lua["table_mean"] = [](sol::table table) {
+				double retval = 0;
+				int count = 0;
+				for (auto &i : table) {
+					retval += i.second.as<double>();
+					count += 1;
+				}
+				if (count) {
+					retval /= count;
+				}
+				return retval;
+			};
 
-        lua["table_mean"] = [](sol::table table) {
-            double retval = 0;
-            int count = 0;
-            for (auto &i : table) {
-                retval += i.second.as<double>();
-                count += 1;
-            }
-            if (count) {
-                retval /= count;
-            }
-            return retval;
-        };
+			lua["table_add_table"] = [this](sol::table a, sol::table b) {
+				sol::table retval = create_table();
+				for (size_t i = 1; i <= a.size(); i++) {
+					double sum_i = a[i].get<double>() + b[i].get<double>();
+					retval.add(sum_i);
+				}
+				return retval;
+			};
 
-        lua["table_add_table"] = [this](sol::table a, sol::table b) {
-            sol::table retval = create_table();
-            for (size_t i = 1; i <= a.size(); i++) {
-                double sum_i = a[i].get<double>() + b[i].get<double>();
-                retval.add(sum_i);
-            }
-            return retval;
-        };
-
-        lua["table_add_constant"] = [this](sol::table a, double b) {
-            sol::table retval = create_table();
-            for (size_t i = 1; i <= a.size(); i++) {
-                double sum_i = a[i].get<double>() + b;
-                retval.add(sum_i);
-            }
-            return retval;
-        };
-
-
-        lua["table_equal_table"] = [this](sol::table a, sol::table b) {
-            for (size_t i = 1; i <= a.size(); i++) {
-                if (a[i].get<double>() != b[i].get<double>()){
-                    return false;
+			lua["table_add_constant"] = [this](sol::table a, double b) {
+				sol::table retval = create_table();
+				for (size_t i = 1; i <= a.size(); i++) {
+					double sum_i = a[i].get<double>() + b;
+					retval.add(sum_i);
                 }
-            }
-            return true;
-        };
+				return retval;
+			};
 
+			lua["table_equal_table"] = [this](sol::table a, sol::table b) {
+				for (size_t i = 1; i <= a.size(); i++) {
+					if (a[i].get<double>() != b[i].get<double>()) {
+						return false;
+					}
+				}
+				return true;
+			};
 
-        lua["table_max"] = [](sol::table table) {
-            double max = 0;
-            bool first = true;
-            for (auto &i : table) {
-                double val = i.second.as<double>();
-                if ((val > max) || first) {
-                    max = val;
+			lua["table_max"] = [](sol::table table) {
+				double max = 0;
+				bool first = true;
+				for (auto &i : table) {
+					double val = i.second.as<double>();
+					if ((val > max) || first) {
+						max = val;
+					}
+					first = false;
                 }
-                first = false;
-            }
-            return max;
-        };
+				return max;
+			};
 
-        lua["table_min"] = [](sol::table table) {
-            double min = 0;
-            bool first = true;
-            for (auto &i : table) {
-                double val = i.second.as<double>();
-                if ((val < min) || first) {
-                    min = val;
+			lua["table_min"] = [](sol::table table) {
+				double min = 0;
+				bool first = true;
+				for (auto &i : table) {
+					double val = i.second.as<double>();
+					if ((val < min) || first) {
+						min = val;
+					}
+					first = false;
                 }
-                first = false;
-            }
-            return min;
-        };
+				return min;
+			};
 
-        lua["table_max_abs"] = [](sol::table table) {
-            double max = 0;
-            bool first = true;
-            for (auto &i : table) {
-                double val = abs(i.second.as<double>());
-                if ((val > max) || first) {
-                    max = val;
+			lua["table_max_abs"] = [](sol::table table) {
+				double max = 0;
+				bool first = true;
+				for (auto &i : table) {
+					double val = abs(i.second.as<double>());
+					if ((val > max) || first) {
+						max = val;
+					}
+					first = false;
                 }
-                first = false;
-            }
-            return max;
-        };
+				return max;
+			};
 
-        lua["table_min_abs"] = [](sol::table table) {
-            double min = 0;
-            bool first = true;
-            for (auto &i : table) {
-                double val = abs(i.second.as<double>());
-                if ((val < min) || first) {
-                    min = val;
+			lua["table_min_abs"] = [](sol::table table) {
+				double min = 0;
+				bool first = true;
+				for (auto &i : table) {
+					double val = abs(i.second.as<double>());
+					if ((val < min) || first) {
+						min = val;
+					}
+					first = false;
                 }
-                first = false;
-            }
-            return min;
-        };
-
-        lua.script_file(path.toStdString());
+				return min;
+			};
+		}
 
         //bind UI
         auto ui_table = lua.create_named_table("Ui");
 
         //bind plot
-        ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot",                                                                                          //
-                                                    sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
-                                                    "add_point", thread_call_wrapper<void, Plot, double, double>(&Plot::add),                        //
-                                                    "add_spectrum",
-                                                    [](Lua_UI_Wrapper<Plot> &plot, sol::table table) {
-                                                        std::vector<double> data;
-                                                        data.reserve(table.size());
-                                                        for (auto &i : table) {
-                                                            data.push_back(i.second.as<double>());
-                                                        }
-                                                        Utility::thread_call(MainWindow::mw, [ id = plot.id, data = std::move(data) ] {
-                                                            auto &plot = MainWindow::mw->get_lua_UI_class<Plot>(id);
-                                                            plot.add(data);
-                                                        });
-                                                    }, //
-                                                    "add_spectrum_at",
-                                                    [](Lua_UI_Wrapper<Plot> &plot, const unsigned int spectrum_start_channel, const sol::table &table) {
-                                                        std::vector<double> data;
-                                                        data.reserve(table.size());
-                                                        for (auto &i : table) {
-                                                            data.push_back(i.second.as<double>());
-                                                        }
-                                                        Utility::thread_call(MainWindow::mw, [ id = plot.id, data = std::move(data), spectrum_start_channel ] {
-                                                            auto &plot = MainWindow::mw->get_lua_UI_class<Plot>(id);
-                                                            plot.add(spectrum_start_channel, data);
-                                                        });
-                                                    }, //
-                                                    "clear",
-                                                    thread_call_wrapper(&Plot::clear),                                            //
-                                                    "set_offset", thread_call_wrapper(&Plot::set_offset),                         //
-                                                    "set_enable_median", thread_call_wrapper(&Plot::set_enable_median),           //
-                                                    "set_median_kernel_size", thread_call_wrapper(&Plot::set_median_kernel_size), //
-                                                    "integrate_ci", thread_call_wrapper(&Plot::integrate_ci),                     //
-                                                    "set_gain", thread_call_wrapper(&Plot::set_gain));
+		{
+			ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot",                                                                                          //
+														sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
+														"add_point", thread_call_wrapper<void, Plot, double, double>(&Plot::add),                        //
+														"add_spectrum",
+														[](Lua_UI_Wrapper<Plot> &plot, sol::table table) {
+															std::vector<double> data;
+															data.reserve(table.size());
+															for (auto &i : table) {
+																data.push_back(i.second.as<double>());
+															}
+															Utility::thread_call(MainWindow::mw, [ id = plot.id, data = std::move(data) ] {
+																auto &plot = MainWindow::mw->get_lua_UI_class<Plot>(id);
+																plot.add(data);
+															});
+														}, //
+														"add_spectrum_at",
+														[](Lua_UI_Wrapper<Plot> &plot, const unsigned int spectrum_start_channel, const sol::table &table) {
+															std::vector<double> data;
+															data.reserve(table.size());
+															for (auto &i : table) {
+																data.push_back(i.second.as<double>());
+															}
+															Utility::thread_call(MainWindow::mw,
+																				 [ id = plot.id, data = std::move(data), spectrum_start_channel ] {
+																					 auto &plot = MainWindow::mw->get_lua_UI_class<Plot>(id);
+																					 plot.add(spectrum_start_channel, data);
+																				 });
+														}, //
+														"clear",
+														thread_call_wrapper(&Plot::clear),                                            //
+														"set_offset", thread_call_wrapper(&Plot::set_offset),                         //
+														"set_enable_median", thread_call_wrapper(&Plot::set_enable_median),           //
+														"set_median_kernel_size", thread_call_wrapper(&Plot::set_median_kernel_size), //
+														"integrate_ci", thread_call_wrapper(&Plot::integrate_ci),                     //
+														"set_gain", thread_call_wrapper(&Plot::set_gain));
+		}
         //bind button
-        ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //
-                                                      sol::meta_function::construct,
-                                                      [parent = this->parent](const std::string &title) {
-                                                          return Lua_UI_Wrapper<Button>{parent, title};
-                                                      }, //
-                                                      "has_been_pressed",
-                                                      thread_call_wrapper(&Button::has_been_pressed) //
-                                                      );
+		{
+			ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //
+														  sol::meta_function::construct,
+														  [parent = this->parent](const std::string &title) {
+															  return Lua_UI_Wrapper<Button>{parent, title};
+														  }, //
+														  "has_been_pressed",
+														  thread_call_wrapper(&Button::has_been_pressed) //
+														  );
+		}
         //bind edit field
-        ui_table.new_usertype<Lua_UI_Wrapper<LineEdit>>("LineEdit",                                                                                          //
-                                                        sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<LineEdit>(parent); }, //
-                                                        "set_placeholder_text", thread_call_wrapper(&LineEdit::set_placeholder_text),                        //
-                                                        "get_text", thread_call_wrapper(&LineEdit::get_text),                                                //
-                                                        "set_name", thread_call_wrapper(&LineEdit::set_name),                                                //
-                                                        "get_name", thread_call_wrapper(&LineEdit::get_name),                                                //
-                                                        "get_number", thread_call_wrapper(&LineEdit::get_number),                                            //
+		{
+			ui_table.new_usertype<Lua_UI_Wrapper<LineEdit>>(
+				"LineEdit",                                                                                          //
+				sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<LineEdit>(parent); }, //
+				"set_placeholder_text", thread_call_wrapper(&LineEdit::set_placeholder_text),                        //
+				"get_text", thread_call_wrapper(&LineEdit::get_text),                                                //
+				"set_name", thread_call_wrapper(&LineEdit::set_name),                                                //
+				"get_name", thread_call_wrapper(&LineEdit::get_name),                                                //
+				"get_number", thread_call_wrapper(&LineEdit::get_number),                                            //
 
-                                                        "await_return",
-                                                        [](const Lua_UI_Wrapper<LineEdit> &lew) {
-                                                            auto le = MainWindow::mw->get_lua_UI_class<LineEdit>(lew.id);
-                                                            le.set_single_shot_return_pressed_callback([thread = QThread::currentThread()] { thread->exit(); });
-                                                            QEventLoop loop;
-                                                            loop.exec();
-                                                            auto text = Utility::promised_thread_call(MainWindow::mw, [&le] { return le.get_text(); });
-                                                            return text;
-                                                        } //
-                                                        );
-    } catch (const sol::error &error) {
+				"await_return",
+				[](const Lua_UI_Wrapper<LineEdit> &lew) {
+					auto le = MainWindow::mw->get_lua_UI_class<LineEdit>(lew.id);
+					le.set_single_shot_return_pressed_callback([thread = QThread::currentThread()] { thread->exit(); });
+					QEventLoop loop;
+					loop.exec();
+					auto text = Utility::promised_thread_call(MainWindow::mw, [&le] { return le.get_text(); });
+					return text;
+				} //
+				);
+		}
+		lua.script_file(path.toStdString());
+	} catch (const sol::error &error) {
         set_error(error);
         throw;
     }
@@ -429,8 +429,8 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
                 return create_lua_object_from_RPC_answer(array.front(), lua);
             }
             auto table = lua.create_table_with();
-            for (std::size_t i = 0; i < array.size(); i++) {
-                table.add(create_lua_object_from_RPC_answer(array[i], lua));
+			for (auto &element : array) {
+				table.add(create_lua_object_from_RPC_answer(element, lua));
             }
             return table;
         }
@@ -438,8 +438,13 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
             throw sol::error("TODO: Parse return value of type character");
         case RPCRuntimeParameterDescription::Type::enumeration:
             return sol::make_object(lua.lua_state(), param.as_enum().value);
-        case RPCRuntimeParameterDescription::Type::structure:
-            throw sol::error("TODO: Parse return value of type structure");
+		case RPCRuntimeParameterDescription::Type::structure: {
+			auto table = lua.create_table_with();
+			for (auto &element : param.as_struct()) {
+				table[element.name] = create_lua_object_from_RPC_answer(element.type, lua);
+			}
+			return table;
+		}
         case RPCRuntimeParameterDescription::Type::integer:
             return sol::make_object(lua.lua_state(), param.as_integer());
     }
