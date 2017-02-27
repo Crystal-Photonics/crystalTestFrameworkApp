@@ -476,7 +476,7 @@ static void set_runtime_parameter(RPCRuntimeEncodedParam &param, sol::object obj
 			sol::table t = object.as<sol::table>();
 			if (t.size()) {
 				for (std::size_t i = 0; i < t.size(); i++) {
-					set_runtime_parameter(param[i], t[i]);
+					set_runtime_parameter(param[i], t[i + 1]);
 				}
 			} else {
 				for (auto &v : t) {
