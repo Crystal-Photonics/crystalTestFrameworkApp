@@ -178,8 +178,8 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
 	});
 }
 
-void DeviceWorker::get_devices_with_protocol(const QString &protocol, std::promise<std::vector<ComportDescription *>> &retval) {
-	Utility::thread_call(this, [ this, protocol, retval = std::move(retval) ]() mutable {
+std::vector<ComportDescription *> DeviceWorker::get_devices_with_protocol(const QString &protocol) {
+	return Utility::promised_thread_call(this, [this, protocol]() mutable {
 		assert(currently_in_gui_thread() == false);
 		std::vector<ComportDescription *> candidates;
 		for (auto &device : comport_devices) { //TODO: do not only loop over comport_devices, but other devices as well
@@ -190,7 +190,7 @@ void DeviceWorker::get_devices_with_protocol(const QString &protocol, std::promi
 				candidates.push_back(&device);
 			}
 		}
-		retval.set_value(candidates);
+		return candidates;
 	});
 }
 
