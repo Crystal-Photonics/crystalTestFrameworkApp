@@ -139,11 +139,11 @@ void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name,
 		ui->devices_list->addTopLevelItem(item);
 		align_columns();
 
-		auto console = new QPlainTextEdit(ui->tabWidget);
+		auto console = new QPlainTextEdit(ui->console_tabs);
 		console->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
 		console->setReadOnly(true);
 		console->setMaximumBlockCount(1000);
-		ui->tabWidget->addTab(console, tab_name);
+		ui->console_tabs->addTab(console, tab_name);
 		device_worker->connect_to_device_console(console, comport);
 	});
 }
@@ -194,13 +194,13 @@ void MainWindow::on_update_devices_list_button_clicked() {
 	});
 }
 
-void MainWindow::on_tabWidget_tabCloseRequested(int index) {
+void MainWindow::on_console_tabs_tabCloseRequested(int index) {
 	Utility::thread_call(this, [this, index] {
-		if (ui->tabWidget->tabText(index) == "Console") {
+		if (ui->console_tabs->tabText(index) == "Console") {
 			Console::note() << tr("Cannot close console window");
 			return;
 		}
-		ui->tabWidget->removeTab(index);
+		ui->console_tabs->removeTab(index);
 	});
 }
 
@@ -466,4 +466,28 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 
 void MainWindow::on_use_human_readable_encoding_toggled(bool checked) {
 	Console::use_human_readable_encoding = checked;
+}
+
+void MainWindow::on_console_tabs_customContextMenuRequested(const QPoint &pos) {
+	auto tab_index = ui->console_tabs->tabBar()->tabAt(pos);
+	ui->console_tabs->setCurrentIndex(tab_index);
+	auto widget = ui->console_tabs->widget(tab_index);
+	QPlainTextEdit *edit = dynamic_cast<QPlainTextEdit *>(widget);
+	if (edit == nullptr) {
+		auto &children = widget->children();
+		for (auto &child : children) {
+			if ((edit = dynamic_cast<QPlainTextEdit *>(child))) {
+				break;
+			}
+		}
+		assert(edit);
+	}
+
+	QMenu menu(this);
+
+	QAction action_clear(tr("Clear"));
+	connect(&action_clear, &QAction::triggered, edit, &QPlainTextEdit::clear);
+	menu.addAction(&action_clear);
+
+	menu.exec(ui->console_tabs->mapToGlobal(pos));
 }

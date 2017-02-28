@@ -72,7 +72,7 @@ class EXPORT MainWindow : public QMainWindow {
 	void on_actionPaths_triggered();
 	void on_device_detect_button_clicked();
 	void on_update_devices_list_button_clicked();
-	void on_tabWidget_tabCloseRequested(int index);
+	void on_console_tabs_tabCloseRequested(int index);
 	void on_run_test_script_button_clicked();
 	void on_tests_list_itemClicked(QTreeWidgetItem *item, int column);
 	void on_tests_list_customContextMenuRequested(const QPoint &pos);
@@ -82,6 +82,8 @@ class EXPORT MainWindow : public QMainWindow {
 	void on_test_tabs_customContextMenuRequested(const QPoint &pos);
 
 	void on_use_human_readable_encoding_toggled(bool checked);
+
+	void on_console_tabs_customContextMenuRequested(const QPoint &pos);
 
 	private:
 	std::vector<TestDescriptionLoader> test_descriptions;
