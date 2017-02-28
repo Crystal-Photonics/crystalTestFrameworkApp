@@ -204,6 +204,59 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index) {
 	});
 }
 
+static Utility::Optional<std::vector<std::pair<CommunicationDevice *, Protocol *>>> get_script_communication(DeviceWorker &device_worker, TestRunner &runner,
+																											 TestDescriptionLoader &test) {
+	std::vector<std::pair<CommunicationDevice *, Protocol *>> devices;
+	for (auto &protocol : test.get_protocols()) {
+		//TODO: do not only loop over comport_devices, but other devices as well
+		std::vector<ComportDescription *> candidates = device_worker.get_devices_with_protocol(protocol);
+		//TODO: skip over candidates that are already in use
+
+		switch (candidates.size()) {
+			case 0:
+				//failed to find suitable device
+				Console::error(runner.console) << QObject::tr(
+													  "The selected test \"%1\" requires a device with protocol \"%2\", but no such device is available.")
+													  .arg(test.get_name(), protocol);
+				return {};
+			case 1:
+				//found the only viable option
+				{
+					auto &device = *candidates.front();
+					auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
+					if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
+						sol::optional<std::string> message;
+						try {
+							sol::table table = runner.create_table();
+							rpc_protocol->get_lua_device_descriptor(table);
+							message = runner.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
+						} catch (const sol::error &e) {
+							const auto &message = QObject::tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
+							Console::error(runner.console) << message;
+							return {};
+						}
+						if (message) {
+							//device incompatible, reason should be inside of message
+							Console::note(runner.console) << QObject::tr("Device rejected:") << message.value();
+							return {};
+						} else {
+							//acceptable device found
+							devices.emplace_back(device.device.get(), device.protocol.get());
+						}
+					} else {
+						assert(!"TODO: handle non-RPC protocol");
+					}
+				}
+				break;
+			default:
+				//found multiple viable options
+				QMessageBox::critical(MainWindow::mw, "TODO", "TODO: implementation for multiple viable device options");
+				return {};
+		}
+	}
+	return devices;
+}
+
 void MainWindow::on_run_test_script_button_clicked() {
 	Utility::thread_call(this, [this] {
 		auto items = ui->tests_list->selectedItems();
@@ -212,60 +265,14 @@ void MainWindow::on_run_test_script_button_clicked() {
 			if (test == nullptr) {
 				continue;
 			}
-			if (test->get_protocols().empty()) {
-				Console::error(test->console)
-					<< tr("The selected script \"%1\" cannot be run, because it did not report the required devices.").arg(test->get_name());
-			}
-			for (auto &protocol : test->get_protocols()) {
-				std::promise<std::vector<ComportDescription *>> promise; //TODO: do not only loop over comport_devices, but other devices as well
-				auto future = promise.get_future();
-				device_worker->get_devices_with_protocol(protocol, promise);
-				std::vector<ComportDescription *> candidates = future.get();
-
-				switch (candidates.size()) {
-					case 0:
-						//failed to find suitable device
-						Console::error(test->console) << tr("The selected test \"%1\" requires a device with protocol \"%2\", but no such device is available.")
-															 .arg(test->get_name(), protocol);
-						break;
-					case 1:
-						//found the only viable option
-						{
-							test_runners.push_back(std::make_unique<TestRunner>(*test));
-							auto &runner = *test_runners.back();
-							ui->test_tabs->setCurrentIndex(ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name()));
-							auto &device = *candidates.front();
-							auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
-							if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
-								sol::optional<std::string> message;
-								try {
-									sol::table table = runner.create_table();
-									rpc_protocol->get_lua_device_descriptor(table);
-									message = runner.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
-								} catch (const sol::error &e) {
-									const auto &message = tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
-									Console::error(runner.console) << message;
-									runner.interrupt();
-									return;
-								}
-								if (message) {
-									//device incompatible, reason should be inside of message
-									Console::note(runner.console) << tr("Device rejected:") << message.value();
-									runner.interrupt();
-								} else {
-									//acceptable device found
-									runner.run_script({{device.device.get(), device.protocol.get()}}, *device_worker);
-								}
-							} else {
-								assert(!"TODO: handle non-RPC protocol");
-							}
-						}
-						break;
-					default:
-						//found multiple viable options
-						QMessageBox::critical(this, "TODO", "TODO: implementation for multiple viable device options");
-						break;
-				}
+			test_runners.push_back(std::make_unique<TestRunner>(*test));
+			auto &runner = *test_runners.back();
+			ui->test_tabs->setCurrentIndex(ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name()));
+			auto devices = get_script_communication(*device_worker, runner, *test);
+			if (devices.has_value()) {
+				runner.run_script(devices.get_value(), *device_worker);
+			} else {
+				runner.interrupt();
 			}
 		}
 	});
