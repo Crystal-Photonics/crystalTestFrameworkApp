@@ -44,14 +44,16 @@ class RPCProtocol : public Protocol {
 	RPCProtocol(const RPCProtocol &) = delete;
 	RPCProtocol(RPCProtocol &&other) = delete;
 	bool is_correct_protocol();
-	std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call,
-                                                                 CommunicationDevice::Duration duration = std::chrono::seconds{2});
+	std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call);
+	std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration);
 	const RPCRunTimeProtocolDescription &get_description();
 	void set_ui_description(QTreeWidgetItem *ui_entry);
 	RPCProtocol &operator=(const RPCProtocol &&) = delete;
 	void get_lua_device_descriptor(sol::table &t) const;
 	RPCRuntimeEncodedFunctionCall encode_function(const std::string &name) const;
 	const channel_codec_instance_t *debug_get_channel_codec_instance() const;
+	CommunicationDevice::Duration default_duration = std::chrono::seconds{1};
+	int retries_per_transmission{2};
 
 	private:
 	RPCRunTimeProtocolDescription description;

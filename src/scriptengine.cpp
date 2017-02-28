@@ -504,13 +504,6 @@ struct RPCDevice {
 			set_runtime_parameter(param, arg);
         }
         if (function.are_all_values_set()) {
-            if (name == "get_spectrum_recording") {
-                auto table = lua->create_table_with();
-                for (int64_t i = 0; i < 256; i++) {
-                    table.add(sol::make_object(lua->lua_state(), i));
-                }
-                return table;
-            }
             auto result = protocol->call_and_wait(function);
 
             if (result) {
