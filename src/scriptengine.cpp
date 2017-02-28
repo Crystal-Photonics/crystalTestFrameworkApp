@@ -351,7 +351,7 @@ void ScriptEngine::load_script(const QString &path) {
             };
 
 
-            (*lua)["round_table"] = [&lua = *lua](sol::table a, const unsigned int precision = 0) {
+            (*lua)["table_round"] = [&lua = *lua](sol::table a, const unsigned int precision = 0) {
                 sol::table retval = lua.create_table_with();
                 for (size_t i = 1; i <= a.size(); i++) {
                     double sum_i = round_double(a[i].get<double>(),precision);
@@ -371,7 +371,7 @@ void ScriptEngine::load_script(const QString &path) {
 
             (*lua)["table_mid"] = [&lua = *lua](sol::table a, const unsigned int start, const unsigned int length) {
                 sol::table retval = lua.create_table_with();
-                for (size_t i = start; i <= start+length; i++) {
+                for (size_t i = start; i <= start+length-1; i++) {
                     double sum_i = a[i].get<double>();
                     retval.add(sum_i);
                 }
