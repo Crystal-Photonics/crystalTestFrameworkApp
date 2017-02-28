@@ -1,3 +1,4 @@
+/// @cond HIDDEN_SYMBOLS
 #include "scriptengine.h"
 #include "LuaUI/button.h"
 #include "LuaUI/lineedit.h"
@@ -24,6 +25,24 @@
 #include <string>
 #include <vector>
 
+/// @endcond
+
+/**
+ * @file   scriptengine.cpp
+ * @Author Me (me@example.com)
+ * @date   September, 2008
+ * @brief  Lua interface
+ *
+ * Detailed description of file.
+ */
+
+
+
+/// @cond HIDDEN_SYMBOLS
+
+
+
+
 template <class T>
 struct Lua_UI_Wrapper {
     template <class... Args>
@@ -49,8 +68,10 @@ struct Lua_UI_Wrapper {
     static int id_counter;
 };
 
+
 template <class T>
 int Lua_UI_Wrapper<T>::id_counter;
+
 
 namespace detail {
     //this might be replacable by std::invoke once C++17 is available
@@ -106,6 +127,8 @@ ScriptEngine::ScriptEngine(QSplitter *parent, QPlainTextEdit *console)
     , console(console) {}
 
 ScriptEngine::~ScriptEngine() {}
+
+
 
 std::string to_string(const sol::object &o) {
     switch (o.get_type()) {
@@ -165,9 +188,35 @@ std::string to_string(const sol::stack_proxy &object) {
     }
 }
 
+/// @endcond
+///
+/**
+ * @name    Example API Actions
+ * @brief   Example actions available.
+ * @ingroup example
+ *
+ * This API provides certain actions as an example.
+ *
+ * @param [in] repeat  Number of times to do nothing.
+ *
+ * @retval TRUE   Successfully did nothing.
+ * @retval FALSE  Oops, did something.
+ *
+ * Example Usage:
+ * @code
+ *    example_nada(3); // Do nothing 3 times.
+ * @endcode
+ */
+
+#ifdef DOXYGEN_ONLY
+
+#endif
+
+
 void ScriptEngine::load_script(const QString &path) {
     //NOTE: When using lambdas do not capture `this` or by reference, because it breaks when the ScriptEngine is moved
     this->path = path;
+
     try {
         //load the standard libs if necessary
         lua.open_libraries();
@@ -209,6 +258,50 @@ void ScriptEngine::load_script(const QString &path) {
             }
             return retval;
         };
+
+        /**
+         * @name    Example API Actionsasdadsasd
+         * @brief   Example actions available.asdasdasd
+         * @ingroup exampleasdasdasd
+         *
+         * This API provides certain actions as an example.
+         *
+         * @param [in] repeat  Number of times to do nothing.
+         *
+         * @retval TRUE   Successfully did nothing.
+         * @retval FALSE  Oops, did something.
+         *
+         * Example Usage:
+         * @code
+         *    table_mean(3); // Do nothing 3 times.
+         * @endcode
+         */
+
+        /*!
+         * \brief Exemplarische Funktion
+         *
+         *     Diese Funktion gibt den übergebenen Parameter
+         *     auf der Konsole aus.
+         *
+         * \param	parameter  Auszugebender Parameter
+         * \return	      Status-Code
+         *
+         */
+
+        /*! \def MAX(a,b)
+            \brief A macro that returns the maximum of \a a and \a b.
+
+            Details.
+        */
+
+        /*! \fn int table_mean(const char *pathname,int flags)
+            \brief Opens a file descriptor.
+            \param pathname The name of the descriptor.
+            \param flags Opening flags.
+        */
+
+
+
 
         lua["table_mean"] = [](sol::table table) {
             double retval = 0;
@@ -446,7 +539,7 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
     assert(!"Invalid type of RPCRuntimeParameterDescription");
     return sol::nil;
 }
-
+/// @cond HIDDEN_SYMBOLS
 struct RPCDevice {
     sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
         if (QThread::currentThread()->isInterruptionRequested()) {
@@ -502,6 +595,8 @@ struct RPCDevice {
     ScriptEngine *engine = nullptr;
 };
 
+
+
 void add_enum_type(const RPCRuntimeParameterDescription &param, sol::state &lua) {
     if (param.get_type() == RPCRuntimeParameterDescription::Type::enumeration) {
         const auto &enum_description = param.as_enumeration();
@@ -528,6 +623,8 @@ void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua) {
         add_enum_type(param, lua);
     }
 }
+
+/// @endcond
 
 void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices) {
     auto reset_lua_state = [this] {
