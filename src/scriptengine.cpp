@@ -208,7 +208,7 @@ void sleep_ms(const unsigned int timeout_m);
 */
 void sleep_ms_(const unsigned int timeout_m);
 
-double round_double(const double value, const unsigned int precision){
+double round_double(const double value, const unsigned int precision) {
     double faktor = pow(10, precision);
     double retval = value;
     retval *= faktor;
@@ -254,9 +254,7 @@ void ScriptEngine::load_script(const QString &path) {
                 }
             };
 
-            (*lua)["round"] = [](const double value, const unsigned int precision = 0) {
-                return round_double(value, precision);
-            };
+			(*lua)["round"] = [](const double value, const unsigned int precision = 0) { return round_double(value, precision); };
         }
         //table functions
         {
@@ -350,11 +348,10 @@ void ScriptEngine::load_script(const QString &path) {
                 return retval;
             };
 
-
             (*lua)["table_round"] = [&lua = *lua](sol::table a, const unsigned int precision = 0) {
                 sol::table retval = lua.create_table_with();
                 for (size_t i = 1; i <= a.size(); i++) {
-                    double sum_i = round_double(a[i].get<double>(),precision);
+					double sum_i = round_double(a[i].get<double>(), precision);
                     retval.add(sum_i);
                 }
                 return retval;
@@ -371,7 +368,7 @@ void ScriptEngine::load_script(const QString &path) {
 
             (*lua)["table_mid"] = [&lua = *lua](sol::table a, const unsigned int start, const unsigned int length) {
                 sol::table retval = lua.create_table_with();
-                for (size_t i = start; i <= start+length-1; i++) {
+				for (size_t i = start; i <= start + length - 1; i++) {
                     double sum_i = a[i].get<double>();
                     retval.add(sum_i);
                 }
@@ -386,7 +383,6 @@ void ScriptEngine::load_script(const QString &path) {
                 }
                 return true;
             };
-
 
             (*lua)["table_max"] = [](sol::table table) {
                 double max = 0;
@@ -724,6 +720,10 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
                     }
                     const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
                     lua->set_usertype(type_name, type_reg);
+					while (device_protocol.first->waitReceived(CommunicationDevice::Duration{0}, 1)) {
+						//ignore leftover data in the receive buffer
+					}
+					rpcp->clear();
                 } else {
                     //TODO: other protocols
                     throw std::runtime_error("invalid protocol: " + device_protocol.second->type.toStdString());

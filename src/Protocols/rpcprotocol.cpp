@@ -222,5 +222,12 @@ RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const std::string &na
 }
 
 const channel_codec_instance_t *RPCProtocol::debug_get_channel_codec_instance() const {
-    return channel_codec.debug_get_instance();
+	return channel_codec.debug_get_instance();
+}
+
+void RPCProtocol::clear() {
+	while (channel_codec.transfer_complete()) {
+		channel_codec.pop_completed_transfer();
+	}
+	channel_codec.reset_current_transfer();
 }

@@ -52,8 +52,9 @@ class RPCProtocol : public Protocol {
 	void get_lua_device_descriptor(sol::table &t) const;
 	RPCRuntimeEncodedFunctionCall encode_function(const std::string &name) const;
 	const channel_codec_instance_t *debug_get_channel_codec_instance() const;
-	CommunicationDevice::Duration default_duration = std::chrono::seconds{1};
+	CommunicationDevice::Duration default_duration = std::chrono::milliseconds{500};
 	int retries_per_transmission{2};
+	void clear();
 
 	private:
 	RPCRunTimeProtocolDescription description;
