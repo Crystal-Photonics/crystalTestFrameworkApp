@@ -36,17 +36,16 @@ class ScriptEngine {
 	ReturnType call(const char *function_name, Arguments &&... args);
 
 	void set_error(const sol::error &error);
-	sol::state lua;
-	QString path;
-	int error_line = 0;
-	QSplitter *parent = nullptr;
-	QPlainTextEdit *console = nullptr;
+	std::unique_ptr<sol::state> lua{};
+	QString path{};
+	int error_line{0};
+	QSplitter *parent{nullptr};
+	QPlainTextEdit *console{nullptr};
 };
 
 template <class ReturnType, class... Arguments>
 ReturnType ScriptEngine::call(const char *function_name, Arguments &&... args) {
-
-    sol::protected_function f = lua[function_name];
+	sol::protected_function f = (*lua)[function_name];
 	auto call_res = f(std::forward<Arguments>(args)...);
 	if (call_res.valid()) {
 		return call_res;

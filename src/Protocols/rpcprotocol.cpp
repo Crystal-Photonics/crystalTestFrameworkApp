@@ -122,7 +122,7 @@ RPCProtocol::~RPCProtocol() {
 
 bool RPCProtocol::is_correct_protocol() {
     const CommunicationDevice::Duration TIMEOUT = std::chrono::milliseconds{500};
-    auto result = call_and_wait(encoder.encode(0),TIMEOUT);
+	auto result = call_and_wait(encoder.encode(0), TIMEOUT);
 	if (result) {
 		const auto &hash = QByteArray::fromStdString(result->get_parameter_by_name("hash_out")->as_string()).toHex();
 		device->message(QObject::tr("Received Hash: ").toUtf8() + hash);
@@ -137,7 +137,7 @@ bool RPCProtocol::is_correct_protocol() {
 			if (description.has_function("get_device_descriptor")) {
 				auto get_device_descriptor_function = RPCRuntimeEncodedFunctionCall{description.get_function("get_device_descriptor")};
 				if (get_device_descriptor_function.are_all_values_set()) {
-                    descriptor_answer = call_and_wait(get_device_descriptor_function,TIMEOUT);
+					descriptor_answer = call_and_wait(get_device_descriptor_function, TIMEOUT);
 					if (descriptor_answer) {
 						device_data = get_description_data(*descriptor_answer);
 					}
@@ -152,38 +152,42 @@ bool RPCProtocol::is_correct_protocol() {
 	return result != nullptr;
 }
 
+std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call) {
+	return call_and_wait(call, default_duration);
+}
+
 std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration) {
-	Utility::thread_call(device,
-						 [ device = this->device, data = channel_codec.encode(call), display_data = call.encode() ] { device->send(data, display_data); });
-	auto start = std::chrono::high_resolution_clock::now();
-	auto check_received = [this, &start, &duration, &call]() -> std::unique_ptr<RPCRuntimeDecodedFunctionCall> {
-		device->waitReceived(duration - (std::chrono::high_resolution_clock::now() - start));
-		if (channel_codec.transfer_complete()) { //found a reply
-			auto transfer = channel_codec.pop_completed_transfer();
-			auto &raw_data = transfer.get_raw_data();
-			emit device->decoded_received(QByteArray(reinterpret_cast<const char *>(raw_data.data()), raw_data.size()));
-			auto decoded_call = transfer.decode();
-			if (decoded_call.get_id() == call.get_description()->get_reply_id()) { //found correct reply
-				//qDebug() << "RPCProtocol::call_and_wait decoded answer" << call.get_description()->get_function_name().c_str();
-				return std::make_unique<RPCRuntimeDecodedFunctionCall>(std::move(decoded_call));
-			} else { //found reply to something else, just gonna quietly ignore it
-				qDebug() << "RPCProtocol::call_and_wait wrong answer";
+	for (int try_count = 0; try_count < retries_per_transmission; try_count++) {
+		if (try_count != 0) {
+			Console::debug()
+				<< QString(R"(Request for function "%1" timed out, retry %2)").arg(call.get_description()->get_function_name().c_str()).arg(try_count);
+		}
+		Utility::thread_call(device,
+							 [ device = this->device, data = channel_codec.encode(call), display_data = call.encode() ] { device->send(data, display_data); });
+		auto start = std::chrono::high_resolution_clock::now();
+		auto check_received = [this, &start, &duration, &call]() -> std::unique_ptr<RPCRuntimeDecodedFunctionCall> {
+			device->waitReceived(duration - (std::chrono::high_resolution_clock::now() - start));
+			if (channel_codec.transfer_complete()) { //found a reply
+				auto transfer = channel_codec.pop_completed_transfer();
+				auto &raw_data = transfer.get_raw_data();
+				emit device->decoded_received(QByteArray(reinterpret_cast<const char *>(raw_data.data()), raw_data.size()));
+				auto decoded_call = transfer.decode();
+				if (decoded_call.get_id() == call.get_description()->get_reply_id()) { //found correct reply
+					return std::make_unique<RPCRuntimeDecodedFunctionCall>(std::move(decoded_call));
+				} else { //found reply to something else, just gonna quietly ignore it
+					Console::debug()
+						<< QString(R"(RPCProtocol::call_and_wait wrong answer. Expected answer to function "%1" but got answer to function "%2" instead.)")
+							   .arg(call.get_description()->get_function_name().c_str(), decoded_call.get_declaration()->get_function_name().c_str());
+				}
 			}
-		}
-		return nullptr;
-	};
-	do {
-		auto retval = check_received();
-		if (retval) {
-			return retval;
-		}
-	} while (std::chrono::high_resolution_clock::now() - start < duration);
-	auto retval = check_received();
-	if (retval == nullptr) {
-		//qDebug() << "RPCProtocol::call_and_wait timeout";
-		//const auto &received_data = channel_codec.current_transfer().get_raw_data();
-		//QByteArray received_data_qba(reinterpret_cast<const char *>(received_data.data()), received_data.size());
-		//qDebug() << "RPCProtocol::call_and_wait data received before timeout:" << received_data_qba.toPercentEncoding(" :\t\\\n!\"§$%&/()=+-*");
+			return nullptr;
+		};
+		do {
+			auto retval = check_received();
+			if (retval) {
+				return retval;
+			}
+		} while (std::chrono::high_resolution_clock::now() - start < duration);
 	}
 	return nullptr;
 }
