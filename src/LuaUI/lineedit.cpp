@@ -23,6 +23,10 @@ std::string LineEdit::get_text() const {
     return edit->text().toStdString();
 }
 
+void LineEdit::set_text(const std::string &text) {
+    edit->setText(QString::fromStdString(text));
+}
+
 void LineEdit::set_name(const std::string &text) {
     name = text;
 }
