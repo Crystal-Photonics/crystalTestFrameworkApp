@@ -127,7 +127,7 @@ bool RPCProtocol::is_correct_protocol() {
     auto result = call_and_wait(encoder.encode(0), TIMEOUT);
     retries_per_transmission = retries_per_transmission_backup;
     if (result) {
-        const auto &hash = QByteArray::fromStdString(result->get_parameter_by_name("hash_out")->as_string()).toHex();
+		const auto &hash = QByteArray::fromStdString(result->get_parameter_by_name("hash_out")->as_full_string()).toHex();
         device->message(QObject::tr("Received Hash: ").toUtf8() + hash);
         const auto filename =
             QDir(QSettings{}.value(Globals::rpc_xml_files_path_settings_key, QDir::currentPath()).toString()).filePath(hash + ".xml").toStdString();
