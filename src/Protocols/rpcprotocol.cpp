@@ -14,6 +14,7 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QDir>
+#include <QDirIterator>
 #include <QObject>
 #include <QSettings>
 #include <QString>
@@ -129,31 +130,39 @@ bool RPCProtocol::is_correct_protocol() {
     if (result) {
 		const auto &hash = QByteArray::fromStdString(result->get_parameter_by_name("hash_out")->as_full_string()).toHex();
         device->message(QObject::tr("Received Hash: ").toUtf8() + hash);
-        const auto filename =
-            QDir(QSettings{}.value(Globals::rpc_xml_files_path_settings_key, QDir::currentPath()).toString()).filePath(hash + ".xml").toStdString();
-        std::ifstream xmlfile(filename);
+		QString folder = QSettings{}.value(Globals::rpc_xml_files_path_settings_key, QDir::currentPath()).toString();
+		QString filename = hash + ".xml";
+		QDirIterator directory_iterator(folder, QStringList{} << filename, QDir::Files, QDirIterator::Subdirectories);
+		if (directory_iterator.hasNext() == false) {
+			device->message(
+				QObject::tr(
+					R"(Failed finding RPC description file "%1" in folder "%2" or any of its subfolders. Make sure it exists or change the search path in the settings menu.)")
+					.arg(folder, filename)
+					.toUtf8());
+			return false;
+		}
+		auto filepath = directory_iterator.next();
+		std::ifstream xmlfile(filepath.toStdString());
         if (description.openProtocolDescription(xmlfile) == false) {
-            device->message(QObject::tr("Failed opening RPC description file %1. Make sure it exists or change the search path in the settings menu.")
-                                .arg(filename.c_str())
-                                .toUtf8());
-        } else {
-            if (description.has_function("get_device_descriptor")) {
-                auto get_device_descriptor_function = RPCRuntimeEncodedFunctionCall{description.get_function("get_device_descriptor")};
-                if (get_device_descriptor_function.are_all_values_set()) {
-                    descriptor_answer = call_and_wait(get_device_descriptor_function, TIMEOUT);
-                    if (descriptor_answer) {
-                        device_data = get_description_data(*descriptor_answer);
-                    }
-                } else {
-                    Console::note() << "RPC-function \"get_device_descriptor\" requires unknown parameters";
+			device->message(QObject::tr(R"(Failed opening RPC description file "%1".)").arg(filename).toUtf8());
+			return false;
+		}
+		if (description.has_function("get_device_descriptor")) {
+			auto get_device_descriptor_function = RPCRuntimeEncodedFunctionCall{description.get_function("get_device_descriptor")};
+			if (get_device_descriptor_function.are_all_values_set()) {
+				descriptor_answer = call_and_wait(get_device_descriptor_function, TIMEOUT);
+				if (descriptor_answer) {
+					device_data = get_description_data(*descriptor_answer);
                 }
             } else {
-                Console::note() << "No RPC-function \"get_device_descriptor\" available";
+				Console::note() << "RPC-function \"get_device_descriptor\" requires unknown parameters";
             }
-        }
+		} else {
+			Console::note() << "No RPC-function \"get_device_descriptor\" available";
+		}
     }
 
-    return result != nullptr;
+	return true;
 }
 
 std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call) {
