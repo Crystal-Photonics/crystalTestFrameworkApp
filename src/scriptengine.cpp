@@ -496,6 +496,7 @@ void ScriptEngine::load_script(const QString &path) {
                 sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<LineEdit>(parent); }, //
                 "set_placeholder_text", thread_call_wrapper(&LineEdit::set_placeholder_text),                        //
                 "get_text", thread_call_wrapper(&LineEdit::get_text),                                                //
+                "set_text", thread_call_wrapper(&LineEdit::set_text),                                                //
                 "set_name", thread_call_wrapper(&LineEdit::set_name),                                                //
                 "get_name", thread_call_wrapper(&LineEdit::get_name),                                                //
                 "get_number", thread_call_wrapper(&LineEdit::get_number),                                            //
