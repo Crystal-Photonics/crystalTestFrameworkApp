@@ -520,7 +520,7 @@ void ScriptEngine::load_script(const QString &path) {
                     }
                 }
 
-                //feinabstung und und PlausibilitÃ¤tsprÃ¼fung
+                //feinabstung und und Plausibilitätsprüfung
                 for (unsigned int i = 0; i < max_possible_dac_value; i++) {
                     sol::table dac_thresholds_lua_table = lua.create_table_with();;
                     for (unsigned int i = 0; i < dacs_quantity; i++) {
@@ -552,56 +552,58 @@ void ScriptEngine::load_script(const QString &path) {
 
         //bind plot
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<Curve>>("Curve",                                                                    //
-                                                         sol::meta_function::construct, sol::no_constructor,                         //
-                                                         "add_point", thread_call_wrapper<void, Curve, double, double>(&Curve::add), //
-                                                         "add_spectrum",
-                                                         [](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
-                                                             std::vector<double> data;
-                                                             data.reserve(table.size());
-                                                             for (auto &i : table) {
-                                                                 data.push_back(i.second.as<double>());
-                                                             }
-                                                             Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data) ] {
-                                                                 auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
-                                                                 curve.add(data);
-                                                             });
-                                                         }, //
-                                                         "add_spectrum_at",
-                                                         [](Lua_UI_Wrapper<Curve> &curve, const unsigned int spectrum_start_channel, const sol::table &table) {
-                                                             std::vector<double> data;
-                                                             data.reserve(table.size());
-                                                             for (auto &i : table) {
-                                                                 data.push_back(i.second.as<double>());
-                                                             }
-                                                             Utility::thread_call(MainWindow::mw,
-                                                                                  [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
-                                                                                      auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
-                                                                                      curve.add(spectrum_start_channel, data);
-                                                                                  });
-                                                         }, //
-                                                         "set_offset",
-                                                         thread_call_wrapper(&Curve::set_offset),                                       //
-                                                         "set_enable_median", thread_call_wrapper(&Curve::set_enable_median),           //
-                                                         "set_median_kernel_size", thread_call_wrapper(&Curve::set_median_kernel_size), //
-                                                         "integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
-                                                         "set_gain", thread_call_wrapper(&Curve::set_gain)                              //
-                                                         );
-            ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot",                                                                                          //
-                                                        sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
-                                                        "clear",
-                                                        thread_call_wrapper(&Plot::clear), //
-                                                        "add_curve",
-                                                        [parent = this->parent](Lua_UI_Wrapper<Plot> & lua_plot)->Lua_UI_Wrapper<Curve> {
-                                                            return Utility::promised_thread_call(MainWindow::mw,
-                                                                                                 [parent, &lua_plot] {
-                                                                                                     auto &plot =
-                                                                                                         MainWindow::mw->get_lua_UI_class<Plot>(lua_plot.id);
-                                                                                                     return Lua_UI_Wrapper<Curve>{parent, &plot};
-                                                                                                 } //
-                                                                                                 );
-                                                        });
-        }
+			ui_table.new_usertype<Lua_UI_Wrapper<Curve>>("Curve",                                                                    //
+														 sol::meta_function::construct, sol::no_constructor,                         //
+														 "add_point", thread_call_wrapper<void, Curve, double, double>(&Curve::add), //
+														 "add_spectrum",
+														 [](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
+															 std::vector<double> data;
+															 data.reserve(table.size());
+															 for (auto &i : table) {
+																 data.push_back(i.second.as<double>());
+															 }
+															 Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data) ] {
+																 auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
+																 curve.add(data);
+															 });
+														 }, //
+														 "add_spectrum_at",
+														 [](Lua_UI_Wrapper<Curve> &curve, const unsigned int spectrum_start_channel, const sol::table &table) {
+															 std::vector<double> data;
+															 data.reserve(table.size());
+															 for (auto &i : table) {
+																 data.push_back(i.second.as<double>());
+															 }
+															 Utility::thread_call(MainWindow::mw,
+																				  [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
+																					  auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
+																					  curve.add(spectrum_start_channel, data);
+																				  });
+														 }, //
+														 "set_offset",
+														 thread_call_wrapper(&Curve::set_offset),                                       //
+														 "set_enable_median", thread_call_wrapper(&Curve::set_enable_median),           //
+														 "set_median_kernel_size", thread_call_wrapper(&Curve::set_median_kernel_size), //
+														 "integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
+														 "set_gain", thread_call_wrapper(&Curve::set_gain),                             //
+														 "set_color_by_name", thread_call_wrapper(&Curve::set_color_by_name),           //
+														 "set_color_by_rgb", thread_call_wrapper(&Curve::set_color_by_rgb)              //
+														 );
+			ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot",                                                                                          //
+														sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
+														"clear",
+														thread_call_wrapper(&Plot::clear), //
+														"add_curve",
+														[parent = this->parent](Lua_UI_Wrapper<Plot> & lua_plot)->Lua_UI_Wrapper<Curve> {
+															return Utility::promised_thread_call(MainWindow::mw,
+																								 [parent, &lua_plot] {
+																									 auto &plot =
+																										 MainWindow::mw->get_lua_UI_class<Plot>(lua_plot.id);
+																									 return Lua_UI_Wrapper<Curve>{parent, &plot};
+																								 } //
+																								 );
+														});
+		}
         //bind button
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //

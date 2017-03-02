@@ -25,6 +25,9 @@ class Curve {
 	double integrate_ci(double integral_start_ci, double integral_end_ci);
 	void set_enable_median(bool enable);
 	void set_median_kernel_size(int kernel_size);
+	void set_color(const QColor &color);
+	void set_color_by_name(const std::string &name);
+	void set_color_by_rgb(int r, int g, int b);
 
 	private:
 	void resize(std::size_t size);
