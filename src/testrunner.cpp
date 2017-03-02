@@ -25,7 +25,12 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
 	lua_ui_container->setOrientation(Qt::Vertical);
 	moveToThread(&thread);
 	thread.start();
-	script.load_script(description.get_filepath());
+	try {
+		script.load_script(description.get_filepath());
+	} catch (const std::runtime_error &e) {
+		thread.quit();
+		throw;
+	}
 }
 
 TestRunner::~TestRunner() {
