@@ -216,6 +216,28 @@ double round_double(const double value, const unsigned int precision) {
     return retval / faktor;
 }
 
+/*
+double measure_noise_level_czt(std::unique_ptr<sol::state> &lua, sol::table rpc_device, const unsigned int dacs_quantity,
+                               const unsigned int max_possible_dac_value) {
+    sol::table counts = (*lua)["measure_noise_level_helper_set_dac_thresholds_and_get_raw_counts"](rpc_device, dacs_quantity, 10, 0);
+    for (auto &i : counts) {
+        double val = std::abs(i.second.as<double>());
+        qDebug() << val;
+    }
+    return 0;
+}
+*/
+
+std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigned int length, const double min_val, const double max_val) {
+    std::vector<unsigned int> retval;
+    double range = max_val - min_val;
+    for (unsigned int i = 0; i < length; i++) {
+        double val = round(i * range / length) + min_val;
+        retval.push_back(val);
+    }
+    return retval;
+}
+
 void ScriptEngine::load_script(const QString &path) {
     //NOTE: When using lambdas do not capture `this` or by reference, because it breaks when the ScriptEngine is moved
     this->path = path;
@@ -254,7 +276,7 @@ void ScriptEngine::load_script(const QString &path) {
                 }
             };
 
-			(*lua)["round"] = [](const double value, const unsigned int precision = 0) { return round_double(value, precision); };
+            (*lua)["round"] = [](const double value, const unsigned int precision = 0) { return round_double(value, precision); };
         }
         //table functions
         {
@@ -359,7 +381,7 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["table_round"] = [&lua = *lua](sol::table a, const unsigned int precision = 0) {
                 sol::table retval = lua.create_table_with();
                 for (size_t i = 1; i <= a.size(); i++) {
-					double sum_i = round_double(a[i].get<double>(), precision);
+                    double sum_i = round_double(a[i].get<double>(), precision);
                     retval.add(sum_i);
                 }
                 return retval;
@@ -376,7 +398,7 @@ void ScriptEngine::load_script(const QString &path) {
 
             (*lua)["table_mid"] = [&lua = *lua](sol::table a, const unsigned int start, const unsigned int length) {
                 sol::table retval = lua.create_table_with();
-				for (size_t i = start; i <= start + length - 1; i++) {
+                for (size_t i = start; i <= start + length - 1; i++) {
                     double sum_i = a[i].get<double>();
                     retval.add(sum_i);
                 }
@@ -454,61 +476,132 @@ void ScriptEngine::load_script(const QString &path) {
             };
         }
 
+        {
+            (*lua)["measure_noise_level_czt"] = [&lua = *lua](sol::table rpc_device, const unsigned int dacs_quantity,
+                                                              const unsigned int max_possible_dac_value) {
+                const unsigned int THRESHOLD_NOISE_LEVEL_CPS = 5;
+                const unsigned int INTEGRATION_TIME_SEC = 1;
+                const unsigned int INTEGRATION_TIME_HIGH_DEF_SEC = 10;
+                double noise_level_result = 100000000;
+                //TODO: test if dacs_quantity > 1
+                std::vector<unsigned int> dac_thresholds = measure_noise_level_distribute_tresholds(dacs_quantity, 0, max_possible_dac_value);
+
+                for (int i = 0; i < 500; i++) { //TODO: why 500?
+                    sol::table dac_thresholds_lua_table =  lua.create_table_with();
+                    for (auto j : dac_thresholds) {
+                        dac_thresholds_lua_table.add(j);
+                    }
+                    sol::table counts =
+                        lua["measure_noise_level_helper_set_dac_thresholds_and_get_raw_counts"](rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_SEC, 0);
+                    //print counts here
+                    for (auto &j : counts) {
+                        double val = std::abs(j.second.as<double>());
+                        qDebug() << val;
+                    }
+                    double window_start = 0;
+                    double window_end = 0;
+
+                    for (int j = counts.size() - 1; j >= 0; j--) {
+                        if (counts[j+1].get<double>() > THRESHOLD_NOISE_LEVEL_CPS) {
+                            window_start = dac_thresholds[j];
+                            window_end = window_start + (dac_thresholds[1] - dac_thresholds[0]);
+                            //print("window_start",window_start)
+                            //print("window_end",window_end)
+                            break;
+                        }
+                    }
+                    dac_thresholds = measure_noise_level_distribute_tresholds(dacs_quantity, window_start, window_end);
+
+                    //print("new threshold:", DAC_THRESHOLDS)
+
+                    if (dac_thresholds[0] == dac_thresholds[dacs_quantity - 1]) {
+                        noise_level_result = dac_thresholds[0];
+                        break;
+                    }
+                }
+
+                //feinabstung und und Plausibilitätsprüfung
+                for (unsigned int i = 0; i < max_possible_dac_value; i++) {
+                    sol::table dac_thresholds_lua_table = lua.create_table_with();;
+                    for (unsigned int i = 0; i < dacs_quantity; i++) {
+                        dac_thresholds_lua_table.add(noise_level_result);
+                    }
+                    //print("DAC:",rauschkante)
+                    sol::table counts = lua["measure_noise_level_helper_set_dac_thresholds_and_get_raw_counts"](
+                        rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_HIGH_DEF_SEC, INTEGRATION_TIME_HIGH_DEF_SEC * THRESHOLD_NOISE_LEVEL_CPS);
+                    bool found = true;
+                    for (auto &j : counts) {
+                        double val = j.second.as<double>() / INTEGRATION_TIME_HIGH_DEF_SEC;
+                        if (val > THRESHOLD_NOISE_LEVEL_CPS) {
+                            noise_level_result = noise_level_result + 1;
+                            found = false;
+                            break;
+                        }
+                    }
+                    if (found) {
+                        // print("rauschkante gefunden:", noise_level_result);
+                        break;
+                    }
+                }
+                return noise_level_result;
+            };
+        }
+
         //bind UI
         auto ui_table = lua->create_named_table("Ui");
 
         //bind plot
         {
-			ui_table.new_usertype<Lua_UI_Wrapper<Curve>>("Curve",                                                                    //
-														 sol::meta_function::construct, sol::no_constructor,                         //
-														 "add_point", thread_call_wrapper<void, Curve, double, double>(&Curve::add), //
-														 "add_spectrum",
-														 [](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
-															 std::vector<double> data;
-															 data.reserve(table.size());
-															 for (auto &i : table) {
-																 data.push_back(i.second.as<double>());
-															 }
-															 Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data) ] {
-																 auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
-																 curve.add(data);
-															 });
-														 }, //
-														 "add_spectrum_at",
-														 [](Lua_UI_Wrapper<Curve> &curve, const unsigned int spectrum_start_channel, const sol::table &table) {
-															 std::vector<double> data;
-															 data.reserve(table.size());
-															 for (auto &i : table) {
-																 data.push_back(i.second.as<double>());
-															 }
-															 Utility::thread_call(MainWindow::mw,
-																				  [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
-																					  auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
-																					  curve.add(spectrum_start_channel, data);
-																				  });
-														 }, //
-														 "set_offset",
-														 thread_call_wrapper(&Curve::set_offset),                                       //
-														 "set_enable_median", thread_call_wrapper(&Curve::set_enable_median),           //
-														 "set_median_kernel_size", thread_call_wrapper(&Curve::set_median_kernel_size), //
-														 "integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
-														 "set_gain", thread_call_wrapper(&Curve::set_gain)                              //
-														 );
-			ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot",                                                                                          //
-														sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
-														"clear",
-														thread_call_wrapper(&Plot::clear), //
-														"add_curve",
-														[parent = this->parent](Lua_UI_Wrapper<Plot> & lua_plot)->Lua_UI_Wrapper<Curve> {
-															return Utility::promised_thread_call(MainWindow::mw,
-																								 [parent, &lua_plot] {
-																									 auto &plot =
-																										 MainWindow::mw->get_lua_UI_class<Plot>(lua_plot.id);
-																									 return Lua_UI_Wrapper<Curve>{parent, &plot};
-																								 } //
-																								 );
-														});
-		}
+            ui_table.new_usertype<Lua_UI_Wrapper<Curve>>("Curve",                                                                    //
+                                                         sol::meta_function::construct, sol::no_constructor,                         //
+                                                         "add_point", thread_call_wrapper<void, Curve, double, double>(&Curve::add), //
+                                                         "add_spectrum",
+                                                         [](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
+                                                             std::vector<double> data;
+                                                             data.reserve(table.size());
+                                                             for (auto &i : table) {
+                                                                 data.push_back(i.second.as<double>());
+                                                             }
+                                                             Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data) ] {
+                                                                 auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
+                                                                 curve.add(data);
+                                                             });
+                                                         }, //
+                                                         "add_spectrum_at",
+                                                         [](Lua_UI_Wrapper<Curve> &curve, const unsigned int spectrum_start_channel, const sol::table &table) {
+                                                             std::vector<double> data;
+                                                             data.reserve(table.size());
+                                                             for (auto &i : table) {
+                                                                 data.push_back(i.second.as<double>());
+                                                             }
+                                                             Utility::thread_call(MainWindow::mw,
+                                                                                  [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
+                                                                                      auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
+                                                                                      curve.add(spectrum_start_channel, data);
+                                                                                  });
+                                                         }, //
+                                                         "set_offset",
+                                                         thread_call_wrapper(&Curve::set_offset),                                       //
+                                                         "set_enable_median", thread_call_wrapper(&Curve::set_enable_median),           //
+                                                         "set_median_kernel_size", thread_call_wrapper(&Curve::set_median_kernel_size), //
+                                                         "integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
+                                                         "set_gain", thread_call_wrapper(&Curve::set_gain)                              //
+                                                         );
+            ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot",                                                                                          //
+                                                        sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
+                                                        "clear",
+                                                        thread_call_wrapper(&Plot::clear), //
+                                                        "add_curve",
+                                                        [parent = this->parent](Lua_UI_Wrapper<Plot> & lua_plot)->Lua_UI_Wrapper<Curve> {
+                                                            return Utility::promised_thread_call(MainWindow::mw,
+                                                                                                 [parent, &lua_plot] {
+                                                                                                     auto &plot =
+                                                                                                         MainWindow::mw->get_lua_UI_class<Plot>(lua_plot.id);
+                                                                                                     return Lua_UI_Wrapper<Curve>{parent, &plot};
+                                                                                                 } //
+                                                                                                 );
+                                                        });
+        }
         //bind button
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //
@@ -752,10 +845,10 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
                     }
                     const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
                     lua->set_usertype(type_name, type_reg);
-					while (device_protocol.first->waitReceived(CommunicationDevice::Duration{0}, 1)) {
-						//ignore leftover data in the receive buffer
-					}
-					rpcp->clear();
+                    while (device_protocol.first->waitReceived(CommunicationDevice::Duration{0}, 1)) {
+                        //ignore leftover data in the receive buffer
+                    }
+                    rpcp->clear();
                 } else {
                     //TODO: other protocols
                     throw std::runtime_error("invalid protocol: " + device_protocol.second->type.toStdString());
