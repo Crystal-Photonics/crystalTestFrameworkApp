@@ -265,7 +265,12 @@ void MainWindow::on_run_test_script_button_clicked() {
 			if (test == nullptr) {
 				continue;
 			}
-			test_runners.push_back(std::make_unique<TestRunner>(*test));
+			try {
+				test_runners.push_back(std::make_unique<TestRunner>(*test));
+			} catch (const std::runtime_error &e) {
+				Console::error(test->console) << "Failed running test: " << e.what();
+				continue;
+			}
 			auto &runner = *test_runners.back();
 			ui->test_tabs->setCurrentIndex(ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name()));
 			auto devices = get_script_communication(*device_worker, runner, *test);

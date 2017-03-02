@@ -116,7 +116,7 @@
      <item>
       <widget class="QLabel" name="label_4">
        <property name="text">
-        <string>Path to RPC-xml files</string>
+        <string>Path to RPC-xml files (subfolders will be searched too)</string>
        </property>
       </widget>
      </item>
