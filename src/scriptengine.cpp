@@ -492,7 +492,9 @@ void ScriptEngine::load_script(const QString &path) {
 														 "set_enable_median", thread_call_wrapper(&Curve::set_enable_median),           //
 														 "set_median_kernel_size", thread_call_wrapper(&Curve::set_median_kernel_size), //
 														 "integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
-														 "set_gain", thread_call_wrapper(&Curve::set_gain)                              //
+														 "set_gain", thread_call_wrapper(&Curve::set_gain),                             //
+														 "set_color_by_name", thread_call_wrapper(&Curve::set_color_by_name),           //
+														 "set_color_by_rgb", thread_call_wrapper(&Curve::set_color_by_rgb)              //
 														 );
 			ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot",                                                                                          //
 														sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
