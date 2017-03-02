@@ -14,6 +14,8 @@ class Plot;
 class Curve {
 	public:
 	Curve(QSplitter *, Plot *plot);
+	Curve(Curve &&other) = delete;
+	~Curve();
 	void add(double x, double y);
 	void add(const std::vector<double> &data);
 	void add(const unsigned int spectrum_start_channel, const std::vector<double> &data);
@@ -27,6 +29,7 @@ class Curve {
 	private:
 	void resize(std::size_t size);
 	void update();
+	void detach();
 
 	Plot *plot{nullptr};
 	QwtPlotCurve *curve{nullptr};
@@ -49,13 +52,13 @@ class Plot {
     ~Plot();
     void clear();
 
-    private:
+	private:
 	void update();
 	void set_rightclick_action();
 
 	QwtPlot *plot{nullptr};
 	QAction *save_as_csv_action{nullptr};
-	std::vector<Curve> curves{};
+	std::vector<Curve *> curves{};
 	int curve_id_counter{0};
 
 	friend class Curve;

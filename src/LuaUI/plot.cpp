@@ -3,6 +3,7 @@
 #include <QAction>
 #include <QDateTime>
 #include <QFileDialog>
+#include <QMessageBox>
 #include <QSplitter>
 #include <fstream>
 #include <qwt_plot.h>
@@ -13,6 +14,16 @@ Curve::Curve(QSplitter *, Plot *plot)
 	, curve(new QwtPlotCurve) {
 	curve->attach(plot->plot);
 	curve->setTitle("curve" + QString::number(plot->curve_id_counter++));
+	plot->curves.push_back(this);
+	plot->set_rightclick_action();
+}
+
+Curve::~Curve() {
+	if (plot) {
+		auto &curves = plot->curves;
+		curves.erase(std::find(std::begin(curves), std::end(curves), this));
+		detach();
+	}
 }
 
 void Curve::add(double x, double y) {
@@ -136,17 +147,21 @@ void Curve::update() {
 	plot->update();
 }
 
+void Curve::detach() {
+	curve->setSamples(xvalues.data(), yvalues_plot.data(), xvalues.size());
+}
+
 Plot::Plot(QSplitter *parent)
-    : plot(new QwtPlot)
-    , save_as_csv_action(new QAction(plot)) {
+	: plot(new QwtPlot) {
     parent->addWidget(plot);
     plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
-	save_as_csv_action->setText(QObject::tr("save_as_csv"));
+	set_rightclick_action();
 }
 
 Plot::~Plot() {
 	for (auto &curve : curves) {
-		curve.curve->setSamples(curve.xvalues.data(), curve.yvalues_plot.data(), curve.xvalues.size());
+		curve->detach();
+		curve->plot = nullptr;
 	}
     //the plot was using xvalues and yvalues directly, but now they are gone
     //this is to make the plot own the data
@@ -161,24 +176,36 @@ void Plot::update() {
 }
 
 void Plot::set_rightclick_action() {
-	plot->removeAction(save_as_csv_action);
-	std::vector<QwtPlotCurve *> raw_curves;
-	raw_curves.resize(curves.size());
-	std::transform(std::begin(curves), std::end(curves), std::begin(raw_curves), [](const Curve &curve) { return curve.curve; });
-	QObject::connect(save_as_csv_action, &QAction::triggered, [ plot = this->plot, curves = std::move(raw_curves) ] {
-		auto dir = QFileDialog::getExistingDirectory(plot, QObject::tr("Select folder to save data in"), QDateTime::currentDateTime().toString(Qt::ISODate));
-		if (dir.isEmpty() == false) {
-			for (auto &curve : curves) {
-				std::ofstream f{QDir(dir).filePath(curve->title().text()).toStdString()};
-				auto data = curve->data();
-				auto size = data->size();
-				for (std::size_t i = 0; i < size; i++) {
-					const auto &point = data->sample(i);
-					f << point.x() << ';' << point.y() << '\n';
+	delete save_as_csv_action;
+	save_as_csv_action = new QAction(plot);
+	save_as_csv_action->setText(QObject::tr("save_as_csv"));
+	if (curves.size()) {
+		std::vector<QwtPlotCurve *> raw_curves;
+		raw_curves.resize(curves.size());
+		std::transform(std::begin(curves), std::end(curves), std::begin(raw_curves), [](const Curve *curve) { return curve->curve; });
+		QObject::connect(save_as_csv_action, &QAction::triggered, [ plot = this->plot, curves = std::move(raw_curves) ] {
+			auto dir =
+				QFileDialog::getExistingDirectory(plot, QObject::tr("Select folder to save data in"), QDateTime::currentDateTime().toString(Qt::ISODate));
+			if (dir.isEmpty() == false) {
+				for (auto &curve : curves) {
+					auto filename = QDir(dir).filePath(curve->title().text() + ".csv");
+					std::ofstream f{filename.toStdString()};
+					auto data = curve->data();
+					auto size = data->size();
+					for (std::size_t i = 0; i < size; i++) {
+						const auto &point = data->sample(i);
+						f << point.x() << ';' << point.y() << '\n';
+					}
+					f.flush();
+					if (!f) {
+						QMessageBox::critical(plot, QObject::tr("Error"), QObject::tr("Failed writing to file %1").arg(filename));
+					}
 				}
 			}
-		}
 
-	});
+		});
+	} else {
+		save_as_csv_action->setEnabled(false);
+	}
 	plot->addAction(save_as_csv_action);
 }

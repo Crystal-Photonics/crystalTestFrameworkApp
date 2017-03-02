@@ -13,7 +13,6 @@ class CommunicationDevice;
 class QStringList;
 class QSplitter;
 class QPlainTextEdit;
-struct LuaUI;
 struct Protocol;
 
 class ScriptEngine {
