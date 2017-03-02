@@ -43,10 +43,9 @@ static bool is_valid_baudrate(QSerialPort::BaudRate baudrate) {
 void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_device_list) {
 	auto device_protocol_settings_file = QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString();
 	if (device_protocol_settings_file.isEmpty()) {
-		MainWindow::mw->show_message_box(
-			tr("Missing File"),
-			tr("Auto-Detecting devices requires a file that defines which protocols can use which file. Make such a file and add it via Settings->Paths"),
-			QMessageBox::Critical);
+		MainWindow::mw->show_message_box(tr("Missing File"), tr("Auto-Detecting devices requires a file that defines which protocols can use which device "
+																"types. Make such a file and add it via Settings->Paths"),
+										 QMessageBox::Critical);
 		return;
 	}
 	QSettings device_protocol_settings{device_protocol_settings_file, QSettings::IniFormat};
@@ -72,7 +71,6 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
 			if (protocol->is_correct_protocol()) {
 				MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { protocol->set_ui_description(ui_entry); });
 				device.protocol = std::move(protocol);
-
 			} else {
 				device.device->close();
 			}

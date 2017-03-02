@@ -162,7 +162,7 @@ bool RPCProtocol::is_correct_protocol() {
 		}
     }
 
-	return true;
+	return result != nullptr;
 }
 
 std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call) {
