@@ -287,6 +287,14 @@ void ScriptEngine::load_script(const QString &path) {
                 return retval;
             };
 
+            (*lua)["table_create_constant"] = [&lua = *lua](double a, double b) {
+                sol::table retval = lua.create_table_with();
+                for (size_t i = 1; i <= a; i++) {
+                    retval.add(b);
+                }
+                return retval;
+            };
+
             (*lua)["table_add_table"] = [&lua = *lua](sol::table a, sol::table b) {
                 sol::table retval = lua.create_table_with();
                 for (size_t i = 1; i <= a.size(); i++) {
@@ -373,6 +381,15 @@ void ScriptEngine::load_script(const QString &path) {
                     retval.add(sum_i);
                 }
                 return retval;
+            };
+
+            (*lua)["table_equal_constant"] = [](sol::table a, double b) {
+                for (size_t i = 1; i <= a.size(); i++) {
+                    if (a[i].get<double>() != b) { //TODO: fix double comparison
+                        return false;
+                    }
+                }
+                return true;
             };
 
             (*lua)["table_equal_table"] = [](sol::table a, sol::table b) {
