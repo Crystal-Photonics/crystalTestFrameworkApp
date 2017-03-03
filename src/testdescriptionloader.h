@@ -11,7 +11,7 @@ class QPlainTextEdit;
 
 class TestDescriptionLoader {
 	public:
-	TestDescriptionLoader(QTreeWidget *test_list, const QString &file_path);
+	TestDescriptionLoader(QTreeWidget *test_list, const QString &file_path, const QString &display_name);
 	TestDescriptionLoader(TestDescriptionLoader &&other);
 	~TestDescriptionLoader();
 	const std::vector<QString> &get_protocols() const;

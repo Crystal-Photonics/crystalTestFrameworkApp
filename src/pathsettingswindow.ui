@@ -32,7 +32,7 @@
      <item>
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>Path to the test scripts</string>
+        <string>Path to the test scripts (subdirectories are included)</string>
        </property>
       </widget>
      </item>
@@ -116,7 +116,7 @@
      <item>
       <widget class="QLabel" name="label_4">
        <property name="text">
-        <string>Path to RPC-xml files (subfolders will be searched too)</string>
+        <string>Path to RPC-xml files (subdirectories are included)</string>
        </property>
       </widget>
      </item>
