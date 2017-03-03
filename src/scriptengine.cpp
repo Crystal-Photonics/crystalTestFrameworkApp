@@ -191,42 +191,9 @@ std::string to_string(const sol::stack_proxy &object) {
  * @endcode
  */
 
-#ifdef DOXYGEN_ONLY
-/*! \fn sleep_ms(const unsigned int timeout_m)
-    \brief Opens a file descriptor.
-    \param pathname The name of the descriptor.
-    \param flags Opening flags.
-*/
-void sleep_ms(const unsigned int timeout_m);
 
-#endif
 
-/*! \fn sleep_ms_(const unsigned int timeout_m)
-    \brief Opens a file descriptor.
-    \param pathname The name of the descriptor.
-    \param flags Opening flags.
-*/
-void sleep_ms_(const unsigned int timeout_m);
-
-double round_double(const double value, const unsigned int precision) {
-    double faktor = pow(10, precision);
-    double retval = value;
-    retval *= faktor;
-    retval = round(retval);
-    return retval / faktor;
-}
-
-/*
-double measure_noise_level_czt(std::unique_ptr<sol::state> &lua, sol::table rpc_device, const unsigned int dacs_quantity,
-                               const unsigned int max_possible_dac_value) {
-    sol::table counts = (*lua)["measure_noise_level_helper_set_dac_thresholds_and_get_raw_counts"](rpc_device, dacs_quantity, 10, 0);
-    for (auto &i : counts) {
-        double val = std::abs(i.second.as<double>());
-        qDebug() << val;
-    }
-    return 0;
-}
-*/
+/// @cond HIDDEN_SYMBOLS
 
 std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigned int length, const double min_val, const double max_val) {
     std::vector<unsigned int> retval;
@@ -237,6 +204,377 @@ std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigne
     }
     return retval;
 }
+/// @endcond
+/*! \fn double measure_noise_level_czt(table rpc_device, int dacs_quantity, int max_possible_dac_value)
+    \brief Calculates the noise level of an CZT-Detector system with thresholded radioactivity counters.
+    \param rpc_device                   The communication instance of the CZT-Detector.
+    \param dacs_quantity                Number of thresholds which is also equal to the number of counter results.
+    \param max_possible_dac_value       Max digit of the DAC which controlls the thresholds. For 12 Bit this value equals 4095.
+    \return                             The lowest DAC threshold value which matches with the noise level definition.
+
+    \details    This function modifies DAC thresholds in order to find the lowest NoiseLevel which matches with:<br>
+                \f$ \int_NoiseLevel^\infty spectrum(energy) < LimitCPS \f$ <br>
+                where LimitCPS is defined by configuration and is set by default to 5 CPS.
+                <br> <br>
+                Because this functions iterates through the range of the spectrum to the find the noise level it is
+                necessary to have write access to the DAC thresholds and read access to the count values at the
+                DAC thresholds.
+                This is done by two call back functions which have to be implemented by the user into the lua script: <br><br>
+
+    \par function callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts
+    \code{.lua}
+            function callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts(
+                    rpc_device,
+                    thresholds,
+                    integration_time_s,
+                    count_limit_for_accumulation_abort)
+    \endcode
+    \brief  Shall modify the DAC thresholds and accumulate the counts of the counters with the new thresholds.
+    \param rpc_device                           The communication instance of the CZT-Detector.
+    \param thresholds                           Table with the length of \c dacs_quantity containing the thresholds which have to be set by this function.
+    \param integration_time_s                   Time in seconds to acquire the counts of the thresholded radioactivity counters.
+    \param count_limit_for_accumulation_abort   If not equal to zero the function can abort the count acquisition if one counter reaches
+                                                count_limit_for_accumulation_abort.
+    \return                                     Table of acquired counts in order of the table \c thresholds.
+
+    \par function callback_measure_noise_level_restore_dac_thresholds_to_normal_mode
+    \code{.lua}
+        function callback_measure_noise_level_restore_dac_thresholds_to_normal_mode(rpc_device)
+    \endcode
+    \brief  Modifying thresholds often implies that a special "overwrite with custom thresholds"-mode is required. This function allows the user to leave this mode.
+    \param rpc_device                           The communication instance of the CZT-Detector.
+    \return                                     nothing.
+
+    \par examples:
+    \code{.lua}
+        function callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts(
+                    rpc_device,
+                    thresholds,
+                    integration_time_s,
+                    count_limit_for_accumulation_abort)
+
+            print("chosen thresholds:", thresholds)
+            rpc_device:thresholds_set_custom_values(1 ,
+                thresholds[1],
+                thresholds[2],
+                thresholds[3],
+                thresholds[4]) --RPC Function for setting custom thresholds
+            local count_values_akku = table_create_constant(DAC_quantity,0)
+            rpc_device:get_counts_raw(1)        --RPC Function for resetting
+                                                --the internal count buffer
+            for i = 1, integration_time_s do    --we want to prevent overflow(16bit) by
+                                                --measuring 10 times 1 second instead
+                                                --of 10 seconds and add the results
+                sleep_ms(1000)
+                local count_values = rpc_device:get_counts_raw(1)
+                count_values_akku = table_add_table(count_values_akku,count_values)
+                if (table_max(count_values_akku) > count_limit_for_accumulation_abort)
+                        and (count_limit_for_accumulation_abort ~= 0) then
+                    break
+                end
+            end
+
+            local counts_cps = table_mul_constant(count_values_akku,1/integration_time_s)
+            print("measured counts[cps]:", counts_cps)
+            return counts_cps
+        end
+    \endcode
+    \code{.lua}
+        function callback_measure_noise_level_restore_dac_thresholds_to_normal_mode(rpc_device)
+            --eg:
+            rpc_device:thresholds_set_custom_values(0, 0,0,0,0) --disable overwriting
+                                                                --thresholds with custom values
+        end
+    \endcode
+
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+double measure_noise_level_czt(table rpc_device, int dacs_quantity, int max_possible_dac_value);
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const unsigned int dacs_quantity, const unsigned int max_possible_dac_value) {
+    const unsigned int THRESHOLD_NOISE_LEVEL_CPS = 5;
+    const unsigned int INTEGRATION_TIME_SEC = 1;
+    const unsigned int INTEGRATION_TIME_HIGH_DEF_SEC = 10;
+    double noise_level_result = 100000000;
+    //TODO: test if dacs_quantity > 1
+    std::vector<unsigned int> dac_thresholds = measure_noise_level_distribute_tresholds(dacs_quantity, 0, max_possible_dac_value);
+
+    for (unsigned int i = 0; i < max_possible_dac_value; i++) {
+        sol::table dac_thresholds_lua_table = lua.create_table_with();
+        for (auto j : dac_thresholds) {
+            dac_thresholds_lua_table.add(j);
+        }
+        sol::table counts =
+            lua["callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts"](rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_SEC, 0);
+        //print counts here
+        //for (auto &j : counts) {
+        //    double val = std::abs(j.second.as<double>());
+        //    qDebug() << val;
+        // }
+        double window_start = 0;
+        double window_end = 0;
+
+        for (int j = counts.size() - 1; j >= 0; j--) {
+            if (counts[j + 1].get<double>() > THRESHOLD_NOISE_LEVEL_CPS) {
+                window_start = dac_thresholds[j];
+                window_end = window_start + (dac_thresholds[1] - dac_thresholds[0]);
+                //print("window_start",window_start)
+                //print("window_end",window_end)
+                break;
+            }
+        }
+        dac_thresholds = measure_noise_level_distribute_tresholds(dacs_quantity, window_start, window_end);
+
+        //print("new threshold:", DAC_THRESHOLDS)
+
+        if (dac_thresholds[0] == dac_thresholds[dacs_quantity - 1]) {
+            noise_level_result = dac_thresholds[0];
+            break;
+        }
+    }
+
+    //feinabstung und und Plausibilitätsprüfung
+    for (unsigned int i = 0; i < max_possible_dac_value; i++) {
+        sol::table dac_thresholds_lua_table = lua.create_table_with();
+        ;
+        for (unsigned int i = 0; i < dacs_quantity; i++) {
+            dac_thresholds_lua_table.add(noise_level_result);
+        }
+        //print("DAC:",rauschkante)
+        sol::table counts = lua["callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts"](
+            rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_HIGH_DEF_SEC, INTEGRATION_TIME_HIGH_DEF_SEC * THRESHOLD_NOISE_LEVEL_CPS);
+        bool found = true;
+        for (auto &j : counts) {
+            double val = j.second.as<double>() / INTEGRATION_TIME_HIGH_DEF_SEC;
+            if (val > THRESHOLD_NOISE_LEVEL_CPS) {
+                noise_level_result = noise_level_result + 1;
+                found = false;
+                break;
+            }
+        }
+        if (found) {
+            // print("rauschkante gefunden:", noise_level_result);
+            break;
+        }
+    }
+    lua["callback_measure_noise_level_restore_dac_thresholds_to_normal_mode"](rpc_device);
+    return noise_level_result;
+}
+/// @endcond
+
+
+double round_double(const double value, const unsigned int precision) {
+    double faktor = pow(10, precision);
+    double retval = value;
+    retval *= faktor;
+    retval = round(retval);
+    return retval / faktor;
+}
+
+/*! \fn bool table_equal_constant(table input_values_a, double input_const_val);
+    \brief Returns true if \c input_values_a[i] == input_const_val for all \c i.
+    \param input_values_a                A table of double or int values.
+    \param input_const_val               A double value to compare the table with
+
+    \return                            true or false
+
+    \details    \par example:
+    \code{.lua}
+        input_values_a = {-20, -40, 2, 30}
+        input_values_b = {-20, -20, -20, -20}
+        input_const_val = -20
+        retval_equ = table_equal_constant(input_values_b,input_const_val)  -- retval_equ is true
+        retval_neq = table_equal_constant(input_values_a,input_const_val)  -- retval_neq is false
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+bool table_equal_constant(table input_values_a, double input_const_val);
+#endif
+/// @cond HIDDEN_SYMBOLS
+bool table_equal_constant(sol::table input_values_a, double input_const_val) {
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        if (input_values_a[i].get<double>() != input_const_val) { //TODO: fix double comparison
+            return false;
+        }
+    }
+    return true;
+};
+/// @endcond
+
+/*! \fn bool table_equal_table(table input_values_a, table input_values_b);
+    \brief Returns true if \c input_values_a[i] == input_values_b[i] for all \c i.
+    \param input_values_a                A table of double or int values.
+    \param input_values_b                A table of double or int values.
+
+    \return                            true or false
+
+    \details    \par example:
+    \code{.lua}
+        input_values_a = {-20, -40, 2, 30}
+        input_values_b = {-20, -40, 2, 30}
+        input_values_c = {-20, -40, 2, 31}
+        retval_equ = table_equal_table(input_values_a,input_values_b)  -- retval_equ is true
+        retval_neq = table_equal_table(input_values_a,input_values_c)  -- retval_neq is false
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+bool table_equal_table(table input_values_a, table input_values_b);
+#endif
+/// @cond HIDDEN_SYMBOLS
+bool table_equal_table(sol::table input_values_a, sol::table input_values_b) {
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        if (input_values_a[i].get<double>() != input_values_b[i].get<double>()) { //TODO: fix double comparison
+            return false;
+        }
+    }
+    return true;
+};
+/// @endcond
+
+/*! \fn double table_max(table input_values);
+    \brief Returns the maximum value of \c input_values.
+    \param input_values                A table of double or int values.
+
+    \return                            The maximum absolute value of \c input_values.
+
+    \details    \par example:
+    \code{.lua}
+        input_values = {-20, -40, 2, 30}
+        retval = table_max(input_values)  -- retval is 30
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+double table_max(table input_values);
+#endif
+/// @cond HIDDEN_SYMBOLS
+double table_max(sol::table input_values) {
+    double max = 0;
+    bool first = true;
+    for (auto &i : input_values) {
+        double val = i.second.as<double>();
+        if ((val > max) || first) {
+            max = val;
+        }
+        first = false;
+    }
+    return max;
+};
+/// @endcond
+
+/*! \fn double table_min(table input_values);
+    \brief Returns the minimum value of \c input_values.
+    \param input_values                A table of double or int values.
+
+    \return                            The minimum absolute value of \c input_values.
+
+    \details    \par example:
+    \code{.lua}
+        input_values = {-20, -40, 2, 30}
+        retval = table_min(input_values)  -- retval is -40
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+double table_min(table input_values);
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+double table_min(sol::table input_values) {
+    double min = 0;
+    bool first = true;
+    for (auto &i : input_values) {
+        double val = i.second.as<double>();
+        if ((val < min) || first) {
+            min = val;
+        }
+        first = false;
+    }
+    return min;
+};
+/// @endcond
+
+/*! \fn double table_max_abs(table input_values);
+    \brief Returns the maximum absolute value of \c input_values.
+    \param input_values                A table of double or int values.
+
+    \return                            The maximum absolute value of \c input_values.
+
+    \details    \par example:
+    \code{.lua}
+        input_values = {-20, -40, 2, 30}
+        retval = table_max_abs(input_values)  -- retval is 40
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+double table_max_abs(table input_values);
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+double table_max_abs(sol::table input_values) {
+    double max = 0;
+    bool first = true;
+    for (auto &i : input_values) {
+        double val = std::abs(i.second.as<double>());
+        if ((val > max) || first) {
+            max = val;
+        }
+        first = false;
+    }
+    return max;
+};
+/// @endcond
+
+/*! \fn double table_min_abs(table input_values);
+    \brief Returns the minimum absolute value of \c input_values.
+    \param input_values                A table of double or int values.
+
+    \return                            The minimum absolute value of \c input_values.
+
+    \details    \par example:
+    \code{.lua}
+        input_values = {-20, 2, 30}
+        retval = table_min_abs(input_values)  -- retval is 2
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+double table_min_abs(table input_values);
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+double table_min_abs(sol::table input_values) {
+    double min = 0;
+    bool first = true;
+    for (auto &i : input_values) {
+        double val = std::abs(i.second.as<double>());
+        if ((val < min) || first) {
+            min = val;
+        }
+        first = false;
+    }
+    return min;
+}
+/// @endcond
 
 void ScriptEngine::load_script(const QString &path) {
     //NOTE: When using lambdas do not capture `this` or by reference, because it breaks when the ScriptEngine is moved
@@ -259,12 +597,6 @@ void ScriptEngine::load_script(const QString &path) {
                 }
                 Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
             };
-            /*! \fn sleep_ms(const unsigned int timeout_m)
-                \brief Opens a file descriptor.
-                \param pathname The name of the descriptor.
-                \param flags Opening flags.
-            */
-            void sleep_ms(const unsigned int timeout_m);
 
             (*lua)["sleep_ms"] = [](const unsigned int timeout_ms) {
                 QEventLoop event_loop;
@@ -405,147 +737,27 @@ void ScriptEngine::load_script(const QString &path) {
                 return retval;
             };
 
-            (*lua)["table_equal_constant"] = [](sol::table a, double b) {
-                for (size_t i = 1; i <= a.size(); i++) {
-                    if (a[i].get<double>() != b) { //TODO: fix double comparison
-                        return false;
-                    }
-                }
-                return true;
+            (*lua)["table_equal_constant"] = [](sol::table input_values_a, double input_const_val) {
+                return table_equal_constant(input_values_a, input_const_val);
             };
 
-            (*lua)["table_equal_table"] = [](sol::table a, sol::table b) {
-                for (size_t i = 1; i <= a.size(); i++) {
-                    if (a[i].get<double>() != b[i].get<double>()) { //TODO: fix double comparison
-                        return false;
-                    }
-                }
-                return true;
+            (*lua)["table_equal_table"] = [](sol::table input_values_a, sol::table input_values_b) {
+                return table_equal_table(input_values_a, input_values_b);
             };
 
-            (*lua)["table_max"] = [](sol::table table) {
-                double max = 0;
-                bool first = true;
-                for (auto &i : table) {
-                    double val = i.second.as<double>();
-                    if ((val > max) || first) {
-                        max = val;
-                    }
-                    first = false;
-                }
-                return max;
-            };
+            (*lua)["table_max"] = [](sol::table input_values) { return table_max(input_values); };
 
-            (*lua)["table_min"] = [](sol::table table) {
-                double min = 0;
-                bool first = true;
-                for (auto &i : table) {
-                    double val = i.second.as<double>();
-                    if ((val < min) || first) {
-                        min = val;
-                    }
-                    first = false;
-                }
-                return min;
-            };
+            (*lua)["table_min"] = [](sol::table input_values) { return table_min(input_values); };
 
-            (*lua)["table_max_abs"] = [](sol::table table) {
-                double max = 0;
-                bool first = true;
-                for (auto &i : table) {
-                    double val = std::abs(i.second.as<double>());
-                    if ((val > max) || first) {
-                        max = val;
-                    }
-                    first = false;
-                }
-                return max;
-            };
+            (*lua)["table_max_abs"] = [](sol::table input_values) { return table_max_abs(input_values); };
 
-            (*lua)["table_min_abs"] = [](sol::table table) {
-                double min = 0;
-                bool first = true;
-                for (auto &i : table) {
-                    double val = std::abs(i.second.as<double>());
-                    if ((val < min) || first) {
-                        min = val;
-                    }
-                    first = false;
-                }
-                return min;
-            };
+            (*lua)["table_min_abs"] = [](sol::table input_values) { return table_min_abs(input_values); };
         }
 
         {
             (*lua)["measure_noise_level_czt"] = [&lua = *lua](sol::table rpc_device, const unsigned int dacs_quantity,
                                                               const unsigned int max_possible_dac_value) {
-                const unsigned int THRESHOLD_NOISE_LEVEL_CPS = 5;
-                const unsigned int INTEGRATION_TIME_SEC = 1;
-                const unsigned int INTEGRATION_TIME_HIGH_DEF_SEC = 10;
-                double noise_level_result = 100000000;
-                //TODO: test if dacs_quantity > 1
-                std::vector<unsigned int> dac_thresholds = measure_noise_level_distribute_tresholds(dacs_quantity, 0, max_possible_dac_value);
-
-                for (int i = 0; i < 500; i++) { //TODO: why 500?
-                    sol::table dac_thresholds_lua_table = lua.create_table_with();
-                    for (auto j : dac_thresholds) {
-                        dac_thresholds_lua_table.add(j);
-                    }
-                    sol::table counts =
-                        lua["callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts"](rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_SEC, 0);
-                    //print counts here
-                    //for (auto &j : counts) {
-                    //    double val = std::abs(j.second.as<double>());
-                    //    qDebug() << val;
-                   // }
-                    double window_start = 0;
-                    double window_end = 0;
-
-                    for (int j = counts.size() - 1; j >= 0; j--) {
-                        if (counts[j + 1].get<double>() > THRESHOLD_NOISE_LEVEL_CPS) {
-                            window_start = dac_thresholds[j];
-                            window_end = window_start + (dac_thresholds[1] - dac_thresholds[0]);
-                            //print("window_start",window_start)
-                            //print("window_end",window_end)
-                            break;
-                        }
-                    }
-                    dac_thresholds = measure_noise_level_distribute_tresholds(dacs_quantity, window_start, window_end);
-
-                    //print("new threshold:", DAC_THRESHOLDS)
-
-                    if (dac_thresholds[0] == dac_thresholds[dacs_quantity - 1]) {
-                        noise_level_result = dac_thresholds[0];
-                        break;
-                    }
-                }
-
-                //feinabstung und und Plausibilitätsprüfung
-                for (unsigned int i = 0; i < max_possible_dac_value; i++) {
-                    sol::table dac_thresholds_lua_table = lua.create_table_with();
-                    ;
-                    for (unsigned int i = 0; i < dacs_quantity; i++) {
-                        dac_thresholds_lua_table.add(noise_level_result);
-                    }
-                    //print("DAC:",rauschkante)
-                    sol::table counts = lua["callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts"](
-                        rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_HIGH_DEF_SEC, INTEGRATION_TIME_HIGH_DEF_SEC * THRESHOLD_NOISE_LEVEL_CPS);
-                    bool found = true;
-                    for (auto &j : counts) {
-                        double val = j.second.as<double>() / INTEGRATION_TIME_HIGH_DEF_SEC;
-                        if (val > THRESHOLD_NOISE_LEVEL_CPS) {
-                            noise_level_result = noise_level_result + 1;
-                            found = false;
-                            break;
-                        }
-                    }
-                    if (found) {
-                        // print("rauschkante gefunden:", noise_level_result);
-                        break;
-                    }
-                }
-                lua["callback_measure_noise_level_restore_dac_thresholds_to_normal_mode"](rpc_device);
-                return noise_level_result;
+                return measure_noise_level_czt(lua, rpc_device, dacs_quantity, max_possible_dac_value);
             };
         }
 

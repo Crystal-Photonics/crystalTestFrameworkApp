@@ -26,7 +26,15 @@ class Curve {
 	void set_enable_median(bool enable);
 	void set_median_kernel_size(int kernel_size);
 	void set_color(const QColor &color);
-	void set_color_by_name(const std::string &name);
+    void set_color_by_name(const std::string &name);//!< color names as described in:
+                                                    //!< \link https://www.w3.org/TR/SVG/types.html#ColorKeywords <BR>
+                                                    //!< \par examples:<BR>
+                                                    //! aqua blue green red yellow white black <BR>
+                                                    //! \code
+                                                    //! local plot = ui.plot.new()
+                                                    //! local curve = plot:add_curve()
+                                                    //! curve:set_color_by_name("red")
+                                                    //! \endcode
 	void set_color_by_rgb(int r, int g, int b);
 
 	private:
