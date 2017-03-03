@@ -126,10 +126,11 @@ void MainWindow::forget_device() {
 
 void MainWindow::load_scripts() {
 	Utility::thread_call(this, [this] {
-		QDirIterator dit{QSettings{}.value(Globals::test_script_path_settings_key, "").toString(), QStringList{} << "*.lua", QDir::Files};
+		const auto dir = QSettings{}.value(Globals::test_script_path_settings_key, "").toString();
+		QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories};
 		while (dit.hasNext()) {
 			const auto &file_path = dit.next();
-			test_descriptions.push_back({ui->tests_list, file_path});
+			test_descriptions.push_back({ui->tests_list, file_path, QDir{dir}.relativeFilePath(file_path)});
 		}
 	});
 }
