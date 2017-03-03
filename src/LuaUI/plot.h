@@ -1,15 +1,18 @@
 #ifndef PLOT_H
 #define PLOT_H
 
+#include <functional>
 #include <memory>
 #include <qwt_plot.h>
 #include <vector>
 
+class Plot;
 class QAction;
 class QSplitter;
+class QwtPickerClickPointMachine;
 class QwtPlot;
 class QwtPlotCurve;
-class Plot;
+class QwtPlotPicker;
 
 class Curve {
 	public:
@@ -28,11 +31,13 @@ class Curve {
 	void set_color(const QColor &color);
 	void set_color_by_name(const std::string &name);
 	void set_color_by_rgb(int r, int g, int b);
+	void set_click_callback(std::function<void(double, double)> click_callback);
 
 	private:
 	void resize(std::size_t size);
 	void update();
 	void detach();
+	void selected_event(const QPointF &selection);
 
 	Plot *plot{nullptr};
 	QwtPlotCurve *curve{nullptr};
@@ -43,6 +48,8 @@ class Curve {
 	unsigned int median_kernel_size{3};
 	double offset{0};
 	double gain{1};
+	std::function<void(double, double)> click_callback{[](double, double) {}};
+	QMetaObject::Connection callback_connection{};
 
 	friend class Plot;
 };
@@ -61,6 +68,8 @@ class Plot {
 
 	QwtPlot *plot{nullptr};
 	QAction *save_as_csv_action{nullptr};
+	QwtPlotPicker *picker{nullptr};
+	QwtPickerClickPointMachine *clicker{nullptr};
 	std::vector<Curve *> curves{};
 	int curve_id_counter{0};
 

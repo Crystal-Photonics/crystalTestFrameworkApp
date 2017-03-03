@@ -8,8 +8,10 @@
 #include <QSettings>
 #include <QSplitter>
 #include <fstream>
+#include <qwt_picker_machine.h>
 #include <qwt_plot.h>
 #include <qwt_plot_curve.h>
+#include <qwt_plot_picker.h>
 
 Curve::Curve(QSplitter *, Plot *plot)
 	: plot(plot)
@@ -18,6 +20,8 @@ Curve::Curve(QSplitter *, Plot *plot)
 	curve->setTitle("curve" + QString::number(plot->curve_id_counter++));
 	plot->curves.push_back(this);
 	plot->set_rightclick_action();
+	callback_connection = QObject::connect(plot->picker, static_cast<void (QwtPlotPicker::*)(const QPointF &)>(&QwtPlotPicker::selected),
+										   [this](const QPointF &selection) { selected_event(selection); });
 }
 
 Curve::~Curve() {
@@ -26,6 +30,7 @@ Curve::~Curve() {
 		curves.erase(std::find(std::begin(curves), std::end(curves), this));
 		detach();
 	}
+	QObject::disconnect(callback_connection);
 }
 
 void Curve::add(double x, double y) {
@@ -117,6 +122,10 @@ void Curve::set_color_by_rgb(int r, int g, int b) {
 	set_color(QColor{r, g, b});
 }
 
+void Curve::set_click_callback(std::function<void(double, double)> click_callback) {
+	this->click_callback = std::move(click_callback);
+}
+
 void Curve::resize(std::size_t size) {
 	if (xvalues.size() > size) {
 		xvalues.resize(size);
@@ -165,11 +174,20 @@ void Curve::detach() {
 	curve->setSamples(xvalues.data(), yvalues_plot.data(), xvalues.size());
 }
 
+void Curve::selected_event(const QPointF &selection) {
+	click_callback(selection.x(), selection.y());
+}
+
 Plot::Plot(QSplitter *parent)
-	: plot(new QwtPlot) {
+	: plot(new QwtPlot)
+	, picker(new QwtPlotPicker(plot->canvas()))
+	, clicker(new QwtPickerClickPointMachine) {
+	clicker->setState(clicker->PointSelection);
     parent->addWidget(plot);
     plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
 	set_rightclick_action();
+	picker->setStateMachine(clicker);
+	picker->setTrackerMode(QwtPicker::ActiveOnly);
 }
 
 Plot::~Plot() {
