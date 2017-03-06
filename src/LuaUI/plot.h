@@ -1,15 +1,21 @@
 #ifndef PLOT_H
 #define PLOT_H
 
+#include <QObject>
+#include <functional>
 #include <memory>
-#include <qwt_plot.h>
 #include <vector>
 
+class Event_filter;
+class Plot;
 class QAction;
+class QColor;
+class QPointF;
 class QSplitter;
+class QwtPickerClickPointMachine;
 class QwtPlot;
 class QwtPlotCurve;
-class Plot;
+class QwtPlotPicker;
 
 class Curve {
     public:
@@ -69,30 +75,30 @@ class Curve {
                                                         //! \endcode
                                                         //!
 
-    void clear();                                       //!< \brief Clears the data of the curve.
-                                                        //!< \details \par examples:
-                                                        //!< \code
-                                                        //! local plot = ui.plot.new()
-                                                        //! local curve = plot:add_curve()
-                                                        //! curve:add_spectrum({1,2,3,4,5,6,7,8,9,10,1}) -- plots a sawtooth
-                                                        //! curve:clear() -- no line is plotted since all data is cleared
-                                                        //! curve:add_spectrum({1,2,3,4,5,6,7,8,9,10,1}) -- sawtooth appears again
-                                                        //! \endcode
-                                                        //!
+	void clear(); //!< \brief Clears the data of the curve.
+				  //!< \details \par examples:
+				  //!< \code
+				  //! local plot = ui.plot.new()
+				  //! local curve = plot:add_curve()
+				  //! curve:add_spectrum({1,2,3,4,5,6,7,8,9,10,1}) -- plots a sawtooth
+				  //! curve:clear() -- no line is plotted since all data is cleared
+				  //! curve:add_spectrum({1,2,3,4,5,6,7,8,9,10,1}) -- sawtooth appears again
+				  //! \endcode
+				  //!
 
-    void set_x_axis_offset(double offset);              //!< \brief Sets the offset of the plot x axis.
-                                                        //!< \param offset               double value. Will be the x axis offset.
-                                                        //!< \sa set_gain()
-                                                        //!< \details \par examples:
-                                                        //!< \code
-                                                        //! local plot = ui.plot.new()
-                                                        //! local curve = plot:add_curve()
-                                                        //! curve:add_spectrum({1,2,3,4,5,6,7,8,9,10,1}) -- plots a sawtooth
-                                                        //! curve:set_offset(20)
-                                                        //! -- draws the curve with the value 1 at x-position 20, 2 at 21, 3 at 22 and so forth.
-                                                        //! \endcode
-                                                        //! This function only affects the drawing of the curve. Internally the points would be
-                                                        //! still at the position 1,2,3,4 and so on.
+	void set_x_axis_offset(double offset); //!< \brief Sets the offset of the plot x axis.
+										   //!< \param offset               double value. Will be the x axis offset.
+										   //!< \sa set_gain()
+										   //!< \details \par examples:
+										   //!< \code
+										   //! local plot = ui.plot.new()
+										   //! local curve = plot:add_curve()
+										   //! curve:add_spectrum({1,2,3,4,5,6,7,8,9,10,1}) -- plots a sawtooth
+										   //! curve:set_offset(20)
+										   //! -- draws the curve with the value 1 at x-position 20, 2 at 21, 3 at 22 and so forth.
+										   //! \endcode
+										   //! This function only affects the drawing of the curve. Internally the points would be
+										   //! still at the position 1,2,3,4 and so on.
 
     void set_x_axis_gain(double gain); //!< \brief Sets the scale of the plot x axis.
                                        //!< \param gain               double value. Will be the x axis offset.
@@ -181,8 +187,9 @@ class Curve {
                                                 //! curve:set_color_by_name(255,255,0)   -- orange
                                                 //! curve:set_color_by_name(255,255,255) -- white
                                                 //! \endcode
-    ///\cond HIDDEN_SYMBOLS
+	///\cond HIDDEN_SYMBOLS
     void set_color(const QColor &color);
+	void set_onetime_click_callback(std::function<void(double, double)> click_callback);
     ///\endcond
 
     private:
@@ -200,7 +207,8 @@ class Curve {
     unsigned int median_kernel_size{3};
     double offset{0};
     double gain{1};
-    ///\endcond
+	Event_filter *event_filter{nullptr};
+	///\endcond
     friend class Plot;
 };
 
@@ -218,10 +226,12 @@ class Plot {
     void update();
     void set_rightclick_action();
 
-    QwtPlot *plot{nullptr};
-    QAction *save_as_csv_action{nullptr};
-    std::vector<Curve *> curves{};
-    int curve_id_counter{0};
+	QwtPlot *plot{nullptr};
+	QAction *save_as_csv_action{nullptr};
+	QwtPlotPicker *picker{nullptr};
+	QwtPickerClickPointMachine *clicker{nullptr};
+	std::vector<Curve *> curves{};
+	int curve_id_counter{0};
 
     friend class Curve;
 };

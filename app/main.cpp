@@ -10,8 +10,8 @@ void message_handler(QtMsgType type, const QMessageLogContext &context, const QS
 	switch (type) {
 		case QtCriticalMsg:
 		case QtFatalMsg:
-			assert(false);
 		case QtWarningMsg:
+			assert(false);
 		case QtDebugMsg:
 		case QtInfoMsg:;
 	}
@@ -25,5 +25,5 @@ int main(int argc, char *argv[]) {
 	QApplication a(argc, argv);
     MainWindow w;
     w.show();
-    return a.exec();
+	return a.exec();
 }
