@@ -3,11 +3,14 @@
 
 #include <functional>
 #include <memory>
-#include <qwt_plot.h>
 #include <vector>
+#include <QObject>
 
+class Event_filter;
 class Plot;
 class QAction;
+class QColor;
+class QPointF;
 class QSplitter;
 class QwtPickerClickPointMachine;
 class QwtPlot;
@@ -37,7 +40,6 @@ class Curve {
 	void resize(std::size_t size);
 	void update();
 	void detach();
-	void selected_event(const QPointF &selection);
 
 	Plot *plot{nullptr};
 	QwtPlotCurve *curve{nullptr};
@@ -48,8 +50,7 @@ class Curve {
 	unsigned int median_kernel_size{3};
 	double offset{0};
 	double gain{1};
-	std::function<void(double, double)> click_callback{[](double, double) {}};
-	QMetaObject::Connection callback_connection{};
+	Event_filter *event_filter{nullptr};
 
 	friend class Plot;
 };

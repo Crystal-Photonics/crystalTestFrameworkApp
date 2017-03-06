@@ -1,12 +1,15 @@
 #include "plot.h"
 #include "config.h"
+#include "qt_util.h"
 
 #include <QAction>
 #include <QDateTime>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QMouseEvent>
 #include <QSettings>
 #include <QSplitter>
+#include <QtGlobal>
 #include <fstream>
 #include <qwt_picker_machine.h>
 #include <qwt_plot.h>
@@ -15,13 +18,12 @@
 
 Curve::Curve(QSplitter *, Plot *plot)
 	: plot(plot)
-	, curve(new QwtPlotCurve) {
+	, curve(new QwtPlotCurve)
+	, event_filter(new Event_filter(plot->plot->canvas())) {
 	curve->attach(plot->plot);
 	curve->setTitle("curve" + QString::number(plot->curve_id_counter++));
 	plot->curves.push_back(this);
-	plot->set_rightclick_action();
-	callback_connection = QObject::connect(plot->picker, static_cast<void (QwtPlotPicker::*)(const QPointF &)>(&QwtPlotPicker::selected),
-										   [this](const QPointF &selection) { selected_event(selection); });
+	plot->plot->canvas()->installEventFilter(event_filter);
 }
 
 Curve::~Curve() {
@@ -30,7 +32,6 @@ Curve::~Curve() {
 		curves.erase(std::find(std::begin(curves), std::end(curves), this));
 		detach();
 	}
-	QObject::disconnect(callback_connection);
 }
 
 void Curve::add(double x, double y) {
@@ -123,7 +124,17 @@ void Curve::set_color_by_rgb(int r, int g, int b) {
 }
 
 void Curve::set_click_callback(std::function<void(double, double)> click_callback) {
-	this->click_callback = std::move(click_callback);
+	event_filter->add_callback([callback = std::move(click_callback), this](QEvent *event){
+		if (event->type() == QEvent::MouseButtonPress){
+			auto mouse_event = static_cast<QMouseEvent *>(event);
+			const auto &pixel_pos = mouse_event->pos();
+			auto x_pos = plot->plot->invTransform(QwtPlot::xBottom, pixel_pos.x());
+			auto y_pos = plot->plot->invTransform(QwtPlot::yLeft, pixel_pos.y());
+			callback(x_pos, y_pos);
+			return true;
+		}
+		return false;
+	});
 }
 
 void Curve::resize(std::size_t size) {
@@ -172,10 +183,7 @@ void Curve::update() {
 
 void Curve::detach() {
 	curve->setSamples(xvalues.data(), yvalues_plot.data(), xvalues.size());
-}
-
-void Curve::selected_event(const QPointF &selection) {
-	click_callback(selection.x(), selection.y());
+	event_filter->clear();
 }
 
 Plot::Plot(QSplitter *parent)

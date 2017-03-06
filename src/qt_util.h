@@ -8,6 +8,7 @@
 #include <cassert>
 #include <future>
 #include <utility>
+#include <functional>
 
 class QTabWidget;
 
@@ -84,5 +85,17 @@ namespace Utility {
 		return future.get();
 	}
 }
+
+class Event_filter : public QObject{
+	Q_OBJECT
+	public:
+	Event_filter(QObject *parent);
+	Event_filter(QObject *parent, std::function<bool(QEvent *)> function);
+	void add_callback(std::function<bool(QEvent *)> function);
+	void clear();
+	bool eventFilter(QObject *object, QEvent *ev) override;
+	private:
+	std::vector<std::function<bool(QEvent *)>> callbacks;
+};
 
 #endif // QT_UTIL_H
