@@ -28,7 +28,7 @@ Curve::~Curve() {
 	}
 }
 
-void Curve::add_point(double x, double y) {
+void Curve::append_point(double x, double y) {
 	xvalues.push_back(x);
 	yvalues_orig.push_back(y);
 	update();

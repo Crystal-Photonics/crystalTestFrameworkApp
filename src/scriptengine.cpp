@@ -182,7 +182,7 @@ std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigne
     return retval;
 }
 /// @endcond
-/*! \fn double measure_noise_level_czt(table rpc_device, int dacs_quantity, int max_possible_dac_value)
+/*! \fn double measure_noise_level_czt(device rpc_device, int dacs_quantity, int max_possible_dac_value)
     \brief Calculates the noise level of an CZT-Detector system with thresholded radioactivity counters.
     \param rpc_device                   The communication instance of the CZT-Detector.
     \param dacs_quantity                Number of thresholds which is also equal to the number of counter results.
@@ -268,7 +268,7 @@ std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigne
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-double measure_noise_level_czt(table rpc_device, int dacs_quantity, int max_possible_dac_value);
+double measure_noise_level_czt(device rpc_device, int dacs_quantity, int max_possible_dac_value);
 #endif
 
 /// @cond HIDDEN_SYMBOLS
@@ -345,7 +345,8 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
 
 /*! \fn print(argument);
 \brief Prints the string value of \c argument to the console.
-\param argument             Input value to be printed. Can be of the types double, string or table.
+\param argument             Input value to be printed. Prints all types except for userdefined ones which come the
+                            scriptengine. eg. rpc_devices or Ui elements.
 
 
 \details   \par Differences to the standard Lua world:
@@ -353,9 +354,9 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
 
 \par example:
 \code{.lua}
-    table_array = {1,2,3,4,5}
-    table_struct = {["A"]=-5, ["B"]=-4,["C"]=-3,["D"]=-2,["E"]=-1}
-    int_val = 536
+    local table_array = {1,2,3,4,5}
+    local table_struct = {["A"]=-5, ["B"]=-4,["C"]=-3,["D"]=-2,["E"]=-1}
+    local int_val = 536
 
     print("Hello world")                 -- prints "Hello world"
     print(1.1487)                        -- prints 1.148700
@@ -392,7 +393,7 @@ void print(QPlainTextEdit *console, const sol::variadic_args &args) {
 
 \details    \par example:
 \code{.lua}
-    timeout_ms = 100
+    local timeout_ms = 100
     sleep_ms(timeout_ms)  -- waits for 100 milliseconds
 \endcode
 */
@@ -423,9 +424,9 @@ void sleep_ms(const unsigned int timeout_ms) {
 
 \details    \par example:
 \code{.lua}
-    value = 1.259648
-    retval = round(value,2)  -- retval is 1.26
-    retval = round(value,0)  -- retval is 1.0
+    local value = 1.259648
+    local retval = round(value,2)  -- retval is 1.26
+    local retval = round(value,0)  -- retval is 1.0
     print(retval)
 \endcode
 */
@@ -453,8 +454,8 @@ double round_double(const double value, const unsigned int precision) {
 
 \details    \par example:
 \code{.lua}
-    input_values = {-20, -40, 2, 30}
-    retval = table_sum(input_values)  -- retval is -28.0
+    local input_values = {-20, -40, 2, 30}
+    local retval = table_sum(input_values)  -- retval is -28.0
     print(retval)
 \endcode
 */
@@ -482,8 +483,8 @@ double table_sum(sol::table input_values) {
 
 \details    \par example:
 \code{.lua}
-    input_values = {-20, -40, 2, 30}
-    retval = table_mean(input_values)  -- retval is -7.0
+    local input_values = {-20, -40, 2, 30}
+    local retval = table_mean(input_values)  -- retval is -7.0
     print(retval)
 \endcode
 */
@@ -518,9 +519,9 @@ double table_mean(sol::table input_values) {
 
 \details    \par example:
 \code{.lua}
-    input_values = {-20, -40, 2, 30}
-    constant = {2.5}
-    retval = table_set_constant(input_values,constant)  -- retval is {2.5, 2.5,
+    local input_values = {-20, -40, 2, 30}
+    local constant = {2.5}
+    local retval = table_set_constant(input_values,constant)  -- retval is {2.5, 2.5,
                                                              --          2.5, 2.5}
     print(retval)
 \endcode
@@ -550,9 +551,9 @@ sol::table table_set_constant(sol::state &lua, sol::table input_values, double c
 
     \details    \par example:
     \code{.lua}
-        size = 5
-        constant = {2.5}
-        retval = table_create_constant(size,constant)  -- retval is {2.5, 2.5,
+        local size = 5
+        local constant = {2.5}
+        local retval = table_create_constant(size,constant)  -- retval is {2.5, 2.5,
                                                        --          2.5, 2.5, 2.5}
         print(retval)
     \endcode
@@ -582,10 +583,10 @@ sol::table table_create_constant(sol::state &lua, const unsigned int size, doubl
 
     \details    \par example:
     \code{.lua}
-        input_values_a = {-20, -40, 2, 30}
-        constant = {2}
-        retval = table_add_table(input_values,constant)  -- retval is {-18,
-                                                                 --   -38, 4, 32}
+        local input_values_a = {-20, -40, 2, 30}
+        local constant = {2}
+        local retval = table_add_table(input_values,constant)   -- retval is {-18,
+                                                                --   -38, 4, 32}
         print(retval)
     \endcode
 */
@@ -615,9 +616,9 @@ sol::table table_add_table(sol::state &lua, sol::table input_values_a, sol::tabl
 
     \details    \par example:
     \code{.lua}
-        input_values_a = {-20, -40, 2, 30}
-        input_values_a = {-1.5, 2, 0.5, 3}
-        retval = table_add_constant(input_values,constant)  -- retval is {-21.5,
+        local input_values_a = {-20, -40, 2, 30}
+        local input_values_a = {-1.5, 2, 0.5, 3}
+        local retval = table_add_constant(input_values,constant) -- retval is {-21.5,
                                                                  --   -38, 2.5, 33}
         print(retval)
     \endcode
@@ -648,10 +649,10 @@ sol::table table_add_constant(sol::state &lua, sol::table input_values, double c
 
     \details    \par example:
     \code{.lua}
-        input_values_a = {-20, -40, 2, 30}
-        input_values_a = {-1.5, 2, 0.5, 3}
-        retval = table_sub_table(input_values_a,input_values_b)  -- retval is {-18.5,
-                                                                 --   -42, 1.5, 27}
+        local input_values_a = {-20, -40, 2, 30}
+        local input_values_a = {-1.5, 2, 0.5, 3}
+        local retval = table_sub_table(input_values_a,input_values_b) -- retval is
+                                                           --  {-18.5, -42, 1.5, 27}
         print(retval)
     \endcode
 */
@@ -681,10 +682,10 @@ sol::table table_sub_table(sol::state &lua, sol::table input_values_a, sol::tabl
 
     \details    \par example:
     \code{.lua}
-        input_values_a = {-20, -40, 2, 30}
-        input_values_a = {-1.5, 2, 0.5, 3}
-        retval = table_mul_table(input_values_a,input_values_b)  -- retval is {30, -80 ,1,
-                                                                --            90}
+        local input_values_a = {-20, -40, 2, 30}
+        local input_values_a = {-1.5, 2, 0.5, 3}
+        local retval = table_mul_table(input_values_a,input_values_b) -- retval is
+                                                            -- {30, -80 , 1, 90}
         print(retval)
     \endcode
 */
@@ -714,10 +715,10 @@ sol::table table_mul_table(sol::state &lua, sol::table input_values_a, sol::tabl
 
     \details    \par example:
     \code{.lua}
-        input_values_a = {-20, -40, 2, 30}
-        constant = 3
-        retval = table_mul_constant(input_values_a,constant)  -- retval is {-60, -120 ,6,
-                                                              --            90}
+        local input_values_a = {-20, -40, 2, 30}
+        local constant = 3
+        local retval = table_mul_constant(input_values_a,constant) -- retval is {-60,
+                                                                   --     -120, 6, 90}
         print(retval)
     \endcode
 */
@@ -747,10 +748,11 @@ sol::table table_mul_constant(sol::state &lua, sol::table input_values_a, double
 
     \details    \par example:
     \code{.lua}
-        input_values_a = {-20, -40, 2, 30}
-        input_values_b = {5, 2, 8, 10}
-        retval = table_div_table(input_values_a,input_values_b)  -- retval is {-4, -20,
-                                                                 --           0.25, 3}
+        local input_values_a = {-20, -40, 2, 30}
+        local input_values_b = {5, 2, 8, 10}
+        local retval = table_div_table(input_values_a,input_values_b) -- retval is
+                                                                      -- {-4, -20,
+                                                                      --  0.25, 3}
         print(retval)
     \endcode
 */
@@ -787,10 +789,10 @@ sol::table table_div_table(sol::state &lua, sol::table input_values_a, sol::tabl
 
     \details    \par example:
     \code{.lua}
-        input_values = {-20.35756, -40.41188, 2.1474314, 30.247764}
-        retval_0 = table_round(input_values,2)  -- retval_0 is {-20, -40 ,2, 30}
-        retval_2 = table_round(input_values,2)  -- retval_2 is {-20.36, -40.41 ,2.15,
-                                                --              30.25}
+        local input_values = {-20.35756, -40.41188, 2.1474314, 30.247764}
+        local retval_0 = table_round(input_values,2)  -- retval_0 is {-20, -40 ,2, 30}
+        local retval_2 = table_round(input_values,2)  -- retval_2 is {-20.36, -40.41,
+                                                                   -- 2.15, 30.25}
         print(retval)
     \endcode
 */
@@ -819,8 +821,8 @@ sol::table table_round(sol::state &lua, sol::table input_values, const unsigned 
 
     \details    \par example:
     \code{.lua}
-        input_values = {-20, -40, 2, 30}
-        retval = table_abs(input_values)  -- retval is {20,40,2,30}
+        local input_values = {-20, -40, 2, 30}
+        local retval = table_abs(input_values)  -- retval is {20,40,2,30}
         print(retval)
     \endcode
 */
@@ -851,8 +853,8 @@ sol::table table_abs(sol::state &lua, sol::table input_values) {
 
     \details    \par example:
     \code{.lua}
-        input_values = {-20, -40, 2, 30,25,8,68,42}
-        retval = table_mid(input_values,2,3)  -- retval is {-40,2,30}
+        local input_values = {-20, -40, 2, 30,25,8,68,42}
+        local retval = table_mid(input_values,2,3)  -- retval is {-40,2,30}
         print(retval)
     \endcode
 */
@@ -882,13 +884,11 @@ sol::table table_mid(sol::state &lua, sol::table input_values, const unsigned in
 
     \details    \par example:
     \code{.lua}
-        input_values_a = {-20, -40, 2, 30}
-        input_values_b = {-20, -20, -20, -20}
-        input_const_val = -20
-        retval_equ = table_equal_constant(input_values_b,input_const_val)  -- retval_equ
-                                                                           -- is true
-        retval_neq = table_equal_constant(input_values_a,input_const_val)  -- retval_neq
-                                                                           -- is false
+        local input_values_a = {-20, -40, 2, 30}
+        local input_values_b = {-20, -20, -20, -20}
+        local input_const_val = -20
+        local retval_equ = table_equal_constant(input_values_b,input_const_val) -- true
+        local retval_neq = table_equal_constant(input_values_a,input_const_val) -- false
         print(retval)
     \endcode
 */
@@ -917,13 +917,11 @@ bool table_equal_constant(sol::table input_values_a, double input_const_val) {
 
     \details    \par example:
     \code{.lua}
-        input_values_a = {-20, -40, 2, 30}
-        input_values_b = {-20, -40, 2, 30}
-        input_values_c = {-20, -40, 2, 31}
-        retval_equ = table_equal_table(input_values_a,input_values_b)  -- retval_equ
-                                                                       -- is true
-        retval_neq = table_equal_table(input_values_a,input_values_c)  -- retval_neq
-                                                                       -- is false
+        local input_values_a = {-20, -40, 2, 30}
+        local input_values_b = {-20, -40, 2, 30}
+        local input_values_c = {-20, -40, 2, 31}
+        local retval_equ = table_equal_table(input_values_a,input_values_b)  -- true
+        local retval_neq = table_equal_table(input_values_a,input_values_c)  -- false
         print(retval)
     \endcode
 */
@@ -951,8 +949,8 @@ bool table_equal_table(sol::table input_values_a, sol::table input_values_b) {
 
     \details    \par example:
     \code{.lua}
-        input_values = {-20, -40, 2, 30}
-        retval = table_max(input_values)  -- retval is 30
+        local input_values = {-20, -40, 2, 30}
+        local retval = table_max(input_values)  -- retval is 30
         print(retval)
     \endcode
 */
@@ -984,8 +982,8 @@ double table_max(sol::table input_values) {
 
     \details    \par example:
     \code{.lua}
-        input_values = {-20, -40, 2, 30}
-        retval = table_min(input_values)  -- retval is -40
+        local input_values = {-20, -40, 2, 30}
+        local retval = table_min(input_values)  -- retval is -40
         print(retval)
     \endcode
 */
@@ -1018,8 +1016,8 @@ double table_min(sol::table input_values) {
 
     \details    \par example:
     \code{.lua}
-        input_values = {-20, -40, 2, 30}
-        retval = table_max_abs(input_values)  -- retval is 40
+        local input_values = {-20, -40, 2, 30}
+        local retval = table_max_abs(input_values)  -- retval is 40
         print(retval)
     \endcode
 */
@@ -1052,8 +1050,8 @@ double table_max_abs(sol::table input_values) {
 
     \details    \par example:
     \code{.lua}
-        input_values = {-20, 2, 30}
-        retval = table_min_abs(input_values)  -- retval is 2
+        local input_values = {-20, 2, 30}
+        local retval = table_min_abs(input_values)  -- retval is 2
         print(retval)
     \endcode
 */
@@ -1181,7 +1179,7 @@ void ScriptEngine::load_script(const QString &path) {
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Curve>>("Curve",                                                                          //
                                                          sol::meta_function::construct, sol::no_constructor,                               //
-                                                         "add_point", thread_call_wrapper<void, Curve, double, double>(&Curve::add_point), //
+                                                         "append_point", thread_call_wrapper<void, Curve, double, double>(&Curve::append_point), //
                                                          "add_spectrum",
                                                          [](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
                                                              std::vector<double> data;
