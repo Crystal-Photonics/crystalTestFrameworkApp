@@ -191,8 +191,6 @@ std::string to_string(const sol::stack_proxy &object) {
  * @endcode
  */
 
-
-
 /// @cond HIDDEN_SYMBOLS
 
 std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigned int length, const double min_val, const double max_val) {
@@ -366,7 +364,58 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
 }
 /// @endcond
 
+/*! \fn sleep_ms(int timeout_ms);
+\brief Pauses the script for \c timeout_ms milliseconds.
+\param timeout_ms          Positive integer input value.
 
+\return                    nil
+
+\details    \par example:
+\code{.lua}
+    timeout_ms = 100
+    sleep_ms(timeout_ms)  -- waits for 100 milliseconds
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+sleep_ms(int timeout_ms);
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+void sleep_ms(const unsigned int timeout_ms) {
+    QEventLoop event_loop;
+    static const auto secret_exit_code = -0xF42F;
+    QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
+    auto exit_value = event_loop.exec();
+    if (exit_value != secret_exit_code) {
+        throw sol::error("Interrupted");
+    }
+};
+/// @endcond
+
+/*! \fn double round(double value, int precision);
+\brief Returns the rounded value of \c value
+\param value                 Input value of int or double values.
+\param precision             The number of digits to round.
+
+\return                     the rounded value of \cvalue.
+
+\details    \par example:
+\code{.lua}
+    value = 1.259648
+    retval = round(value,2)  -- retval is 1.26
+    retval = round(value,0)  -- retval is 1.0
+    print(retval)
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+double round(double value, int precision);
+#endif
+
+/// @cond HIDDEN_SYMBOLS
 double round_double(const double value, const unsigned int precision) {
     double faktor = pow(10, precision);
     double retval = value;
@@ -374,6 +423,435 @@ double round_double(const double value, const unsigned int precision) {
     retval = round(retval);
     return retval / faktor;
 }
+/// @endcond
+
+/*! \fn double table_sum(table input_values);
+\brief Returns the sum of the table \c input_values
+\param input_values                 Input table of int or double values.
+
+\return                     The sum value of \c input_values.
+
+\details    \par example:
+\code{.lua}
+    input_values = {-20, -40, 2, 30}
+    retval = table_sum(input_values)  -- retval is -28.0
+    print(retval)
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+double table_sum(table input_values);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+double table_sum(sol::table input_values) {
+    double retval = 0;
+    for (auto &i : input_values) {
+        retval += i.second.as<double>();
+    }
+    return retval;
+};
+/// @endcond
+
+/*! \fn double table_mean(table input_values);
+\brief Returns the mean value of the table \c input_values
+\param input_values                 Input table of int or double values.
+
+\return                     The mean value of \c input_values.
+
+\details    \par example:
+\code{.lua}
+    input_values = {-20, -40, 2, 30}
+    retval = table_mean(input_values)  -- retval is -7.0
+    print(retval)
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+double table_mean(table input_values);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+double table_mean(sol::table input_values) {
+    double retval = 0;
+    int count = 0;
+    for (auto &i : input_values) {
+        retval += i.second.as<double>();
+        count += 1;
+    }
+    if (count) {
+        retval /= count;
+    }
+    return retval;
+};
+
+/// @endcond
+
+/*! \fn table table_set_constant(table input_values, double constant);
+\brief Returns a table with the length of \c input_values initialized with \c constant.
+\param input_values_a                 Input table of int or double values.
+\param constant       Int or double value. The value the array is initialized with.
+
+\return                     A table with the length of \c input_values initialized with \c constant.
+
+\details    \par example:
+\code{.lua}
+    input_values_a = {-20, -40, 2, 30}
+    constant = {2.5}
+    retval = table_set_constant(input_values_a,constant)  -- retval is {2.5, 2.5,
+                                                             --          2.5, 2.5}
+    print(retval)
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_set_constant(table input_values, double constant);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+sol::table table_set_constant(sol::state &lua, sol::table input_values, double constant) {
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values.size(); i++) {
+        retval.add(constant);
+    }
+    return retval;
+};
+/// @endcond
+
+/*! \fn table table_create_constant(int size, double constant);
+    \brief Creates a table with \c size elements initialized with \c constant.
+    \param size                 Positive integer. The size of the array to be created.
+    \param constant              Int or double value. The value the array is initialized with.
+
+    \return                     A table with \c size elements initialized with \c constant.
+
+    \details    \par example:
+    \code{.lua}
+        size = 5
+        constant = {2.5}
+        retval = table_create_constant(size,constant)  -- retval is {2.5, 2.5,
+                                                       --          2.5, 2.5, 2.5}
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_create_constant(int size, double constant);
+#endif
+/// @cond HIDDEN_SYMBOLS
+sol::table table_create_constant(sol::state &lua, const unsigned int size, double constant) {
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= size; i++) {
+        retval.add(constant);
+    }
+    return retval;
+};
+/// @endcond
+///
+
+/*! \fn table table_add_table(table input_values_a, table input_values_b);
+    \brief Performs a vector addition of \c input_values_a[i] + \c input_values_b[i] for each i.
+    \param input_values_a       Input table of int or double values.
+    \param input_values_b       Input table of int or double values. The summands the table \c input_values_a is added with.
+
+    \return                     A table of the differences of \c input_values_a[i] + \c input_values_b[i] for each i.
+
+    \details    \par example:
+    \code{.lua}
+        input_values_a = {-20, -40, 2, 30}
+        constant = {2}
+        retval = table_add_table(input_values,constant)  -- retval is {-18,
+                                                                 --   -38, 4, 32}
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_add_table(table input_values_a, table input_values_b);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+sol::table table_add_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b) {
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        double sum_i = input_values_a[i].get<double>() + input_values_b[i].get<double>();
+        retval.add(sum_i);
+    }
+    return retval;
+};
+/// @endcond
+
+/*! \fn table table_add_constant(table input_values,  double constant);
+    \brief Performs a vector addition of  \c input_values_a[i] + \c constant for each i.
+    \param input_values_a       Input table of int or double values.
+    \param constant            Int or double value. The summand the table \c input_values is added with.
+
+    \return                     A table of the differences of \c input_values_a[i] + \c constant for each i.
+
+    \details    \par example:
+    \code{.lua}
+        input_values_a = {-20, -40, 2, 30}
+        input_values_a = {-1.5, 2, 0.5, 3}
+        retval = table_add_constant(input_values,constant)  -- retval is {-21.5,
+                                                                 --   -38, 2.5, 33}
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_add_constant(table input_values, double constant);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+sol::table table_add_constant(sol::state &lua, sol::table input_values, double constant) {
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values.size(); i++) {
+        double sum_i = input_values[i].get<double>() + constant;
+        retval.add(sum_i);
+    }
+    return retval;
+};
+/// @endcond
+
+/*! \fn table table_sub_table(table input_values_a, table input_values_b);
+    \brief Performs a vector subtraction of  \c input_values_a[i] - \c input_values_b[i] for each i.
+    \param input_values_a       Input table of int or double values.
+    \param input_values_b            Input table of int or double values. The subtrahend the table \c input_values_a is subtracted with.
+
+    \return                     A table of the differences of \c input_values_a[i] - \c input_values_b[i] for each i.
+
+    \details    \par example:
+    \code{.lua}
+        input_values_a = {-20, -40, 2, 30}
+        input_values_a = {-1.5, 2, 0.5, 3}
+        retval = table_sub_table(input_values_a,input_values_b)  -- retval is {-18.5,
+                                                                 --   -42, 1.5, 27}
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_sub_table(table input_values_a, table input_values_b);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+sol::table table_sub_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b) {
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        double sum_i = input_values_a[i].get<double>() - input_values_b[i].get<double>();
+        retval.add(sum_i);
+    }
+    return retval;
+};
+/// @endcond
+
+/*! \fn table table_mul_table(table input_values_a, table input_values_b);
+    \brief Performs a vector multiplication of  \c input_values_a[i] * \c input_values_b[i] for each i.
+    \param input_values_a       Input table of int or double values.
+    \param input_values_b       Input table of int or double values. The factors the table \c input_values_a is multiplied with.
+
+    \return                     A table of the products of \c input_values_a[i] * \c input_values_b[i] for each i.
+
+    \details    \par example:
+    \code{.lua}
+        input_values_a = {-20, -40, 2, 30}
+        input_values_a = {-1.5, 2, 0.5, 3}
+        retval = table_mul_table(input_values_a,input_values_b)  -- retval is {30, -80 ,1,
+                                                                --            90}
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_mul_table(table input_values_a, table input_values_b);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+sol::table table_mul_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b) {
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        double sum_i = input_values_a[i].get<double>() * input_values_b[i].get<double>();
+        retval.add(sum_i);
+    }
+    return retval;
+};
+/// @endcond
+
+/*! \fn table table_mul_constant(table input_values_a, double constant);
+    \brief Performs a vector multiplication of  \c input_values_a[i] * \c constant for each i.
+    \param input_values_a       Input table of int or double values.
+    \param constant             Int or double value. The factor the table \c input_values_a is multiplied with.
+
+    \return                     A table of the products of \c input_values_a[i] * \c constant.
+
+    \details    \par example:
+    \code{.lua}
+        input_values_a = {-20, -40, 2, 30}
+        constant = 3
+        retval = table_mul_constant(input_values_a,constant)  -- retval is {-60, -120 ,6,
+                                                              --            90}
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_mul_constant(table input_values_a, double constant);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+sol::table table_mul_constant(sol::state &lua, sol::table input_values_a, double constant) {
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        double sum_i = input_values_a[i].get<double>() * constant;
+        retval.add(sum_i);
+    }
+    return retval;
+};
+/// @endcond
+
+/*! \fn table table_div_table(table input_values_a, table input_values_b);
+    \brief Performs a vector division of  \c input_values_a[i] / \c input_values_b[i] for each i.
+    \param input_values_a     Input table of int or double values. Regarded as divident of the division operation.
+    \param input_values_b     Input table of int or double values. Regarded as divisor of the division operation.
+
+    \return                 A table of the quotients of \c input_values_a[i] / \c input_values_b[i].
+
+    \details    \par example:
+    \code{.lua}
+        input_values_a = {-20, -40, 2, 30}
+        input_values_b = {5, 2, 8, 10}
+        retval = table_div_table(input_values_a,input_values_b)  -- retval is {-4, -20,
+                                                                 --           0.25, 3}
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_div_table(table input_values_a, table input_values_b);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+sol::table table_div_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b) {
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        double c = input_values_b[i].get<double>();
+        double sum_i = 0;
+        if (c == 0) {
+            sum_i = std::numeric_limits<double>::infinity();
+        } else {
+            sum_i = input_values_a[i].get<double>() / c;
+        }
+
+        retval.add(sum_i);
+    }
+    return retval;
+};
+/// @endcond
+
+/*! \fn table table_round(table input_values, int precision);
+    \brief Returns a table with rounded values of \c input_values
+    \param input_values     Input table of int or double values.
+    \param precision        The number of digits to round
+
+    \return                 A table of rounded values of \c input_values.
+
+    \details    \par example:
+    \code{.lua}
+        input_values = {-20.35756, -40.41188, 2.1474314, 30.247764}
+        retval_0 = table_round(input_values,2)  -- retval_0 is {-20, -40 ,2, 30}
+        retval_2 = table_round(input_values,2)  -- retval_2 is {-20.36, -40.41 ,2.15,
+                                                --              30.25}
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_round(table input_values, int precision);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+sol::table table_round(sol::state &lua, sol::table input_values, const unsigned int precision) {
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values.size(); i++) {
+        double sum_i = round_double(input_values[i].get<double>(), precision);
+        retval.add(sum_i);
+    }
+    return retval;
+};
+/// @endcond
+
+/*! \fn table table_abs(table input_values);
+    \brief Returns absolute values of \c input_values.
+    \param input_values     Input table of int or double values.
+
+    \return                 Absolute values of \c input_values.
+
+    \details    \par example:
+    \code{.lua}
+        input_values = {-20, -40, 2, 30}
+        retval = table_abs(input_values)  -- retval is {20,40,2,30}
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_abs(table input_values);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+sol::table table_abs(sol::state &lua, sol::table input_values) {
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values.size(); i++) {
+        double sum_i = std::abs(input_values[i].get<double>());
+        retval.add(sum_i);
+    }
+    return retval;
+};
+/// @endcond
+
+/*! \fn table table_mid(table input_values, int start, int length);
+    \brief Returns a fragment of the table \c input_values
+    \param input_values     Input table of int or double values.
+    \param start            Start index of the fragment of \c input_values which will be returned.
+    \param length           Length of the fragment which will be returned.
+
+    \return                 A fragment of the table \c input_values.
+
+    \details    \par example:
+    \code{.lua}
+        input_values = {-20, -40, 2, 30,25,8,68,42}
+        retval = table_mid(input_values,2,3)  -- retval is {-40,2,30}
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_mid(table input_values, int start, int length);
+#endif
+/// @cond HIDDEN_SYMBOLS
+sol::table table_mid(sol::state &lua, sol::table input_values, const unsigned int start, const unsigned int length) {
+    sol::table retval = lua.create_table_with();
+    for (size_t i = start; i <= start + length - 1; i++) {
+        double sum_i = input_values[i].get<double>();
+        retval.add(sum_i);
+    }
+    return retval;
+};
+
+/// @endcond
 
 /*! \fn bool table_equal_constant(table input_values_a, double input_const_val);
     \brief Returns true if \c input_values_a[i] == input_const_val for all \c i.
@@ -387,8 +865,10 @@ double round_double(const double value, const unsigned int precision) {
         input_values_a = {-20, -40, 2, 30}
         input_values_b = {-20, -20, -20, -20}
         input_const_val = -20
-        retval_equ = table_equal_constant(input_values_b,input_const_val)  -- retval_equ is true
-        retval_neq = table_equal_constant(input_values_a,input_const_val)  -- retval_neq is false
+        retval_equ = table_equal_constant(input_values_b,input_const_val)  -- retval_equ
+                                                                           -- is true
+        retval_neq = table_equal_constant(input_values_a,input_const_val)  -- retval_neq
+                                                                           -- is false
         print(retval)
     \endcode
 */
@@ -420,8 +900,10 @@ bool table_equal_constant(sol::table input_values_a, double input_const_val) {
         input_values_a = {-20, -40, 2, 30}
         input_values_b = {-20, -40, 2, 30}
         input_values_c = {-20, -40, 2, 31}
-        retval_equ = table_equal_table(input_values_a,input_values_b)  -- retval_equ is true
-        retval_neq = table_equal_table(input_values_a,input_values_c)  -- retval_neq is false
+        retval_equ = table_equal_table(input_values_a,input_values_b)  -- retval_equ
+                                                                       -- is true
+        retval_neq = table_equal_table(input_values_a,input_values_c)  -- retval_neq
+                                                                       -- is false
         print(retval)
     \endcode
 */
@@ -598,143 +1080,58 @@ void ScriptEngine::load_script(const QString &path) {
                 Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
             };
 
-            (*lua)["sleep_ms"] = [](const unsigned int timeout_ms) {
-                QEventLoop event_loop;
-                static const auto secret_exit_code = -0xF42F;
-                QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
-                auto exit_value = event_loop.exec();
-                if (exit_value != secret_exit_code) {
-                    throw sol::error("Interrupted");
-                }
-            };
+            (*lua)["sleep_ms"] = [](const unsigned int timeout_ms) { sleep_ms(timeout_ms); };
 
             (*lua)["round"] = [](const double value, const unsigned int precision = 0) { return round_double(value, precision); };
         }
         //table functions
         {
-            (*lua)["table_sum"] = [](sol::table table) {
-                double retval = 0;
-                for (auto &i : table) {
-                    retval += i.second.as<double>();
-                }
-                return retval;
+            (*lua)["table_sum"] = [](sol::table table) { return table_sum(table); };
+
+            (*lua)["table_mean"] = [](sol::table table) { return table_mean(table); };
+
+            (*lua)["table_set_constant"] = [&lua = *lua](sol::table input_values, double constant) {
+                return table_set_constant(lua, input_values, constant);
             };
 
-            (*lua)["table_mean"] = [](sol::table table) {
-                double retval = 0;
-                int count = 0;
-                for (auto &i : table) {
-                    retval += i.second.as<double>();
-                    count += 1;
-                }
-                if (count) {
-                    retval /= count;
-                }
-                return retval;
+            (*lua)["table_create_constant"] = [&lua = *lua](const unsigned int size, double constant) {
+                return table_create_constant(lua, size, constant);
             };
 
-            (*lua)["table_set_constant"] = [&lua = *lua](sol::table a, double b) {
-                sol::table retval = lua.create_table_with();
-                for (size_t i = 1; i <= a.size(); i++) {
-                    retval.add(b);
-                }
-                return retval;
+            (*lua)["table_add_table"] = [&lua = *lua](sol::table input_values_a, sol::table input_values_b) {
+                return table_add_table(lua, input_values_a, input_values_b);
             };
 
-            (*lua)["table_create_constant"] = [&lua = *lua](double size, double constant) {
-                sol::table retval = lua.create_table_with();
-                for (size_t i = 1; i <= size; i++) {
-                    retval.add(constant);
-                }
-                return retval;
+            (*lua)["table_add_constant"] = [&lua = *lua](sol::table input_values, double constant) {
+                return table_add_constant(lua, input_values, constant);
             };
 
-            (*lua)["table_add_table"] = [&lua = *lua](sol::table a, sol::table b) {
-                sol::table retval = lua.create_table_with();
-                for (size_t i = 1; i <= a.size(); i++) {
-                    double sum_i = a[i].get<double>() + b[i].get<double>();
-                    retval.add(sum_i);
-                }
-                return retval;
+            (*lua)["table_sub_table"] = [&lua = *lua](sol::table input_values_a, sol::table input_values_b) {
+                return table_sub_table(lua, input_values_a, input_values_b);
             };
 
-            (*lua)["table_add_constant"] = [&lua = *lua](sol::table a, double b) {
-                sol::table retval = lua.create_table_with();
-                for (size_t i = 1; i <= a.size(); i++) {
-                    double sum_i = a[i].get<double>() + b;
-                    retval.add(sum_i);
-                }
-                return retval;
+            (*lua)["table_mul_table"] = [&lua = *lua](sol::table input_values_a, sol::table input_values_b) {
+                return table_mul_table(lua, input_values_a, input_values_b);
             };
 
-            (*lua)["table_sub_table"] = [&lua = *lua](sol::table a, sol::table b) {
-                sol::table retval = lua.create_table_with();
-                for (size_t i = 1; i <= a.size(); i++) {
-                    double sum_i = a[i].get<double>() - b[i].get<double>();
-                    retval.add(sum_i);
-                }
-                return retval;
+            (*lua)["table_mul_constant"] = [&lua = *lua](sol::table input_values_a, double constant) {
+                return table_mul_constant(lua, input_values_a, constant);
             };
 
-            (*lua)["table_mul_table"] = [&lua = *lua](sol::table a, sol::table b) {
-                sol::table retval = lua.create_table_with();
-                for (size_t i = 1; i <= a.size(); i++) {
-                    double sum_i = a[i].get<double>() * b[i].get<double>();
-                    retval.add(sum_i);
-                }
-                return retval;
+            (*lua)["table_div_table"] = [&lua = *lua](sol::table input_values_a, sol::table input_values_b) {
+                return table_div_table(lua, input_values_a, input_values_b);
             };
 
-            (*lua)["table_mul_constant"] = [&lua = *lua](sol::table a, double b) {
-                sol::table retval = lua.create_table_with();
-                for (size_t i = 1; i <= a.size(); i++) {
-                    double sum_i = a[i].get<double>() * b;
-                    retval.add(sum_i);
-                }
-                return retval;
+            (*lua)["table_round"] = [&lua = *lua](sol::table input_values, const unsigned int precision = 0) {
+                return table_round(lua, input_values, precision);
             };
 
-            (*lua)["table_div_table"] = [&lua = *lua](sol::table a, sol::table b) {
-                sol::table retval = lua.create_table_with();
-                for (size_t i = 1; i <= a.size(); i++) {
-                    double c = b[i].get<double>();
-                    double sum_i = 0;
-                    if (c == 0) {
-                        sum_i = std::numeric_limits<double>::infinity();
-                    } else {
-                        sum_i = a[i].get<double>() / c;
-                    }
-
-                    retval.add(sum_i);
-                }
-                return retval;
+            (*lua)["table_abs"] = [&lua = *lua](sol::table input_values) {
+                return table_abs(lua, input_values);
             };
 
-            (*lua)["table_round"] = [&lua = *lua](sol::table a, const unsigned int precision = 0) {
-                sol::table retval = lua.create_table_with();
-                for (size_t i = 1; i <= a.size(); i++) {
-                    double sum_i = round_double(a[i].get<double>(), precision);
-                    retval.add(sum_i);
-                }
-                return retval;
-            };
-
-            (*lua)["table_abs"] = [&lua = *lua](sol::table a) {
-                sol::table retval = lua.create_table_with();
-                for (size_t i = 1; i <= a.size(); i++) {
-                    double sum_i = std::abs(a[i].get<double>());
-                    retval.add(sum_i);
-                }
-                return retval;
-            };
-
-            (*lua)["table_mid"] = [&lua = *lua](sol::table a, const unsigned int start, const unsigned int length) {
-                sol::table retval = lua.create_table_with();
-                for (size_t i = start; i <= start + length - 1; i++) {
-                    double sum_i = a[i].get<double>();
-                    retval.add(sum_i);
-                }
-                return retval;
+            (*lua)["table_mid"] = [&lua = *lua](sol::table input_values, const unsigned int start, const unsigned int length) {
+                return table_mid(lua, input_values, start, length);
             };
 
             (*lua)["table_equal_constant"] = [](sol::table input_values_a, double input_const_val) {
