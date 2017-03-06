@@ -28,12 +28,11 @@
 /// @endcond
 
 /**
- * @file   scriptengine.cpp
- * @Author Me (me@example.com)
- * @date   September, 2008
- * @brief  Lua interface
- *
- * Detailed description of file.
+ * \file   scriptengine.cpp
+ * \author Tobias Rieger (tr@crystal-photonics.com),<br> Arne Krüger (ak@crystal-photonics.com)
+ * \brief  Lua interface
+ * \par
+ *  Describes the built-in functions available to the LUA scripts.
  */
 
 /// @cond HIDDEN_SYMBOLS
@@ -170,26 +169,6 @@ std::string to_string(const sol::object &o) {
 std::string to_string(const sol::stack_proxy &object) {
     return to_string(sol::object{object});
 }
-
-/// @endcond
-///
-/**
- * @name    Example API Actions
- * @brief   Example actions available.
- * @ingroup example
- *
- * This API provides certain actions as an example.
- *
- * @param [in] repeat  Number of times to do nothing.
- *
- * @retval TRUE   Successfully did nothing.
- * @retval FALSE  Oops, did something.
- *
- * Example Usage:
- * @code
- *    example_nada(3); // Do nothing 3 times.
- * @endcode
- */
 
 /// @cond HIDDEN_SYMBOLS
 
@@ -364,6 +343,47 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
 }
 /// @endcond
 
+/*! \fn print(argument);
+\brief Prints the string value of \c argument to the console.
+\param argument             Input value to be printed. Can be of the types double, string or table.
+
+
+\details   \par Differences to the standard Lua world:
+  - Besides the normal way you can concatenate arguments using a "," comma. Using multiple arguments.
+
+\par example:
+\code{.lua}
+    table_array = {1,2,3,4,5}
+    table_struct = {["A"]=-5, ["B"]=-4,["C"]=-3,["D"]=-2,["E"]=-1}
+    int_val = 536
+
+    print("Hello world")                 -- prints "Hello world"
+    print(1.1487)                        -- prints 1.148700
+    print(table_array)                   --{1,2,3,4,5}
+    print(table_struct)                  -- {["B"]=-4, ["C"]=-3, ["D"]=-2, ["E"]=-1}
+    print("outputstruct: ",table_struct) -- "outputstruct: "{["D"]=-2, ["C"]=-3,
+                                         --                ["F"]=0, ["E"]=-1}
+    print("output int as string: "..int_val) --"output int as string: 536"
+    print("output int: ",int_val)        --"output int: "536
+    print(non_declared_variable)         --nil
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+print(argument);
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+void print(QPlainTextEdit *console, const sol::variadic_args &args) {
+    std::string text;
+    for (auto &object : args) {
+        text += to_string(object);
+    }
+    Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
+};
+/// @endcond
+
 /*! \fn sleep_ms(int timeout_ms);
 \brief Pauses the script for \c timeout_ms milliseconds.
 \param timeout_ms          Positive integer input value.
@@ -399,7 +419,7 @@ void sleep_ms(const unsigned int timeout_ms) {
 \param value                 Input value of int or double values.
 \param precision             The number of digits to round.
 
-\return                     the rounded value of \cvalue.
+\return                     the rounded value of \c value.
 
 \details    \par example:
 \code{.lua}
@@ -491,16 +511,16 @@ double table_mean(sol::table input_values) {
 
 /*! \fn table table_set_constant(table input_values, double constant);
 \brief Returns a table with the length of \c input_values initialized with \c constant.
-\param input_values_a                 Input table of int or double values.
+\param input_values                 Input table of int or double values.
 \param constant       Int or double value. The value the array is initialized with.
 
 \return                     A table with the length of \c input_values initialized with \c constant.
 
 \details    \par example:
 \code{.lua}
-    input_values_a = {-20, -40, 2, 30}
+    input_values = {-20, -40, 2, 30}
     constant = {2.5}
-    retval = table_set_constant(input_values_a,constant)  -- retval is {2.5, 2.5,
+    retval = table_set_constant(input_values,constant)  -- retval is {2.5, 2.5,
                                                              --          2.5, 2.5}
     print(retval)
 \endcode
@@ -587,11 +607,11 @@ sol::table table_add_table(sol::state &lua, sol::table input_values_a, sol::tabl
 /// @endcond
 
 /*! \fn table table_add_constant(table input_values,  double constant);
-    \brief Performs a vector addition of  \c input_values_a[i] + \c constant for each i.
-    \param input_values_a       Input table of int or double values.
+    \brief Performs a vector addition of  \c input_values[i] + \c constant for each i.
+    \param input_values       Input table of int or double values.
     \param constant            Int or double value. The summand the table \c input_values is added with.
 
-    \return                     A table of the differences of \c input_values_a[i] + \c constant for each i.
+    \return                     A table of the differences of \c input_values[i] + \c constant for each i.
 
     \details    \par example:
     \code{.lua}
@@ -1073,11 +1093,7 @@ void ScriptEngine::load_script(const QString &path) {
                                                  QString::fromStdString(message.value_or("nil")), QMessageBox::Warning);
             };
             (*lua)["print"] = [console = console](const sol::variadic_args &args) {
-                std::string text;
-                for (auto &object : args) {
-                    text += to_string(object);
-                }
-                Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
+                print(console, args);
             };
 
             (*lua)["sleep_ms"] = [](const unsigned int timeout_ms) { sleep_ms(timeout_ms); };
@@ -1163,9 +1179,9 @@ void ScriptEngine::load_script(const QString &path) {
 
         //bind plot
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<Curve>>("Curve",                                                                    //
-                                                         sol::meta_function::construct, sol::no_constructor,                         //
-                                                         "add_point", thread_call_wrapper<void, Curve, double, double>(&Curve::add), //
+            ui_table.new_usertype<Lua_UI_Wrapper<Curve>>("Curve",                                                                          //
+                                                         sol::meta_function::construct, sol::no_constructor,                               //
+                                                         "add_point", thread_call_wrapper<void, Curve, double, double>(&Curve::add_point), //
                                                          "add_spectrum",
                                                          [](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
                                                              std::vector<double> data;
@@ -1188,17 +1204,20 @@ void ScriptEngine::load_script(const QString &path) {
                                                              Utility::thread_call(MainWindow::mw,
                                                                                   [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
                                                                                       auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
-                                                                                      curve.add(spectrum_start_channel, data);
+                                                                                      curve.add_spectrum_at(spectrum_start_channel, data);
                                                                                   });
                                                          }, //
-                                                         "set_offset",
-                                                         thread_call_wrapper(&Curve::set_offset),                                       //
-                                                         "set_enable_median", thread_call_wrapper(&Curve::set_enable_median),           //
+
+                                                         "clear",
+                                                         thread_call_wrapper(&Curve::clear),                                            //
+                                                         "set_median_enable", thread_call_wrapper(&Curve::set_median_enable),           //
                                                          "set_median_kernel_size", thread_call_wrapper(&Curve::set_median_kernel_size), //
                                                          "integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
-                                                         "set_gain", thread_call_wrapper(&Curve::set_gain),                             //
-                                                         "set_color_by_name", thread_call_wrapper(&Curve::set_color_by_name),           //
-                                                         "set_color_by_rgb", thread_call_wrapper(&Curve::set_color_by_rgb)              //
+                                                         "set_x_axis_gain", thread_call_wrapper(&Curve::set_x_axis_gain),               //
+                                                         "set_x_axis_offset",
+                                                         thread_call_wrapper(&Curve::set_x_axis_offset),                      //
+                                                         "set_color_by_name", thread_call_wrapper(&Curve::set_color_by_name), //
+                                                         "set_color_by_rgb", thread_call_wrapper(&Curve::set_color_by_rgb)    //
                                                          );
             ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot",                                                                                          //
                                                         sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //

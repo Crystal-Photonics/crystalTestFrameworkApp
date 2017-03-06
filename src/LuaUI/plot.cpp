@@ -28,7 +28,7 @@ Curve::~Curve() {
 	}
 }
 
-void Curve::add(double x, double y) {
+void Curve::add_point(double x, double y) {
 	xvalues.push_back(x);
 	yvalues_orig.push_back(y);
 	update();
@@ -40,7 +40,7 @@ void Curve::add(const std::vector<double> &data) {
 	update();
 }
 
-void Curve::add(const unsigned int spectrum_start_channel, const std::vector<double> &data) {
+void Curve::add_spectrum_at(const unsigned int spectrum_start_channel, const std::vector<double> &data) {
 	size_t s = std::max(xvalues.size(), data.size() + spectrum_start_channel);
 	resize(s);
 	std::transform(std::begin(data), std::end(data), std::begin(yvalues_orig) + spectrum_start_channel, std::begin(yvalues_orig) + spectrum_start_channel,
@@ -54,13 +54,13 @@ void Curve::clear() {
 	update();
 }
 
-void Curve::set_offset(double offset) {
+void Curve::set_x_axis_offset(double offset) {
 	this->offset = offset;
 	xvalues.clear();
 	resize(yvalues_orig.size());
 }
 
-void Curve::set_gain(double gain) {
+void Curve::set_x_axis_gain(double gain) {
 	this->gain = gain;
 	xvalues.clear();
 	resize(yvalues_orig.size());
@@ -93,11 +93,11 @@ double Curve::integrate_ci(double integral_start_ci, double integral_end_ci) {
 	return result;
 }
 
-void Curve::set_enable_median(bool enable) {
+void Curve::set_median_enable(bool enable) {
 	median_enable = enable;
 }
 
-void Curve::set_median_kernel_size(int kernel_size) {
+void Curve::set_median_kernel_size(unsigned int kernel_size) {
 	if (kernel_size & 1) {
 		median_kernel_size = kernel_size;
 	} else {
