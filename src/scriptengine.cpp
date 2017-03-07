@@ -150,6 +150,11 @@ std::string ScriptEngine::to_string(const sol::object &o) {
             }
             return "{}";
         }
+		case sol::type::userdata:
+			if (o.is<Color>()) {
+				return "Ui.Color_from_rgb(0x" + QString::number(o.as<Color>().rgb & 0xFFFFFFu, 16).toStdString() + ")";
+			}
+			return "unknown custom datatype";
         default:
             return "unknown type " + std::to_string(static_cast<int>(o.get_type()));
     }
@@ -296,7 +301,7 @@ void ScriptEngine::load_script(const QString &path) {
 				"integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
 				"set_x_axis_gain", thread_call_wrapper(&Curve::set_x_axis_gain),               //
 				"set_x_axis_offset",
-				thread_call_wrapper(&Curve::set_x_axis_offset), //
+				thread_call_wrapper(&Curve::set_x_axis_offset),      //
 				"set_color", thread_call_wrapper(&Curve::set_color), //
 				"user_pick_x_coord",
 				[](const Lua_UI_Wrapper<Curve> &lua_curve) {
