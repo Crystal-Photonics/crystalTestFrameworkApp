@@ -39,7 +39,7 @@ std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigne
 	\return                             The lowest DAC threshold value which matches with the noise level definition.
 
 	\details    This function modifies DAC thresholds in order to find the lowest NoiseLevel which matches with:<br>
-				\f$ \int_NoiseLevel^\infty spectrum(energy) < LimitCPS \f$ <br>
+                \f$ \int_{NoiseLevel}^\infty spectrum(energy) < LimitCPS \f$ <br>
 				where LimitCPS is defined by configuration and is set by default to 5 CPS.
 				<br> <br>
 				Because this functions iterates through the range of the spectrum to the find the noise level it is
