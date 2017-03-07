@@ -1,6 +1,8 @@
 #ifndef PLOT_H
 #define PLOT_H
 
+#include "color.h"
+
 #include <QObject>
 #include <functional>
 #include <memory>
@@ -138,7 +140,6 @@ class Curve {
                                           //! local result = curve:integrate_ci(2,3)    --sums the values 5 and 3 = 8
                                           //! \endcode
                                           //! TODO: Stimmt das mit dem Index?
-                                          //!
 
     void set_median_enable(bool enable); //!< \brief Enables the built in median smoothing filter of the plot drawing function
                                          //!< \param enable       Whether enabled(true) or not(false).
@@ -155,7 +156,6 @@ class Curve {
                                          //! curve:set_enable_median(true)       -- enable median
                                          //! curve:set_median_kernel_size(5)      -- median kernel size = 5
                                          //! \endcode
-                                         //!
 
     void set_median_kernel_size(unsigned int kernel_size); //!<\brief Sets the kernel size of the median filter
                                                            //!< \param kernel_size       positive integer => 3. Value must be odd.
@@ -169,34 +169,16 @@ class Curve {
                                                            //! curve:set_median_kernel_size(5)      -- median kernel size = 5
                                                            //! \endcode
 
-    void set_color_by_name(const std::string &name); //!<\brief Sets the color of the curve by name.
-                                                     //!< \param name Name as string of the color.
-                                                     //! Names are described in:<br>
-    //!< <a href="https://www.w3.org/TR/SVG/types.html#ColorKeywords">https://www.w3.org/TR/SVG/types.html#ColorKeywords</a><br>
-    //!< \sa set_color_by_rgb()
-    //!< \par examples:
-    //! "aqua" "blue" "green" "red" "yellow" "white" "black" <br>
-    //!< \code
-    //! local plot = Ui.Plot.new()
-    //! local curve = plot:add_curve()
-    //! curve:set_color_by_name("red")
-    //! \endcode
-
-    void set_color_by_rgb(int r, int g, int b); //!<\brief Sets the color of the curve by rgb value.
-                                                //!< \param r Red integer value(0-255).
-                                                //!< \param g Green integer value(0-255).
-                                                //!< \param b Blue integer value(0-255).
-                                                //!< \sa set_color_by_name()
-                                                //!< \par examples:
-                                                //!< \code
-                                                //! local plot = Ui.Plot.new()
-                                                //! local curve = plot:add_curve()
-                                                //! curve:set_color_by_name(255,0,0)     -- red
-                                                //! curve:set_color_by_name(255,255,0)   -- orange
-                                                //! curve:set_color_by_name(255,255,255) -- white
-                                                //! \endcode
-												///\cond HIDDEN_SYMBOLS
-	void set_color(const QColor &color);
+	void set_color(const Color &color); //!<\brief Sets the color of the curve.
+										//!< \param color Color.
+										//!< \par examples:
+										//!< \code
+										//! local plot = Ui.Plot.new()
+										//! local curve = plot:add_curve()
+										//! local color = UI.Color_from_name("red")
+										//! curve:set_color(color) --turns curve red
+										//! \endcode
+	///\cond HIDDEN_SYMBOLS
 	void set_onetime_click_callback(std::function<void(double, double)> click_callback);
     ///\endcond
 

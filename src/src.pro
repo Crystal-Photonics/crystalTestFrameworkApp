@@ -20,7 +20,8 @@ SOURCES += mainwindow.cpp \
     LuaUI/button.cpp \
     LuaUI/lineedit.cpp \
     LuaUI/window.cpp \
-    lua_functions.cpp
+    lua_functions.cpp \
+    LuaUI/color.cpp
 SOURCES += scriptengine.cpp
 SOURCES += util.cpp
 SOURCES += CommunicationDevices/communicationdevice.cpp
@@ -42,7 +43,8 @@ HEADERS += mainwindow.h \
     LuaUI/button.h \
     LuaUI/lineedit.h \
     LuaUI/window.h \
-    lua_functions.h
+    lua_functions.h \
+    LuaUI/color.h
 HEADERS += scriptengine.h
 HEADERS += export.h
 HEADERS += util.h

@@ -1,5 +1,6 @@
 #include "scriptengine.h"
 #include "LuaUI/button.h"
+#include "LuaUI/color.h"
 #include "LuaUI/lineedit.h"
 #include "LuaUI/plot.h"
 #include "Protocols/rpcprotocol.h"
@@ -295,9 +296,8 @@ void ScriptEngine::load_script(const QString &path) {
 				"integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
 				"set_x_axis_gain", thread_call_wrapper(&Curve::set_x_axis_gain),               //
 				"set_x_axis_offset",
-				thread_call_wrapper(&Curve::set_x_axis_offset),                      //
-				"set_color_by_name", thread_call_wrapper(&Curve::set_color_by_name), //
-				"set_color_by_rgb", thread_call_wrapper(&Curve::set_color_by_rgb),   //
+				thread_call_wrapper(&Curve::set_x_axis_offset), //
+				"set_color", thread_call_wrapper(&Curve::set_color), //
 				"user_pick_x_coord",
 				[](const Lua_UI_Wrapper<Curve> &lua_curve) {
 					QThread *thread = QThread::currentThread();
@@ -333,7 +333,15 @@ void ScriptEngine::load_script(const QString &path) {
                                                                                                  );
                                                         });
         }
-        //bind button
+		//bind color
+		{
+			ui_table.new_usertype<Color>("Color", //
+										 sol::meta_function::construct, sol::no_constructor);
+			ui_table["Color_from_name"] = [](const std::string &name) { return Color{name}; };
+			ui_table["Color_from_r_g_b"] = [](int r, int g, int b) { return Color{r, g, b}; };
+			ui_table["Color_from_rgb"] = [](int rgb) { return Color{rgb}; };
+		}
+		//bind button
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //
                                                           sol::meta_function::construct,

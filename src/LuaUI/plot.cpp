@@ -111,16 +111,8 @@ void Curve::set_median_kernel_size(unsigned int kernel_size) {
 	}
 }
 
-void Curve::set_color(const QColor &color) {
-	curve->setPen(color);
-}
-
-void Curve::set_color_by_name(const std::string &name) {
-	set_color(QString::fromStdString(name));
-}
-
-void Curve::set_color_by_rgb(int r, int g, int b) {
-	set_color(QColor{r, g, b});
+void Curve::set_color(const Color &color) {
+	curve->setPen(QColor(color.rgb));
 }
 
 void Curve::set_onetime_click_callback(std::function<void(double, double)> click_callback) {
