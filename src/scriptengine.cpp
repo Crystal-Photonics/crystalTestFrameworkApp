@@ -185,6 +185,11 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["sleep_ms"] = [](const unsigned int timeout_ms) { sleep_ms(timeout_ms); };
 
             (*lua)["round"] = [](const double value, const unsigned int precision = 0) { return round_double(value, precision); };
+			(*lua)["require"] = [ path = path, &lua = *lua ](const std::string &file) {
+				QDir dir(path);
+				dir.cdUp();
+				lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
+			};
         }
         //table functions
         {
@@ -340,7 +345,7 @@ void ScriptEngine::load_script(const QString &path) {
 														"set_x_marker",
 														thread_call_wrapper(&Plot::set_x_marker) //
 														);
-		}
+        }
 		//bind color
 		{
 			ui_table.new_usertype<Color>("Color", //
@@ -348,7 +353,7 @@ void ScriptEngine::load_script(const QString &path) {
             ui_table["Color_from_name"] = [](const std::string &name) { return Color::Color_from_name(name); };
             ui_table["Color_from_r_g_b"] = [](int r, int g, int b) { return Color::Color_from_r_g_b(r, g, b); };
             ui_table["Color_from_rgb"] = [](int rgb) { return Color{rgb}; };
-        }
+		}
 		//bind button
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //
@@ -382,8 +387,8 @@ void ScriptEngine::load_script(const QString &path) {
                 } //
                 );
         }
-        lua->script_file(path.toStdString());
-    } catch (const sol::error &error) {
+		lua->script_file(path.toStdString());
+	} catch (const sol::error &error) {
         set_error(error);
         throw;
     }
@@ -597,8 +602,8 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
                     //TODO: other protocols
                     throw std::runtime_error("invalid protocol: " + device_protocol.second->type.toStdString());
                 }
-            }
-            (*lua)["run"](device_list);
+			}
+			(*lua)["run"](device_list);
         }
         reset_lua_state();
     } catch (const sol::error &e) {
