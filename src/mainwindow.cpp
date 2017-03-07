@@ -150,7 +150,13 @@ void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name,
 }
 
 void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
-	Utility::thread_call(this, [this, text, console] { console->appendHtml(text); });
+	Utility::thread_call(this, [this, text, console] {
+		if (console) {
+			console->appendHtml(text);
+		} else {
+			Console::debug() << text;
+		}
+	});
 }
 
 void MainWindow::show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon) {
