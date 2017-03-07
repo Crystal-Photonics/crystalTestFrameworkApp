@@ -196,7 +196,7 @@ class Curve {
                                                 //! curve:set_color_by_name(255,255,255) -- white
                                                 //! \endcode
 												///\cond HIDDEN_SYMBOLS
-    void set_color(const QColor &color);
+	void set_color(const QColor &color);
 	void set_onetime_click_callback(std::function<void(double, double)> click_callback);
     ///\endcond
 
