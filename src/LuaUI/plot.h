@@ -1,15 +1,21 @@
 #ifndef PLOT_H
 #define PLOT_H
 
+#include <QObject>
+#include <functional>
 #include <memory>
-#include <qwt_plot.h>
 #include <vector>
 
+class Event_filter;
+class Plot;
 class QAction;
+class QColor;
+class QPointF;
 class QSplitter;
+class QwtPickerClickPointMachine;
 class QwtPlot;
 class QwtPlotCurve;
-class Plot;
+class QwtPlotPicker;
 
 class Curve {
     public:
@@ -189,8 +195,9 @@ class Curve {
                                                 //! curve:set_color_by_name(255,255,0)   -- orange
                                                 //! curve:set_color_by_name(255,255,255) -- white
                                                 //! \endcode
-    ///\cond HIDDEN_SYMBOLS
+												///\cond HIDDEN_SYMBOLS
     void set_color(const QColor &color);
+	void set_onetime_click_callback(std::function<void(double, double)> click_callback);
     ///\endcond
 
     private:
@@ -208,7 +215,8 @@ class Curve {
     unsigned int median_kernel_size{3};
     double offset{0};
     double gain{1};
-    ///\endcond
+	Event_filter *event_filter{nullptr};
+	///\endcond
     friend class Plot;
 };
 
@@ -248,10 +256,12 @@ class Plot {
     void update();
     void set_rightclick_action();
 
-    QwtPlot *plot{nullptr};
-    QAction *save_as_csv_action{nullptr};
-    std::vector<Curve *> curves{};
-    int curve_id_counter{0};
+	QwtPlot *plot{nullptr};
+	QAction *save_as_csv_action{nullptr};
+	QwtPlotPicker *picker{nullptr};
+	QwtPickerClickPointMachine *clicker{nullptr};
+	std::vector<Curve *> curves{};
+	int curve_id_counter{0};
 
     friend class Curve;
 };

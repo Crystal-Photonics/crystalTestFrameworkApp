@@ -1,23 +1,29 @@
 #include "plot.h"
 #include "config.h"
+#include "qt_util.h"
 
 #include <QAction>
 #include <QDateTime>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QMouseEvent>
 #include <QSettings>
 #include <QSplitter>
+#include <QtGlobal>
 #include <fstream>
+#include <qwt_picker_machine.h>
 #include <qwt_plot.h>
 #include <qwt_plot_curve.h>
+#include <qwt_plot_picker.h>
 
 Curve::Curve(QSplitter *, Plot *plot)
 	: plot(plot)
-	, curve(new QwtPlotCurve) {
+	, curve(new QwtPlotCurve)
+	, event_filter(new Event_filter(plot->plot->canvas())) {
 	curve->attach(plot->plot);
 	curve->setTitle("curve" + QString::number(plot->curve_id_counter++));
 	plot->curves.push_back(this);
-	plot->set_rightclick_action();
+	plot->plot->canvas()->installEventFilter(event_filter);
 }
 
 Curve::~Curve() {
@@ -117,6 +123,21 @@ void Curve::set_color_by_rgb(int r, int g, int b) {
 	set_color(QColor{r, g, b});
 }
 
+void Curve::set_onetime_click_callback(std::function<void(double, double)> click_callback) {
+	event_filter->add_callback([ callback = std::move(click_callback), this ](QEvent * event) {
+		if (event->type() == QEvent::MouseButtonPress) {
+			auto mouse_event = static_cast<QMouseEvent *>(event);
+			const auto &pixel_pos = mouse_event->pos();
+			auto x_pos = plot->plot->invTransform(QwtPlot::xBottom, pixel_pos.x());
+			auto y_pos = plot->plot->invTransform(QwtPlot::yLeft, pixel_pos.y());
+			callback(x_pos, y_pos);
+			event_filter->clear();
+			return true;
+		}
+		return false;
+	});
+}
+
 void Curve::resize(std::size_t size) {
 	if (xvalues.size() > size) {
 		xvalues.resize(size);
@@ -163,13 +184,19 @@ void Curve::update() {
 
 void Curve::detach() {
 	curve->setSamples(xvalues.data(), yvalues_plot.data(), xvalues.size());
+	event_filter->clear();
 }
 
 Plot::Plot(QSplitter *parent)
-	: plot(new QwtPlot) {
+	: plot(new QwtPlot)
+	, picker(new QwtPlotPicker(plot->canvas()))
+	, clicker(new QwtPickerClickPointMachine) {
+	clicker->setState(clicker->PointSelection);
     parent->addWidget(plot);
     plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
 	set_rightclick_action();
+	picker->setStateMachine(clicker);
+	picker->setTrackerMode(QwtPicker::ActiveOnly);
 }
 
 Plot::~Plot() {

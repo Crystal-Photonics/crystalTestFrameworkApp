@@ -3,11 +3,11 @@
 
 #include "sol.hpp"
 
+#include <QDebug>
 #include <QString>
 #include <functional>
 #include <memory>
 #include <vector>
-#include <QDebug>
 
 class CommunicationDevice;
 class QStringList;
