@@ -228,7 +228,8 @@ class Plot {
     Plot &operator=(Plot &&other);
     ~Plot();
 ///\endcond
-//! \brief Generates a new curve attached to the plot
+//! \brief Generates a new curve attached to the plot.
+//! \return The generated curve.
 //! \sa Curve
 //! \par examples:
 //! \code
