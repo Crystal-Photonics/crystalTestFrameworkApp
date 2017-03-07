@@ -26,6 +26,9 @@ class ScriptEngine {
 	void load_script(const QString &path);
 	static void launch_editor(QString path, int error_line = 1);
 	void launch_editor() const;
+	static std::string to_string(double d);
+	static std::string to_string(const sol::object &o);
+	static std::string to_string(const sol::stack_proxy &object);
 
 	private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
 	sol::table create_table();
