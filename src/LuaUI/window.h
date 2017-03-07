@@ -5,14 +5,15 @@
 
 class QSplitter;
 class TestRunner;
-
+///\cond HIDDEN_SYMBOLS
 class Window : public QWidget {
-	public:
-	Window(TestRunner *test);
-	QSize sizeHint() const override;
-	void closeEvent(QCloseEvent *event) override;
-	private:
-	TestRunner *test;
-};
+    public:
+    Window(TestRunner *test);
+    QSize sizeHint() const override;
+    void closeEvent(QCloseEvent *event) override;
 
+    private:
+    TestRunner *test;
+};
+///\endcond
 #endif // WINDOW_H

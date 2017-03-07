@@ -6,7 +6,7 @@
 #include <QSplitter>
 #include <QVBoxLayout>
 #include <QApplication>
-
+///\cond HIDDEN_SYMBOLS
 Window::Window(TestRunner *test)
 	: QWidget(MainWindow::mw, Qt::Window)
 	, test(test) {
@@ -38,3 +38,4 @@ void Window::closeEvent(QCloseEvent *event) {
 	QApplication::processEvents();
 	event->accept();
 }
+///\endcond

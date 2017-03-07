@@ -175,7 +175,7 @@ class Curve {
 										//!< \code
 										//! local plot = Ui.Plot.new()
 										//! local curve = plot:add_curve()
-										//! local color = UI.Color_from_name("red")
+                                        //! local color = Ui.Color_from_name("red")
 										//! curve:set_color(color) --turns curve red
 										//! \endcode
 	///\cond HIDDEN_SYMBOLS
@@ -188,6 +188,7 @@ class Curve {
     void update();
     void detach();
 
+    ///\endcond
     Plot *plot{nullptr};
     QwtPlotCurve *curve{nullptr};
     std::vector<double> xvalues{};
@@ -236,13 +237,13 @@ class Plot {
 				  //!TODO: Testen was passiert wenn man auf Kurve zugreift nachdem man clear aufgerufen hat.
 
 	void set_x_marker(const std::string &title, double xpos, const Color &color); //!<\brief Adds a vertical marker to the plot to mark an x-position.
-																				  //!< \param string title.
-																				  //!< \param number xpos.
-																				  //!< \param color Color.
+                                                                                  //!< \param title A string value.
+                                                                                  //!< \param xpos A number.
+                                                                                  //!< \param color Color with the type Color.
 																				  //!< \par examples:
 																				  //!< \code
 																				  //! local plot = Ui.Plot.new()
-																				  //! plot:set_x_marker(10, Ui.Color_from_name("blue")
+                                                                                  //! plot:set_x_marker(10, Ui.Color_from_name("blue"))
 																				  //! \endcode
 
     private:

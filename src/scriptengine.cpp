@@ -345,9 +345,9 @@ void ScriptEngine::load_script(const QString &path) {
 		{
 			ui_table.new_usertype<Color>("Color", //
 										 sol::meta_function::construct, sol::no_constructor);
-			ui_table["Color_from_name"] = [](const std::string &name) { return Color{name}; };
-			ui_table["Color_from_r_g_b"] = [](int r, int g, int b) { return Color{r, g, b}; };
-			ui_table["Color_from_rgb"] = [](int rgb) { return Color{rgb}; };
+            ui_table["Color_from_name"] = [](const std::string &name) { return Color::Color_from_name(name); };
+            ui_table["Color_from_r_g_b"] = [](int r, int g, int b) { return Color::Color_from_r_g_b(r, g, b); };
+            ui_table["Color_from_rgb"] = [](int rgb) { return Color{rgb}; };
         }
 		//bind button
         {
