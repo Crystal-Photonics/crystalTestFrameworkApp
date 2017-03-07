@@ -1,4 +1,3 @@
-/// @cond HIDDEN_SYMBOLS
 #include "scriptengine.h"
 #include "LuaUI/button.h"
 #include "LuaUI/lineedit.h"
@@ -25,18 +24,6 @@
 #include <regex>
 #include <string>
 #include <vector>
-
-/// @endcond
-
-/**
- * \file   scriptengine.cpp
- * \author Tobias Rieger (tr@crystal-photonics.com),<br> Arne Krüger (ak@crystal-photonics.com)
- * \brief  Lua interface
- * \par
- *  Describes the built-in functions available to the LUA scripts.
- */
-
-/// @cond HIDDEN_SYMBOLS
 
 template <class T>
 struct Lua_UI_Wrapper {
@@ -459,7 +446,7 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
     assert(!"Invalid type of RPCRuntimeParameterDescription");
     return sol::nil;
 }
-/// @cond HIDDEN_SYMBOLS
+
 static void set_runtime_parameter(RPCRuntimeEncodedParam &param, sol::object object) {
     if (param.get_description()->get_type() == RPCRuntimeParameterDescription::Type::array && param.get_description()->as_array().number_of_elements == 1) {
         return set_runtime_parameter(param[0], object);
@@ -565,8 +552,6 @@ void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua) {
         add_enum_type(param, lua);
     }
 }
-
-/// @endcond
 
 void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices) {
     auto reset_lua_state = [this] {

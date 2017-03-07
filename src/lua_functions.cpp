@@ -1,3 +1,5 @@
+/// @cond HIDDEN_SYMBOLS
+
 #include "lua_functions.h"
 #include "console.h"
 #include "mainwindow.h"
@@ -6,6 +8,16 @@
 
 #include <QTimer>
 #include <cmath>
+
+/// @endcond
+
+/**
+ * \file   lua_functions.cpp
+ * \author Tobias Rieger (tr@crystal-photonics.com),<br> Arne Krüger (ak@crystal-photonics.com)
+ * \brief  Lua interface
+ * \par
+ *  Describes the custom functions available to the LUA scripts.
+ */
 
 /// @cond HIDDEN_SYMBOLS
 
