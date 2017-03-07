@@ -336,8 +336,11 @@ void ScriptEngine::load_script(const QString &path) {
                                                                                                      return Lua_UI_Wrapper<Curve>{parent, &plot};
                                                                                                  } //
                                                                                                  );
-                                                        });
-        }
+														}, //
+														"set_x_marker",
+														thread_call_wrapper(&Plot::set_x_marker) //
+														);
+		}
 		//bind color
 		{
 			ui_table.new_usertype<Color>("Color", //
@@ -345,7 +348,7 @@ void ScriptEngine::load_script(const QString &path) {
 			ui_table["Color_from_name"] = [](const std::string &name) { return Color{name}; };
 			ui_table["Color_from_r_g_b"] = [](int r, int g, int b) { return Color{r, g, b}; };
 			ui_table["Color_from_rgb"] = [](int rgb) { return Color{rgb}; };
-		}
+        }
 		//bind button
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //

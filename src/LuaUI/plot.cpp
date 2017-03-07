@@ -14,6 +14,7 @@
 #include <qwt_picker_machine.h>
 #include <qwt_plot.h>
 #include <qwt_plot_curve.h>
+#include <qwt_plot_marker.h>
 #include <qwt_plot_picker.h>
 
 Curve::Curve(QSplitter *, Plot *plot)
@@ -202,6 +203,17 @@ Plot::~Plot() {
 
 void Plot::clear() {
 	curves.clear();
+}
+
+void Plot::set_x_marker(const std::string &title, double xpos, const Color &color) {
+	auto marker = new QwtPlotMarker{title.c_str()};
+	if (title.empty() == false) {
+		marker->setLabel(QString::fromStdString(title));
+	}
+	marker->setXValue(xpos);
+	marker->setLinePen(QColor(color.rgb));
+	marker->setLineStyle(QwtPlotMarker::LineStyle::VLine);
+	marker->attach(plot);
 }
 
 void Plot::update() {

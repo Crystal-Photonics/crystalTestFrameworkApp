@@ -225,15 +225,25 @@ class Plot {
     curve add_curve();
 #endif
 
-    void clear(); //!<\brief Deletes all curves from a plot.
-                  //!< \sa Curve
-                  //!< \par examples:
-                  //!< \code
-                  //! local plot = Ui.Plot.new()
-                  //! local curve = plot:add_curve()
-                  //! plot.clear(); -- deletes all curves. Plot is empty now
-                  //! \endcode
-                  //!TODO: Testen was passiert wenn man auf Kurve zugreift nachdem man clear aufgerufen hat.
+	void clear(); //!<\brief Deletes all curves from a plot.
+				  //!< \sa Curve
+				  //!< \par examples:
+				  //!< \code
+				  //! local plot = Ui.Plot.new()
+				  //! local curve = plot:add_curve()
+				  //! plot.clear(); -- deletes all curves. Plot is empty now
+				  //! \endcode
+				  //!TODO: Testen was passiert wenn man auf Kurve zugreift nachdem man clear aufgerufen hat.
+
+	void set_x_marker(const std::string &title, double xpos, const Color &color); //!<\brief Adds a vertical marker to the plot to mark an x-position.
+																				  //!< \param string title.
+																				  //!< \param number xpos.
+																				  //!< \param color Color.
+																				  //!< \par examples:
+																				  //!< \code
+																				  //! local plot = Ui.Plot.new()
+																				  //! plot:set_x_marker(10, Ui.Color_from_name("blue")
+																				  //! \endcode
 
     private:
     void update();
