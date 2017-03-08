@@ -185,13 +185,18 @@ void Curve::detach() {
 Plot::Plot(QSplitter *parent)
     : plot(new QwtPlot)
     , picker(new QwtPlotPicker(plot->canvas()))
-    , clicker(new QwtPickerClickPointMachine) {
+    , track_picker(new QwtPlotPicker(plot->canvas()))
+    , clicker(new QwtPickerClickPointMachine)
+    , tracker(new QwtPickerTrackerMachine)
+{
     clicker->setState(clicker->PointSelection);
     parent->addWidget(plot);
     plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
     set_rightclick_action();
     picker->setStateMachine(clicker);
     picker->setTrackerMode(QwtPicker::ActiveOnly);
+    track_picker->setStateMachine(tracker);
+    track_picker->setTrackerMode(QwtPicker::AlwaysOn);
 }
 
 Plot::~Plot() {

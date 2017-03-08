@@ -18,7 +18,8 @@ struct Button {
                                    //!< \par examples:
                                    //!< \code
                                    //!  local button = Ui.Button.new("My Button")
-                                   //!  while not button:has_been_pressed() do --wait until button has been pressed.
+                                   //! --wait until button has been pressed:
+                                   //!  while not button:has_been_pressed() do
                                    //!      sleep_ms(100);
                                    //!  end
                                    //! \endcode

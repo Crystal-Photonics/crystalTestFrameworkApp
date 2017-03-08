@@ -15,9 +15,11 @@ class QColor;
 class QPointF;
 class QSplitter;
 class QwtPickerClickPointMachine;
+class QwtPickerTrackerMachine;
 class QwtPlot;
 class QwtPlotCurve;
 class QwtPlotPicker;
+
 
 class Curve {
     public:
@@ -253,7 +255,9 @@ class Plot {
 	QwtPlot *plot{nullptr};
 	QAction *save_as_csv_action{nullptr};
 	QwtPlotPicker *picker{nullptr};
+    QwtPlotPicker *track_picker{nullptr};
 	QwtPickerClickPointMachine *clicker{nullptr};
+    QwtPickerTrackerMachine *tracker{nullptr};
 	std::vector<Curve *> curves{};
 	int curve_id_counter{0};
 

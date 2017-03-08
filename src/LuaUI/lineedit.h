@@ -10,7 +10,7 @@ class QLineEdit;
 
 class LineEdit {
     public:
-        ///\cond HIDDEN_SYMBOLS
+    ///\cond HIDDEN_SYMBOLS
     LineEdit(QSplitter *parent);
     ~LineEdit();
     ///\endcond
