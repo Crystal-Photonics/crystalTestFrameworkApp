@@ -7,7 +7,9 @@
 
 class QSplitter;
 class QLineEdit;
-
+/** \ingroup ui
+ *  \{
+ */
 class LineEdit {
     public:
     ///\cond HIDDEN_SYMBOLS
@@ -101,5 +103,5 @@ class LineEdit {
     std::string name;
     QMetaObject::Connection callback_connection = {};
 };
-
+/** \} */ // end of group ui
 #endif // LINEEDIT_H

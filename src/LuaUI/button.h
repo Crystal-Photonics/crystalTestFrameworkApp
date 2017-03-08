@@ -8,6 +8,11 @@
 class QPushButton;
 class QSplitter;
 
+/** \defgroup ui User-intercation
+ *  Interface of built-in user interface functions.
+ *  \{
+ */
+
 struct Button {
     ///\cond HIDDEN_SYMBOLS
     Button(QSplitter *parent, const std::string &title);
@@ -29,5 +34,7 @@ struct Button {
     QMetaObject::Connection pressed_connection;
     bool pressed = false;
 };
+
+/** \} */ // end of group ui
 
 #endif // BUTTON_H

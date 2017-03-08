@@ -20,6 +20,9 @@ class QwtPlot;
 class QwtPlotCurve;
 class QwtPlotPicker;
 
+/** \ingroup ui
+ *  \{
+ */
 
 class Curve {
     public:
@@ -263,5 +266,5 @@ class Plot {
 
     friend class Curve;
 };
-
+/** \} */ // end of group ui
 #endif // PLOT_H

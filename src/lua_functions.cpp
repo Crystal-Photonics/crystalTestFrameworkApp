@@ -11,6 +11,11 @@
 
 /// @endcond
 
+/** \defgroup convenience Convenience functions
+ *  A Collection of built in convenience functions
+ *  \{
+ */
+
 /**
  * \file   lua_functions.cpp
  * \author Tobias Rieger (tr@crystal-photonics.com),<br> Arne Krüger (ak@crystal-photonics.com)
@@ -924,3 +929,4 @@ double table_min_abs(sol::table input_values) {
 	return min;
 }
 /// @endcond
+/** \} */ // end of group convenience

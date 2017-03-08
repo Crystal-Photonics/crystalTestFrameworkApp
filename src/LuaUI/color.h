@@ -3,6 +3,10 @@
 
 #include <string>
 
+/** \ingroup ui
+ *  \{
+ */
+
 struct Color {
     ///\cond HIDDEN_SYMBOLS
     Color(int rgb);
@@ -59,5 +63,5 @@ struct Color {
     int rgb{};
     ///\endcond
 };
-
+/** \} */ // end of group ui
 #endif // COLOR_H
