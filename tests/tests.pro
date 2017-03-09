@@ -1,3 +1,6 @@
+CONFIG += c++14
+QMAKE_CXXFLAGS += -std=c++14
+
 include(../defaults.pri)
 
 TEMPLATE = app
@@ -6,22 +9,25 @@ QT +=  testlib
 
 DEFINES += EXPORT_APPLICATION
 
-HEADERS += autotest.h
-HEADERS += testgooglemock.h
-HEADERS += testqstring.h
+HEADERS += \
+	test_data_engine.h \
+	autotest.h \
+	testgooglemock.h \
+	testqstring.h \
+	testScriptEngine.h
 
-SOURCES += main.cpp
-SOURCES += testgooglemock.cpp
-SOURCES += testqstring.cpp
+SOURCES += \
+	test_data_engine.cpp \
+	main.cpp \
+	testgooglemock.cpp \
+	testqstring.cpp \
+	testScriptEngine.cpp
 
-SOURCES += testScriptEngine.cpp
-HEADERS += testScriptEngine.h
 
 INCLUDEPATH += $$PWD/../libs/googletest/googletest/include
 INCLUDEPATH += $$PWD/../libs/googletest/googlemock/include
 
 LIBS += -L$$PWD/../libs/googletest/build
-
 LIBS += -lgmock
 LIBS += -lgtest
 LIBS += -lcrystalTestFrameworkApp
@@ -51,9 +57,4 @@ first.depends = $(first) copydata
 export(first.depends)
 export(copydata.commands)
 
-QMAKE_EXTRA_TARGETS +=   first copydata
-
-
-
-
-#
+QMAKE_EXTRA_TARGETS += first copydata
