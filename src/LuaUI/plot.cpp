@@ -76,6 +76,8 @@ void Curve::set_x_axis_gain(double gain) {
 
 double Curve::integrate_ci(double integral_start_ci, double integral_end_ci) {
     double result = 0;
+    integral_start_ci -= 1; //coming from lua convention: "startindex of array is 1"
+    integral_end_ci -= 1;
     if (integral_start_ci < 0) {
         integral_start_ci = 0;
     }
@@ -94,7 +96,7 @@ double Curve::integrate_ci(double integral_start_ci, double integral_end_ci) {
         e = yvalues_plot.size() - 1;
     }
 
-    for (unsigned int i = s; i < e; i++) {
+    for (unsigned int i = s; i <= e; i++) {
         result += yvalues_plot[i];
     }
     return result;

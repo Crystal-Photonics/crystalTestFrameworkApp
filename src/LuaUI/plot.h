@@ -51,7 +51,7 @@ class Curve {
                                                            //!< \param spectrum_start_channel Integer value. Position where to place the spectrum data.
                                                            //!< \param data                Table of doubles which will be plotted.
                                                            //!< \sa add_spectrum()
-                                                           //!< \sa add_point()
+                                                           //!< \sa append_point()
                                                            //!< \details If the new data overlaps with already existing data of the curve the
                                                            //! overlapping values will be mathematically added. Not defined segments of the curve
                                                            //! are assumed to be zero.
@@ -74,7 +74,7 @@ class Curve {
     void add_spectrum(const std::vector<double> &data); //!< \brief Adds spectrum data ta a curve
                                                         //!< \param data                Table of doubles which will be plotted.
                                                         //!< \sa add_spectrum_at()
-                                                        //!< \sa add_point()
+                                                        //!< \sa append_point()
                                                         //!< \details If the new data overlaps with already existing data of the curve the
                                                         //! overlapping values will be mathematically added. Not defined segments of the curve
                                                         //! are assumed to be zero.
@@ -138,13 +138,12 @@ class Curve {
                                           //!< \code
                                           //! local plot = Ui.Plot.new()
                                           //! local curve = plot:add_curve()
-                                          //! curve:add_point(5,20)
-                                          //! curve:add_point(10,5)
-                                          //! curve:add_point(15,3)
-                                          //! curve:add_point(20,50)
+                                          //! curve:append_point(5,20)
+                                          //! curve:append_point(10,5)
+                                          //! curve:append_point(15,3)
+                                          //! curve:append_point(20,50)
                                           //! local result = curve:integrate_ci(2,3)    --sums the values 5 and 3 = 8
                                           //! \endcode
-                                          //! TODO: Stimmt das mit dem Index?
 
     void set_median_enable(bool enable); //!< \brief Enables the built in median smoothing filter of the plot drawing function
                                          //!< \param enable       Whether enabled(true) or not(false).

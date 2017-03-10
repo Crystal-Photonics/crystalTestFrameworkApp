@@ -2,7 +2,7 @@
 #define LUA_FUNCTIONS_H
 
 #include "sol.hpp"
-
+#include <QString>
 #include <vector>
 
 class QPlainTextEdit;
@@ -10,6 +10,8 @@ class QPlainTextEdit;
 std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigned int length, const double min_val, const double max_val);
 double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const unsigned int dacs_quantity, const unsigned int max_possible_dac_value);
 void print(QPlainTextEdit *console, const sol::variadic_args &args);
+void show_info(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
+void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
 void sleep_ms(const unsigned int timeout_ms);
 double round_double(const double value, const unsigned int precision);
 double table_sum(sol::table input_values);

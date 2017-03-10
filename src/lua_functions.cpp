@@ -197,6 +197,139 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
 }
 /// @endcond
 
+
+/*! \fn show_info(string title, string message);
+\brief Shows a message window with an info icon. The call is blocking, meaning that the script pauses until the user clicks ok.
+\param title             string value which is shown as the title of the window.
+\param message           string value which is shown as the message text of the window.
+
+
+\details
+The call is blocking, meaning the script pauses until the user clicks ok.
+
+\par example:
+\code{.lua}
+    show_warning("hello","this is a hello world message.") --script pauses until user clicks ok.
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+show_info(string title, string message);
+#endif
+#if 0
+/// @cond HIDDEN_SYMBOLS
+void show_question(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message){
+
+    QMessageBox::Ok
+    QMessageBox::Open
+    QMessageBox::Save
+    QMessageBox::Cancel
+    QMessageBox::Close
+    QMessageBox::Discard
+    QMessageBox::Apply
+    QMessageBox::Reset
+    QMessageBox::RestoreDefaults
+    QMessageBox::Help
+    QMessageBox::SaveAll
+    QMessageBox::Yes
+    QMessageBox::YesToAll
+    QMessageBox::No
+    QMessageBox::NoToAll
+    QMessageBox::Abort
+    QMessageBox::Retry
+    QMessageBox::Ignore
+    QMessageBox::NoButton
+
+            "OK"
+            "Open"
+            "Save"
+            "Cancel"
+            "Close"
+            "Discard"
+            "Apply"
+            "Reset"
+            "Restore Defaults"
+            "Help"
+            "Save All"
+            "Yes"
+            "Yes to All"
+            "No"
+            "No to All"
+            "Abort"
+            "Retry"
+            "Ignore"
+            "NoButton"
+    Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message]() {
+        QMessageBox::question(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path,
+                             QString::fromStdString(message.value_or("nil")));
+    });
+};
+#endif
+/// @endcond
+
+
+
+/*! \fn show_info(string title, string message);
+\brief Shows a message window with an info icon. The call is blocking, meaning that the script pauses until the user clicks ok.
+\param title             string value which is shown as the title of the window.
+\param message           string value which is shown as the message text of the window.
+
+
+\details
+The call is blocking, meaning the script pauses until the user clicks ok.
+
+\par example:
+\code{.lua}
+    show_warning("hello","this is a hello world message.") --script pauses until user clicks ok.
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+show_info(string title, string message);
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+void show_info(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message){
+    Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message]() {
+        QMessageBox::information(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path,
+                             QString::fromStdString(message.value_or("nil")));
+    });
+};
+/// @endcond
+
+
+
+/*! \fn show_warning(string title, string message);
+\brief Shows a message window with a warning icon. The call is blocking, meaning that the script pauses until the user clicks ok.
+\param title             string value which is shown as the title of the window.
+\param message           string value which is shown as the message text of the window.
+
+
+\details
+The call is blocking, meaning the script pauses until the user clicks ok.
+
+\par example:
+\code{.lua}
+    show_warning("hello","this is a hello world message.") --script pauses until user clicks ok.
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+show_warning(string title, string message);
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message){
+    Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message]() {
+        QMessageBox::warning(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path,
+                             QString::fromStdString(message.value_or("nil")));
+    });
+};
+/// @endcond
+
 /*! \fn print(argument);
 \brief Prints the string value of \c argument to the console.
 \param argument             Input value to be printed. Prints all types except for userdefined ones which come the

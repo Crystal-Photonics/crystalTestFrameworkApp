@@ -150,11 +150,11 @@ std::string ScriptEngine::to_string(const sol::object &o) {
             }
             return "{}";
         }
-		case sol::type::userdata:
-			if (o.is<Color>()) {
-				return "Ui.Color_from_rgb(0x" + QString::number(o.as<Color>().rgb & 0xFFFFFFu, 16).toStdString() + ")";
-			}
-			return "unknown custom datatype";
+        case sol::type::userdata:
+            if (o.is<Color>()) {
+                return "Ui.Color_from_rgb(0x" + QString::number(o.as<Color>().rgb & 0xFFFFFFu, 16).toStdString() + ")";
+            }
+            return "unknown custom datatype";
         default:
             return "unknown type " + std::to_string(static_cast<int>(o.get_type()));
     }
@@ -174,10 +174,14 @@ void ScriptEngine::load_script(const QString &path) {
 
         //add generic function
         {
-            (*lua)["show_warning"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
-                MainWindow::mw->show_message_box(QString::fromStdString(title.value_or("nil")) + " from " + path,
-                                                 QString::fromStdString(message.value_or("nil")), QMessageBox::Warning);
+            (*lua)["show_info"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
+                show_info(path, title, message);
             };
+
+            (*lua)["show_warning"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
+                show_warning(path, title, message);
+            };
+
             (*lua)["print"] = [console = console](const sol::variadic_args &args) {
                 print(console, args);
             };
@@ -185,11 +189,11 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["sleep_ms"] = [](const unsigned int timeout_ms) { sleep_ms(timeout_ms); };
 
             (*lua)["round"] = [](const double value, const unsigned int precision = 0) { return round_double(value, precision); };
-			(*lua)["require"] = [ path = path, &lua = *lua ](const std::string &file) {
-				QDir dir(path);
-				dir.cdUp();
-				lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
-			};
+            (*lua)["require"] = [ path = path, &lua = *lua ](const std::string &file) {
+                QDir dir(path);
+                dir.cdUp();
+                lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
+            };
         }
         //table functions
         {
@@ -270,64 +274,64 @@ void ScriptEngine::load_script(const QString &path) {
 
         //bind plot
         {
-			ui_table.new_usertype<Lua_UI_Wrapper<Curve>>(
-				"Curve",                                                                                //
-				sol::meta_function::construct, sol::no_constructor,                                     //
-				"append_point", thread_call_wrapper<void, Curve, double, double>(&Curve::append_point), //
-				"add_spectrum",
-				[](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
-					std::vector<double> data;
-					data.reserve(table.size());
-					for (auto &i : table) {
-						data.push_back(i.second.as<double>());
-					}
-					Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data) ] {
-						auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
-						curve.add(data);
-					});
-				}, //
-				"add_spectrum_at",
-				[](Lua_UI_Wrapper<Curve> &curve, const unsigned int spectrum_start_channel, const sol::table &table) {
-					std::vector<double> data;
-					data.reserve(table.size());
-					for (auto &i : table) {
-						data.push_back(i.second.as<double>());
-					}
-					Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
-						auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
-						curve.add_spectrum_at(spectrum_start_channel, data);
-					});
-				}, //
+            ui_table.new_usertype<Lua_UI_Wrapper<Curve>>(
+                "Curve",                                                                                //
+                sol::meta_function::construct, sol::no_constructor,                                     //
+                "append_point", thread_call_wrapper<void, Curve, double, double>(&Curve::append_point), //
+                "add_spectrum",
+                [](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
+                    std::vector<double> data;
+                    data.reserve(table.size());
+                    for (auto &i : table) {
+                        data.push_back(i.second.as<double>());
+                    }
+                    Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data) ] {
+                        auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
+                        curve.add(data);
+                    });
+                }, //
+                "add_spectrum_at",
+                [](Lua_UI_Wrapper<Curve> &curve, const unsigned int spectrum_start_channel, const sol::table &table) {
+                    std::vector<double> data;
+                    data.reserve(table.size());
+                    for (auto &i : table) {
+                        data.push_back(i.second.as<double>());
+                    }
+                    Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
+                        auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
+                        curve.add_spectrum_at(spectrum_start_channel, data);
+                    });
+                }, //
 
-				"clear",
-				thread_call_wrapper(&Curve::clear),                                            //
-				"set_median_enable", thread_call_wrapper(&Curve::set_median_enable),           //
-				"set_median_kernel_size", thread_call_wrapper(&Curve::set_median_kernel_size), //
-				"integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
-				"set_x_axis_gain", thread_call_wrapper(&Curve::set_x_axis_gain),               //
-				"set_x_axis_offset",
-				thread_call_wrapper(&Curve::set_x_axis_offset),      //
-				"set_color", thread_call_wrapper(&Curve::set_color), //
-				"user_pick_x_coord",
-				[](const Lua_UI_Wrapper<Curve> &lua_curve) {
-					QThread *thread = QThread::currentThread();
-					std::promise<double> x_selection_promise;
-					std::future<double> x_selection_future = x_selection_promise.get_future();
-					Utility::thread_call(MainWindow::mw, [&lua_curve, thread, x_selection_promise = &x_selection_promise ]() mutable {
-						Curve &curve = MainWindow::mw->get_lua_UI_class<Curve>(lua_curve.id);
-						curve.set_onetime_click_callback([thread, x_selection_promise](double x, double y) mutable {
-							x_selection_promise->set_value(x);
-							Utility::thread_call(thread, [thread] { thread->exit(1234); });
-						});
-					});
-					if (QEventLoop{}.exec() == 1234) {
-						return x_selection_future.get();
-					} else {
-						throw sol::error("aborted");
-					}
-				}
-				//
-				);
+                "clear",
+                thread_call_wrapper(&Curve::clear),                                            //
+                "set_median_enable", thread_call_wrapper(&Curve::set_median_enable),           //
+                "set_median_kernel_size", thread_call_wrapper(&Curve::set_median_kernel_size), //
+                "integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
+                "set_x_axis_gain", thread_call_wrapper(&Curve::set_x_axis_gain),               //
+                "set_x_axis_offset",
+                thread_call_wrapper(&Curve::set_x_axis_offset),      //
+                "set_color", thread_call_wrapper(&Curve::set_color), //
+                "user_pick_x_coord",
+                [](const Lua_UI_Wrapper<Curve> &lua_curve) {
+                    QThread *thread = QThread::currentThread();
+                    std::promise<double> x_selection_promise;
+                    std::future<double> x_selection_future = x_selection_promise.get_future();
+                    Utility::thread_call(MainWindow::mw, [&lua_curve, thread, x_selection_promise = &x_selection_promise ]() mutable {
+                        Curve &curve = MainWindow::mw->get_lua_UI_class<Curve>(lua_curve.id);
+                        curve.set_onetime_click_callback([thread, x_selection_promise](double x, double y) mutable {
+                            x_selection_promise->set_value(x);
+                            Utility::thread_call(thread, [thread] { thread->exit(1234); });
+                        });
+                    });
+                    if (QEventLoop{}.exec() == 1234) {
+                        return x_selection_future.get();
+                    } else {
+                        throw sol::error("aborted");
+                    }
+                }
+                //
+                );
             ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot",                                                                                          //
                                                         sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
                                                         "clear",
@@ -341,20 +345,20 @@ void ScriptEngine::load_script(const QString &path) {
                                                                                                      return Lua_UI_Wrapper<Curve>{parent, &plot};
                                                                                                  } //
                                                                                                  );
-														}, //
-														"set_x_marker",
-														thread_call_wrapper(&Plot::set_x_marker) //
-														);
+                                                        }, //
+                                                        "set_x_marker",
+                                                        thread_call_wrapper(&Plot::set_x_marker) //
+                                                        );
         }
-		//bind color
-		{
-			ui_table.new_usertype<Color>("Color", //
-										 sol::meta_function::construct, sol::no_constructor);
+        //bind color
+        {
+            ui_table.new_usertype<Color>("Color", //
+                                         sol::meta_function::construct, sol::no_constructor);
             ui_table["Color_from_name"] = [](const std::string &name) { return Color::Color_from_name(name); };
             ui_table["Color_from_r_g_b"] = [](int r, int g, int b) { return Color::Color_from_r_g_b(r, g, b); };
             ui_table["Color_from_rgb"] = [](int rgb) { return Color{rgb}; };
-		}
-		//bind button
+        }
+        //bind button
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //
                                                           sol::meta_function::construct,
@@ -381,14 +385,14 @@ void ScriptEngine::load_script(const QString &path) {
                 [](const Lua_UI_Wrapper<LineEdit> &lew) {
                     auto le = MainWindow::mw->get_lua_UI_class<LineEdit>(lew.id);
                     le.set_single_shot_return_pressed_callback([thread = QThread::currentThread()] { thread->exit(); });
-					QEventLoop{}.exec();
+                    QEventLoop{}.exec();
                     auto text = Utility::promised_thread_call(MainWindow::mw, [&le] { return le.get_text(); });
                     return text;
                 } //
                 );
         }
-		lua->script_file(path.toStdString());
-	} catch (const sol::error &error) {
+        lua->script_file(path.toStdString());
+    } catch (const sol::error &error) {
         set_error(error);
         throw;
     }
@@ -602,8 +606,8 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
                     //TODO: other protocols
                     throw std::runtime_error("invalid protocol: " + device_protocol.second->type.toStdString());
                 }
-			}
-			(*lua)["run"](device_list);
+            }
+            (*lua)["run"](device_list);
         }
         reset_lua_state();
     } catch (const sol::error &e) {
