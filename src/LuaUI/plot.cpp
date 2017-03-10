@@ -175,20 +175,17 @@ void Curve::update() {
     plot->update();
 }
 
-
 void Curve::detach() {
     curve->setSamples(xvalues.data(), yvalues_plot.data(), xvalues.size());
     event_filter->clear();
 }
-
 
 Plot::Plot(QSplitter *parent)
     : plot(new QwtPlot)
     , picker(new QwtPlotPicker(plot->canvas()))
     , track_picker(new QwtPlotPicker(plot->canvas()))
     , clicker(new QwtPickerClickPointMachine)
-    , tracker(new QwtPickerTrackerMachine)
-{
+    , tracker(new QwtPickerTrackerMachine) {
     clicker->setState(clicker->PointSelection);
     parent->addWidget(plot);
     plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
@@ -213,6 +210,7 @@ void Plot::clear() {
 }
 
 void Plot::set_x_marker(const std::string &title, double xpos, const Color &color) {
+    const int Y_AXIS_STEP = 10;
     auto marker = new QwtPlotMarker{title.c_str()};
     if (title.empty() == false) {
         marker->setLabel(QString::fromStdString(title));
@@ -220,7 +218,30 @@ void Plot::set_x_marker(const std::string &title, double xpos, const Color &colo
     marker->setXValue(xpos);
     marker->setLinePen(QColor(color.rgb));
     marker->setLineStyle(QwtPlotMarker::LineStyle::VLine);
+    marker->setLabelOrientation(Qt::Orientation::Vertical);
     marker->attach(plot);
+#if 0
+    int i = 0;
+    double plot_y_min = plot->axisScaleDiv(QwtPlot::Axis::yLeft).lowerBound();
+    double plot_y_max = plot->axisScaleDiv(QwtPlot::Axis::yLeft).upperBound();
+    double plot_y_range = plot_y_max - plot_y_min;
+    //plot_y_range += plot_y_range/Y_AXIS_STEP;
+    const QwtPlotItemList &itmList = plot->itemList();
+    //qDebug() << "ymarker calc:";
+    for (QwtPlotItemIterator it = itmList.begin(); it != itmList.end(); ++it) {
+        QwtPlotItem *item = *it;
+        if (item->isVisible() && item->rtti() == QwtPlotItem::Rtti_PlotMarker) {
+            QwtPlotMarker *m = dynamic_cast<QwtPlotMarker *>(item);
+            if (m) {
+                i++;
+                double y_value = plot_y_min + (i % Y_AXIS_STEP) * plot_y_range / Y_AXIS_STEP;
+                //qDebug() << "ymarker: " << y_value;
+                m->setYValue(y_value);
+            }
+        }
+    }
+#endif
+    update();
 }
 
 void Plot::update() {

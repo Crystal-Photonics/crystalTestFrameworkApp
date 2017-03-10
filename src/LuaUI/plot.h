@@ -207,7 +207,11 @@ class Curve {
 	///\endcond
     friend class Plot;
 };
+/** \} */ // end of group ui
 
+/** \ingroup ui
+ *  \{
+ */
 class Plot {
     public:
     ///\cond HIDDEN_SYMBOLS
