@@ -14,5 +14,4 @@ CONFIG( debug, debug|release ) {
     LIBS += -L../src/release
 }
 
-
 LIBS +=  -lcrystalTestFrameworkApp

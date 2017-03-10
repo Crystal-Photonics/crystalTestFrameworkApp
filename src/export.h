@@ -1,7 +1,7 @@
 #ifndef EXPORT_H
 #define EXPORT_H
 
-#ifndef QT_STATIC
+#if 0
 #  if defined EXPORT_LIBRARY
 #    define EXPORT Q_DECL_EXPORT
 #  elif EXPORT_APPLICATION
@@ -14,4 +14,3 @@
 #endif
 
 #endif // EXPORT_H
-

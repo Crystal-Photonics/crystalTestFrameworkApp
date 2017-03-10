@@ -1,4 +1,4 @@
-#include "testscriptengine.h"
+#include "testScriptEngine.h"
 #include "gmock/gmock.h"  // Brings in Google Mock.
 #include "sol.hpp"
 
