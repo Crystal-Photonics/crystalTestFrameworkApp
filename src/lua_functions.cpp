@@ -107,7 +107,7 @@ std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigne
 
 			local counts_cps = table_mul_constant(count_values_akku,1/integration_time_s)
 			print("measured counts[cps]:", counts_cps)
-			return counts_cps
+            return count_values_akku
 		end
 	\endcode
 	\code{.lua}
@@ -180,7 +180,7 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
 			rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_HIGH_DEF_SEC, INTEGRATION_TIME_HIGH_DEF_SEC * THRESHOLD_NOISE_LEVEL_CPS);
 		bool found = true;
 		for (auto &j : counts) {
-			double val = j.second.as<double>() / INTEGRATION_TIME_HIGH_DEF_SEC;
+            double val = j.second.as<double>() / INTEGRATION_TIME_HIGH_DEF_SEC;
 			if (val > THRESHOLD_NOISE_LEVEL_CPS) {
 				noise_level_result = noise_level_result + 1;
 				found = false;
