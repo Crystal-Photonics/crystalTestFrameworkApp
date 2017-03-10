@@ -6,52 +6,57 @@ TEMPLATE = lib
 
 DEFINES += EXPORT_LIBRARY
 
-SOURCES += mainwindow.cpp \
-    pathsettingswindow.cpp \
-    config.cpp \
-    Protocols/rpcprotocol.cpp \
-    console.cpp \
-    Protocols/protocol.cpp \
-    qt_util.cpp \
-	LuaUI/plot.cpp \
-    deviceworker.cpp \
-    testrunner.cpp \
-    testdescriptionloader.cpp \
-    LuaUI/button.cpp \
-    LuaUI/lineedit.cpp \
-    LuaUI/window.cpp \
-    lua_functions.cpp \
-    LuaUI/color.cpp
-SOURCES += scriptengine.cpp
-SOURCES += util.cpp
-SOURCES += CommunicationDevices/communicationdevice.cpp
-SOURCES += CommunicationDevices/comportcommunicationdevice.cpp
-SOURCES += CommunicationDevices/echocommunicationdevice.cpp
-SOURCES += CommunicationDevices/socketcommunicationdevice.cpp
-
-HEADERS += mainwindow.h \
-    pathsettingswindow.h \
-    config.h \
-    Protocols/rpcprotocol.h \
-    console.h \
-    Protocols/protocol.h \
-    qt_util.h \
-	LuaUI/plot.h \
-    deviceworker.h \
-    testrunner.h \
-    testdescriptionloader.h \
-    LuaUI/button.h \
-    LuaUI/lineedit.h \
-    LuaUI/window.h \
-    lua_functions.h \
-    LuaUI/color.h
-HEADERS += scriptengine.h
-HEADERS += export.h
-HEADERS += util.h
-HEADERS +=CommunicationDevices/communicationdevice.h
-HEADERS +=CommunicationDevices/comportcommunicationdevice.h
-HEADERS +=CommunicationDevices/echocommunicationdevice.h
-HEADERS +=CommunicationDevices/socketcommunicationdevice.h
-
-FORMS    += mainwindow.ui \
+FORMS += \
+	mainwindow.ui \
     pathsettingswindow.ui
+
+HEADERS += \
+	CommunicationDevices/communicationdevice.h \
+	CommunicationDevices/comportcommunicationdevice.h \
+	CommunicationDevices/echocommunicationdevice.h \
+	CommunicationDevices/socketcommunicationdevice.h \
+	config.h \
+	console.h \
+	data_engine/data_engine.h \
+	deviceworker.h \
+	export.h \
+	lua_functions.h \
+	LuaUI/button.h \
+	LuaUI/color.h \
+	LuaUI/lineedit.h \
+	LuaUI/plot.h \
+	LuaUI/window.h \
+	mainwindow.h \
+	pathsettingswindow.h \
+	Protocols/protocol.h \
+	Protocols/rpcprotocol.h \
+	qt_util.h \
+	scriptengine.h \
+	testdescriptionloader.h \
+	testrunner.h \
+	util.h
+
+SOURCES += \
+	CommunicationDevices/communicationdevice.cpp \
+	CommunicationDevices/comportcommunicationdevice.cpp \
+	CommunicationDevices/echocommunicationdevice.cpp \
+	CommunicationDevices/socketcommunicationdevice.cpp \
+	config.cpp \
+	console.cpp \
+	data_engine/data_engine.cpp \
+	deviceworker.cpp \
+	lua_functions.cpp \
+	LuaUI/button.cpp \
+	LuaUI/color.cpp \
+	LuaUI/lineedit.cpp \
+	LuaUI/plot.cpp \
+	LuaUI/window.cpp \
+	mainwindow.cpp \
+	pathsettingswindow.cpp \
+	Protocols/protocol.cpp \
+	Protocols/rpcprotocol.cpp \
+	qt_util.cpp \
+	scriptengine.cpp \
+	testdescriptionloader.cpp \
+	testrunner.cpp \
+	util.cpp
