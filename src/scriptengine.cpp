@@ -174,6 +174,10 @@ void ScriptEngine::load_script(const QString &path) {
 
         //add generic function
         {
+            (*lua)["show_question"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table) {
+                return show_question(path, title, message, button_table);
+            };
+
             (*lua)["show_info"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
                 show_info(path, title, message);
             };

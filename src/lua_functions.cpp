@@ -27,13 +27,13 @@
 /// @cond HIDDEN_SYMBOLS
 
 std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigned int length, const double min_val, const double max_val) {
-	std::vector<unsigned int> retval;
-	double range = max_val - min_val;
-	for (unsigned int i = 0; i < length; i++) {
-		unsigned int val = std::round(i * range / length) + min_val;
-		retval.push_back(val);
-	}
-	return retval;
+    std::vector<unsigned int> retval;
+    double range = max_val - min_val;
+    for (unsigned int i = 0; i < length; i++) {
+        unsigned int val = std::round(i * range / length) + min_val;
+        retval.push_back(val);
+    }
+    return retval;
 }
 /// @endcond
 /*! \fn double measure_noise_level_czt(device rpc_device, int dacs_quantity, int max_possible_dac_value)
@@ -127,154 +127,221 @@ double measure_noise_level_czt(device rpc_device, int dacs_quantity, int max_pos
 
 /// @cond HIDDEN_SYMBOLS
 double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const unsigned int dacs_quantity, const unsigned int max_possible_dac_value) {
-	const unsigned int THRESHOLD_NOISE_LEVEL_CPS = 5;
-	const unsigned int INTEGRATION_TIME_SEC = 1;
-	const unsigned int INTEGRATION_TIME_HIGH_DEF_SEC = 10;
-	double noise_level_result = 100000000;
-	//TODO: test if dacs_quantity > 1
-	std::vector<unsigned int> dac_thresholds = measure_noise_level_distribute_tresholds(dacs_quantity, 0, max_possible_dac_value);
+    const unsigned int THRESHOLD_NOISE_LEVEL_CPS = 5;
+    const unsigned int INTEGRATION_TIME_SEC = 1;
+    const unsigned int INTEGRATION_TIME_HIGH_DEF_SEC = 10;
+    double noise_level_result = 100000000;
+    //TODO: test if dacs_quantity > 1
+    std::vector<unsigned int> dac_thresholds = measure_noise_level_distribute_tresholds(dacs_quantity, 0, max_possible_dac_value);
 
-	for (unsigned int i = 0; i < max_possible_dac_value; i++) {
-		sol::table dac_thresholds_lua_table = lua.create_table_with();
-		for (auto j : dac_thresholds) {
-			dac_thresholds_lua_table.add(j);
-		}
-		sol::table counts =
-			lua["callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts"](rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_SEC, 0);
-		//print counts here
-		//for (auto &j : counts) {
-		//    double val = std::abs(j.second.as<double>());
-		//    qDebug() << val;
-		// }
-		double window_start = 0;
-		double window_end = 0;
+    for (unsigned int i = 0; i < max_possible_dac_value; i++) {
+        sol::table dac_thresholds_lua_table = lua.create_table_with();
+        for (auto j : dac_thresholds) {
+            dac_thresholds_lua_table.add(j);
+        }
+        sol::table counts =
+            lua["callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts"](rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_SEC, 0);
+        //print counts here
+        //for (auto &j : counts) {
+        //    double val = std::abs(j.second.as<double>());
+        //    qDebug() << val;
+        // }
+        double window_start = 0;
+        double window_end = 0;
 
-		for (int j = counts.size() - 1; j >= 0; j--) {
-			if (counts[j + 1].get<double>() > THRESHOLD_NOISE_LEVEL_CPS) {
-				window_start = dac_thresholds[j];
-				window_end = window_start + (dac_thresholds[1] - dac_thresholds[0]);
-				//print("window_start",window_start)
-				//print("window_end",window_end)
-				break;
-			}
-		}
-		dac_thresholds = measure_noise_level_distribute_tresholds(dacs_quantity, window_start, window_end);
+        for (int j = counts.size() - 1; j >= 0; j--) {
+            if (counts[j + 1].get<double>() > THRESHOLD_NOISE_LEVEL_CPS) {
+                window_start = dac_thresholds[j];
+                window_end = window_start + (dac_thresholds[1] - dac_thresholds[0]);
+                //print("window_start",window_start)
+                //print("window_end",window_end)
+                break;
+            }
+        }
+        dac_thresholds = measure_noise_level_distribute_tresholds(dacs_quantity, window_start, window_end);
 
-		//print("new threshold:", DAC_THRESHOLDS)
+        //print("new threshold:", DAC_THRESHOLDS)
 
-		if (dac_thresholds[0] == dac_thresholds[dacs_quantity - 1]) {
-			noise_level_result = dac_thresholds[0];
-			break;
-		}
-	}
+        if (dac_thresholds[0] == dac_thresholds[dacs_quantity - 1]) {
+            noise_level_result = dac_thresholds[0];
+            break;
+        }
+    }
 
-	//feinabstung und und Plausibilitätsprüfung
-	for (unsigned int i = 0; i < max_possible_dac_value; i++) {
-		sol::table dac_thresholds_lua_table = lua.create_table_with();
-		;
-		for (unsigned int i = 0; i < dacs_quantity; i++) {
-			dac_thresholds_lua_table.add(noise_level_result);
-		}
-		//print("DAC:",rauschkante)
-		sol::table counts = lua["callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts"](
-			rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_HIGH_DEF_SEC, INTEGRATION_TIME_HIGH_DEF_SEC * THRESHOLD_NOISE_LEVEL_CPS);
-		bool found = true;
-		for (auto &j : counts) {
+    //feinabstung und und Plausibilitätsprüfung
+    for (unsigned int i = 0; i < max_possible_dac_value; i++) {
+        sol::table dac_thresholds_lua_table = lua.create_table_with();
+        ;
+        for (unsigned int i = 0; i < dacs_quantity; i++) {
+            dac_thresholds_lua_table.add(noise_level_result);
+        }
+        //print("DAC:",rauschkante)
+        sol::table counts = lua["callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts"](
+            rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_HIGH_DEF_SEC, INTEGRATION_TIME_HIGH_DEF_SEC * THRESHOLD_NOISE_LEVEL_CPS);
+        bool found = true;
+        for (auto &j : counts) {
             double val = j.second.as<double>() / INTEGRATION_TIME_HIGH_DEF_SEC;
-			if (val > THRESHOLD_NOISE_LEVEL_CPS) {
-				noise_level_result = noise_level_result + 1;
-				found = false;
-				break;
-			}
-		}
-		if (found) {
-			// print("rauschkante gefunden:", noise_level_result);
-			break;
-		}
-	}
-	lua["callback_measure_noise_level_restore_dac_thresholds_to_normal_mode"](rpc_device);
-	return noise_level_result;
+            if (val > THRESHOLD_NOISE_LEVEL_CPS) {
+                noise_level_result = noise_level_result + 1;
+                found = false;
+                break;
+            }
+        }
+        if (found) {
+            // print("rauschkante gefunden:", noise_level_result);
+            break;
+        }
+    }
+    lua["callback_measure_noise_level_restore_dac_thresholds_to_normal_mode"](rpc_device);
+    return noise_level_result;
 }
 /// @endcond
 
-
-/*! \fn show_info(string title, string message);
-\brief Shows a message window with an info icon. The call is blocking, meaning that the script pauses until the user clicks ok.
+/*! \fn string show_question(string title, string message, table button_table);
+\brief Shows a dialog window with different buttons to click.
 \param title             string value which is shown as the title of the window.
 \param message           string value which is shown as the message text of the window.
+\param button_table      a table of strings defining which buttons will appear on the dialog.
 
-
+\return the name of the clicked button as s string value.
+\sa show_info()
+\sa show_warning()
 \details
 The call is blocking, meaning the script pauses until the user clicks ok.
 
+Following button strings are allowed:
+ - "OK"
+ - "Open"
+ - "Save"
+ - "Cancel"
+ - "Close"
+ - "Discard"
+ - "Apply"
+ - "Reset"
+ - "Restore"
+ - "Help"
+ - "Save All"
+ - "Yes"
+ - "Yes to All"
+ - "No"
+ - "No to All"
+ - "Abort"
+ - "Retry"
+ - "Ignore"
+
 \par example:
 \code{.lua}
-    show_warning("hello","this is a hello world message.") --script pauses until user clicks ok.
+    result = show_question("hello","this is a hello world message.",{"yes", "no", "Cancel}) --script pauses until user clicks a button.
+    print(result) -- will print either "yes", "no" or "Cancel".
 \endcode
 */
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-show_info(string title, string message);
+string show_question(string title, string message, table button_table);
 #endif
-#if 0
+#if 1
 /// @cond HIDDEN_SYMBOLS
-void show_question(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message){
-
-    QMessageBox::Ok
-    QMessageBox::Open
-    QMessageBox::Save
-    QMessageBox::Cancel
-    QMessageBox::Close
-    QMessageBox::Discard
-    QMessageBox::Apply
-    QMessageBox::Reset
-    QMessageBox::RestoreDefaults
-    QMessageBox::Help
-    QMessageBox::SaveAll
-    QMessageBox::Yes
-    QMessageBox::YesToAll
-    QMessageBox::No
-    QMessageBox::NoToAll
-    QMessageBox::Abort
-    QMessageBox::Retry
-    QMessageBox::Ignore
-    QMessageBox::NoButton
-
-            "OK"
-            "Open"
-            "Save"
-            "Cancel"
-            "Close"
-            "Discard"
-            "Apply"
-            "Reset"
-            "Restore Defaults"
-            "Help"
-            "Save All"
-            "Yes"
-            "Yes to All"
-            "No"
-            "No to All"
-            "Abort"
-            "Retry"
-            "Ignore"
-            "NoButton"
-    Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message]() {
-        QMessageBox::question(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path,
-                             QString::fromStdString(message.value_or("nil")));
+std::string show_question(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table) {
+    int buttons = 0;
+    for (auto &i : button_table) {
+        QString button_name{QString::fromStdString(i.second.as<std::string>())};
+        button_name = button_name.toLower();
+        if (button_name == "ok") {
+            buttons |= QMessageBox::Ok;
+        } else if (button_name == "open") {
+            buttons |= QMessageBox::Open;
+        } else if (button_name == "save") {
+            buttons |= QMessageBox::Save;
+        } else if (button_name == "cancel") {
+            buttons |= QMessageBox::Cancel;
+        } else if (button_name == "close") {
+            buttons |= QMessageBox::Close;
+        } else if (button_name == "discard") {
+            buttons |= QMessageBox::Discard;
+        } else if (button_name == "apply") {
+            buttons |= QMessageBox::Apply;
+        } else if (button_name == "reset") {
+            buttons |= QMessageBox::Reset;
+        } else if (button_name == "restore defaults") {
+            buttons |= QMessageBox::RestoreDefaults;
+        } else if (button_name == "help") {
+            buttons |= QMessageBox::Help;
+        } else if (button_name == "save all") {
+            buttons |= QMessageBox::SaveAll;
+        } else if (button_name == "yes") {
+            buttons |= QMessageBox::Yes;
+        } else if (button_name == "yes to all") {
+            buttons |= QMessageBox::YesToAll;
+        } else if (button_name == "no") {
+            buttons |= QMessageBox::No;
+        } else if (button_name == "no to all") {
+            buttons |= QMessageBox::NoToAll;
+        } else if (button_name == "abort") {
+            buttons |= QMessageBox::Abort;
+        } else if (button_name == "retry") {
+            buttons |= QMessageBox::Retry;
+        } else if (button_name == "ignore") {
+            buttons |= QMessageBox::Ignore;
+        } else if (button_name == "nobutton") {
+            buttons |= QMessageBox::NoButton;
+        }
+    }
+    int result = 0;
+    result = Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message, buttons]() {
+        return QMessageBox::question(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path,
+                                     QString::fromStdString(message.value_or("nil")), buttons);
     });
+    switch (result) {
+        case QMessageBox::Ok:
+            return "OK";
+        case QMessageBox::Open:
+            return "Open";
+        case QMessageBox::Save:
+            return "Save";
+        case QMessageBox::Cancel:
+            return "Cancel";
+        case QMessageBox::Close:
+            return "Close";
+        case QMessageBox::Discard:
+            return "Discard";
+        case QMessageBox::Apply:
+            return "Apply";
+        case QMessageBox::Reset:
+            return "Reset";
+        case QMessageBox::RestoreDefaults:
+            return "Restore Defaults";
+        case QMessageBox::Help:
+            return "Help";
+        case QMessageBox::SaveAll:
+            return "Save All";
+        case QMessageBox::Yes:
+            return "Yes";
+        case QMessageBox::YesToAll:
+            return "Yes to All";
+        case QMessageBox::No:
+            return "No";
+        case QMessageBox::NoToAll:
+            return "No to All";
+        case QMessageBox::Abort:
+            return "Abort";
+        case QMessageBox::Retry:
+            return "Retry";
+        case QMessageBox::Ignore:
+            return "Ignore";
+    }
+    return "";
 };
 #endif
 /// @endcond
 
-
-
 /*! \fn show_info(string title, string message);
-\brief Shows a message window with an info icon. The call is blocking, meaning that the script pauses until the user clicks ok.
+\brief Shows a message window with an info icon.
 \param title             string value which is shown as the title of the window.
 \param message           string value which is shown as the message text of the window.
 
+\sa show_question()
+\sa show_warning()
 
 \details
 The call is blocking, meaning the script pauses until the user clicks ok.
@@ -291,21 +358,21 @@ show_info(string title, string message);
 #endif
 
 /// @cond HIDDEN_SYMBOLS
-void show_info(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message){
+void show_info(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
     Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message]() {
         QMessageBox::information(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path,
-                             QString::fromStdString(message.value_or("nil")));
+                                 QString::fromStdString(message.value_or("nil")));
     });
 };
 /// @endcond
 
-
-
 /*! \fn show_warning(string title, string message);
-\brief Shows a message window with a warning icon. The call is blocking, meaning that the script pauses until the user clicks ok.
+\brief Shows a message window with a warning icon.
 \param title             string value which is shown as the title of the window.
 \param message           string value which is shown as the message text of the window.
 
+\sa show_question()
+\sa show_info()
 
 \details
 The call is blocking, meaning the script pauses until the user clicks ok.
@@ -322,10 +389,9 @@ show_warning(string title, string message);
 #endif
 
 /// @cond HIDDEN_SYMBOLS
-void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message){
+void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
     Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message]() {
-        QMessageBox::warning(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path,
-                             QString::fromStdString(message.value_or("nil")));
+        QMessageBox::warning(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path, QString::fromStdString(message.value_or("nil")));
     });
 };
 /// @endcond
@@ -364,11 +430,11 @@ print(argument);
 
 /// @cond HIDDEN_SYMBOLS
 void print(QPlainTextEdit *console, const sol::variadic_args &args) {
-	std::string text;
-	for (auto &object : args) {
-		text += ScriptEngine::to_string(object);
-	}
-	Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
+    std::string text;
+    for (auto &object : args) {
+        text += ScriptEngine::to_string(object);
+    }
+    Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
 };
 /// @endcond
 
@@ -392,13 +458,13 @@ sleep_ms(int timeout_ms);
 
 /// @cond HIDDEN_SYMBOLS
 void sleep_ms(const unsigned int timeout_ms) {
-	QEventLoop event_loop;
-	static const auto secret_exit_code = -0xF42F;
-	QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
-	auto exit_value = event_loop.exec();
-	if (exit_value != secret_exit_code) {
-		throw sol::error("Interrupted");
-	}
+    QEventLoop event_loop;
+    static const auto secret_exit_code = -0xF42F;
+    QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
+    auto exit_value = event_loop.exec();
+    if (exit_value != secret_exit_code) {
+        throw sol::error("Interrupted");
+    }
 };
 /// @endcond
 
@@ -425,11 +491,11 @@ double round(double value, int precision);
 
 /// @cond HIDDEN_SYMBOLS
 double round_double(const double value, const unsigned int precision) {
-	double faktor = pow(10, precision);
-	double retval = value;
-	retval *= faktor;
-	retval = std::round(retval);
-	return retval / faktor;
+    double faktor = pow(10, precision);
+    double retval = value;
+    retval *= faktor;
+    retval = std::round(retval);
+    return retval / faktor;
 }
 /// @endcond
 
@@ -454,11 +520,11 @@ double table_sum(table input_values);
 /// @cond HIDDEN_SYMBOLS
 
 double table_sum(sol::table input_values) {
-	double retval = 0;
-	for (auto &i : input_values) {
-		retval += i.second.as<double>();
-	}
-	return retval;
+    double retval = 0;
+    for (auto &i : input_values) {
+        retval += i.second.as<double>();
+    }
+    return retval;
 };
 /// @endcond
 
@@ -483,16 +549,16 @@ double table_mean(table input_values);
 /// @cond HIDDEN_SYMBOLS
 
 double table_mean(sol::table input_values) {
-	double retval = 0;
-	int count = 0;
-	for (auto &i : input_values) {
-		retval += i.second.as<double>();
-		count += 1;
-	}
-	if (count) {
-		retval /= count;
-	}
-	return retval;
+    double retval = 0;
+    int count = 0;
+    for (auto &i : input_values) {
+        retval += i.second.as<double>();
+        count += 1;
+    }
+    if (count) {
+        retval /= count;
+    }
+    return retval;
 };
 
 /// @endcond
@@ -521,11 +587,11 @@ table table_set_constant(table input_values, double constant);
 /// @cond HIDDEN_SYMBOLS
 
 sol::table table_set_constant(sol::state &lua, sol::table input_values, double constant) {
-	sol::table retval = lua.create_table_with();
-	for (size_t i = 1; i <= input_values.size(); i++) {
-		retval.add(constant);
-	}
-	return retval;
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values.size(); i++) {
+        retval.add(constant);
+    }
+    return retval;
 };
 /// @endcond
 
@@ -552,11 +618,11 @@ table table_create_constant(int size, double constant);
 #endif
 /// @cond HIDDEN_SYMBOLS
 sol::table table_create_constant(sol::state &lua, const unsigned int size, double constant) {
-	sol::table retval = lua.create_table_with();
-	for (size_t i = 1; i <= size; i++) {
-		retval.add(constant);
-	}
-	return retval;
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= size; i++) {
+        retval.add(constant);
+    }
+    return retval;
 };
 /// @endcond
 ///
@@ -585,12 +651,12 @@ table table_add_table(table input_values_a, table input_values_b);
 /// @cond HIDDEN_SYMBOLS
 
 sol::table table_add_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b) {
-	sol::table retval = lua.create_table_with();
-	for (size_t i = 1; i <= input_values_a.size(); i++) {
-		double sum_i = input_values_a[i].get<double>() + input_values_b[i].get<double>();
-		retval.add(sum_i);
-	}
-	return retval;
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        double sum_i = input_values_a[i].get<double>() + input_values_b[i].get<double>();
+        retval.add(sum_i);
+    }
+    return retval;
 };
 /// @endcond
 
@@ -618,12 +684,12 @@ table table_add_constant(table input_values, double constant);
 /// @cond HIDDEN_SYMBOLS
 
 sol::table table_add_constant(sol::state &lua, sol::table input_values, double constant) {
-	sol::table retval = lua.create_table_with();
-	for (size_t i = 1; i <= input_values.size(); i++) {
-		double sum_i = input_values[i].get<double>() + constant;
-		retval.add(sum_i);
-	}
-	return retval;
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values.size(); i++) {
+        double sum_i = input_values[i].get<double>() + constant;
+        retval.add(sum_i);
+    }
+    return retval;
 };
 /// @endcond
 
@@ -651,12 +717,12 @@ table table_sub_table(table input_values_a, table input_values_b);
 /// @cond HIDDEN_SYMBOLS
 
 sol::table table_sub_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b) {
-	sol::table retval = lua.create_table_with();
-	for (size_t i = 1; i <= input_values_a.size(); i++) {
-		double sum_i = input_values_a[i].get<double>() - input_values_b[i].get<double>();
-		retval.add(sum_i);
-	}
-	return retval;
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        double sum_i = input_values_a[i].get<double>() - input_values_b[i].get<double>();
+        retval.add(sum_i);
+    }
+    return retval;
 };
 /// @endcond
 
@@ -684,12 +750,12 @@ table table_mul_table(table input_values_a, table input_values_b);
 /// @cond HIDDEN_SYMBOLS
 
 sol::table table_mul_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b) {
-	sol::table retval = lua.create_table_with();
-	for (size_t i = 1; i <= input_values_a.size(); i++) {
-		double sum_i = input_values_a[i].get<double>() * input_values_b[i].get<double>();
-		retval.add(sum_i);
-	}
-	return retval;
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        double sum_i = input_values_a[i].get<double>() * input_values_b[i].get<double>();
+        retval.add(sum_i);
+    }
+    return retval;
 };
 /// @endcond
 
@@ -717,12 +783,12 @@ table table_mul_constant(table input_values_a, double constant);
 /// @cond HIDDEN_SYMBOLS
 
 sol::table table_mul_constant(sol::state &lua, sol::table input_values_a, double constant) {
-	sol::table retval = lua.create_table_with();
-	for (size_t i = 1; i <= input_values_a.size(); i++) {
-		double sum_i = input_values_a[i].get<double>() * constant;
-		retval.add(sum_i);
-	}
-	return retval;
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        double sum_i = input_values_a[i].get<double>() * constant;
+        retval.add(sum_i);
+    }
+    return retval;
 };
 /// @endcond
 
@@ -751,19 +817,19 @@ table table_div_table(table input_values_a, table input_values_b);
 /// @cond HIDDEN_SYMBOLS
 
 sol::table table_div_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b) {
-	sol::table retval = lua.create_table_with();
-	for (size_t i = 1; i <= input_values_a.size(); i++) {
-		double c = input_values_b[i].get<double>();
-		double sum_i = 0;
-		if (c == 0) {
-			sum_i = std::numeric_limits<double>::infinity();
-		} else {
-			sum_i = input_values_a[i].get<double>() / c;
-		}
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        double c = input_values_b[i].get<double>();
+        double sum_i = 0;
+        if (c == 0) {
+            sum_i = std::numeric_limits<double>::infinity();
+        } else {
+            sum_i = input_values_a[i].get<double>() / c;
+        }
 
-		retval.add(sum_i);
-	}
-	return retval;
+        retval.add(sum_i);
+    }
+    return retval;
 };
 /// @endcond
 
@@ -791,12 +857,12 @@ table table_round(table input_values, int precision);
 /// @cond HIDDEN_SYMBOLS
 
 sol::table table_round(sol::state &lua, sol::table input_values, const unsigned int precision) {
-	sol::table retval = lua.create_table_with();
-	for (size_t i = 1; i <= input_values.size(); i++) {
-		double sum_i = round_double(input_values[i].get<double>(), precision);
-		retval.add(sum_i);
-	}
-	return retval;
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values.size(); i++) {
+        double sum_i = round_double(input_values[i].get<double>(), precision);
+        retval.add(sum_i);
+    }
+    return retval;
 };
 /// @endcond
 
@@ -821,12 +887,12 @@ table table_abs(table input_values);
 /// @cond HIDDEN_SYMBOLS
 
 sol::table table_abs(sol::state &lua, sol::table input_values) {
-	sol::table retval = lua.create_table_with();
-	for (size_t i = 1; i <= input_values.size(); i++) {
-		double sum_i = std::abs(input_values[i].get<double>());
-		retval.add(sum_i);
-	}
-	return retval;
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= input_values.size(); i++) {
+        double sum_i = std::abs(input_values[i].get<double>());
+        retval.add(sum_i);
+    }
+    return retval;
 };
 /// @endcond
 
@@ -852,12 +918,12 @@ table table_mid(table input_values, int start, int length);
 #endif
 /// @cond HIDDEN_SYMBOLS
 sol::table table_mid(sol::state &lua, sol::table input_values, const unsigned int start, const unsigned int length) {
-	sol::table retval = lua.create_table_with();
-	for (size_t i = start; i <= start + length - 1; i++) {
-		double sum_i = input_values[i].get<double>();
-		retval.add(sum_i);
-	}
-	return retval;
+    sol::table retval = lua.create_table_with();
+    for (size_t i = start; i <= start + length - 1; i++) {
+        double sum_i = input_values[i].get<double>();
+        retval.add(sum_i);
+    }
+    return retval;
 };
 
 /// @endcond
@@ -886,12 +952,12 @@ bool table_equal_constant(table input_values_a, double input_const_val);
 #endif
 /// @cond HIDDEN_SYMBOLS
 bool table_equal_constant(sol::table input_values_a, double input_const_val) {
-	for (size_t i = 1; i <= input_values_a.size(); i++) {
-		if (input_values_a[i].get<double>() != input_const_val) { //TODO: fix double comparison
-			return false;
-		}
-	}
-	return true;
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        if (input_values_a[i].get<double>() != input_const_val) { //TODO: fix double comparison
+            return false;
+        }
+    }
+    return true;
 };
 /// @endcond
 
@@ -919,12 +985,12 @@ bool table_equal_table(table input_values_a, table input_values_b);
 #endif
 /// @cond HIDDEN_SYMBOLS
 bool table_equal_table(sol::table input_values_a, sol::table input_values_b) {
-	for (size_t i = 1; i <= input_values_a.size(); i++) {
-		if (input_values_a[i].get<double>() != input_values_b[i].get<double>()) { //TODO: fix double comparison
-			return false;
-		}
-	}
-	return true;
+    for (size_t i = 1; i <= input_values_a.size(); i++) {
+        if (input_values_a[i].get<double>() != input_values_b[i].get<double>()) { //TODO: fix double comparison
+            return false;
+        }
+    }
+    return true;
 };
 /// @endcond
 
@@ -948,16 +1014,16 @@ double table_max(table input_values);
 #endif
 /// @cond HIDDEN_SYMBOLS
 double table_max(sol::table input_values) {
-	double max = 0;
-	bool first = true;
-	for (auto &i : input_values) {
-		double val = i.second.as<double>();
-		if ((val > max) || first) {
-			max = val;
-		}
-		first = false;
-	}
-	return max;
+    double max = 0;
+    bool first = true;
+    for (auto &i : input_values) {
+        double val = i.second.as<double>();
+        if ((val > max) || first) {
+            max = val;
+        }
+        first = false;
+    }
+    return max;
 };
 /// @endcond
 
@@ -982,16 +1048,16 @@ double table_min(table input_values);
 
 /// @cond HIDDEN_SYMBOLS
 double table_min(sol::table input_values) {
-	double min = 0;
-	bool first = true;
-	for (auto &i : input_values) {
-		double val = i.second.as<double>();
-		if ((val < min) || first) {
-			min = val;
-		}
-		first = false;
-	}
-	return min;
+    double min = 0;
+    bool first = true;
+    for (auto &i : input_values) {
+        double val = i.second.as<double>();
+        if ((val < min) || first) {
+            min = val;
+        }
+        first = false;
+    }
+    return min;
 };
 /// @endcond
 
@@ -1016,16 +1082,16 @@ double table_max_abs(table input_values);
 
 /// @cond HIDDEN_SYMBOLS
 double table_max_abs(sol::table input_values) {
-	double max = 0;
-	bool first = true;
-	for (auto &i : input_values) {
-		double val = std::abs(i.second.as<double>());
-		if ((val > max) || first) {
-			max = val;
-		}
-		first = false;
-	}
-	return max;
+    double max = 0;
+    bool first = true;
+    for (auto &i : input_values) {
+        double val = std::abs(i.second.as<double>());
+        if ((val > max) || first) {
+            max = val;
+        }
+        first = false;
+    }
+    return max;
 };
 /// @endcond
 
@@ -1050,16 +1116,16 @@ double table_min_abs(table input_values);
 
 /// @cond HIDDEN_SYMBOLS
 double table_min_abs(sol::table input_values) {
-	double min = 0;
-	bool first = true;
-	for (auto &i : input_values) {
-		double val = std::abs(i.second.as<double>());
-		if ((val < min) || first) {
-			min = val;
-		}
-		first = false;
-	}
-	return min;
+    double min = 0;
+    bool first = true;
+    for (auto &i : input_values) {
+        double val = std::abs(i.second.as<double>());
+        if ((val < min) || first) {
+            min = val;
+        }
+        first = false;
+    }
+    return min;
 }
 /// @endcond
 /** \} */ // end of group convenience
