@@ -4,6 +4,11 @@
 #include <string>
 
 struct Color {
+    ///\cond HIDDEN_SYMBOLS
+    Color(int rgb);
+    ///\endcond
+
+
     static Color Color_from_name(const std::string &name);  //!<\brief Creates a color by name.
                                                             //!< \param name Name as string of the color.
                                                             //! Names are described in:<br>

@@ -1,11 +1,8 @@
-CONFIG += c++14
-QMAKE_CXXFLAGS += -std=c++14
-
 include(../defaults.pri)
 
 TEMPLATE = app
 CONFIG += console
-QT +=  testlib
+QT += testlib
 
 DEFINES += EXPORT_APPLICATION
 
