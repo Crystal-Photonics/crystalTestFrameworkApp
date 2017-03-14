@@ -2,6 +2,7 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <QMessageBox>
 #include <cassert>
 
 static QtMessageHandler old_handler;
@@ -10,8 +11,17 @@ void message_handler(QtMsgType type, const QMessageLogContext &context, const QS
 	switch (type) {
 		case QtCriticalMsg:
 		case QtFatalMsg:
+			QMessageBox::critical(MainWindow::mw, "Qt Error", '\"' + msg + '\"' + "\nwas caused by" + context.function + " in " + context.file + ":" +
+																  QString::number(context.line) +
+																  ".\nAdd a breakpoint in main.cpp:28 to inspect the stack.\n"
+																  "Press CTRL+C to copy the content of this message box to your clipboard.");
+			break;
 		case QtWarningMsg:
-			assert(false);
+			QMessageBox::warning(MainWindow::mw, "Qt Warning", '\"' + msg + '\"' + "\nwas caused by" + context.function + " in " + context.file + ":" +
+																   QString::number(context.line) +
+																   ".\nAdd a breakpoint in main.cpp:28 to inspect the stack.\n"
+																   "Press CTRL+C to copy the content of this message box to your clipboard.");
+			break;
 		case QtDebugMsg:
 		case QtInfoMsg:;
 	}
