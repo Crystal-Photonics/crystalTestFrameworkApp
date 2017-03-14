@@ -21,4 +21,11 @@ bool EchoCommunicationDevice::waitReceived(Duration timeout, int bytes) {
 	return true;
 }
 
+bool EchoCommunicationDevice::waitReceived(Duration timeout, std::string escape_characters, std::string leading_pattern_indicating_skip_line){
+    //TODO: actually wait
+    (void)timeout;
+    (void)escape_characters;
+    return true;
+}
+
 void EchoCommunicationDevice::close() {}

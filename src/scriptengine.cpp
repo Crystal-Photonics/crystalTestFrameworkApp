@@ -4,6 +4,7 @@
 #include "LuaUI/lineedit.h"
 #include "LuaUI/plot.h"
 #include "Protocols/rpcprotocol.h"
+#include "Protocols/scpiprotocol.h"
 #include "config.h"
 #include "console.h"
 #include "lua_functions.h"
@@ -102,6 +103,190 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
         });
     };
 }
+
+static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedParam &param, sol::state &lua) {
+    switch (param.get_desciption()->get_type()) {
+        case RPCRuntimeParameterDescription::Type::array: {
+            auto array = param.as_array();
+            if (array.size() == 1) {
+                return create_lua_object_from_RPC_answer(array.front(), lua);
+            }
+            auto table = lua.create_table_with();
+            for (auto &element : array) {
+                table.add(create_lua_object_from_RPC_answer(element, lua));
+            }
+            return table;
+        }
+        case RPCRuntimeParameterDescription::Type::character:
+            throw sol::error("TODO: Parse return value of type character");
+        case RPCRuntimeParameterDescription::Type::enumeration:
+            return sol::make_object(lua.lua_state(), param.as_enum().value);
+        case RPCRuntimeParameterDescription::Type::structure: {
+            auto table = lua.create_table_with();
+            for (auto &element : param.as_struct()) {
+                table[element.name] = create_lua_object_from_RPC_answer(element.type, lua);
+            }
+            return table;
+        }
+        case RPCRuntimeParameterDescription::Type::integer:
+            return sol::make_object(lua.lua_state(), param.as_integer());
+    }
+    assert(!"Invalid type of RPCRuntimeParameterDescription");
+    return sol::nil;
+}
+
+static void set_runtime_parameter(RPCRuntimeEncodedParam &param, sol::object object) {
+    if (param.get_description()->get_type() == RPCRuntimeParameterDescription::Type::array && param.get_description()->as_array().number_of_elements == 1) {
+        return set_runtime_parameter(param[0], object);
+    }
+    switch (object.get_type()) {
+        case sol::type::boolean:
+            param.set_value(object.as<bool>() ? 1 : 0);
+            break;
+        case sol::type::function:
+            throw sol::error("Cannot pass an object of type function to RPC");
+        case sol::type::number:
+            param.set_value(object.as<int64_t>());
+            break;
+        case sol::type::nil:
+        case sol::type::none:
+            throw sol::error("Cannot pass an object of type nil to RPC");
+        case sol::type::string:
+            param.set_value(object.as<std::string>());
+            break;
+        case sol::type::table: {
+            sol::table t = object.as<sol::table>();
+            if (t.size()) {
+                for (std::size_t i = 0; i < t.size(); i++) {
+                    set_runtime_parameter(param[i], t[i + 1]);
+                }
+            } else {
+                for (auto &v : t) {
+                    set_runtime_parameter(param[v.first.as<std::string>()], v.second);
+                }
+            }
+            break;
+        }
+        default:
+            throw sol::error("Cannot pass an object of unknown type " + std::to_string(static_cast<int>(object.get_type())) + " to RPC");
+    }
+}
+
+void add_enum_type(const RPCRuntimeParameterDescription &param, sol::state &lua) {
+    if (param.get_type() == RPCRuntimeParameterDescription::Type::enumeration) {
+        const auto &enum_description = param.as_enumeration();
+        auto table = lua.create_named_table(enum_description.enum_name);
+        for (auto &value : enum_description.values) {
+            table[value.name] = value.to_int();
+            table["to_string"] = [enum_description](int enum_value_param) -> std::string {
+                for (const auto &enum_value : enum_description.values) {
+                    if (enum_value.to_int() == enum_value_param) {
+                        return enum_value.name;
+                    }
+                }
+                return "";
+            };
+        }
+    }
+}
+
+void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua) {
+    for (auto &param : function.get_request_parameters()) {
+        add_enum_type(param, lua);
+    }
+    for (auto &param : function.get_reply_parameters()) {
+        add_enum_type(param, lua);
+    }
+}
+
+struct RPCDevice {
+    sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
+        if (QThread::currentThread()->isInterruptionRequested()) {
+            throw sol::error("Abort Requested");
+        }
+
+        Console::note() << QString("\"%1\" called").arg(name.c_str());
+        auto function = protocol->encode_function(name);
+        int param_count = 0;
+        for (auto &arg : va) {
+            auto &param = function.get_parameter(param_count++);
+            set_runtime_parameter(param, arg);
+        }
+        if (function.are_all_values_set()) {
+            auto result = protocol->call_and_wait(function);
+
+            if (result) {
+                try {
+                    auto output_params = result->get_decoded_parameters();
+                    if (output_params.empty()) {
+                        return sol::nil;
+                    } else if (output_params.size() == 1) {
+                        return create_lua_object_from_RPC_answer(output_params.front(), *lua);
+                    }
+                    //else: multiple variables, need to make a table
+                    return sol::make_object(lua->lua_state(), "TODO: Not Implemented: Parse multiple return values");
+                } catch (const sol::error &e) {
+                    Console::error() << e.what();
+                    throw;
+                }
+            }
+            throw sol::error("Call to \"" + name + "\" failed due to timeout");
+        }
+        //not all values set, error
+        throw sol::error("Failed calling function, missing parameters");
+    }
+    sol::state *lua = nullptr;
+    RPCProtocol *protocol = nullptr;
+    CommunicationDevice *device = nullptr;
+    ScriptEngine *engine = nullptr;
+};
+
+struct SCPIDevice {
+    sol::table scpi_get_str(std::string request) {
+        return protocol->scpi_get_str(*lua, request); //timeout possible
+    }
+
+    sol::table scpi_get_str_param(std::string request, std::string argument) {
+        return protocol->scpi_get_str_param(*lua, request, argument); //timeout possible
+    }
+
+    double scpi_get_num(std::string request) {
+        return protocol->scpi_get_num(request); //timeout possible
+    }
+
+    double scpi_get_num_param(std::string request, std::string argument) {
+        return protocol->scpi_get_num_param(request, argument); //timeout possible
+    }
+#if 0
+    bool is_event_received(std::string request) {
+        return protocol->is_event_received(request);
+    }
+
+    void clear_event_list() {
+        return protocol->clear_event_list();
+    }
+
+    sol::table get_event_list() {
+        return protocol->get_event_list(*lua);
+    }
+
+    std::string get_name(void) {
+        return protocol->get_name();
+    }
+
+    std::string get_serial_number(void) {
+        return protocol->get_serial_number();
+    }
+
+    std::string get_manufacturer(void) {
+        return protocol->get_manufacturer();
+    }
+#endif
+    sol::state *lua = nullptr;
+    SCPIProtocol *protocol = nullptr;
+    CommunicationDevice *device = nullptr;
+    ScriptEngine *engine = nullptr;
+};
 
 ScriptEngine::ScriptEngine(QSplitter *parent, QPlainTextEdit *console)
     : lua(std::make_unique<sol::state>())
@@ -395,6 +580,19 @@ void ScriptEngine::load_script(const QString &path) {
                 } //
                 );
         }
+        {
+            lua->new_usertype<SCPIDevice>(
+                "SCPIDevice",                                                                                               //
+                sol::meta_function::construct, sol::no_constructor,                                                         //
+                "scpi_get_str", [](SCPIDevice &protocoll, std::string request) { return protocoll.scpi_get_str(request); }, //
+                "scpi_get_str_param",
+                [](SCPIDevice &protocoll, std::string request, std::string argument) { return protocoll.scpi_get_str_param(request, argument); }, //
+                "scpi_get_num", [](SCPIDevice &protocoll, std::string request) { return protocoll.scpi_get_num(request); },                       //
+                "scpi_get_num_param",
+                [](SCPIDevice &protocoll, std::string request, std::string argument) { return protocoll.scpi_get_num_param(request, argument); } //
+
+                );
+        }
         lua->script_file(path.toStdString());
     } catch (const sol::error &error) {
         set_error(error);
@@ -445,143 +643,6 @@ QStringList ScriptEngine::get_string_list(const QString &name) {
     return retval;
 }
 
-static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedParam &param, sol::state &lua) {
-    switch (param.get_desciption()->get_type()) {
-        case RPCRuntimeParameterDescription::Type::array: {
-            auto array = param.as_array();
-            if (array.size() == 1) {
-                return create_lua_object_from_RPC_answer(array.front(), lua);
-            }
-            auto table = lua.create_table_with();
-            for (auto &element : array) {
-                table.add(create_lua_object_from_RPC_answer(element, lua));
-            }
-            return table;
-        }
-        case RPCRuntimeParameterDescription::Type::character:
-            throw sol::error("TODO: Parse return value of type character");
-        case RPCRuntimeParameterDescription::Type::enumeration:
-            return sol::make_object(lua.lua_state(), param.as_enum().value);
-        case RPCRuntimeParameterDescription::Type::structure: {
-            auto table = lua.create_table_with();
-            for (auto &element : param.as_struct()) {
-                table[element.name] = create_lua_object_from_RPC_answer(element.type, lua);
-            }
-            return table;
-        }
-        case RPCRuntimeParameterDescription::Type::integer:
-            return sol::make_object(lua.lua_state(), param.as_integer());
-    }
-    assert(!"Invalid type of RPCRuntimeParameterDescription");
-    return sol::nil;
-}
-
-static void set_runtime_parameter(RPCRuntimeEncodedParam &param, sol::object object) {
-    if (param.get_description()->get_type() == RPCRuntimeParameterDescription::Type::array && param.get_description()->as_array().number_of_elements == 1) {
-        return set_runtime_parameter(param[0], object);
-    }
-    switch (object.get_type()) {
-        case sol::type::boolean:
-            param.set_value(object.as<bool>() ? 1 : 0);
-            break;
-        case sol::type::function:
-            throw sol::error("Cannot pass an object of type function to RPC");
-        case sol::type::number:
-            param.set_value(object.as<int64_t>());
-            break;
-        case sol::type::nil:
-        case sol::type::none:
-            throw sol::error("Cannot pass an object of type nil to RPC");
-        case sol::type::string:
-            param.set_value(object.as<std::string>());
-            break;
-        case sol::type::table: {
-            sol::table t = object.as<sol::table>();
-            if (t.size()) {
-                for (std::size_t i = 0; i < t.size(); i++) {
-                    set_runtime_parameter(param[i], t[i + 1]);
-                }
-            } else {
-                for (auto &v : t) {
-                    set_runtime_parameter(param[v.first.as<std::string>()], v.second);
-                }
-            }
-            break;
-        }
-        default:
-            throw sol::error("Cannot pass an object of unknown type " + std::to_string(static_cast<int>(object.get_type())) + " to RPC");
-    }
-}
-
-struct RPCDevice {
-    sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
-        if (QThread::currentThread()->isInterruptionRequested()) {
-            throw sol::error("Abort Requested");
-        }
-
-        Console::note() << QString("\"%1\" called").arg(name.c_str());
-        auto function = protocol->encode_function(name);
-        int param_count = 0;
-        for (auto &arg : va) {
-            auto &param = function.get_parameter(param_count++);
-            set_runtime_parameter(param, arg);
-        }
-        if (function.are_all_values_set()) {
-            auto result = protocol->call_and_wait(function);
-
-            if (result) {
-                try {
-                    auto output_params = result->get_decoded_parameters();
-                    if (output_params.empty()) {
-                        return sol::nil;
-                    } else if (output_params.size() == 1) {
-                        return create_lua_object_from_RPC_answer(output_params.front(), *lua);
-                    }
-                    //else: multiple variables, need to make a table
-                    return sol::make_object(lua->lua_state(), "TODO: Not Implemented: Parse multiple return values");
-                } catch (const sol::error &e) {
-                    Console::error() << e.what();
-                    throw;
-                }
-            }
-            throw sol::error("Call to \"" + name + "\" failed due to timeout");
-        }
-        //not all values set, error
-        throw sol::error("Failed calling function, missing parameters");
-    }
-    sol::state *lua = nullptr;
-    RPCProtocol *protocol = nullptr;
-    CommunicationDevice *device = nullptr;
-    ScriptEngine *engine = nullptr;
-};
-
-void add_enum_type(const RPCRuntimeParameterDescription &param, sol::state &lua) {
-    if (param.get_type() == RPCRuntimeParameterDescription::Type::enumeration) {
-        const auto &enum_description = param.as_enumeration();
-        auto table = lua.create_named_table(enum_description.enum_name);
-        for (auto &value : enum_description.values) {
-            table[value.name] = value.to_int();
-            table["to_string"] = [enum_description](int enum_value_param) -> std::string {
-                for (const auto &enum_value : enum_description.values) {
-                    if (enum_value.to_int() == enum_value_param) {
-                        return enum_value.name;
-                    }
-                }
-                return "";
-            };
-        }
-    }
-}
-
-void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua) {
-    for (auto &param : function.get_request_parameters()) {
-        add_enum_type(param, lua);
-    }
-    for (auto &param : function.get_reply_parameters()) {
-        add_enum_type(param, lua);
-    }
-}
-
 void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices) {
     auto reset_lua_state = [this] {
         lua = std::make_unique<sol::state>();
@@ -593,6 +654,7 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
             for (auto &device_protocol : devices) {
                 if (auto rpcp = dynamic_cast<RPCProtocol *>(device_protocol.second)) {
                     device_list.add(RPCDevice{&*lua, rpcp, device_protocol.first, this});
+
                     auto type_reg = lua->create_simple_usertype<RPCDevice>();
                     for (auto &function : rpcp->get_description().get_functions()) {
                         const auto &function_name = function.get_function_name();
@@ -606,6 +668,10 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
                         //ignore leftover data in the receive buffer
                     }
                     rpcp->clear();
+
+                } else if (auto scpip = dynamic_cast<SCPIProtocol *>(device_protocol.second)) {
+                    device_list.add(SCPIDevice{&*lua, scpip, device_protocol.first, this});
+                    scpip->clear();
                 } else {
                     //TODO: other protocols
                     throw std::runtime_error("invalid protocol: " + device_protocol.second->type.toStdString());

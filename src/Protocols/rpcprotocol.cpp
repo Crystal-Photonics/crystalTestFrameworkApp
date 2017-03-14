@@ -179,7 +179,7 @@ std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const 
                              [ device = this->device, data = channel_codec.encode(call), display_data = call.encode() ] { device->send(data, display_data); });
         auto start = std::chrono::high_resolution_clock::now();
         auto check_received = [this, &start, &duration, &call]() -> std::unique_ptr<RPCRuntimeDecodedFunctionCall> {
-            device->waitReceived(duration - (std::chrono::high_resolution_clock::now() - start));
+            device->waitReceived(duration - (std::chrono::high_resolution_clock::now() - start),1);
             if (channel_codec.transfer_complete()) { //found a reply
                 auto transfer = channel_codec.pop_completed_transfer();
                 auto &raw_data = transfer.get_raw_data();

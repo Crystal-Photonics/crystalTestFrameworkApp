@@ -243,7 +243,8 @@ string show_question(string title, string message, table button_table);
 #if 1
 /// @cond HIDDEN_SYMBOLS
 std::string show_question(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table) {
-    int buttons = 0;
+    QMessageBox::StandardButtons buttons = 0;
+#if 1
     for (auto &i : button_table) {
         QString button_name{QString::fromStdString(i.second.as<std::string>())};
         button_name = button_name.toLower();
@@ -287,6 +288,7 @@ std::string show_question(const QString &path, const sol::optional<std::string> 
             buttons |= QMessageBox::NoButton;
         }
     }
+#endif
     int result = 0;
     result = Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message, buttons]() {
         return QMessageBox::question(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path,

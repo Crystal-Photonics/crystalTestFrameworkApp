@@ -12,6 +12,7 @@ class EXPORT EchoCommunicationDevice final : public CommunicationDevice {
 	void send(const QByteArray &data, const QByteArray &displayed_data = {}) override;
 	bool isConnected() override;
 	bool waitReceived(Duration timeout = std::chrono::seconds(1), int bytes = 1) override;
+    bool waitReceived(Duration timeout, std::string escape_characters, std::string sleading_pattern_indicating_skip_line) override;
 	void close() override;
 };
 

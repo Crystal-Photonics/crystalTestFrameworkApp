@@ -3,6 +3,7 @@
 #include "LuaUI/plot.h"
 #include "LuaUI/window.h"
 #include "Protocols/rpcprotocol.h"
+#include "Protocols/scpiprotocol.h"
 #include "config.h"
 #include "console.h"
 #include "deviceworker.h"
@@ -231,6 +232,7 @@ static Utility::Optional<std::vector<std::pair<CommunicationDevice *, Protocol *
 				{
 					auto &device = *candidates.front();
 					auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
+                    auto scpi_protocol = dynamic_cast<SCPIProtocol *>(device.protocol.get());
 					if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
 						sol::optional<std::string> message;
 						try {
@@ -250,7 +252,28 @@ static Utility::Optional<std::vector<std::pair<CommunicationDevice *, Protocol *
 							//acceptable device found
 							devices.emplace_back(device.device.get(), device.protocol.get());
 						}
-					} else {
+                    } else if(scpi_protocol){
+
+                        sol::optional<std::string> message;
+                        try {
+                            sol::table table = runner.create_table();
+                            scpi_protocol->get_lua_device_descriptor(table);
+                            message = runner.call<sol::optional<std::string>>("SCPI_acceptable", std::move(table));
+                        } catch (const sol::error &e) {
+                            const auto &message = QObject::tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
+                            Console::error(runner.console) << message;
+                            return {};
+                        }
+                        if (message) {
+                            //device incompatible, reason should be inside of message
+                            Console::note(runner.console) << QObject::tr("Device rejected:") << message.value();
+                            return {};
+                        } else {
+                            //acceptable device found
+                            devices.emplace_back(device.device.get(), device.protocol.get());
+                        }
+                    }else {
+
 						assert(!"TODO: handle non-RPC protocol");
 					}
 				}

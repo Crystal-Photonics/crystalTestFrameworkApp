@@ -15,6 +15,7 @@ class EXPORT SocketCommunicationDevice final : public CommunicationDevice {
 	~SocketCommunicationDevice();
 	bool awaitConnection(Duration timeout = std::chrono::seconds(1));
 	bool waitReceived(Duration timeout = std::chrono::seconds(1), int bytes = 1) override;
+    bool waitReceived(Duration timeout, std::string escape_characters, std::string leading_pattern_indicating_skip_line) override;
 	void close() override;
 
 	private:

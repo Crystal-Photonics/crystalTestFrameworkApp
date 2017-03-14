@@ -63,6 +63,12 @@ bool SocketCommunicationDevice::waitReceived(Duration timeout, int bytes) {
 	return socket->waitForReadyRead(std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count());
 }
 
+bool SocketCommunicationDevice::waitReceived(Duration timeout, std::string escape_characters, std::string leading_pattern_indicating_skip_line) {
+    (void)escape_characters;
+    (void)leading_pattern_indicating_skip_line;
+    return socket->waitForReadyRead(std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count());
+}
+
 void SocketCommunicationDevice::close() {
 	socket->close();
 }

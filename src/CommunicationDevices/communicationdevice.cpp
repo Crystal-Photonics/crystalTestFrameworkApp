@@ -24,7 +24,8 @@ std::unique_ptr<CommunicationDevice> CommunicationDevice::createConnection(const
 }
 
 void CommunicationDevice::send(const std::vector<unsigned char> &data, const std::vector<unsigned char> &displayed_data) {
-	send(QByteArray(reinterpret_cast<const char *>(data.data()), data.size()),
+    size_t datasize = data.size();
+    send(QByteArray(reinterpret_cast<const char *>(data.data()), datasize),
 		 QByteArray(reinterpret_cast<const char *>(displayed_data.data()), displayed_data.size()));
 }
 
