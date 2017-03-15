@@ -257,9 +257,9 @@ struct SCPIDevice {
     double scpi_get_num_param(std::string request, std::string argument) {
         return protocol->scpi_get_num_param(request, argument); //timeout possible
     }
-#if 0
-    bool is_event_received(std::string request) {
-        return protocol->is_event_received(request);
+
+    bool is_event_received(std::string event_name) {
+        return protocol->is_event_received(event_name);
     }
 
     void clear_event_list() {
@@ -281,7 +281,7 @@ struct SCPIDevice {
     std::string get_manufacturer(void) {
         return protocol->get_manufacturer();
     }
-#endif
+
     sol::state *lua = nullptr;
     SCPIProtocol *protocol = nullptr;
     CommunicationDevice *device = nullptr;
@@ -589,8 +589,13 @@ void ScriptEngine::load_script(const QString &path) {
                 [](SCPIDevice &protocoll, std::string request, std::string argument) { return protocoll.scpi_get_str_param(request, argument); }, //
                 "scpi_get_num", [](SCPIDevice &protocoll, std::string request) { return protocoll.scpi_get_num(request); },                       //
                 "scpi_get_num_param",
-                [](SCPIDevice &protocoll, std::string request, std::string argument) { return protocoll.scpi_get_num_param(request, argument); } //
-
+                [](SCPIDevice &protocoll, std::string request, std::string argument) { return protocoll.scpi_get_num_param(request, argument); }, //
+                "get_name", [](SCPIDevice &protocoll) { return protocoll.get_name(); },                                                           //
+                "get_serial_number", [](SCPIDevice &protocoll) { return protocoll.get_serial_number(); },                                         //
+                "get_manufacturer", [](SCPIDevice &protocoll) { return protocoll.get_manufacturer(); },                                           //
+                "is_event_received", [](SCPIDevice &protocoll, std::string event_name) { return protocoll.is_event_received(event_name); },       //
+                "clear_event_list", [](SCPIDevice &protocoll) { return protocoll.clear_event_list(); },                                           //
+                "get_event_list", [](SCPIDevice &protocoll) { return protocoll.get_event_list(); }                                                //
                 );
         }
         lua->script_file(path.toStdString());
