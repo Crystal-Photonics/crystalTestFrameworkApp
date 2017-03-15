@@ -306,8 +306,8 @@ void MainWindow::on_run_test_script_button_clicked() {
 			auto &runner = *test_runners.back();
 			ui->test_tabs->setCurrentIndex(ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name()));
 			auto devices = get_script_communication(*device_worker, runner, *test);
-			if (devices.has_value()) {
-				runner.run_script(devices.get_value(), *device_worker);
+			if (devices) {
+				runner.run_script(devices.value(), *device_worker);
 			} else {
 				runner.interrupt();
 			}

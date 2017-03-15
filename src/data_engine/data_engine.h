@@ -7,24 +7,53 @@
 #include <string>
 #include <vector>
 
+class QJsonObject;
 class QWidget;
 
 using FormID = std::string;
 
-struct Numeric_entry {
-	bool valid() const;
-
-	FormID id{};
-	double target_value{};
-	std::experimental::optional<double> actual_value{};
-	double deviation{};
-	std::string unit{};
+struct Data_engine_entry {
+	void operator=(std::string text);
+	void operator=(double value);
+	virtual bool is_complete() const = 0;
+	virtual bool is_in_range() const = 0;
+	virtual ~Data_engine_entry() = default;
+	template <class T>
+	T &as();
+	template <class T>
+	const T &as() const;
+	static std::pair<FormID, std::unique_ptr<Data_engine_entry>> from_json(const QJsonObject &object);
 };
 
-struct Text_entry {
-	FormID id{};
+template <class T>
+T &Data_engine_entry::Data_engine_entry::as() {
+	return dynamic_cast<T &>(*this);
+}
+
+template <class T>
+const T &Data_engine_entry::Data_engine_entry::as() const {
+	return dynamic_cast<const T &>(*this);
+}
+
+struct Numeric_entry : Data_engine_entry {
+	Numeric_entry(double target_value, double deviation, std::string unit);
+	bool valid() const;
+	bool is_complete() const override;
+	bool is_in_range() const override;
+
+	double target_value{};
+	double deviation{};
+	std::string unit{};
+	std::experimental::optional<double> actual_value{};
+};
+
+struct Text_entry : Data_engine_entry {
+	Text_entry(std::string target_value);
 	std::string target_value{};
 	std::experimental::optional<std::string> actual_value{};
+
+	bool is_complete() const override;
+	bool is_in_range() const override;
 };
 
 class Data_engine {
@@ -36,16 +65,31 @@ class Data_engine {
 	bool value_in_range(const FormID &id) const;
 	void set_actual_number(const FormID &id, double number);
 	void set_actual_text(const FormID &id, std::string text);
-	double get_desired_value(const FormID &id);
-	double get_desired_absolute_tolerance(const FormID &id);
-	double get_desired_relative_tolerance(const FormID &id);
-	double get_desired_minimum(const FormID &id);
-	double get_desired_maximum(const FormID &id);
-	std::string &get_desired_text(const FormID &id);
-	const std::string &get_unit(const FormID &id);
+	double get_desired_value(const FormID &id) const;
+	double get_desired_absolute_tolerance(const FormID &id) const;
+	double get_desired_relative_tolerance(const FormID &id) const;
+	double get_desired_minimum(const FormID &id) const;
+	double get_desired_maximum(const FormID &id) const;
+	const std::string &get_desired_text(const FormID &id) const;
+	const std::string &get_unit(const FormID &id) const;
 
 	std::unique_ptr<QWidget> get_preview() const;
 	void generate_pdf(const std::string &path);
+
+	private:
+	void add_entry(std::pair<FormID, std::unique_ptr<Data_engine_entry>> &&entry);
+	Data_engine_entry *get_entry(const FormID &id);
+	const Data_engine_entry *get_entry(const FormID &id) const;
+	struct FormIdWrapper {
+		FormIdWrapper(const FormID &id)
+			: value(id) {}
+		FormIdWrapper(const std::pair<FormID, std::unique_ptr<Data_engine_entry>> &entry)
+			: value(entry.first) {}
+		const std::string &value;
+	};
+
+	static bool entry_compare(FormIdWrapper lhs, FormIdWrapper rhs);
+	std::vector<std::pair<FormID, std::unique_ptr<Data_engine_entry>>> entries;
 };
 
 #endif // DATA_ENGINE_H
