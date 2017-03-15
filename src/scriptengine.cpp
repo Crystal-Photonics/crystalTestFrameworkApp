@@ -78,6 +78,9 @@ namespace detail {
 
 template <class ReturnType, class UI_class, class... Args>
 auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        throw sol::error("Abort Requested");
+    }
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
         //TODO: Decide if we should use promised_thread_call or thread_call
         //promised_thread_call lets us get return values while thread_call does not
@@ -92,6 +95,9 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
 
 template <class ReturnType, class UI_class, class... Args>
 auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        throw sol::error("Abort Requested");
+    }
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
         //TODO: Decide if we should use promised_thread_call or thread_call
         //promised_thread_call lets us get return values while thread_call does not
@@ -242,20 +248,23 @@ struct RPCDevice {
 };
 
 struct SCPIDevice {
-    sol::table scpi_get_str(std::string request) {
-        return protocol->scpi_get_str(*lua, request); //timeout possible
+    void send_command(std::string request) {
+        protocol->send_command(request);
+    }
+    sol::table get_str(std::string request) {
+        return protocol->get_str(*lua, request); //timeout possible
     }
 
-    sol::table scpi_get_str_param(std::string request, std::string argument) {
-        return protocol->scpi_get_str_param(*lua, request, argument); //timeout possible
+    sol::table get_str_param(std::string request, std::string argument) {
+        return protocol->get_str_param(*lua, request, argument); //timeout possible
     }
 
-    double scpi_get_num(std::string request) {
-        return protocol->scpi_get_num(request); //timeout possible
+    double get_num(std::string request) {
+        return protocol->get_num(request); //timeout possible
     }
 
-    double scpi_get_num_param(std::string request, std::string argument) {
-        return protocol->scpi_get_num_param(request, argument); //timeout possible
+    double get_num_param(std::string request, std::string argument) {
+        return protocol->get_num_param(request, argument); //timeout possible
     }
 
     bool is_event_received(std::string event_name) {
@@ -280,6 +289,14 @@ struct SCPIDevice {
 
     std::string get_manufacturer(void) {
         return protocol->get_manufacturer();
+    }
+
+    void set_validation_max_standard_deviation(double max_std_dev) {
+        protocol->set_validation_max_standard_deviation(max_std_dev);
+    }
+
+    void set_validation_retries(unsigned int retries) {
+        protocol->set_validation_retries(retries);
     }
 
     sol::state *lua = nullptr;
@@ -372,6 +389,10 @@ void ScriptEngine::load_script(const QString &path) {
             };
 
             (*lua)["print"] = [console = console](const sol::variadic_args &args) {
+                if (QThread::currentThread()->isInterruptionRequested()) {
+                    throw sol::error("Abort Requested");
+                }
+
                 print(console, args);
             };
 
@@ -582,22 +603,26 @@ void ScriptEngine::load_script(const QString &path) {
         }
         {
             lua->new_usertype<SCPIDevice>(
-                "SCPIDevice",                                                                                               //
-                sol::meta_function::construct, sol::no_constructor,                                                         //
-                "scpi_get_str", [](SCPIDevice &protocoll, std::string request) { return protocoll.scpi_get_str(request); }, //
-                "scpi_get_str_param",
-                [](SCPIDevice &protocoll, std::string request, std::string argument) { return protocoll.scpi_get_str_param(request, argument); }, //
-                "scpi_get_num", [](SCPIDevice &protocoll, std::string request) { return protocoll.scpi_get_num(request); },                       //
-                "scpi_get_num_param",
-                [](SCPIDevice &protocoll, std::string request, std::string argument) { return protocoll.scpi_get_num_param(request, argument); }, //
-                "get_name", [](SCPIDevice &protocoll) { return protocoll.get_name(); },                                                           //
-                "get_serial_number", [](SCPIDevice &protocoll) { return protocoll.get_serial_number(); },                                         //
-                "get_manufacturer", [](SCPIDevice &protocoll) { return protocoll.get_manufacturer(); },                                           //
-                "is_event_received", [](SCPIDevice &protocoll, std::string event_name) { return protocoll.is_event_received(event_name); },       //
-                "clear_event_list", [](SCPIDevice &protocoll) { return protocoll.clear_event_list(); },                                           //
-                "get_event_list", [](SCPIDevice &protocoll) { return protocoll.get_event_list(); }                                                //
+                "SCPIDevice",                                                                                                                                 //
+                sol::meta_function::construct, sol::no_constructor,                                                                                           //
+                "get_str", [](SCPIDevice &protocoll, std::string request) { return protocoll.get_str(request); },                                             //
+                "get_str_param", [](SCPIDevice &protocoll, std::string request, std::string argument) { return protocoll.get_str_param(request, argument); }, //
+                "get_num", [](SCPIDevice &protocoll, std::string request) { return protocoll.get_num(request); },                                             //
+                "get_num_param", [](SCPIDevice &protocoll, std::string request, std::string argument) { return protocoll.get_num_param(request, argument); }, //
+                "get_name", [](SCPIDevice &protocoll) { return protocoll.get_name(); },                                                                       //
+                "get_serial_number", [](SCPIDevice &protocoll) { return protocoll.get_serial_number(); },                                                     //
+                "get_manufacturer", [](SCPIDevice &protocoll) { return protocoll.get_manufacturer(); },                                                       //
+                "is_event_received", [](SCPIDevice &protocoll, std::string event_name) { return protocoll.is_event_received(event_name); },                   //
+                "clear_event_list", [](SCPIDevice &protocoll) { return protocoll.clear_event_list(); },                                                       //
+                "get_event_list", [](SCPIDevice &protocoll) { return protocoll.get_event_list(); },                                                           //
+                "set_validation_max_standard_deviation",
+                [](SCPIDevice &protocoll, double max_std_dev) { return protocoll.set_validation_max_standard_deviation(max_std_dev); },          //
+                "set_validation_retries", [](SCPIDevice &protocoll, unsigned int retries) { return protocoll.set_validation_retries(retries); }, //
+                "send_command", [](SCPIDevice &protocoll, std::string request) { return protocoll.send_command(request); }                       //
+
                 );
         }
+
         lua->script_file(path.toStdString());
     } catch (const sol::error &error) {
         set_error(error);

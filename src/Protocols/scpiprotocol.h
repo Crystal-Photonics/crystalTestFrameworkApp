@@ -38,15 +38,17 @@ class SCPIProtocol : public Protocol {
     void set_ui_description(QTreeWidgetItem *ui_entry);
     SCPIProtocol &operator=(const SCPIProtocol &&) = delete;
     void get_lua_device_descriptor(sol::table &t) const;
-    CommunicationDevice::Duration default_duration = std::chrono::milliseconds{200};
+
     void clear();
 
 
 
-    sol::table scpi_get_str(sol::state &lua, std::string request);
-    sol::table scpi_get_str_param(sol::state &lua, std::string request, std::string argument);
-    double scpi_get_num(std::string request);
-    double scpi_get_num_param(std::string request, std::string argument);
+    sol::table get_str(sol::state &lua, std::string request);
+    sol::table get_str_param(sol::state &lua, std::string request, std::string argument);
+    double get_num(std::string request);
+    double get_num_param(std::string request, std::string argument);
+
+    void send_command(std::string request);
 
     bool is_event_received(std::string event_name);
     void clear_event_list();
@@ -56,13 +58,16 @@ class SCPIProtocol : public Protocol {
     std::string get_serial_number(void);
     std::string get_manufacturer(void);
 
+    void set_validation_retries(unsigned int retries);
+    void set_validation_max_standard_deviation(double max_std_dev);
+
     private:
-    QStringList scpi_get_str_param_raw( std::string request, std::string argument);
-    QStringList scpi_parse_scpi_answers();
-    QString scpi_parse_last_scpi_answer();
+    QStringList get_str_param_raw( std::string request, std::string argument);
+    QStringList parse_scpi_answers();
+    QString parse_last_scpi_answer();
     void send_string(std::string data);
     QMetaObject::Connection connection;
-    bool send_scpi_request(Duration timeout, std::string request, bool use_leading_escape);
+    bool send_scpi_request(Duration timeout, std::string request, bool use_leading_escape, bool answer_expected);
     CommunicationDevice *device;
     SCPI_Device_Data device_data;
     QByteArray incoming_data;
@@ -70,6 +75,10 @@ class SCPIProtocol : public Protocol {
     std::string event_indicator = "*";
     void load_idn_string(std::string idn);
     QStringList event_list;
+
+    CommunicationDevice::Duration default_duration = std::chrono::milliseconds{200};
+    int retries_per_transmission{2};
+    double maximal_acceptable_standard_deviation = 0.1;
 };
 
 #endif // RPCPROTOCOL_H

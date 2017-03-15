@@ -15,6 +15,7 @@
 #include "ui_mainwindow.h"
 #include "util.h"
 
+#include <QTimer>
 #include <QAction>
 #include <QByteArray>
 #include <QDebug>
@@ -74,6 +75,7 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->setupUi(this);
 	device_worker->moveToThread(&devices_thread);
 	devices_thread.start();
+    QTimer::singleShot(16, device_worker.get(), &DeviceWorker::poll_ports);
 	Console::console = ui->console_edit;
 	Console::mw = this;
 	ui->update_devices_list_button->click();

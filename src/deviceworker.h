@@ -18,6 +18,7 @@ struct ComportDescription;
 class DeviceWorker : public QObject {
 	Q_OBJECT
 	public:
+
 	~DeviceWorker();
 	void forget_device(QTreeWidgetItem *item);
 	void update_devices();
@@ -28,7 +29,7 @@ class DeviceWorker : public QObject {
 	void set_currently_running_test(CommunicationDevice *com_device, const QString &test_name) const;
 	QStringList get_string_list(ScriptEngine &script, const QString &name);
 
-	private slots:
+    public slots:
 	void poll_ports();
 
 	private:

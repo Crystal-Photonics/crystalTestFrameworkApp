@@ -64,6 +64,9 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
     bool run = true;
     auto now = std::chrono::high_resolution_clock::now();
     do {
+        if (port.bytesAvailable()){
+       //     now = std::chrono::high_resolution_clock::now();
+        }
         try_read();
         if (inbuffer.indexOf(QString::fromStdString(escape_characters)) > -1) {
             emit received(inbuffer);
@@ -78,7 +81,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
             inbuffer.clear();
         }
     } while (run && std::chrono::high_resolution_clock::now() - now < timeout);
-    try_read();
+  //  try_read();
     currently_in_waitReceived = false;
 
     return escape_found;

@@ -61,18 +61,20 @@ SCPIProtocol::~SCPIProtocol() {
     assert(result);
 }
 
-QStringList SCPIProtocol::scpi_parse_scpi_answers() {
+QStringList SCPIProtocol::parse_scpi_answers() {
     QStringList result{};
     QString answer_string{incoming_data};
     incoming_data.clear();
     answer_string = answer_string.trimmed();
     result = answer_string.split(QString::fromStdString(escape_characters));
-    qDebug() << result;
+    if (answer_string.count()){
+        qDebug() << result;
+    }
     return result;
 }
 
-QString SCPIProtocol::scpi_parse_last_scpi_answer() {
-    QStringList answers = scpi_parse_scpi_answers();
+QString SCPIProtocol::parse_last_scpi_answer() {
+    QStringList answers = parse_scpi_answers();
     for (auto s : answers) {
         if (s.startsWith(QString::fromStdString(event_indicator))) {
             if (event_list.indexOf(s) == -1) {
@@ -101,7 +103,7 @@ void SCPIProtocol::clear() {}
 
 bool SCPIProtocol::is_correct_protocol() {
     bool result = false;
-    const CommunicationDevice::Duration TIMEOUT = std::chrono::milliseconds{300};
+    const CommunicationDevice::Duration TIMEOUT = std::chrono::milliseconds{150};
     for (int i = 0; i < 3; i++) {
         switch (i) {
             case 0:
@@ -114,9 +116,9 @@ bool SCPIProtocol::is_correct_protocol() {
                 escape_characters = "\n";
                 break;
         }
-        if (send_scpi_request(TIMEOUT, "*IDN?", true)) {
+        if (send_scpi_request(TIMEOUT, "*IDN?", true, true)) {
             result = true;
-            QString answer = scpi_parse_last_scpi_answer();
+            QString answer = parse_last_scpi_answer();
             qDebug() << answer;
 
             load_idn_string(answer.toStdString());
@@ -135,23 +137,34 @@ void SCPIProtocol::send_string(std::string data) {
     });
 }
 
-bool SCPIProtocol::send_scpi_request(Duration timeout, std::string request, bool use_leading_escape) {
+bool SCPIProtocol::send_scpi_request(Duration timeout, std::string request, bool use_leading_escape, bool answer_expected) {
     bool cancel_request = false;
     bool success = false;
     request = request + escape_characters;
     if (use_leading_escape) {
         send_string(escape_characters);
-        if (device->waitReceived(timeout, escape_characters, event_indicator) == false) {
-            //cancel_request = false; wont work with hameg
+        if (answer_expected) {
+            if (device->waitReceived(timeout, escape_characters, event_indicator) == false) {
+                //cancel_request = false; wont work with hameg
+            }
         }
     }
     if (!cancel_request) {
         //retrieve_events();
         //incoming_data.clear();
         send_string(request);
-        success = device->waitReceived(timeout, escape_characters, event_indicator);
+        if (answer_expected) {
+            success = device->waitReceived(timeout, escape_characters, event_indicator);
+        }
+    }
+    if (!answer_expected) {
+        success = true;
     }
     return success;
+}
+
+void SCPIProtocol::send_command(std::string request) {
+    send_scpi_request(std::chrono::milliseconds(0), request, false,false);
 }
 
 void SCPIProtocol::load_idn_string(std::string idn) {
@@ -173,16 +186,17 @@ void SCPIProtocol::load_idn_string(std::string idn) {
     }
 }
 
-QStringList SCPIProtocol::scpi_get_str_param_raw(std::string request, std::string argument) {
+QStringList SCPIProtocol::get_str_param_raw(std::string request, std::string argument) {
     QStringList result{};
     if (argument.empty()) {
         request = request + "?";
     } else {
         request = request + "?" + " " + argument;
     }
-    bool timeout_ok = send_scpi_request(default_duration, request, false);
+
+    bool timeout_ok = send_scpi_request(default_duration, request, false, true);
     if (timeout_ok) {
-        QString str_to_parse = scpi_parse_last_scpi_answer();
+        QString str_to_parse = parse_last_scpi_answer();
         QStringList answer_items = str_to_parse.split(",");
         for (auto str : answer_items) {
             str = str.trimmed();
@@ -192,8 +206,8 @@ QStringList SCPIProtocol::scpi_get_str_param_raw(std::string request, std::strin
     return result;
 }
 
-sol::table SCPIProtocol::scpi_get_str_param(sol::state &lua, std::string request, std::string argument) {
-    QStringList sl = scpi_get_str_param_raw(request, argument);
+sol::table SCPIProtocol::get_str_param(sol::state &lua, std::string request, std::string argument) {
+    QStringList sl = get_str_param_raw(request, argument);
     sol::table result = lua.create_table_with();
     if (sl.count()) {
         for (auto str : sl) {
@@ -201,28 +215,62 @@ sol::table SCPIProtocol::scpi_get_str_param(sol::state &lua, std::string request
             result.add(str.toStdString());
         }
     }
+
     return result;
 }
 
-double SCPIProtocol::scpi_get_num_param(std::string request, std::string argument) {
-    QStringList sl = scpi_get_str_param_raw(request, argument);
-    bool ok = false;
-    double result = 0;
-    if (sl.count()) {
-        result = sl[0].toFloat(&ok);
+double SCPIProtocol::get_num_param(std::string request, std::string argument) {
+    QList<double> values{};
+    double mean = 0;
+    for (int i = 0; i < retries_per_transmission + 1; i++) {
+        QStringList sl = get_str_param_raw(request, argument);
+        bool ok = false;
+        double result = 0;
+        if (sl.count()) {
+
+            QString s = sl[0];
+            QStringList colon_seperated_list = s.split(":"); //sometimes we receive a "FRQ:10.000E+0" and just want the number
+            s = colon_seperated_list.last().trimmed();
+            result = s.toDouble(&ok);
+            if (ok && s.count()) {
+                values.append(result);
+                mean += result;
+            }
+        }
     }
-    return result;
+    mean /= values.count();
+    double standard_deviation = 0;
+    if (values.count() == retries_per_transmission + 1) {
+        for (auto d : values) {
+            standard_deviation += std::pow(d - mean, 2.0);
+        }
+        standard_deviation /= values.count();
+        standard_deviation = std::sqrt(standard_deviation);
+        if (standard_deviation > maximal_acceptable_standard_deviation) {
+            //TODO put variance error here
+        }
+        qDebug() << "SCPI standard deviation: " << standard_deviation;
+    } else {
+        //TODO put conversion error
+        qDebug() << "SCPI conversion error";
+    }
+    return mean;
+}
+
+double SCPIProtocol::get_num(std::string request) {
+    return get_num_param(request, "");
 }
 
 bool SCPIProtocol::is_event_received(std::string event_name) {
-    device->waitReceived(default_duration, escape_characters, "");
-    scpi_parse_last_scpi_answer();
+    // device->waitReceived(std::chrono::milliseconds(0), escape_characters, "");
+    // scpi_parse_last_scpi_answer();
     return event_list.indexOf(QString::fromStdString(event_name)) >= 0;
 }
 
 sol::table SCPIProtocol::get_event_list(sol::state &lua) {
-    device->waitReceived(default_duration, escape_characters, "");
-    scpi_parse_last_scpi_answer();
+    // device->waitReceived(default_duration, escape_characters, "");
+    //    device->waitReceived(std::chrono::milliseconds(0), escape_characters, "");
+    parse_last_scpi_answer();
     sol::table result = lua.create_table_with();
     for (auto str : event_list) {
         str = str.trimmed();
@@ -247,10 +295,16 @@ std::string SCPIProtocol::get_manufacturer() {
     return device_data.manufacturer.toStdString();
 }
 
-double SCPIProtocol::scpi_get_num(std::string request) {
-    return scpi_get_num_param(request, "");
+void SCPIProtocol::set_validation_retries(unsigned int retries) {
+    retries_per_transmission = retries;
 }
 
-sol::table SCPIProtocol::scpi_get_str(sol::state &lua, std::string request) {
-    return scpi_get_str_param(lua, request, "");
+void SCPIProtocol::set_validation_max_standard_deviation(double max_std_dev) {
+    maximal_acceptable_standard_deviation = max_std_dev;
+}
+
+
+
+sol::table SCPIProtocol::get_str(sol::state &lua, std::string request) {
+    return get_str_param(lua, request, "");
 }
