@@ -63,3 +63,22 @@ void Test_Data_engine::multiple_numeric_properties_test() {
 	QVERIFY(!de.all_values_in_range());
 	QVERIFY(!de.value_in_range("current"));
 }
+
+void Test_Data_engine::test_text_entry() {
+	std::stringstream input{R"({"":[{
+							"name": "id",
+							"value": "DEV123"
+							}]})"};
+	Data_engine de{input};
+	QVERIFY(!de.is_complete());
+	QVERIFY(!de.all_values_in_range());
+	QVERIFY(!de.value_in_range("id"));
+	de.set_actual_text("id", "DEV123456zjuthrgfd");
+	QVERIFY(de.is_complete());
+	QVERIFY(!de.all_values_in_range());
+	QVERIFY(!de.value_in_range("id"));
+	de.set_actual_text("id", "DEV123");
+	QVERIFY(de.is_complete());
+	QVERIFY(de.all_values_in_range());
+	QVERIFY(de.value_in_range("id"));
+}

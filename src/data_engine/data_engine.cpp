@@ -54,6 +54,10 @@ void Data_engine::set_actual_number(const FormID &id, double number) {
 	get_entry(id)->as<Numeric_entry>().actual_value = number;
 }
 
+void Data_engine::set_actual_text(const FormID &id, std::string text) {
+	get_entry(id)->as<Text_entry>().actual_value = std::move(text);
+}
+
 double Data_engine::get_desired_value(const FormID &id) const {
 	return get_entry(id)->as<Numeric_entry>().target_value;
 }
@@ -121,10 +125,22 @@ std::pair<FormID, std::unique_ptr<Data_engine_entry>> Data_engine_entry::from_js
 			} else if (key == "unit") {
 				unit = object.value(key).toString().toStdString();
 			} else {
-				throw std::runtime_error("Invalid key \"" + key.toStdString() + "\" in JSON object");
+				throw std::runtime_error("Invalid key \"" + key.toStdString() + "\" in numeric JSON object");
 			}
 		}
 		return {std::move(form), std::make_unique<Numeric_entry>(target_value, deviation, std::move(unit))};
+	} else if (value.isString()) {
+		std::string target_value{};
+		for (const auto &key : keys) {
+			if (key == "name") {
+				form = object.value(key).toString().toStdString();
+			} else if (key == "value") {
+				target_value = object.value(key).toString().toStdString();
+			} else {
+				throw std::runtime_error("Invalid key \"" + key.toStdString() + "\" in textual JSON object");
+			}
+		}
+		return {std::move(form), std::make_unique<Text_entry>(target_value)};
 	}
 	throw std::runtime_error("invalid JSON object");
 }
@@ -140,4 +156,15 @@ bool Numeric_entry::is_complete() const {
 
 bool Numeric_entry::is_in_range() const {
 	return is_complete() && std::abs(actual_value.value() - target_value) <= deviation;
+}
+
+Text_entry::Text_entry(std::string target_value)
+	: target_value(std::move(target_value)) {}
+
+bool Text_entry::is_complete() const {
+	return bool(actual_value);
+}
+
+bool Text_entry::is_in_range() const {
+	return is_complete() && actual_value.value() == target_value;
 }

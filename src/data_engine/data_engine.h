@@ -51,6 +51,9 @@ struct Text_entry : Data_engine_entry {
 	Text_entry(std::string target_value);
 	std::string target_value{};
 	std::experimental::optional<std::string> actual_value{};
+
+	bool is_complete() const override;
+	bool is_in_range() const override;
 };
 
 class Data_engine {
