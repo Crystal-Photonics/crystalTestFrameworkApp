@@ -11,6 +11,7 @@ class Test_Data_engine : public QObject {
 	void basic_load_from_config();
 	void check_properties_of_empty_set();
 	void single_numeric_property_test();
+	void multiple_numeric_properties_test();
 };
 
 DECLARE_TEST(Test_Data_engine)

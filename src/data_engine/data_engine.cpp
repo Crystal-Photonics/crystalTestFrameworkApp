@@ -84,7 +84,7 @@ void Data_engine::add_entry(std::pair<FormID, std::unique_ptr<Data_engine_entry>
 }
 
 Data_engine_entry *Data_engine::get_entry(const FormID &id) {
-	return const_cast<Data_engine_entry *>(Utility::as_const_ptr(this)->get_entry(id));
+	return const_cast<Data_engine_entry *>(Utility::as_const(*this).get_entry(id));
 }
 
 const Data_engine_entry *Data_engine::get_entry(const FormID &id) const {

@@ -68,14 +68,6 @@ namespace Utility {
 	typename std::add_const<T>::type &as_const(T &t) {
 		return t;
 	}
-	template <class T>
-	typename std::add_const<T>::type as_const(T &&t) {
-		return std::move(t);
-	}
-	template <class T>
-	typename std::add_const<T>::type *as_const_ptr(T *t) {
-		return t;
-	}
 }
 
 #endif // UTILITY_H

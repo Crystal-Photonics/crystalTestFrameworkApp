@@ -38,3 +38,28 @@ void Test_Data_engine::single_numeric_property_test() {
 	QVERIFY(de.all_values_in_range());
 	QVERIFY(de.value_in_range("voltage"));
 }
+
+void Test_Data_engine::multiple_numeric_properties_test() {
+	std::stringstream input{R"({"":[
+							{
+							"name": "voltage",
+							"value": 1000,
+							"deviation": 100
+							},
+							{
+							"name": "current",
+							"value": 200,
+							"deviation": 100
+							}
+							]})"};
+	Data_engine de{input};
+	de.set_actual_number("voltage", 1000.1234);
+	QVERIFY(!de.is_complete());
+	QVERIFY(!de.all_values_in_range());
+	QVERIFY(de.value_in_range("voltage"));
+	QVERIFY(!de.value_in_range("current"));
+	de.set_actual_number("current", 500.);
+	QVERIFY(de.is_complete());
+	QVERIFY(!de.all_values_in_range());
+	QVERIFY(!de.value_in_range("current"));
+}
