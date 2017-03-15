@@ -2,6 +2,7 @@
 #define UTILITY_H
 
 #include <QString>
+#include <experimental/optional>
 #include <sstream>
 #include <type_traits>
 #include <utility>
@@ -61,51 +62,20 @@ namespace Utility {
 	QString to_C_hex_encoding(const QByteArray &data);
 
 	template <class T>
-	struct alignas(std::alignment_of<T>()) Optional {
-		Optional()
-			: valid(false) {}
-		Optional(T &&t)
-			: valid(true) {
-			new (data) T(t);
-		}
-		Optional(Optional &&other)
-			: valid(other.valid) {
-			if (valid) {
-				new (data) T(std::move(other.get_value()));
-			}
-		}
-		~Optional() {
-			if (valid) {
-				get_value().~T();
-			}
-		}
+	using Optional = std::experimental::optional<T>;
 
-		bool has_value() const {
-			return valid;
-		}
-		T &get_value() & {
-			if (!has_value()) {
-				throw std::runtime_error("Tried to get value from empty Optional");
-			}
-			return *reinterpret_cast<T *>(data);
-		}
-		T &&get_value() && {
-			if (!has_value()) {
-				throw std::runtime_error("Tried to get value from empty Optional");
-			}
-			return std::move(*reinterpret_cast<T *>(data));
-		}
-		const T &get_value() const & {
-			if (!has_value()) {
-				throw std::runtime_error("Tried to get value from empty Optional");
-			}
-			return *reinterpret_cast<const T *>(data);
-		}
-
-		private:
-		char data[sizeof(T)];
-		bool valid{false};
-	};
+	template <class T>
+	typename std::add_const<T>::type &as_const(T &t) {
+		return t;
+	}
+	template <class T>
+	typename std::add_const<T>::type as_const(T &&t) {
+		return std::move(t);
+	}
+	template <class T>
+	typename std::add_const<T>::type *as_const_ptr(T *t) {
+		return t;
+	}
 }
 
 #endif // UTILITY_H

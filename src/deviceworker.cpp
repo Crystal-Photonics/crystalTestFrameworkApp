@@ -123,7 +123,7 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
         if (device->device->isConnected() == false) { //out of protocols and still not connected
             Console::note() << tr("No protocol found for %1").arg(device->device->getTarget());
         }
-    }
+	}
 }
 
 DeviceWorker::~DeviceWorker() {}
