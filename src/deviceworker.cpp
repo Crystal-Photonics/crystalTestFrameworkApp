@@ -1,5 +1,7 @@
 #include "deviceworker.h"
 #include "CommunicationDevices/comportcommunicationdevice.h"
+#include "device_protocols_settings.h"
+
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
 #include "config.h"
@@ -12,6 +14,7 @@
 #include <QTreeWidgetItem>
 #include <functional>
 #include <initializer_list>
+#include <regex>
 
 void DeviceWorker::poll_ports() {
     Utility::thread_call(this, [this] {
@@ -51,15 +54,26 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
                                          QMessageBox::Critical);
         return;
     }
-    QSettings device_protocol_settings{device_protocol_settings_file, QSettings::IniFormat};
-    auto rpc_devices = device_protocol_settings.value("RPC").toStringList();
-    auto scpi_devices = device_protocol_settings.value("SCPI").toStringList();
+    DeviceProtocolsSettings device_protocol_settings{device_protocol_settings_file};
+
+    auto rpc_devices = device_protocol_settings.protocols_rpc;
+    auto scpi_devices = device_protocol_settings.protocols_scpi;
     auto check_rpc_protocols = [&rpc_devices, &device_protocol_settings_file](ComportDescription &device) {
         for (auto &rpc_device : rpc_devices) {
-            if (rpc_device.startsWith("COM:") == false) {
+            std::regex port_name_regex{rpc_device.com_port_name_regex.toStdString()};
+
+            std::string port_name = device.info.portName().toStdString();
+            auto port_name_regex_begin = std::sregex_iterator(port_name.begin(), port_name.end(), port_name_regex);
+            auto port_name_regex_end = std::sregex_iterator();
+            int match_count = std::distance(port_name_regex_begin, port_name_regex_end);
+
+            if (match_count == 0) {
                 continue;
             }
-            const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(rpc_device.split(":")[1].toInt());
+            //  if (rpc_device.startsWith("COM:") == false) {
+            //    continue;
+            // }
+            const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(rpc_device.baud);
             if (is_valid_baudrate(baudrate) == false) {
                 MainWindow::mw->show_message_box(
                     tr("Input Error"),
@@ -82,10 +96,17 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
     };
     auto check_scpi_protocols = [&scpi_devices, &device_protocol_settings_file](ComportDescription &device) {
         for (auto &scpi_device : scpi_devices) {
-            if (scpi_device.startsWith("COM:") == false) {
+            std::regex port_name_regex{scpi_device.com_port_name_regex.toStdString()};
+
+            std::string port_name = device.info.portName().toStdString();
+            auto port_name_regex_begin = std::sregex_iterator(port_name.begin(), port_name.end(), port_name_regex);
+            auto port_name_regex_end = std::sregex_iterator();
+            int match_count = std::distance(port_name_regex_begin, port_name_regex_end);
+
+            if (match_count == 0) {
                 continue;
             }
-            const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(scpi_device.split(":")[1].toInt());
+            const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(scpi_device.baud);
             if (is_valid_baudrate(baudrate) == false) {
                 MainWindow::mw->show_message_box(
                     tr("Input Error"),
@@ -123,7 +144,7 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
         if (device->device->isConnected() == false) { //out of protocols and still not connected
             Console::note() << tr("No protocol found for %1").arg(device->device->getTarget());
         }
-	}
+    }
 }
 
 DeviceWorker::~DeviceWorker() {}

@@ -1,7 +1,7 @@
 #ifndef TEST_DATA_ENGINE_H
 #define TEST_DATA_ENGINE_H
 
-#include "autoTest.h"
+#include "autotest.h"
 #include <QObject>
 
 class Test_Data_engine : public QObject {

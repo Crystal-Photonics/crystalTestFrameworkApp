@@ -67,7 +67,7 @@ QStringList SCPIProtocol::parse_scpi_answers() {
     incoming_data.clear();
     answer_string = answer_string.trimmed();
     result = answer_string.split(QString::fromStdString(escape_characters));
-    if (answer_string.count()){
+    if (answer_string.count()) {
         qDebug() << result;
     }
     return result;
@@ -141,6 +141,11 @@ bool SCPIProtocol::send_scpi_request(Duration timeout, std::string request, bool
     bool cancel_request = false;
     bool success = false;
     request = request + escape_characters;
+
+    QString event{QString().fromStdString(event_indicator)};
+    event = event.replace("*", "\n");
+    event = "^(" + event + "|" + QString().fromStdString(request) + ")";
+
     if (use_leading_escape) {
         send_string(escape_characters);
         if (answer_expected) {
@@ -148,6 +153,8 @@ bool SCPIProtocol::send_scpi_request(Duration timeout, std::string request, bool
                 //cancel_request = false; wont work with hameg
             }
         }
+        //we need to wait here for some devices
+        //QThread::currentThread()->sleep(1);
     }
     if (!cancel_request) {
         //retrieve_events();
@@ -164,7 +171,7 @@ bool SCPIProtocol::send_scpi_request(Duration timeout, std::string request, bool
 }
 
 void SCPIProtocol::send_command(std::string request) {
-    send_scpi_request(std::chrono::milliseconds(0), request, false,false);
+    send_scpi_request(std::chrono::milliseconds(0), request, false, false);
 }
 
 void SCPIProtocol::load_idn_string(std::string idn) {
@@ -182,6 +189,11 @@ void SCPIProtocol::load_idn_string(std::string idn) {
         device_data.manufacturer = idn_nodes[0];
         device_data.name = idn_nodes[1];
         device_data.version = idn_nodes[2];
+        device_data.serial_number.clear();
+    } else if (idn_nodes.count() == 2) {
+        device_data.manufacturer = "";
+        device_data.name = idn_nodes[0];
+        device_data.version = idn_nodes[1];
         device_data.serial_number.clear();
     }
 }
@@ -227,7 +239,6 @@ double SCPIProtocol::get_num_param(std::string request, std::string argument) {
         bool ok = false;
         double result = 0;
         if (sl.count()) {
-
             QString s = sl[0];
             QStringList colon_seperated_list = s.split(":"); //sometimes we receive a "FRQ:10.000E+0" and just want the number
             s = colon_seperated_list.last().trimmed();
@@ -302,8 +313,6 @@ void SCPIProtocol::set_validation_retries(unsigned int retries) {
 void SCPIProtocol::set_validation_max_standard_deviation(double max_std_dev) {
     maximal_acceptable_standard_deviation = max_std_dev;
 }
-
-
 
 sol::table SCPIProtocol::get_str(sol::state &lua, std::string request) {
     return get_str_param(lua, request, "");

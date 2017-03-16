@@ -8,14 +8,19 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 INCLUDEPATH += $$PWD/src
 INCLUDEPATH += ../libs/luasol/include
 
-LIBS += -L$$PWD/libs/luasol
-LIBS += -llua53
+win32 {
+    QWT_DIR = $$PWD/libs/qwt
+    INCLUDEPATH += $$QWT_DIR/include
+    LIBS += -L$$QWT_DIR/lib
+    Debug:LIBS += -lqwtd
+    Release:LIBS += -lqwt
 
-QWT_DIR = $$PWD/libs/qwt
-INCLUDEPATH += $$QWT_DIR/include
-LIBS += -L$$QWT_DIR/lib
-Debug:LIBS += -lqwtd
-Release:LIBS += -lqwt
+    LIBS += -L$$PWD/libs/luasol
+    LIBS += -llua53
+}else{
+    CONFIG += qwt
+    LIBS += -llua5.3
+}
 
 DEFINES += SOL_CHECK_ARGUMENTS
 

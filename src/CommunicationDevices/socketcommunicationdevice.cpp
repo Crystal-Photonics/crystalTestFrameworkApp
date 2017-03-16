@@ -7,37 +7,43 @@
 #include <regex>
 
 SocketCommunicationDevice::SocketCommunicationDevice()
-	: socket(nullptr) {
-	std::regex ipPort(R"(((server:)|(client:))([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}:[[:digit:]]{1,5})");
-	auto success = std::regex_match(target.toStdString(), ipPort);
-	assert(success);
-	auto typeIpPort = target.split(':');
-	auto &type = typeIpPort[0];
-	auto &ip = typeIpPort[1];
-	int port;
-	success = Utility::convert(typeIpPort[2], port);
-	assert(success);
-	server.setMaxPendingConnections(1);
-	if (type == "client") {
-		isServer = false;
-		socket = new QTcpSocket;
-		socket->connectToHost(ip, port);
-		receiveSlot = connect(socket, QTcpSocket::readyRead, [this]() { this->receiveData(this->socket->readAll()); });
-		assert(receiveSlot);
-	} else if (type == "server") {
-		isServer = true;
-		auto success = server.listen(QHostAddress(ip), port);
-		if (!success)
-			throw std::runtime_error("Failed opening " + ip.toStdString() + ':' + std::to_string(port));
-		callSetSocket = [this]() {
-			this->setSocket();
-			this->connected();
-		};
-		connectedSlot = QObject::connect(&server, &QTcpServer::newConnection, callSetSocket);
-		assert(connectedSlot);
-	} else {
-		throw std::logic_error("regex logic is wrong: " + type.toStdString() + " must be \"server\" or \"client\"");
-	}
+    : socket(nullptr) {
+#if 1
+    std::regex ipPort(R"(((server:)|(client:))([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}:[[:digit:]]{1,5})");
+    auto success = std::regex_match(target.toStdString(), ipPort);
+    assert(success);
+    auto typeIpPort = target.split(':');
+    auto &type = typeIpPort[0];
+    auto &ip = typeIpPort[1];
+    int port;
+    success = Utility::convert(typeIpPort[2], port);
+    assert(success);
+    server.setMaxPendingConnections(1);
+    if (type == "client") {
+        isServer = false;
+        socket = new QTcpSocket;
+        socket->connectToHost(ip, port);
+        /* Fehler: invalid use of non-static member function 'void QIODevice::readyRead()'
+   receiveSlot = connect(socket, QTcpSocket::readyRead, [this]() { this->receiveData(this->socket->readAll()); });
+                                             ^
+                                             */
+        receiveSlot = connect(socket, QTcpSocket::readyRead, [this]() { this->receiveData(this->socket->readAll()); });
+        assert(receiveSlot);
+    } else if (type == "server") {
+        isServer = true;
+        auto success = server.listen(QHostAddress(ip), port);
+        if (!success)
+            throw std::runtime_error("Failed opening " + ip.toStdString() + ':' + std::to_string(port));
+        callSetSocket = [this]() {
+            this->setSocket();
+            this->connected();
+        };
+        connectedSlot = QObject::connect(&server, &QTcpServer::newConnection, callSetSocket);
+        assert(connectedSlot);
+    } else {
+        throw std::logic_error("regex logic is wrong: " + type.toStdString() + " must be \"server\" or \"client\"");
+    }
+#endif
 }
 
 void SocketCommunicationDevice::send(const QByteArray &data, const QByteArray &displayed_data) {

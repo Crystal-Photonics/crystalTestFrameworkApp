@@ -2,7 +2,10 @@
 #include "qt_util.h"
 
 #include <QApplication>
+#include <QDebug>
 #include <cassert>
+#include <regex>
+#include <string>
 
 ComportCommunicationDevice::ComportCommunicationDevice(QString target) {
     this->target = target;
@@ -63,9 +66,10 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
     bool escape_found = false;
     bool run = true;
     auto now = std::chrono::high_resolution_clock::now();
+    std::regex word_regex(leading_pattern_indicating_skip_line);
     do {
-        if (port.bytesAvailable()){
-       //     now = std::chrono::high_resolution_clock::now();
+        if (port.bytesAvailable()) {
+            //     now = std::chrono::high_resolution_clock::now();
         }
         try_read();
         if (inbuffer.indexOf(QString::fromStdString(escape_characters)) > -1) {
@@ -73,7 +77,13 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
             escape_found = true;
             QString in_str{inbuffer};
 
-            if ((!leading_pattern_indicating_skip_line.empty()) && in_str.startsWith(QString::fromStdString(leading_pattern_indicating_skip_line))){
+            std::string in_line = in_str.toStdString();
+            auto skipline_begin = std::sregex_iterator(in_line.begin(), in_line.end(), word_regex);
+            auto skipline_end = std::sregex_iterator();
+            int skipline_match = std::distance(skipline_begin, skipline_end);
+
+            if ((!leading_pattern_indicating_skip_line.empty()) && skipline_match > 0) {
+                //if ((!leading_pattern_indicating_skip_line.empty()) && in_str.startsWith(QString::fromStdString(leading_pattern_indicating_skip_line))){
                 now = std::chrono::high_resolution_clock::now();
             } else {
                 run = false;
@@ -81,7 +91,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
             inbuffer.clear();
         }
     } while (run && std::chrono::high_resolution_clock::now() - now < timeout);
-  //  try_read();
+    //  try_read();
     currently_in_waitReceived = false;
 
     return escape_found;

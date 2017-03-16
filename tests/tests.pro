@@ -29,12 +29,15 @@ LIBS += -lgmock
 LIBS += -lgtest
 LIBS += -lcrystalTestFrameworkApp
 
+
+LIBS += -L$$OUT_PWD/../src
+
 CONFIG( debug, debug|release ) {
     # debug
-    LIBS += -L../src/debug
+    LIBS += -L$$OUT_PWD/../src/debug
 } else {
     # release
-    LIBS += -L../src/release
+    LIBS += -L$$OUT_PWD/../src/release
 }
 
 COPY_DIR = "$$(UNIXTOOLS)cp -r"

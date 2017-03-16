@@ -338,15 +338,15 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 
 			QMenu menu(this);
 
-			QAction action_run(tr("Run"));
+            QAction action_run(tr("Run"),nullptr);
 			connect(&action_run, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
 			menu.addAction(&action_run);
 
-			QAction action_reload(tr("Reload"));
+            QAction action_reload(tr("Reload"),nullptr);
 			connect(&action_reload, &QAction::triggered, [test] { test->reload(); });
 			menu.addAction(&action_reload);
 
-			QAction action_editor(tr("Open in Editor"));
+            QAction action_editor(tr("Open in Editor"),nullptr);
 			connect(&action_editor, &QAction::triggered, [test] { test->launch_editor(); });
 			menu.addAction(&action_editor);
 
@@ -354,7 +354,7 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
 		} else {
 			QMenu menu(this);
 
-			QAction action(tr("Reload all scripts"));
+            QAction action(tr("Reload all scripts"),nullptr);
 			connect(&action, &QAction::triggered, [this] {
 				test_descriptions.clear();
 				load_scripts();
@@ -374,11 +374,11 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 		}
 		QMenu menu(this);
 
-		QAction action_detect(tr("Detect"));
+        QAction action_detect(tr("Detect"),nullptr);
 		connect(&action_detect, &QAction::triggered, [this, item] { device_worker->detect_device(item); });
 		menu.addAction(&action_detect);
 
-		QAction action_forget(tr("Forget"));
+        QAction action_forget(tr("Forget"),nullptr);
 		if (item->text(3).isEmpty() == false) {
 			action_forget.setDisabled(true);
 		} else {
@@ -390,11 +390,11 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 	} else {
 		QMenu menu(this);
 
-		QAction action_update(tr("Update device list"));
+        QAction action_update(tr("Update device list"),nullptr);
 		connect(&action_update, &QAction::triggered, ui->update_devices_list_button, &QPushButton::clicked);
 		menu.addAction(&action_update);
 
-		QAction action_detect(tr("Detect device protocols"));
+        QAction action_detect(tr("Detect device protocols"),nullptr);
 		connect(&action_detect, &QAction::triggered, ui->device_detect_button, &QPushButton::clicked);
 		menu.addAction(&action_detect);
 
@@ -456,7 +456,7 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 	if (runner) {
 		QMenu menu(this);
 
-		QAction action_abort_script(tr("Abort Script"));
+        QAction action_abort_script(tr("Abort Script"),nullptr);
 		if (runner->is_running()) {
 			connect(&action_abort_script, &QAction::triggered, [this, runner] {
 				runner->interrupt();
@@ -465,11 +465,11 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 			menu.addAction(&action_abort_script);
 		}
 
-		QAction action_open_script_in_editor(tr("Open in Editor"));
+        QAction action_open_script_in_editor(tr("Open in Editor"),nullptr);
 		connect(&action_open_script_in_editor, &QAction::triggered, [this, runner] { runner->launch_editor(); });
 		menu.addAction(&action_open_script_in_editor);
 
-		QAction action_pop_out(tr("Open in extra Window"));
+        QAction action_pop_out(tr("Open in extra Window"),nullptr);
 		connect(&action_pop_out, &QAction::triggered, [this, runner] {
 			auto container = runner->get_lua_ui_container();
 			ui->test_tabs->removeTab(ui->test_tabs->indexOf(container));
@@ -482,7 +482,7 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 		//clicked on the overview list
 		QMenu menu(this);
 
-		QAction action_close_finished(tr("Close finished Tests"));
+        QAction action_close_finished(tr("Close finished Tests"),nullptr);
 		connect(&action_close_finished, &QAction::triggered, [this] {
 			test_runners.erase(std::remove_if(std::begin(test_runners), std::end(test_runners),
 											  [this](const auto &test) {
@@ -522,7 +522,7 @@ void MainWindow::on_console_tabs_customContextMenuRequested(const QPoint &pos) {
 
 	QMenu menu(this);
 
-	QAction action_clear(tr("Clear"));
+    QAction action_clear(tr("Clear"),nullptr);
 	connect(&action_clear, &QAction::triggered, edit, &QPlainTextEdit::clear);
 	menu.addAction(&action_clear);
 

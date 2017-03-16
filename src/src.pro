@@ -35,7 +35,8 @@ HEADERS += \
 	scriptengine.h \
 	testdescriptionloader.h \
 	testrunner.h \
-        util.h
+        util.h \
+    device_protocols_settings.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -61,4 +62,5 @@ SOURCES += \
 	scriptengine.cpp \
 	testdescriptionloader.cpp \
 	testrunner.cpp \
-        util.cpp
+        util.cpp \
+    device_protocols_settings.cpp
