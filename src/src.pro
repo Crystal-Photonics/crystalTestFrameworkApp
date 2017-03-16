@@ -8,7 +8,10 @@ DEFINES += EXPORT_LIBRARY
 
 FORMS += \
 	mainwindow.ui \
-        pathsettingswindow.ui
+	pathsettingswindow.ui
+
+LIBS += -L../libs/QtRPT/QtRPT/debug
+LIBS += -lQtRPT
 
 HEADERS += \
 	CommunicationDevices/communicationdevice.h \
@@ -30,12 +33,12 @@ HEADERS += \
 	pathsettingswindow.h \
 	Protocols/protocol.h \
 	Protocols/rpcprotocol.h \
-        Protocols/scpiprotocol.h \
+	Protocols/scpiprotocol.h \
 	qt_util.h \
 	scriptengine.h \
 	testdescriptionloader.h \
 	testrunner.h \
-        util.h \
+	util.h \
     device_protocols_settings.h
 
 SOURCES += \
@@ -57,10 +60,10 @@ SOURCES += \
 	pathsettingswindow.cpp \
 	Protocols/protocol.cpp \
 	Protocols/rpcprotocol.cpp \
-        Protocols/scpiprotocol.cpp \
+	Protocols/scpiprotocol.cpp \
 	qt_util.cpp \
 	scriptengine.cpp \
 	testdescriptionloader.cpp \
 	testrunner.cpp \
-        util.cpp \
+	util.cpp \
     device_protocols_settings.cpp

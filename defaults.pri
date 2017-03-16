@@ -1,12 +1,13 @@
 CONFIG += c++14
 QMAKE_CXXFLAGS += -std=c++14
 
-QT = gui core network serialport
+QT = gui core network serialport xml script sql printsupport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 INCLUDEPATH += $$PWD/src
 INCLUDEPATH += ../libs/luasol/include
+INCLUDEPATH += ../libs/QtRPT/include
 
 win32 {
     QWT_DIR = $$PWD/libs/qwt

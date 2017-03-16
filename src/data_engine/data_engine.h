@@ -74,7 +74,8 @@ class Data_engine {
 	const std::string &get_unit(const FormID &id) const;
 
 	std::unique_ptr<QWidget> get_preview() const;
-	void generate_pdf(const std::string &path);
+	void generate_pdf(const std::string &path) const;
+	std::string get_json() const;
 
 	private:
 	void add_entry(std::pair<FormID, std::unique_ptr<Data_engine_entry>> &&entry);

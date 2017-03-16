@@ -82,3 +82,9 @@ void Test_Data_engine::test_text_entry() {
 	QVERIFY(de.all_values_in_range());
 	QVERIFY(de.value_in_range("id"));
 }
+
+void Test_Data_engine::test_preview() {
+	std::stringstream input{R"({"":[]})"};
+	Data_engine de{input};
+	de.get_preview();
+}

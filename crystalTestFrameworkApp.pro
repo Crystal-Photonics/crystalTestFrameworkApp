@@ -11,6 +11,7 @@ TEMPLATE = subdirs
 SUBDIRS = src
 SUBDIRS += app
 SUBDIRS += tests
+SUBDIRS += libs/QtRPT
 
 #src.depends = comModules/mocklayer/appPlugin
 app.depends = src

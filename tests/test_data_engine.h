@@ -1,7 +1,7 @@
 #ifndef TEST_DATA_ENGINE_H
 #define TEST_DATA_ENGINE_H
 
-#include "autotest.h"
+#include "autoTest.h"
 #include <QObject>
 
 class Test_Data_engine : public QObject {
@@ -13,6 +13,7 @@ class Test_Data_engine : public QObject {
 	void single_numeric_property_test();
 	void multiple_numeric_properties_test();
 	void test_text_entry();
+	void test_preview();
 };
 
 DECLARE_TEST(Test_Data_engine)
