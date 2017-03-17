@@ -49,8 +49,8 @@ SCPIProtocol::SCPIProtocol(CommunicationDevice &device, DeviceProtocolSetting &s
     , device_protocol_setting(setting) {
 #if 1
     connection = QObject::connect(&device, &CommunicationDevice::received, [incoming_data = &incoming_data](const QByteArray &data) {
-        qDebug() << "SCPI-Protocol received" << data.size() << "bytes from device";
-        qDebug() << "SCPI-Protocol received" << data << "bytes from device";
+        //qDebug() << "SCPI-Protocol received" << data.size() << "bytes from device";
+        //qDebug() << "SCPI-Protocol received" << data << "bytes from device";
         incoming_data->append(data);
     });
 #endif
