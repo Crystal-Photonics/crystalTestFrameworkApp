@@ -6,6 +6,7 @@
 #include <cassert>
 #include <regex>
 #include <string>
+#include <QString>
 
 ComportCommunicationDevice::ComportCommunicationDevice(QString target) {
     this->target = target;
@@ -66,7 +67,15 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
     bool escape_found = false;
     bool run = true;
     auto now = std::chrono::high_resolution_clock::now();
-    std::regex word_regex(leading_pattern_indicating_skip_line);
+    std::regex word_regex;
+    try{
+        word_regex = leading_pattern_indicating_skip_line;
+    }
+    catch(std::regex_error& e){
+        qDebug() << "faulty regex: " +QString().fromStdString(leading_pattern_indicating_skip_line) ;
+        qDebug() << "error: " +QString().fromStdString(std::string(e.what())) ;
+    }
+
     do {
         if (port.bytesAvailable()) {
             //     now = std::chrono::high_resolution_clock::now();

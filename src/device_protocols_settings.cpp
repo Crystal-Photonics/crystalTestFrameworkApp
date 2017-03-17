@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <assert.h>
+#include <regex>
 
 DeviceProtocolsSettings::DeviceProtocolsSettings(QString file_name) {
     this->file_name = file_name;
@@ -23,6 +24,7 @@ void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
     file.open(QIODevice::ReadOnly | QIODevice::Text);
     QString json_string = file.readAll();
     file.close();
+    exclusive_ports.clear();
 
     //qWarning() << json_string;
     QJsonDocument j_doc = QJsonDocument::fromJson(json_string.toUtf8());
@@ -31,7 +33,10 @@ void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
         QJsonArray prot_settings = j_obj[protocol_identifier].toArray();
         for (QJsonValue prot_setting : prot_settings) {
             DeviceProtocolSetting setting{};
+            setting.set_exclusive_port(&exclusive_ports);
+
             QJsonObject obj = prot_setting.toObject();
+
             QString portType = obj["type"].toString().toUpper();
             if (portType == "COM") {
                 setting.type = DeviceProtocolSetting::comport;
@@ -46,9 +51,13 @@ void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
             setting.com_port_name_regex = obj["com_port_name_regex"].toString();
             setting.baud = obj["baud"].toInt();
             setting.escape = obj["escape"].toString();
+            setting.escape = setting.escape.replace("\\n", "\n");
+            setting.escape = setting.escape.replace("\\r", "\r");
             setting.timeout = std::chrono::milliseconds(obj["timeout_ms"].toInt());
             setting.pause_after_discovery_flush = std::chrono::milliseconds(obj["pause_after_discovery_flush_ms"].toInt());
-
+            if (obj["exclusive"].toString() == "yes") {
+                exclusive_ports.append(setting.com_port_name_regex);
+            }
             if (protocol_identifier == "SCPI") {
                 protocols_scpi.append(setting);
             } else if (protocol_identifier == "RPC") {
@@ -56,4 +65,34 @@ void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
             }
         }
     }
+}
+
+
+
+void DeviceProtocolSetting::set_exclusive_port(QStringList *exclusive_ports)
+{
+    this->exclusive_ports = exclusive_ports;
+}
+
+bool regex_match(QString regex, QString port_name){
+    std::regex port_name_regex{regex.toStdString()};
+
+    std::string port_name_std = port_name.toStdString();
+    auto port_name_regex_begin = std::sregex_iterator(port_name_std.begin(), port_name_std.end(), port_name_regex);
+    auto port_name_regex_end = std::sregex_iterator();
+    int match_count = std::distance(port_name_regex_begin, port_name_regex_end);
+    return match_count;
+}
+
+bool DeviceProtocolSetting::match(QString port_name) {
+    bool matches = regex_match(com_port_name_regex,port_name);
+    for (auto s : *exclusive_ports){
+        if (s == com_port_name_regex){
+            continue;
+        }
+        if ( regex_match(s,port_name)){
+            matches = false;
+        }
+    }
+    return matches;
 }

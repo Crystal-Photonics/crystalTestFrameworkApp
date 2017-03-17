@@ -43,12 +43,14 @@ std::vector<SCPI_Device_Data::Description_source> SCPI_Device_Data::get_descript
     return {{"Manufacturer", manufacturer}, {"Name", name}, {"Serialnumber", serial_number}, {"Version", version}};
 }
 
-SCPIProtocol::SCPIProtocol(CommunicationDevice &device)
+SCPIProtocol::SCPIProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting)
     : Protocol{"SCPI"}
-    , device(&device) {
+    , device(&device)
+    , device_protocol_setting(setting) {
 #if 1
     connection = QObject::connect(&device, &CommunicationDevice::received, [incoming_data = &incoming_data](const QByteArray &data) {
-        //qDebug() << "SCPI-Protocol received" << data.size() << "bytes from device";
+        qDebug() << "SCPI-Protocol received" << data.size() << "bytes from device";
+        qDebug() << "SCPI-Protocol received" << data << "bytes from device";
         incoming_data->append(data);
     });
 #endif
@@ -103,28 +105,18 @@ void SCPIProtocol::clear() {}
 
 bool SCPIProtocol::is_correct_protocol() {
     bool result = false;
-    const CommunicationDevice::Duration TIMEOUT = std::chrono::milliseconds{150};
-    for (int i = 0; i < 3; i++) {
-        switch (i) {
-            case 0:
-                escape_characters = "\r\n";
-                break;
-            case 1:
-                escape_characters = "\r";
-                break;
-            case 2:
-                escape_characters = "\n";
-                break;
-        }
-        if (send_scpi_request(TIMEOUT, "*IDN?", true, true)) {
-            result = true;
-            QString answer = parse_last_scpi_answer();
-            qDebug() << answer;
+    const CommunicationDevice::Duration TIMEOUT = device_protocol_setting.timeout;
 
-            load_idn_string(answer.toStdString());
-            break;
-        }
+    escape_characters = device_protocol_setting.escape.toStdString();
+
+    if (send_scpi_request(TIMEOUT, "*IDN?", true, true)) {
+        result = true;
+        QString answer = parse_last_scpi_answer();
+        qDebug() << answer;
+
+        load_idn_string(answer.toStdString());
     }
+
     return result;
 }
 
@@ -137,31 +129,45 @@ void SCPIProtocol::send_string(std::string data) {
     });
 }
 
+QString clean_up_regex_with_escape_characters(QString expr) {
+    QString result = expr.replace("*", "\\*");
+    result = result.replace("?", "\\?");
+    result = result.replace("|", "\\|");
+    result = result.replace("@", "\\@");
+    result = result.replace("#", "\\#");
+    result = result.replace(".", "\\.");
+    return result;
+}
+
 bool SCPIProtocol::send_scpi_request(Duration timeout, std::string request, bool use_leading_escape, bool answer_expected) {
     bool cancel_request = false;
     bool success = false;
     request = request + escape_characters;
 
     QString event{QString().fromStdString(event_indicator)};
-    event = event.replace("*", "\n");
-    event = "^(" + event + "|" + QString().fromStdString(request) + ")";
+    event = clean_up_regex_with_escape_characters(event);
+    QString request_regex = clean_up_regex_with_escape_characters(QString().fromStdString(request));
+    event = "^(" + request_regex + "|" + event + ")";
 
     if (use_leading_escape) {
         send_string(escape_characters);
         if (answer_expected) {
-            if (device->waitReceived(timeout, escape_characters, event_indicator) == false) {
+            if (device->waitReceived(timeout, escape_characters, event.toStdString()) == false) {
                 //cancel_request = false; wont work with hameg
             }
         }
         //we need to wait here for some devices
-        //QThread::currentThread()->sleep(1);
+        long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(device_protocol_setting.pause_after_discovery_flush).count();
+        if (ms) {
+            QThread::currentThread()->msleep(ms);
+        }
     }
     if (!cancel_request) {
         //retrieve_events();
         //incoming_data.clear();
         send_string(request);
         if (answer_expected) {
-            success = device->waitReceived(timeout, escape_characters, event_indicator);
+            success = device->waitReceived(timeout, escape_characters, event.toStdString());
         }
     }
     if (!answer_expected) {
@@ -206,7 +212,7 @@ QStringList SCPIProtocol::get_str_param_raw(std::string request, std::string arg
         request = request + "?" + " " + argument;
     }
 
-    bool timeout_ok = send_scpi_request(default_duration, request, false, true);
+    bool timeout_ok = send_scpi_request(device_protocol_setting.timeout, request, false, true);
     if (timeout_ok) {
         QString str_to_parse = parse_last_scpi_answer();
         QStringList answer_items = str_to_parse.split(",");

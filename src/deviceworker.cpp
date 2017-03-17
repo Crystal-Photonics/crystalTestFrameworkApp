@@ -56,23 +56,15 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
     }
     DeviceProtocolsSettings device_protocol_settings{device_protocol_settings_file};
 
-    auto rpc_devices = device_protocol_settings.protocols_rpc;
-    auto scpi_devices = device_protocol_settings.protocols_scpi;
+    auto & rpc_devices = device_protocol_settings.protocols_rpc;
+    auto & scpi_devices = device_protocol_settings.protocols_scpi;
     auto check_rpc_protocols = [&rpc_devices, &device_protocol_settings_file](ComportDescription &device) {
         for (auto &rpc_device : rpc_devices) {
-            std::regex port_name_regex{rpc_device.com_port_name_regex.toStdString()};
 
-            std::string port_name = device.info.portName().toStdString();
-            auto port_name_regex_begin = std::sregex_iterator(port_name.begin(), port_name.end(), port_name_regex);
-            auto port_name_regex_end = std::sregex_iterator();
-            int match_count = std::distance(port_name_regex_begin, port_name_regex_end);
-
-            if (match_count == 0) {
+            if (rpc_device.match(device.info.portName()) == false) {
                 continue;
             }
-            //  if (rpc_device.startsWith("COM:") == false) {
-            //    continue;
-            // }
+
             const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(rpc_device.baud);
             if (is_valid_baudrate(baudrate) == false) {
                 MainWindow::mw->show_message_box(
@@ -85,7 +77,7 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
                 Console::warning() << tr("Failed opening") << device.device->getTarget();
                 return;
             }
-            auto protocol = std::make_unique<RPCProtocol>(*device.device);
+            auto protocol = std::make_unique<RPCProtocol>(*device.device,rpc_device);
             if (protocol->is_correct_protocol()) {
                 MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { protocol->set_ui_description(ui_entry); });
                 device.protocol = std::move(protocol);
@@ -96,16 +88,10 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
     };
     auto check_scpi_protocols = [&scpi_devices, &device_protocol_settings_file](ComportDescription &device) {
         for (auto &scpi_device : scpi_devices) {
-            std::regex port_name_regex{scpi_device.com_port_name_regex.toStdString()};
-
-            std::string port_name = device.info.portName().toStdString();
-            auto port_name_regex_begin = std::sregex_iterator(port_name.begin(), port_name.end(), port_name_regex);
-            auto port_name_regex_end = std::sregex_iterator();
-            int match_count = std::distance(port_name_regex_begin, port_name_regex_end);
-
-            if (match_count == 0) {
+            if (scpi_device.match(device.info.portName()) == false) {
                 continue;
             }
+
             const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(scpi_device.baud);
             if (is_valid_baudrate(baudrate) == false) {
                 MainWindow::mw->show_message_box(
@@ -118,7 +104,7 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
                 Console::warning() << tr("Failed opening") << device.device->getTarget();
                 return;
             }
-            auto protocol = std::make_unique<SCPIProtocol>(*device.device);
+            auto protocol = std::make_unique<SCPIProtocol>(*device.device,scpi_device);
             if (protocol) {
                 if (protocol->is_correct_protocol()) {
                     MainWindow::mw->execute_in_gui_thread(

@@ -10,8 +10,19 @@ FORMS += \
 	mainwindow.ui \
 	pathsettingswindow.ui
 
-LIBS += -L../libs/QtRPT/QtRPT/debug
-LIBS += -lQtRPT
+
+#LIBS += -L$$OUT_PWD/../libs/QtRPT/QtRPT
+CONFIG( debug, debug|release ) {
+    # debug
+    #QMAKE_LIBDIR += "../src/debug"
+LIBS += -L$$OUT_PWD/../libs/QtRPT/QtRPT/debug
+} else {
+    # release
+    #QMAKE_LIBDIR += "../src/release"
+LIBS += -L$$OUT_PWD/../libs/QtRPT/QtRPT/release
+}
+
+#LIBS += -lQtRPT
 
 HEADERS += \
 	CommunicationDevices/communicationdevice.h \

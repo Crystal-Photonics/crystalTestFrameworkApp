@@ -9,7 +9,7 @@
 #include <QStringList>
 #include <algorithm>
 #include <iostream>
-#include <qtrpt.h>
+//#include <qtrpt.h>
 #include <type_traits>
 
 Data_engine::Data_engine(std::istream &source) {
@@ -82,12 +82,15 @@ double Data_engine::get_desired_maximum(const FormID &id) const {
 const std::string &Data_engine::get_unit(const FormID &id) const {
 	return get_entry(id)->as<Numeric_entry>().unit;
 }
-
+#if 0
 std::unique_ptr<QWidget> Data_engine::get_preview() const {
+
 	QtRPT report;
 	report.printExec();
-	return nullptr;
+
+    return nullptr;
 }
+#endif
 
 void Data_engine::add_entry(std::pair<FormID, std::unique_ptr<Data_engine_entry>> &&entry) {
 	auto pos = std::lower_bound(std::begin(entries), std::end(entries), entry, entry_compare);

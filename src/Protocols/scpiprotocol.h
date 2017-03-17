@@ -6,6 +6,7 @@
 #include <chrono>
 #include <memory>
 #include <sol.hpp>
+#include "device_protocols_settings.h"
 
 class QTreeWidgetItem;
 
@@ -30,7 +31,7 @@ class SCPIProtocol : public Protocol {
     using Duration = std::chrono::steady_clock::duration;
 
     public:
-    SCPIProtocol(CommunicationDevice &device);
+    SCPIProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting);
     ~SCPIProtocol();
     SCPIProtocol(const SCPIProtocol &) = delete;
     SCPIProtocol(SCPIProtocol &&other) = delete;
@@ -40,7 +41,6 @@ class SCPIProtocol : public Protocol {
     void get_lua_device_descriptor(sol::table &t) const;
 
     void clear();
-
 
 
     sol::table get_str(sol::state &lua, std::string request);
@@ -76,9 +76,9 @@ class SCPIProtocol : public Protocol {
     void load_idn_string(std::string idn);
     QStringList event_list;
 
-    CommunicationDevice::Duration default_duration = std::chrono::milliseconds{200};
     int retries_per_transmission{2};
     double maximal_acceptable_standard_deviation = 0.1;
+    DeviceProtocolSetting &device_protocol_setting;
 };
 
 #endif // RPCPROTOCOL_H

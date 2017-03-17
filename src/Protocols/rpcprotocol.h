@@ -7,7 +7,7 @@
 #include "rpcruntime_decoder.h"
 #include "rpcruntime_encoder.h"
 #include "rpcruntime_protocol_description.h"
-
+#include "device_protocols_settings.h"
 #include <memory>
 #include <sol.hpp>
 
@@ -39,7 +39,7 @@ struct Device_data {
 
 class RPCProtocol : public Protocol {
 	public:
-	RPCProtocol(CommunicationDevice &device);
+    RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting);
 	~RPCProtocol();
 	RPCProtocol(const RPCProtocol &) = delete;
 	RPCProtocol(RPCProtocol &&other) = delete;
@@ -52,7 +52,7 @@ class RPCProtocol : public Protocol {
 	void get_lua_device_descriptor(sol::table &t) const;
 	RPCRuntimeEncodedFunctionCall encode_function(const std::string &name) const;
 	const channel_codec_instance_t *debug_get_channel_codec_instance() const;
-	CommunicationDevice::Duration default_duration = std::chrono::milliseconds{600};
+    //CommunicationDevice::Duration default_duration = std::chrono::milliseconds{600};
 	int retries_per_transmission{2};
 	void clear();
 
@@ -65,6 +65,7 @@ class RPCProtocol : public Protocol {
 	std::unique_ptr<RPCRuntimeDecodedFunctionCall> descriptor_answer;
 	CommunicationDevice *device;
 	Device_data device_data;
+    DeviceProtocolSetting &device_protocol_setting;
 };
 
 #endif // RPCPROTOCOL_H

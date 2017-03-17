@@ -1,7 +1,8 @@
 CONFIG += c++14
 QMAKE_CXXFLAGS += -std=c++14
 
-QT = gui core network serialport xml script sql printsupport
+QT = gui core network serialport xml
+#script sql printsupport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 

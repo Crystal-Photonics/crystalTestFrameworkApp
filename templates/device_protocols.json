@@ -1,0 +1,36 @@
+{
+
+	"SCPI":[
+		{
+			"type": "COM",
+			"com_port_name_regex": "^(COM1)",
+			"baud":9600,
+			"escape": "\\r",
+			"timeout_ms":200,
+			"exclusive":"yes",
+			"pause_after_discovery_flush_ms":10,
+			"internet_port":0,
+			"ip_address":""
+			
+		},
+		{
+			"type": "COM",
+			"com_port_name_regex": "^(COM60)",
+			"baud":9600,
+			"escape": "\\r\\n",
+			"timeout_ms":200,
+			"exclusive":"yes",
+			"pause_after_discovery_flush_ms":0,
+			"internet_port":0,
+			"ip_address":""
+		}
+	],
+	"RPC":[
+		{
+			"type": "COM",
+			"com_port_name_regex": "^(COM[\\d]+)",
+			"baud":115200,
+			"timeout_ms":600
+		}
+	]
+}
