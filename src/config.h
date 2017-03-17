@@ -7,6 +7,7 @@ namespace Globals {
 	static const auto rpc_xml_files_path_settings_key = "rpc xml files path";
 	static const auto lua_editor_path_settings_key = "lua editor path";
 	static const auto lua_editor_parameters_settings_key = "lua editor parameters";
+    static const auto measurement_equipment_meta_data_path = "measurement equipment meta data path";
 	static const auto last_csv_saved_directory = "last csv saved directory";
 }
 

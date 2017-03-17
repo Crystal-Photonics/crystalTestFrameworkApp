@@ -8,6 +8,7 @@
 #include <future>
 #include <list>
 #include <vector>
+#include "scpimetadata.h"
 
 class CommunicationDevice;
 class MainWindow;
@@ -35,6 +36,7 @@ class DeviceWorker : public QObject {
 	private:
 	std::list<ComportDescription> comport_devices;
 	void detect_devices(std::vector<ComportDescription *> comport_device_list);
+    SCPIMetaData scpi_meta_data;
 };
 
 #endif // DEVICEWORKER_H

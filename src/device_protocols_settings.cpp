@@ -35,8 +35,6 @@ void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
     }
     QString json_string = file.readAll();
     file.close();
-
-    //qWarning() << json_string;
     QJsonDocument j_doc = QJsonDocument::fromJson(json_string.toUtf8());
     if (j_doc.isNull()) {
         Utility::thread_call(MainWindow::mw, [file_name] {

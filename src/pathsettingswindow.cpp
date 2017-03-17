@@ -16,6 +16,7 @@ PathSettingsWindow::PathSettingsWindow(QWidget *parent)
 	ui->rpc_xml_files_path_text->setText(QSettings{}.value(Globals::rpc_xml_files_path_settings_key, "").toString());
 	ui->lua_editor_path_text->setText(QSettings{}.value(Globals::lua_editor_path_settings_key, "").toString());
 	ui->lua_editor_parameters_text->setText(QSettings{}.value(Globals::lua_editor_parameters_settings_key, "").toString());
+    ui->meta_path_text->setText(QSettings{}.value(Globals::measurement_equipment_meta_data_path, "").toString());
 }
 
 PathSettingsWindow::~PathSettingsWindow() {
@@ -28,6 +29,7 @@ void PathSettingsWindow::on_settings_confirmation_accepted() {
 	QSettings{}.setValue(Globals::rpc_xml_files_path_settings_key, ui->rpc_xml_files_path_text->text());
 	QSettings{}.setValue(Globals::lua_editor_path_settings_key, ui->lua_editor_path_text->text());
 	QSettings{}.setValue(Globals::lua_editor_parameters_settings_key, ui->lua_editor_parameters_text->text());
+    QSettings{}.setValue(Globals::measurement_equipment_meta_data_path, ui->meta_path_text->text());
 	close();
 }
 

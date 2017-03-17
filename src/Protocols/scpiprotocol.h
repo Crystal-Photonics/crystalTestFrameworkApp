@@ -7,6 +7,7 @@
 #include <memory>
 #include <sol.hpp>
 #include "device_protocols_settings.h"
+#include "scpimetadata.h"
 
 class QTreeWidgetItem;
 
@@ -41,7 +42,7 @@ class SCPIProtocol : public Protocol {
     void get_lua_device_descriptor(sol::table &t) const;
 
     void clear();
-
+    void set_scpi_meta_data(SCPIDeviceType scpi_meta_data);
 
     sol::table get_str(sol::state &lua, std::string request);
     sol::table get_str_param(sol::state &lua, std::string request, std::string argument);
@@ -79,6 +80,7 @@ class SCPIProtocol : public Protocol {
     int retries_per_transmission{2};
     double maximal_acceptable_standard_deviation = 0.1;
     DeviceProtocolSetting &device_protocol_setting;
+    SCPIDeviceType scpi_meta_data;
 };
 
 #endif // RPCPROTOCOL_H

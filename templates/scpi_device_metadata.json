@@ -1,0 +1,33 @@
+{
+	"device_types": [{
+		"device_name": "U1232A",
+		"manual_path": "",
+		"devices": [{
+			"serial_number": "xx",
+			"expery_date": " ",
+			"purchase_date": " ",
+			"blocked": "no",
+			"note": "Erhöhte Toleranz im 5MOhm Bereich",
+			"calibration_certificate_path": " "
+
+		}, {
+			"serial_number": "xy",
+			"expery_date": "",
+			"purchase_date": "",
+			"blocked": "no",
+			"note": "Erhöhte Toleranz im 5MOhm Bereich",
+			"calibration_certificate_path": ""
+		}]
+	}, {
+		"device_name": "HM8150",
+		"manual_path": "",
+		"devices": [{
+			"serial_number": "123",
+			"expery_date": " ",
+			"purchase_date": " ",
+			"blocked": "",
+			"note": "alles OK",
+			"calibration_certificate_path": ""
+		}]
+	}]
+}

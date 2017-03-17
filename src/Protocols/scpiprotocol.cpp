@@ -103,6 +103,24 @@ void SCPIProtocol::get_lua_device_descriptor(sol::table &t) const {
 
 void SCPIProtocol::clear() {}
 
+void SCPIProtocol::set_scpi_meta_data(SCPIDeviceType scpi_meta_data) {
+    this->scpi_meta_data = scpi_meta_data;
+    if (device_data.serial_number == "") {
+        if (scpi_meta_data.devices.count() == 1) {
+            assert(device_data.name == scpi_meta_data.device_name);
+            device_data.serial_number = scpi_meta_data.devices[0].serial_number;
+        }
+    } else {
+        if (scpi_meta_data.devices.count() == 1) {
+            if (device_data.serial_number != scpi_meta_data.devices[0].serial_number) {
+                scpi_meta_data.clear();
+            }
+        } else {
+            scpi_meta_data.clear();
+        }
+    }
+}
+
 bool SCPIProtocol::is_correct_protocol() {
     bool result = false;
     const CommunicationDevice::Duration TIMEOUT = device_protocol_setting.timeout;

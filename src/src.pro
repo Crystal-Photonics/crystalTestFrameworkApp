@@ -50,7 +50,8 @@ HEADERS += \
 	testdescriptionloader.h \
 	testrunner.h \
 	util.h \
-    device_protocols_settings.h
+    device_protocols_settings.h \
+    scpimetadata.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -77,4 +78,5 @@ SOURCES += \
 	testdescriptionloader.cpp \
 	testrunner.cpp \
 	util.cpp \
-    device_protocols_settings.cpp
+    device_protocols_settings.cpp \
+    scpimetadata.cpp
