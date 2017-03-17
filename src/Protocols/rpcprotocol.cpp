@@ -152,7 +152,7 @@ bool RPCProtocol::is_correct_protocol() {
         if (description.has_function("get_device_descriptor")) {
             auto get_device_descriptor_function = RPCRuntimeEncodedFunctionCall{description.get_function("get_device_descriptor")};
             if (get_device_descriptor_function.are_all_values_set()) {
-                descriptor_answer = call_and_wait(get_device_descriptor_function, TIMEOUT);
+                descriptor_answer = call_and_wait(get_device_descriptor_function, device_protocol_setting.timeout);
                 if (descriptor_answer) {
                     device_data = get_description_data(*descriptor_answer);
                 }
