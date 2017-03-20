@@ -8,12 +8,12 @@
 TARGET = crystalTestFrameworkApp
 TEMPLATE = subdirs
 
-SUBDIRS = src
 SUBDIRS += app
-#SUBDIRS += tests
-#SUBDIRS += libs/QtRPT
+SUBDIRS += src
+SUBDIRS += tests
+SUBDIRS += libs/QtRPT
 
 #src.depends = comModules/mocklayer/appPlugin
 app.depends = src
-#tests.depends = src
-
+tests.depends = src
+src.depends = libs/QtRPT
