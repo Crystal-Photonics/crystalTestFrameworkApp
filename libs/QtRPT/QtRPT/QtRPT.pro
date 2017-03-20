@@ -1,3 +1,6 @@
+include(../../../defaults.pri)
+DESTDIR = $$BINDIR
+
 QT += gui xml script sql printsupport
 
 SUBDIRS += $$PWD/zint/backend_qt4
@@ -12,7 +15,7 @@ INCLUDEPATH += ../include
 INCLUDEPATH += ../zint/backend
 INCLUDEPATH += ../zint/backend_qt4
 
-LIBS += -L../zint
+LIBS += -L$$BINDIR
 LIBS += -lQtZint
 
 HEADERS += \

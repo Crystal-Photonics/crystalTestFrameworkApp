@@ -1,4 +1,5 @@
 include(../defaults.pri)
+DESTDIR = $$BINDIR
 
 TEMPLATE = app
 CONFIG += console
@@ -20,31 +21,16 @@ SOURCES += \
 	testqstring.cpp \
 	testScriptEngine.cpp
 
-
 INCLUDEPATH += $$PWD/../libs/googletest/googletest/include
 INCLUDEPATH += $$PWD/../libs/googletest/googlemock/include
 
+LIBS += -L$$BINDIR
 LIBS += -L$$PWD/../libs/googletest/build
 LIBS += -lgmock
 LIBS += -lgtest
 LIBS += -lcrystalTestFrameworkApp
 
-
-LIBS += -L$$OUT_PWD/../src
-
-CONFIG( debug, debug|release ) {
-    # debug
-    LIBS += -L$$OUT_PWD/../src/debug
-} else {
-    # release
-    LIBS += -L$$OUT_PWD/../src/release
-}
-
 COPY_DIR = "$$(UNIXTOOLS)cp -r"
-
-#message($$COPY_DIR)
-#message($$OUT_PWD/)
-#message($$PWD/scripts)
 
 #copies scripts into builds
 

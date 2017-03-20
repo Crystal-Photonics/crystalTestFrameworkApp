@@ -26,10 +26,6 @@ win32 {
 
 DEFINES += SOL_CHECK_ARGUMENTS
 
-QPROTOCOL_INTERPRETER_PATH=$$PWD/libs/qRPCRuntimeParser
-INCLUDEPATH += $$QPROTOCOL_INTERPRETER_PATH/project/src
-include($$QPROTOCOL_INTERPRETER_PATH/qProtocollInterpreter_static.pri)
-
 QMAKE_CXXFLAGS += -Werror
 
 QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable
@@ -38,3 +34,9 @@ QMAKE_CXXFLAGS_RELEASE += -Wunused-function -Wunused-parameter -Wunused-variable
 QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
 #QMAKE_CXXFLAGS_DEBUG += -static-libasan -static-libubsan #some day windows will support a reasonable development environment ...
+
+Debug{
+	BINDIR = $$PWD/bin/debug
+}else{
+	BINDIR = $$PWD/bin/release
+}

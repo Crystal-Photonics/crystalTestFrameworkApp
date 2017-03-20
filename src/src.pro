@@ -1,4 +1,5 @@
 include(../defaults.pri)
+DESTDIR = $$BINDIR
 
 TARGET = crystalTestFrameworkApp
 
@@ -10,18 +11,11 @@ FORMS += \
 	mainwindow.ui \
 	pathsettingswindow.ui
 
+QPROTOCOL_INTERPRETER_PATH=$$PWD/../libs/qRPCRuntimeParser
+INCLUDEPATH += $$QPROTOCOL_INTERPRETER_PATH/project/src
+include($$QPROTOCOL_INTERPRETER_PATH/qProtocollInterpreter_static.pri)
 
-#LIBS += -L$$OUT_PWD/../libs/QtRPT/QtRPT
-CONFIG( debug, debug|release ) {
-    # debug
-    #QMAKE_LIBDIR += "../src/debug"
-    LIBS += -L$$OUT_PWD/../libs/QtRPT/QtRPT/debug
-} else {
-    # release
-    #QMAKE_LIBDIR += "../src/release"
-LIBS += -L$$OUT_PWD/../libs/QtRPT/QtRPT/release
-}
-
+LIBS += -L$$BINDIR
 LIBS += -lQtRPT
 
 HEADERS += \
