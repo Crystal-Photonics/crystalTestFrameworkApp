@@ -22,20 +22,20 @@ struct Data_engine_entry {
 	virtual QString get_display_text() const = 0;
 	virtual ~Data_engine_entry() = default;
 	template <class T>
-	T &as();
+	T *as();
 	template <class T>
-	const T &as() const;
+	const T *as() const;
 	static std::pair<FormID, std::unique_ptr<Data_engine_entry>> from_json(const QJsonObject &object);
 };
 
 template <class T>
-T &Data_engine_entry::Data_engine_entry::as() {
-	return dynamic_cast<T &>(*this);
+T *Data_engine_entry::Data_engine_entry::as() {
+	return dynamic_cast<T *>(this);
 }
 
 template <class T>
-const T &Data_engine_entry::Data_engine_entry::as() const {
-	return dynamic_cast<const T &>(*this);
+const T *Data_engine_entry::Data_engine_entry::as() const {
+	return dynamic_cast<const T *>(this);
 }
 
 struct Numeric_entry : Data_engine_entry {
@@ -44,6 +44,9 @@ struct Numeric_entry : Data_engine_entry {
 	bool is_complete() const override;
 	bool is_in_range() const override;
 	QString get_display_text() const override;
+
+	double get_min_value() const;
+	double get_max_value() const;
 
 	double target_value{};
 	double deviation{};

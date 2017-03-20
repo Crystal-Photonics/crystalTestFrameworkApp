@@ -24,12 +24,10 @@ Data_engine::Data_engine(std::istream &source) {
 		data.push_back(character);
 	}
 	const auto document = QJsonDocument::fromJson(std::move(data));
-	const auto object = document.object();
-	const auto array_object = object[""];
-	if (!array_object.isArray()) {
+	if (!document.isArray()) {
 		throw std::runtime_error("invalid json file");
 	}
-	const auto array = array_object.toArray();
+	const auto array = document.array();
 	for (const auto &array_element : array) {
 		const auto object = array_element.toObject();
 		add_entry(Data_engine_entry::from_json(object));
@@ -53,35 +51,35 @@ bool Data_engine::value_in_range(const FormID &id) const {
 }
 
 void Data_engine::set_actual_number(const FormID &id, double number) {
-	get_entry(id)->as<Numeric_entry>().actual_value = number;
+	get_entry(id)->as<Numeric_entry>()->actual_value = number;
 }
 
 void Data_engine::set_actual_text(const FormID &id, std::string text) {
-	get_entry(id)->as<Text_entry>().actual_value = std::move(text);
+	get_entry(id)->as<Text_entry>()->actual_value = std::move(text);
 }
 
 double Data_engine::get_desired_value(const FormID &id) const {
-	return get_entry(id)->as<Numeric_entry>().target_value;
+	return get_entry(id)->as<Numeric_entry>()->target_value;
 }
 
 double Data_engine::get_desired_absolute_tolerance(const FormID &id) const {
-	return get_entry(id)->as<Numeric_entry>().deviation;
+	return get_entry(id)->as<Numeric_entry>()->deviation;
 }
 
 double Data_engine::get_desired_relative_tolerance(const FormID &id) const {
-	return get_entry(id)->as<Numeric_entry>().deviation / get_entry(id)->as<Numeric_entry>().target_value;
+	return get_entry(id)->as<Numeric_entry>()->deviation / get_entry(id)->as<Numeric_entry>()->target_value;
 }
 
 double Data_engine::get_desired_minimum(const FormID &id) const {
-	return get_entry(id)->as<Numeric_entry>().target_value - get_entry(id)->as<Numeric_entry>().deviation;
+	return get_entry(id)->as<Numeric_entry>()->target_value - get_entry(id)->as<Numeric_entry>()->deviation;
 }
 
 double Data_engine::get_desired_maximum(const FormID &id) const {
-	return get_entry(id)->as<Numeric_entry>().target_value + get_entry(id)->as<Numeric_entry>().deviation;
+	return get_entry(id)->as<Numeric_entry>()->target_value + get_entry(id)->as<Numeric_entry>()->deviation;
 }
 
 const std::string &Data_engine::get_unit(const FormID &id) const {
-	return get_entry(id)->as<Numeric_entry>().unit;
+	return get_entry(id)->as<Numeric_entry>()->unit;
 }
 
 std::unique_ptr<QWidget> Data_engine::get_preview() const {
@@ -95,6 +93,7 @@ std::unique_ptr<QWidget> Data_engine::get_preview() const {
 	if (report.loadReport("test.xml") == false) {
 		return nullptr;
 	}
+	report.recordCount << entries.size();
 	QObject::connect(
 		&report, qOverload<const int, const QString, QVariant &, const int>(&QtRPT::setValue),
 		[this](const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) { setValue(recNo, paramName, paramValue, reportPage); });
@@ -125,11 +124,22 @@ bool Data_engine::entry_compare(FormIdWrapper lhs, FormIdWrapper rhs) {
 }
 
 void Data_engine::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) const {
-	const auto &entry = get_entry(paramName.toStdString());
-	if (entry == nullptr) {
+	if (recNo >= entries.size()) {
 		return;
 	}
-	paramValue = entry->get_display_text();
+	const auto &entry = entries[recNo];
+
+	if (paramName == "Description") {
+		paramValue = QString::fromStdString(entry.first);
+	} else if (paramName == "Value") {
+		paramValue = entry.second->get_display_text();
+	} else if (paramName == "Minimum") {
+		paramValue = QString::number(entry.second->as<Numeric_entry>()->get_min_value());
+	} else if (paramName == "Maximum") {
+		paramValue = QString::number(entry.second->as<Numeric_entry>()->get_max_value());
+	} else if (paramName == "success") {
+		paramValue = entry.second->is_in_range() ? "Ok" : "Fail";
+	}
 }
 
 std::pair<FormID, std::unique_ptr<Data_engine_entry>> Data_engine_entry::from_json(const QJsonObject &object) {
@@ -192,6 +202,14 @@ QString Numeric_entry::get_display_text() const {
 		return QString::number(actual_value.value());
 	}
 	return "";
+}
+
+double Numeric_entry::get_min_value() const {
+	return target_value - deviation;
+}
+
+double Numeric_entry::get_max_value() const {
+	return target_value + deviation;
 }
 
 Text_entry::Text_entry(std::string target_value)
