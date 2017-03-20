@@ -27,7 +27,7 @@ SocketCommunicationDevice::SocketCommunicationDevice()
    receiveSlot = connect(socket, QTcpSocket::readyRead, [this]() { this->receiveData(this->socket->readAll()); });
                                              ^
                                              */
-        receiveSlot = connect(socket, QTcpSocket::readyRead, [this]() { this->receiveData(this->socket->readAll()); });
+        receiveSlot = connect(socket, &QTcpSocket::readyRead, [this]() { this->receiveData(this->socket->readAll()); });
         assert(receiveSlot);
     } else if (type == "server") {
         isServer = true;
@@ -64,8 +64,9 @@ bool SocketCommunicationDevice::awaitConnection(Duration timeout) {
 	return socket->waitForConnected(timeout.count());
 }
 
-bool SocketCommunicationDevice::waitReceived(Duration timeout, int bytes) {
+bool SocketCommunicationDevice::waitReceived(Duration timeout, int bytes, bool isPolling) {
 	(void)bytes; //TODO: fix it so it waits for [bytes] until [timeout]
+    (void)isPolling;
 	return socket->waitForReadyRead(std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count());
 }
 

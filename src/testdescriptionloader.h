@@ -4,6 +4,7 @@
 #include <QString>
 #include <memory>
 #include <vector>
+#include "scriptengine.h"
 
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -14,7 +15,7 @@ class TestDescriptionLoader {
 	TestDescriptionLoader(QTreeWidget *test_list, const QString &file_path, const QString &display_name);
 	TestDescriptionLoader(TestDescriptionLoader &&other);
 	~TestDescriptionLoader();
-	const std::vector<QString> &get_protocols() const;
+    const std::vector<DeviceRequirements> &get_protocols() const;
 	std::unique_ptr<QPlainTextEdit> console;
 	std::unique_ptr<QTreeWidgetItem> ui_entry;
 	const QString &get_name() const;
@@ -26,7 +27,7 @@ class TestDescriptionLoader {
 	void load_description();
 	QString name;
 	QString file_path;
-	std::vector<QString> protocols;
+    std::vector<DeviceRequirements> protocols;
 };
 
 #endif // TESTDESCRIPTIONLOADER_H

@@ -21,7 +21,7 @@ void DeviceWorker::poll_ports() {
         for (auto &device : comport_devices) {
             if (device.device->isConnected()) {
                 if (device.device->is_waiting_for_message() == false) {
-                    device.device->waitReceived(CommunicationDevice::Duration{0}, 1);
+                   // device.device->waitReceived(CommunicationDevice::Duration{0}, 1, true);
                 }
             }
         }

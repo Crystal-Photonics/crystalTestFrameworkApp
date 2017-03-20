@@ -19,7 +19,7 @@ class EXPORT CommunicationDevice : public QObject {
     virtual ~CommunicationDevice() = default;
     static std::unique_ptr<CommunicationDevice> createConnection(const QString &target);
     virtual bool isConnected() = 0;
-    virtual bool waitReceived(Duration timeout = std::chrono::seconds(1), int bytes = 1) = 0;
+    virtual bool waitReceived(Duration timeout = std::chrono::seconds(1), int bytes = 1, bool isPolling = false) = 0;
     virtual bool waitReceived(Duration timeout, std::string escape_characters, std::string leading_pattern_indicating_skip_line) = 0;
     virtual void send(const QByteArray &data, const QByteArray &displayed_data = {}) = 0;
     void send(const std::vector<unsigned char> &data, const std::vector<unsigned char> &displayed_data = {});
@@ -27,6 +27,7 @@ class EXPORT CommunicationDevice : public QObject {
     bool operator==(const QString &target) const;
     const QString &getTarget() const;
     bool is_waiting_for_message() const;
+    void set_currently_in_wait_received(bool in_wait_received);
 
     signals:
     void connected();
@@ -39,7 +40,7 @@ class EXPORT CommunicationDevice : public QObject {
     public slots:
     protected:
     QString target;
-    bool currently_in_waitReceived = false;
+    bool currently_in_waitReceived;
 };
 
 #endif // COMMUNICATIONDEVICE_H

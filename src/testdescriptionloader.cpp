@@ -35,7 +35,7 @@ TestDescriptionLoader::TestDescriptionLoader(TestDescriptionLoader &&other)
 
 TestDescriptionLoader::~TestDescriptionLoader() {}
 
-const std::vector<QString> &TestDescriptionLoader::get_protocols() const {
+const std::vector<DeviceRequirements> &TestDescriptionLoader::get_protocols() const {
 	return protocols;
 }
 
@@ -59,11 +59,13 @@ void TestDescriptionLoader::load_description() {
 	ui_entry->setText(1, "");
 	try {
 		ScriptEngine script{nullptr, nullptr};
-		script.load_script(file_path);
-		auto prots = script.get_string_list("protocols");
-		protocols.clear();
-		std::copy(prots.begin(), prots.end(), std::back_inserter(protocols));
-		ui_entry->setText(1, prots.join(", "));
+        script.load_script(file_path);
+        //auto prots = script.get_string_list("protocols");
+        protocols.clear();
+        protocols =  script.get_device_requirement_list("device_requirements");
+
+        //std::copy(prots.begin(), prots.end(), std::back_inserter(protocols));
+        //ui_entry->setText(1, prots.join(", "));
 	} catch (const std::runtime_error &e) {
 		Console::error(console) << "Failed loading protocols: " << e.what();
 	}

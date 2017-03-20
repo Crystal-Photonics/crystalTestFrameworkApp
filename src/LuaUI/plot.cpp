@@ -212,7 +212,7 @@ void Plot::clear() {
 }
 
 void Plot::set_x_marker(const std::string &title, double xpos, const Color &color) {
-    const int Y_AXIS_STEP = 10;
+    //
     auto marker = new QwtPlotMarker{title.c_str()};
     if (title.empty() == false) {
         marker->setLabel(QString::fromStdString(title));
@@ -223,6 +223,7 @@ void Plot::set_x_marker(const std::string &title, double xpos, const Color &colo
     marker->setLabelOrientation(Qt::Orientation::Vertical);
     marker->attach(plot);
 #if 0
+    const int Y_AXIS_STEP = 10;
     int i = 0;
     double plot_y_min = plot->axisScaleDiv(QwtPlot::Axis::yLeft).lowerBound();
     double plot_y_max = plot->axisScaleDiv(QwtPlot::Axis::yLeft).upperBound();

@@ -5,6 +5,7 @@
 
 #include <QByteArray>
 #include <QDateTime>
+#include <QDateTime>
 #include <QDebug>
 #include <QDir>
 #include <QDirIterator>
@@ -25,7 +26,8 @@ static void set_display_data(QTreeWidgetItem *item, const SCPI_Device_Data &data
 
 QString SCPI_Device_Data::get_summary() const {
     QStringList statustip;
-    for (auto &d : get_description_source()) {
+    auto ds = get_description_source();
+    for (auto &d : ds) {
         if (d.source.isEmpty() == false) {
             statustip << d.description + ": " + d.source;
         }
@@ -35,12 +37,39 @@ QString SCPI_Device_Data::get_summary() const {
 
 void SCPI_Device_Data::get_lua_data(sol::table &t) const {
     for (auto &d : get_description_source()) {
-        t.set(d.description.toStdString(), d.source.toStdString());
+        t.set(d.name.toStdString(), d.source.toStdString());
     }
 }
 
 std::vector<SCPI_Device_Data::Description_source> SCPI_Device_Data::get_description_source() const {
-    return {{"Manufacturer", manufacturer}, {"Name", name}, {"Serialnumber", serial_number}, {"Version", version}};
+    QString expery_date_str = expery_date.toString("yyyy.MM.dd");
+    QString blocked_str = "";
+    QString valid_str = "";
+    if (metadata_valid) {
+        valid_str = "ok";
+        if (blocked) {
+            blocked_str = "approved";
+        } else {
+            blocked_str = "unapproved";
+        }
+        if ((QDateTime().currentDateTime() > QDateTime(expery_date)) && (expery_date.isValid())) {
+            blocked_str = "calibration expired";
+        }
+    } else {
+        valid_str = "failed";
+    }
+    if (!expery_date.isValid()) {
+        expery_date_str = "never";
+    }
+    return {
+        {"Manufacturer", "Manufacturer", manufacturer},                            //
+        {"Name", "Name", name},                                                    //
+        {"Serialnumber", "Serialnumber", serial_number},                           //
+        {"Version", "Version", version},                                           //
+        {"Calibration_expery_date", "Calibration expery date", expery_date_str},   //
+        {"Calibration_approved_state", "Calibration approved state", blocked_str}, //
+        {"Metadata_found", "Metadata found", valid_str}                            //
+    };
 }
 
 SCPIProtocol::SCPIProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting)
@@ -104,20 +133,34 @@ void SCPIProtocol::get_lua_device_descriptor(sol::table &t) const {
 void SCPIProtocol::clear() {}
 
 void SCPIProtocol::set_scpi_meta_data(SCPIDeviceType scpi_meta_data) {
-    this->scpi_meta_data = scpi_meta_data;
+    bool match_is_ok = false;
+    //this->scpi_meta_data = scpi_meta_data;
     if (device_data.serial_number == "") {
         if (scpi_meta_data.devices.count() == 1) {
             assert(device_data.name == scpi_meta_data.device_name);
-            device_data.serial_number = scpi_meta_data.devices[0].serial_number;
+            match_is_ok = true;
         }
     } else {
         if (scpi_meta_data.devices.count() == 1) {
             if (device_data.serial_number != scpi_meta_data.devices[0].serial_number) {
-                scpi_meta_data.clear();
+                //scpi_meta_data.clear();
+            } else {
+                match_is_ok = true;
             }
         } else {
-            scpi_meta_data.clear();
+            //scpi_meta_data.clear();
         }
+    }
+    if (match_is_ok) {
+        device_data.metadata_valid = true;
+        device_data.serial_number = scpi_meta_data.devices[0].serial_number;
+        device_data.expery_date = scpi_meta_data.devices[0].expery_date;
+        device_data.purchase_date = scpi_meta_data.devices[0].purchase_date;
+        device_data.manual_path = scpi_meta_data.manual_path;
+        device_data.calibration_certificate_path = scpi_meta_data.devices[0].calibration_certificate_path;
+        device_data.note = scpi_meta_data.devices[0].note;
+    } else {
+        device_data.metadata_valid = false;
     }
 }
 
@@ -161,7 +204,7 @@ bool SCPIProtocol::send_scpi_request(Duration timeout, std::string request, bool
     bool cancel_request = false;
     bool success = false;
     request = request + escape_characters;
-
+    device->set_currently_in_wait_received(true);
     QString event{QString().fromStdString(event_indicator)};
     event = clean_up_regex_with_escape_characters(event);
     QString request_regex = clean_up_regex_with_escape_characters(QString().fromStdString(request));
@@ -238,6 +281,9 @@ QStringList SCPIProtocol::get_str_param_raw(std::string request, std::string arg
             str = str.trimmed();
             result.append(str);
         }
+    } else {
+        long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(device_protocol_setting.pause_after_discovery_flush).count();
+        qDebug() << "timeout " << ms << "ms received for " + QString().fromStdString(request);
     }
     return result;
 }

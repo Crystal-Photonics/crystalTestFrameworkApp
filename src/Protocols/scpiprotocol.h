@@ -16,14 +16,22 @@ struct SCPI_Device_Data {
     QString manufacturer;
     QString name;
     QString version;
+    QDate expery_date;
+    QDate purchase_date;
+    bool blocked;
+    bool metadata_valid;
+    QString manual_path;
+    QString calibration_certificate_path;
+    QString note;
 
     QString get_summary() const;
     void get_lua_data(sol::table &t) const;
 
     private:
     struct Description_source {
+        QString name;
         QString description;
-        const QString &source;
+        const QString source;
     };
     std::vector<Description_source> get_description_source() const;
 };
@@ -79,8 +87,8 @@ class SCPIProtocol : public Protocol {
 
     int retries_per_transmission{2};
     double maximal_acceptable_standard_deviation = 0.1;
-    DeviceProtocolSetting &device_protocol_setting;
-    SCPIDeviceType scpi_meta_data;
+    DeviceProtocolSetting device_protocol_setting;
+    //SCPIDeviceType scpi_meta_data;
 };
 
 #endif // RPCPROTOCOL_H

@@ -219,7 +219,7 @@ static Utility::Optional<std::vector<std::pair<CommunicationDevice *, Protocol *
 	std::vector<std::pair<CommunicationDevice *, Protocol *>> devices;
 	for (auto &protocol : test.get_protocols()) {
 		//TODO: do not only loop over comport_devices, but other devices as well
-		std::vector<ComportDescription *> candidates = device_worker.get_devices_with_protocol(protocol);
+        std::vector<ComportDescription *> candidates = device_worker.get_devices_with_protocol(protocol.protocol_name);
 		//TODO: skip over candidates that are already in use
 
 		switch (candidates.size()) {
@@ -227,7 +227,7 @@ static Utility::Optional<std::vector<std::pair<CommunicationDevice *, Protocol *
 				//failed to find suitable device
 				Console::error(runner.console) << QObject::tr(
 													  "The selected test \"%1\" requires a device with protocol \"%2\", but no such device is available.")
-													  .arg(test.get_name(), protocol);
+                                                      .arg(test.get_name(), protocol.protocol_name);
 				return {};
 			case 1:
 				//found the only viable option

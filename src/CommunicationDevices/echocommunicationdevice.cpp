@@ -14,10 +14,11 @@ bool EchoCommunicationDevice::isConnected() {
 	return true;
 }
 
-bool EchoCommunicationDevice::waitReceived(Duration timeout, int bytes) {
+bool EchoCommunicationDevice::waitReceived(Duration timeout, int bytes, bool isPolling) {
 	//TODO: actually wait
 	(void)timeout;
 	(void)bytes;
+    (void)isPolling;
 	return true;
 }
 
@@ -25,6 +26,7 @@ bool EchoCommunicationDevice::waitReceived(Duration timeout, std::string escape_
     //TODO: actually wait
     (void)timeout;
     (void)escape_characters;
+    (void)leading_pattern_indicating_skip_line;
     return true;
 }
 

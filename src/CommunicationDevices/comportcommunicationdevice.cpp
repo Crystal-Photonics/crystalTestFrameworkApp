@@ -3,10 +3,10 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <QString>
 #include <cassert>
 #include <regex>
 #include <string>
-#include <QString>
 
 ComportCommunicationDevice::ComportCommunicationDevice(QString target) {
     this->target = target;
@@ -24,7 +24,7 @@ bool ComportCommunicationDevice::connect(const QSerialPortInfo &portinfo, QSeria
     });
 }
 
-bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes) {
+bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes, bool isPolling) {
     auto now = std::chrono::high_resolution_clock::now();
     int received_bytes = 0;
     auto try_read = [this, &received_bytes] {
@@ -37,12 +37,16 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes) {
             received_bytes += result.size();
         }
     };
-    currently_in_waitReceived = true;
+    if (!isPolling) {
+        currently_in_waitReceived = true;
+    }
     do {
         try_read();
     } while (received_bytes < bytes && std::chrono::high_resolution_clock::now() - now < timeout);
     try_read();
-    currently_in_waitReceived = false;
+    if (!isPolling) {
+        currently_in_waitReceived = false;
+    }
     return received_bytes >= bytes;
 }
 
@@ -66,17 +70,16 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
     currently_in_waitReceived = true;
     bool escape_found = false;
     bool run = true;
-    auto now = std::chrono::high_resolution_clock::now();
     std::regex word_regex;
-    try{
+    try {
         word_regex = leading_pattern_indicating_skip_line;
+    } catch (std::regex_error &e) {
+        qDebug() << "faulty regex: " + QString().fromStdString(leading_pattern_indicating_skip_line);
+        qDebug() << "error: " + QString().fromStdString(std::string(e.what()));
     }
-    catch(std::regex_error& e){
-        qDebug() << "faulty regex: " +QString().fromStdString(leading_pattern_indicating_skip_line) ;
-        qDebug() << "error: " +QString().fromStdString(std::string(e.what())) ;
-    }
-
+    auto now = std::chrono::high_resolution_clock::now();
     do {
+        QThread().currentThread()->usleep(100);
         if (port.bytesAvailable()) {
             //     now = std::chrono::high_resolution_clock::now();
         }
@@ -93,7 +96,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
 
             if ((!leading_pattern_indicating_skip_line.empty()) && skipline_match > 0) {
                 //if ((!leading_pattern_indicating_skip_line.empty()) && in_str.startsWith(QString::fromStdString(leading_pattern_indicating_skip_line))){
-                now = std::chrono::high_resolution_clock::now();
+                 now = std::chrono::high_resolution_clock::now();
             } else {
                 run = false;
             }

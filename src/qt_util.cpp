@@ -29,6 +29,7 @@ void Event_filter::clear() {
 }
 
 bool Event_filter::eventFilter(QObject *object, QEvent *ev) {
+    (void)object;
 	bool retval = false;
 	for (auto &function : callbacks) {
 		retval |= function(ev);

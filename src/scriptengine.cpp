@@ -530,6 +530,7 @@ void ScriptEngine::load_script(const QString &path) {
                     Utility::thread_call(MainWindow::mw, [&lua_curve, thread, x_selection_promise = &x_selection_promise ]() mutable {
                         Curve &curve = MainWindow::mw->get_lua_UI_class<Curve>(lua_curve.id);
                         curve.set_onetime_click_callback([thread, x_selection_promise](double x, double y) mutable {
+                            (void)y;
                             x_selection_promise->set_value(x);
                             Utility::thread_call(thread, [thread] { thread->exit(1234); });
                         });
@@ -671,6 +672,55 @@ QStringList ScriptEngine::get_string_list(const QString &name) {
         throw;
     }
     return retval;
+}
+
+std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const QString &name) {
+    std::vector<DeviceRequirements> result{};
+    sol::table protocol_entries = lua->get<sol::table>(name.toStdString());
+    try {
+        if (protocol_entries.valid() == false) {
+            return result;
+        }
+        for (auto &protocol_entry : protocol_entries) {
+            DeviceRequirements item{};
+            sol::table protocol_entry_table = protocol_entry.second.as<sol::table>();
+            for (auto &protocol_entry_field : protocol_entry_table) {
+                if (protocol_entry_field.first.as<std::string>() == "protocol") {
+                    item.protocol_name = QString().fromStdString(protocol_entry_field.second.as<std::string>());
+                } else if (protocol_entry_field.first.as<std::string>() == "device_names") {
+                    if (protocol_entry_field.second.get_type() == sol::type::table) {
+                        sol::table device_names = protocol_entry_field.second.as<sol::table>();
+                        for (auto &device_name : device_names) {
+                            std::string str = device_name.second.as<std::string>();
+                            item.device_names.append(QString().fromStdString(str));
+                        }
+                    }
+                    if (protocol_entry_field.second.get_type() == sol::type::string) {
+                        std::string str = protocol_entry_field.second.as<std::string>();
+                        item.device_names.append(QString().fromStdString(str));
+                    }
+                } else if (protocol_entry_field.first.as<std::string>() == "quantity") {
+                    if (protocol_entry_field.second.get_type() == sol::type::string) {
+                        std::string str = protocol_entry_field.second.as<std::string>();
+                        QString qstr = QString().fromStdString(str);
+                        bool ok= false;
+
+                        item.quantity = qstr.toInt(&ok);
+                        if (ok == false){
+                            item.quantity = INT_MAX;
+                        }
+                    } else if (protocol_entry_field.second.get_type() == sol::type::number){
+                        item.quantity = protocol_entry_field.second.as<int>();
+                    }
+                }
+            }
+            result.push_back(item);
+        }
+    } catch (const sol::error &error) {
+        set_error(error);
+        throw;
+    }
+    return result;
 }
 
 void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices) {
