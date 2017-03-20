@@ -282,7 +282,7 @@ QStringList SCPIProtocol::get_str_param_raw(std::string request, std::string arg
             result.append(str);
         }
     } else {
-        long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(device_protocol_setting.pause_after_discovery_flush).count();
+        long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(device_protocol_setting.timeout).count();
         qDebug() << "timeout " << ms << "ms received for " + QString().fromStdString(request);
     }
     return result;
