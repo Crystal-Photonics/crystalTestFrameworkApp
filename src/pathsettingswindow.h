@@ -25,6 +25,8 @@ class PathSettingsWindow : public QDialog {
 
 	void on_lua_editor_path_selector_clicked();
 
+	void on_meta_path_selector_clicked();
+
 	private:
 	Ui::PathSettingsWindow *ui;
 };

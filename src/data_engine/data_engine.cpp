@@ -1,6 +1,7 @@
 #include "data_engine.h"
 #include "util.h"
 
+#include <QApplication>
 #include <QByteArray>
 #include <QDebug>
 #include <QJsonArray>
@@ -82,15 +83,25 @@ double Data_engine::get_desired_maximum(const FormID &id) const {
 const std::string &Data_engine::get_unit(const FormID &id) const {
 	return get_entry(id)->as<Numeric_entry>().unit;
 }
-#if 1
+
 std::unique_ptr<QWidget> Data_engine::get_preview() const {
+	int argc = 1;
+	char executable[] = "";
+	char *executable2 = executable;
+	char **argv = &executable2;
+	QApplication app(argc, argv);
 
 	QtRPT report;
+	if (report.loadReport("test.xml") == false) {
+		return nullptr;
+	}
+	QObject::connect(
+		&report, qOverload<const int, const QString, QVariant &, const int>(&QtRPT::setValue),
+		[this](const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) { setValue(recNo, paramName, paramValue, reportPage); });
 	report.printExec();
 
     return nullptr;
 }
-#endif
 
 void Data_engine::add_entry(std::pair<FormID, std::unique_ptr<Data_engine_entry>> &&entry) {
 	auto pos = std::lower_bound(std::begin(entries), std::end(entries), entry, entry_compare);
@@ -111,6 +122,14 @@ const Data_engine_entry *Data_engine::get_entry(const FormID &id) const {
 
 bool Data_engine::entry_compare(FormIdWrapper lhs, FormIdWrapper rhs) {
 	return lhs.value < rhs.value;
+}
+
+void Data_engine::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) const {
+	const auto &entry = get_entry(paramName.toStdString());
+	if (entry == nullptr) {
+		return;
+	}
+	paramValue = entry->get_display_text();
 }
 
 std::pair<FormID, std::unique_ptr<Data_engine_entry>> Data_engine_entry::from_json(const QJsonObject &object) {
@@ -168,6 +187,13 @@ bool Numeric_entry::is_in_range() const {
 	return is_complete() && std::abs(actual_value.value() - target_value) <= deviation;
 }
 
+QString Numeric_entry::get_display_text() const {
+	if (*actual_value) {
+		return QString::number(actual_value.value());
+	}
+	return "";
+}
+
 Text_entry::Text_entry(std::string target_value)
 	: target_value(std::move(target_value)) {}
 
@@ -177,4 +203,8 @@ bool Text_entry::is_complete() const {
 
 bool Text_entry::is_in_range() const {
 	return is_complete() && actual_value.value() == target_value;
+}
+
+QString Text_entry::get_display_text() const {
+	return QString::fromStdString(actual_value.value_or(""));
 }
