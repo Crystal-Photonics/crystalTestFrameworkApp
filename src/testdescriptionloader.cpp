@@ -60,12 +60,15 @@ void TestDescriptionLoader::load_description() {
 	try {
 		ScriptEngine script{nullptr, nullptr};
         script.load_script(file_path);
-        //auto prots = script.get_string_list("protocols");
         device_requirements.clear();
         device_requirements =  script.get_device_requirement_list("device_requirements");
 
-        //std::copy(prots.begin(), prots.end(), std::back_inserter(protocols));
-        //ui_entry->setText(1, prots.join(", "));
+		QStringList reqs;
+		for (auto &device_requirement : device_requirements){
+			reqs << device_requirement.get_description();
+		}
+
+		ui_entry->setText(1, reqs.join(", "));
 	} catch (const std::runtime_error &e) {
 		Console::error(console) << "Failed loading protocols: " << e.what();
 	}

@@ -191,12 +191,7 @@
            </column>
            <column>
             <property name="text">
-             <string>Protocols</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>Device Names</string>
+             <string>Device Requirements</string>
             </property>
            </column>
            <column>

@@ -793,3 +793,15 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
         throw;
     }
 }
+
+QString DeviceRequirements::get_description() const {
+	QString quantity;
+	if (quantity_max == INT_MAX) {
+		quantity = "(" + QString::number(quantity_min) + "+)";
+	} else if (quantity_min == quantity_max) {
+		quantity = "(" + QString::number(quantity_min) + ")";
+	} else {
+		quantity = "(" + QString::number(quantity_min) + "-" + QString::number(quantity_max) + ")";
+	}
+	return device_names.join("/") + " " + quantity;
+}
