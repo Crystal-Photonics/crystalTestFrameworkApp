@@ -15,7 +15,7 @@ class TestDescriptionLoader {
 	TestDescriptionLoader(QTreeWidget *test_list, const QString &file_path, const QString &display_name);
 	TestDescriptionLoader(TestDescriptionLoader &&other);
 	~TestDescriptionLoader();
-    const std::vector<DeviceRequirements> &get_protocols() const;
+    const std::vector<DeviceRequirements> &get_device_requirements() const;
 	std::unique_ptr<QPlainTextEdit> console;
 	std::unique_ptr<QTreeWidgetItem> ui_entry;
 	const QString &get_name() const;
@@ -27,7 +27,7 @@ class TestDescriptionLoader {
 	void load_description();
 	QString name;
 	QString file_path;
-    std::vector<DeviceRequirements> protocols;
+    std::vector<DeviceRequirements> device_requirements;
 };
 
 #endif // TESTDESCRIPTIONLOADER_H

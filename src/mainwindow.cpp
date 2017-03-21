@@ -214,80 +214,97 @@ void MainWindow::on_console_tabs_tabCloseRequested(int index) {
     });
 }
 
+enum class MatchDefinitionState { OverDefined, UnderDefined, FullDefined };
+
+std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::vector<ComportDescription *> candidates, TestRunner &runner) {
+    std::vector<std::pair<CommunicationDevice *, Protocol *>> devices;
+    for (auto device : candidates) {
+        auto rpc_protocol = dynamic_cast<RPCProtocol *>(device->protocol.get());
+        auto scpi_protocol = dynamic_cast<SCPIProtocol *>(device->protocol.get());
+        if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
+            sol::optional<std::string> message;
+            try {
+                sol::table table = runner.create_table();
+                rpc_protocol->get_lua_device_descriptor(table);
+                message = runner.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
+            } catch (const sol::error &e) {
+                const auto &message = QObject::tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
+                Console::error(runner.console) << message;
+                return {};
+            }
+            if (message) {
+                //device incompatible, reason should be inside of message
+                Console::note(runner.console) << QObject::tr("Device rejected:") << message.value();
+                return {};
+            } else {
+                //acceptable device found
+                devices.emplace_back(device->device.get(), device->protocol.get());
+            }
+        } else if (scpi_protocol) {
+            sol::optional<std::string> message;
+            try {
+                sol::table table = runner.create_table();
+                scpi_protocol->get_lua_device_descriptor(table);
+                message = runner.call<sol::optional<std::string>>("SCPI_acceptable", std::move(table));
+            } catch (const sol::error &e) {
+                const auto &message = QObject::tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
+                Console::error(runner.console) << message;
+                return {};
+            }
+            if (message) {
+                //device incompatible, reason should be inside of message
+                Console::note(runner.console) << QObject::tr("Device rejected:") << message.value();
+                return {};
+            } else {
+                //acceptable device found
+                devices.emplace_back(device->device.get(), device->protocol.get());
+            }
+        } else {
+            assert(!"TODO: handle non-RPC/SCPI protocol");
+        }
+    }
+    return devices;
+}
+
 static Utility::Optional<std::vector<std::pair<CommunicationDevice *, Protocol *>>> get_script_communication(DeviceWorker &device_worker, TestRunner &runner,
+
                                                                                                              TestDescriptionLoader &test) {
     std::vector<std::pair<CommunicationDevice *, Protocol *>> devices;
-    //std::vector<ComportDescription *> candidates = device_worker.get_devices_with_protocol(protocol.protocol_name);
 
-    if (test.get_protocols().size() ) {
-    }
-
-    ///if (test.get_protocols().size() == runner.size()) {
-
-    //  } else {
-    for (auto &protocol : test.get_protocols()) {
+    for (auto &device_requirement : test.get_device_requirements()) {
+        std::vector<std::pair<CommunicationDevice *, Protocol *>> accepted_candidates;
         //TODO: do not only loop over comport_devices, but other devices as well
-        std::vector<ComportDescription *> candidates = device_worker.get_devices_with_protocol(protocol.protocol_name, protocol.device_names);
-        //TODO: skip over candidates that are already in use
+        {
+            std::vector<ComportDescription *> candidates =
+                device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
 
-        //if
-        switch (candidates.size()) {
-            case 0:
+           // candidates.
+            //TODO: skip over candidates that are already in use
+
+            accepted_candidates = test_acceptances(candidates, runner);
+        }
+        MatchDefinitionState match_definition = MatchDefinitionState::UnderDefined;
+        if ((device_requirement.quantity_min <= (int)accepted_candidates.size()) && ((int)accepted_candidates.size() <= device_requirement.quantity_max)) {
+            match_definition = MatchDefinitionState::FullDefined;
+        } else if ((int)accepted_candidates.size() > device_requirement.quantity_max) {
+            match_definition = MatchDefinitionState::OverDefined;
+        } else if ((int)accepted_candidates.size() < device_requirement.quantity_min) {
+            match_definition = MatchDefinitionState::UnderDefined;
+        }
+        switch (match_definition) {
+            case MatchDefinitionState::UnderDefined:
                 //failed to find suitable device
                 Console::error(runner.console) << QObject::tr(
                                                       "The selected test \"%1\" requires a device with protocol \"%2\", but no such device is available.")
-                                                      .arg(test.get_name(), protocol.protocol_name);
+                                                      .arg(test.get_name(), device_requirement.protocol_name);
                 return {};
-            case 1:
+            case MatchDefinitionState::FullDefined:
                 //found the only viable option
                 {
-                    auto &device = *candidates.front();
-                    auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
-                    auto scpi_protocol = dynamic_cast<SCPIProtocol *>(device.protocol.get());
-                    if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
-                        sol::optional<std::string> message;
-                        try {
-                            sol::table table = runner.create_table();
-                            rpc_protocol->get_lua_device_descriptor(table);
-                            message = runner.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
-                        } catch (const sol::error &e) {
-                            const auto &message = QObject::tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
-                            Console::error(runner.console) << message;
-                            return {};
-                        }
-                        if (message) {
-                            //device incompatible, reason should be inside of message
-                            Console::note(runner.console) << QObject::tr("Device rejected:") << message.value();
-                            return {};
-                        } else {
-                            //acceptable device found
-                            devices.emplace_back(device.device.get(), device.protocol.get());
-                        }
-                    } else if (scpi_protocol) {
-                        sol::optional<std::string> message;
-                        try {
-                            sol::table table = runner.create_table();
-                            scpi_protocol->get_lua_device_descriptor(table);
-                            message = runner.call<sol::optional<std::string>>("SCPI_acceptable", std::move(table));
-                        } catch (const sol::error &e) {
-                            const auto &message = QObject::tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
-                            Console::error(runner.console) << message;
-                            return {};
-                        }
-                        if (message) {
-                            //device incompatible, reason should be inside of message
-                            Console::note(runner.console) << QObject::tr("Device rejected:") << message.value();
-                            return {};
-                        } else {
-                            //acceptable device found
-                            devices.emplace_back(device.device.get(), device.protocol.get());
-                        }
-                    } else {
-                        assert(!"TODO: handle non-RPC protocol");
-                    }
+                    devices.insert(devices.end(), accepted_candidates.begin(), accepted_candidates.end()); //
                 }
                 break;
-            default:
+            case MatchDefinitionState::OverDefined:
                 //found multiple viable options
                 QMessageBox::critical(MainWindow::mw, "TODO", "TODO: implementation for multiple viable device options");
                 return {};

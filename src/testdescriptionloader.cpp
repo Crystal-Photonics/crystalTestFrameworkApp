@@ -29,14 +29,14 @@ TestDescriptionLoader::TestDescriptionLoader(TestDescriptionLoader &&other)
 	, ui_entry(std::move(other.ui_entry))
 	, name(std::move(other.name))
 	, file_path(std::move(other.file_path))
-	, protocols(std::move(other.protocols)) {
+    , device_requirements(std::move(other.device_requirements)) {
 	ui_entry->setData(0, Qt::UserRole, Utility::make_qvariant(this));
 }
 
 TestDescriptionLoader::~TestDescriptionLoader() {}
 
-const std::vector<DeviceRequirements> &TestDescriptionLoader::get_protocols() const {
-	return protocols;
+const std::vector<DeviceRequirements> &TestDescriptionLoader::get_device_requirements() const {
+    return device_requirements;
 }
 
 const QString &TestDescriptionLoader::get_name() const {
@@ -61,8 +61,8 @@ void TestDescriptionLoader::load_description() {
 		ScriptEngine script{nullptr, nullptr};
         script.load_script(file_path);
         //auto prots = script.get_string_list("protocols");
-        protocols.clear();
-        protocols =  script.get_device_requirement_list("device_requirements");
+        device_requirements.clear();
+        device_requirements =  script.get_device_requirement_list("device_requirements");
 
         //std::copy(prots.begin(), prots.end(), std::back_inserter(protocols));
         //ui_entry->setText(1, prots.join(", "));
