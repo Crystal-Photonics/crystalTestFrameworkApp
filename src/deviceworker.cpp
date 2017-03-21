@@ -230,23 +230,32 @@ std::vector<ComportDescription *> DeviceWorker::get_devices_with_protocol(const 
             if (device.protocol == nullptr) {
                 continue;
             }
+            auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
+            auto scpi_protocol = dynamic_cast<SCPIProtocol *>(device.protocol.get());
+
             bool device_name_match = false;
-            if (device_names.indexOf(device.protocol->device_name) > -1) {
-                device_name_match = true;
+            QString device_name;
+            if (scpi_protocol) {
+                device_name = QString().fromStdString(scpi_protocol->get_name());
+            }else if (rpc_protocol) {
+                device_name = QString().fromStdString(rpc_protocol->get_name());
             }
-            if (device_names.count() == 0) {
-                device_name_match = true;
-            }
-            for (auto s:device_names) {
-                if (s == "*") {
+                if (device_names.indexOf(device_name) > -1) {
                     device_name_match = true;
-                    break;
                 }
-                if (s == "") {
+                if (device_names.count() == 0) {
                     device_name_match = true;
-                    break;
                 }
-            }
+                for (auto s : device_names) {
+                    if (s == "*") {
+                        device_name_match = true;
+                        break;
+                    }
+                    if (s == "") {
+                        device_name_match = true;
+                        break;
+                    }
+                }
             if ((device.protocol->type == protocol) && (device_name_match)) {
                 candidates.push_back(&device);
             }

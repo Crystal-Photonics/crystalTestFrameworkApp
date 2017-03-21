@@ -155,7 +155,6 @@ bool RPCProtocol::is_correct_protocol() {
                 descriptor_answer = call_and_wait(get_device_descriptor_function, device_protocol_setting.timeout);
                 if (descriptor_answer) {
                     device_data = get_description_data(*descriptor_answer);
-                    device_name = device_data.name;
                 }
             } else {
                 Console::note() << "RPC-function \"get_device_descriptor\" requires unknown parameters";
@@ -242,4 +241,9 @@ void RPCProtocol::clear() {
         channel_codec.pop_completed_transfer();
     }
     channel_codec.reset_current_transfer();
+}
+
+std::string RPCProtocol::get_name()
+{
+    return device_data.name.toStdString();
 }
