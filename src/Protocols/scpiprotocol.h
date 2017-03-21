@@ -52,6 +52,7 @@ class SCPIProtocol : public Protocol {
     void clear();
     void set_scpi_meta_data(SCPIDeviceType scpi_meta_data);
 
+
     sol::table get_str(sol::state &lua, std::string request);
     sol::table get_str_param(sol::state &lua, std::string request, std::string argument);
     double get_num(std::string request);

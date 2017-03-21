@@ -164,6 +164,8 @@ void SCPIProtocol::set_scpi_meta_data(SCPIDeviceType scpi_meta_data) {
     }
 }
 
+
+
 bool SCPIProtocol::is_correct_protocol() {
     bool result = false;
     const CommunicationDevice::Duration TIMEOUT = device_protocol_setting.timeout;
@@ -263,6 +265,7 @@ void SCPIProtocol::load_idn_string(std::string idn) {
         device_data.version = idn_nodes[1];
         device_data.serial_number.clear();
     }
+    device_name = device_data.name;
 }
 
 QStringList SCPIProtocol::get_str_param_raw(std::string request, std::string argument) {

@@ -21,7 +21,7 @@ void DeviceWorker::poll_ports() {
         for (auto &device : comport_devices) {
             if (device.device->isConnected()) {
                 if (device.device->is_waiting_for_message() == false) {
-                   // device.device->waitReceived(CommunicationDevice::Duration{0}, 1, true);
+                    device.device->waitReceived(CommunicationDevice::Duration{0}, 1, true);
                 }
             }
         }
@@ -57,11 +57,10 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
     DeviceProtocolsSettings device_protocol_settings{device_protocol_settings_file};
     scpi_meta_data.reload(QSettings{}.value(Globals::measurement_equipment_meta_data_path, "").toString());
 
-    auto & rpc_devices = device_protocol_settings.protocols_rpc;
-    auto & scpi_devices = device_protocol_settings.protocols_scpi;
+    auto &rpc_devices = device_protocol_settings.protocols_rpc;
+    auto &scpi_devices = device_protocol_settings.protocols_scpi;
     auto check_rpc_protocols = [&rpc_devices, &device_protocol_settings_file](ComportDescription &device) {
         for (auto &rpc_device : rpc_devices) {
-
             if (rpc_device.match(device.info.portName()) == false) {
                 continue;
             }
@@ -87,7 +86,7 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
             }
         }
     };
-    auto check_scpi_protocols = [&scpi_devices, &device_protocol_settings_file, &scpi_meta_data = scpi_meta_data](ComportDescription &device) {
+    auto check_scpi_protocols = [&scpi_devices, &device_protocol_settings_file, &scpi_meta_data = scpi_meta_data ](ComportDescription & device) {
         for (auto &scpi_device : scpi_devices) {
             if (scpi_device.match(device.info.portName()) == false) {
                 continue;
@@ -105,10 +104,11 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
                 Console::warning() << tr("Failed opening") << device.device->getTarget();
                 return;
             }
-            auto protocol = std::make_unique<SCPIProtocol>(*device.device,scpi_device);
+            auto protocol = std::make_unique<SCPIProtocol>(*device.device, scpi_device);
             if (protocol) {
                 if (protocol->is_correct_protocol()) {
-                    protocol->set_scpi_meta_data(scpi_meta_data.query(QString().fromStdString(protocol->get_serial_number()),QString().fromStdString(protocol->get_name())));
+                    protocol->set_scpi_meta_data(
+                        scpi_meta_data.query(QString().fromStdString(protocol->get_serial_number()), QString().fromStdString(protocol->get_name())));
                     MainWindow::mw->execute_in_gui_thread(
                         [ protocol = protocol.get(), ui_entry = device.ui_entry ] { protocol->set_ui_description(ui_entry); });
                     device.protocol = std::move(protocol);
@@ -222,15 +222,32 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
     });
 }
 
-std::vector<ComportDescription *> DeviceWorker::get_devices_with_protocol(const QString &protocol) {
-    return Utility::promised_thread_call(this, [this, protocol]() mutable {
+std::vector<ComportDescription *> DeviceWorker::get_devices_with_protocol(const QString &protocol, const QStringList device_names) {
+    return Utility::promised_thread_call(this, [this, protocol, device_names]() mutable {
         assert(currently_in_gui_thread() == false);
         std::vector<ComportDescription *> candidates;
         for (auto &device : comport_devices) { //TODO: do not only loop over comport_devices, but other devices as well
             if (device.protocol == nullptr) {
                 continue;
             }
-            if (device.protocol->type == protocol) {
+            bool device_name_match = false;
+            if (device_names.indexOf(device.protocol->device_name) > -1) {
+                device_name_match = true;
+            }
+            if (device_names.count() == 0) {
+                device_name_match = true;
+            }
+            for (auto s:device_names) {
+                if (s == "*") {
+                    device_name_match = true;
+                    break;
+                }
+                if (s == "") {
+                    device_name_match = true;
+                    break;
+                }
+            }
+            if ((device.protocol->type == protocol) && (device_name_match)) {
                 candidates.push_back(&device);
             }
         }

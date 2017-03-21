@@ -20,7 +20,8 @@ class DeviceRequirements{
 public:
     QString protocol_name;
     QStringList device_names;
-    int quantity = 0;
+    int quantity_min = 0;
+    int quantity_max = INT_MAX;
 };
 
 

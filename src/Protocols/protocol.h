@@ -7,10 +7,11 @@
 
 struct Protocol {
 	QString type;
-	Protocol(QString type)
-		: type(type) {}
+    QString device_name;
+    Protocol(QString type)
+        : type(type) {}
 	bool operator==(const QString &&type) const {
-		return this->type == type;
+        return (this->type == type) && (this->device_name == device_name);
 	}
 	virtual ~Protocol() = default;
 };
