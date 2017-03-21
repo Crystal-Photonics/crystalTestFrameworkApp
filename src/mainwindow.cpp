@@ -35,6 +35,7 @@
 #include <future>
 #include <iterator>
 #include <memory>
+#include "devicematcher.h"
 
 namespace GUI {
     //ID's referring to the device
@@ -214,106 +215,6 @@ void MainWindow::on_console_tabs_tabCloseRequested(int index) {
     });
 }
 
-enum class MatchDefinitionState { OverDefined, UnderDefined, FullDefined };
-
-std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::vector<ComportDescription *> candidates, TestRunner &runner) {
-    std::vector<std::pair<CommunicationDevice *, Protocol *>> devices;
-    for (auto device : candidates) {
-        auto rpc_protocol = dynamic_cast<RPCProtocol *>(device->protocol.get());
-        auto scpi_protocol = dynamic_cast<SCPIProtocol *>(device->protocol.get());
-        if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
-            sol::optional<std::string> message;
-            try {
-                sol::table table = runner.create_table();
-                rpc_protocol->get_lua_device_descriptor(table);
-                message = runner.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
-            } catch (const sol::error &e) {
-                const auto &message = QObject::tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
-                Console::error(runner.console) << message;
-                return {};
-            }
-            if (message) {
-                //device incompatible, reason should be inside of message
-                Console::note(runner.console) << QObject::tr("Device rejected:") << message.value();
-                return {};
-            } else {
-                //acceptable device found
-                devices.emplace_back(device->device.get(), device->protocol.get());
-            }
-        } else if (scpi_protocol) {
-            sol::optional<std::string> message;
-            try {
-                sol::table table = runner.create_table();
-                scpi_protocol->get_lua_device_descriptor(table);
-                message = runner.call<sol::optional<std::string>>("SCPI_acceptable", std::move(table));
-            } catch (const sol::error &e) {
-                const auto &message = QObject::tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
-                Console::error(runner.console) << message;
-                return {};
-            }
-            if (message) {
-                //device incompatible, reason should be inside of message
-                Console::note(runner.console) << QObject::tr("Device rejected:") << message.value();
-                return {};
-            } else {
-                //acceptable device found
-                devices.emplace_back(device->device.get(), device->protocol.get());
-            }
-        } else {
-            assert(!"TODO: handle non-RPC/SCPI protocol");
-        }
-    }
-    return devices;
-}
-
-static Utility::Optional<std::vector<std::pair<CommunicationDevice *, Protocol *>>> get_script_communication(DeviceWorker &device_worker, TestRunner &runner,
-
-                                                                                                             TestDescriptionLoader &test) {
-    std::vector<std::pair<CommunicationDevice *, Protocol *>> devices;
-
-    for (auto &device_requirement : test.get_device_requirements()) {
-        std::vector<std::pair<CommunicationDevice *, Protocol *>> accepted_candidates;
-        //TODO: do not only loop over comport_devices, but other devices as well
-        {
-            std::vector<ComportDescription *> candidates =
-                device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
-
-           // candidates.
-            //TODO: skip over candidates that are already in use
-
-            accepted_candidates = test_acceptances(candidates, runner);
-        }
-        MatchDefinitionState match_definition = MatchDefinitionState::UnderDefined;
-        if ((device_requirement.quantity_min <= (int)accepted_candidates.size()) && ((int)accepted_candidates.size() <= device_requirement.quantity_max)) {
-            match_definition = MatchDefinitionState::FullDefined;
-        } else if ((int)accepted_candidates.size() > device_requirement.quantity_max) {
-            match_definition = MatchDefinitionState::OverDefined;
-        } else if ((int)accepted_candidates.size() < device_requirement.quantity_min) {
-            match_definition = MatchDefinitionState::UnderDefined;
-        }
-        switch (match_definition) {
-            case MatchDefinitionState::UnderDefined:
-                //failed to find suitable device
-                Console::error(runner.console) << QObject::tr(
-                                                      "The selected test \"%1\" requires a device with protocol \"%2\", but no such device is available.")
-                                                      .arg(test.get_name(), device_requirement.protocol_name);
-                return {};
-            case MatchDefinitionState::FullDefined:
-                //found the only viable option
-                {
-                    devices.insert(devices.end(), accepted_candidates.begin(), accepted_candidates.end()); //
-                }
-                break;
-            case MatchDefinitionState::OverDefined:
-                //found multiple viable options
-                QMessageBox::critical(MainWindow::mw, "TODO", "TODO: implementation for multiple viable device options");
-                return {};
-        }
-        //  }
-    }
-    return devices;
-}
-
 void MainWindow::on_run_test_script_button_clicked() {
     Utility::thread_call(this, [this] {
         auto items = ui->tests_list->selectedItems();
@@ -330,9 +231,11 @@ void MainWindow::on_run_test_script_button_clicked() {
             }
             auto &runner = *test_runners.back();
             ui->test_tabs->setCurrentIndex(ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name()));
-            auto devices = get_script_communication(*device_worker, runner, *test);
-            if (devices) {
-                runner.run_script(devices.value(), *device_worker);
+            DeviceMatcher device_matcher(this);
+            device_matcher.match_devices(*device_worker, runner, *test);
+            auto devices = device_matcher.get_matched_devices();
+            if (device_matcher.was_successful()) {
+                runner.run_script(devices, *device_worker);
             } else {
                 runner.interrupt();
             }

@@ -8,6 +8,7 @@
 #include "console.h"
 #include "mainwindow.h"
 #include "util.h"
+#include "devicematcher.h"
 
 #include <QSettings>
 #include <QTimer>
@@ -15,6 +16,7 @@
 #include <functional>
 #include <initializer_list>
 #include <regex>
+
 
 void DeviceWorker::poll_ports() {
     Utility::thread_call(this, [this] {

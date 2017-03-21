@@ -30,12 +30,7 @@ namespace Ui {
 
 bool currently_in_gui_thread();
 
-struct ComportDescription {
-	std::unique_ptr<ComportCommunicationDevice> device;
-	QSerialPortInfo info;
-	QTreeWidgetItem *ui_entry;
-	std::unique_ptr<Protocol> protocol;
-};
+
 
 class EXPORT MainWindow : public QMainWindow {
 	Q_OBJECT
