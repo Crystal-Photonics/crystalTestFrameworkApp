@@ -22,6 +22,7 @@ public:
     QStringList device_names;
     int quantity_min = 0;
     int quantity_max = INT_MAX;
+	QString get_description() const;
 };
 
 
