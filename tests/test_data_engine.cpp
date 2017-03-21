@@ -2,8 +2,11 @@
 #include "data_engine/data_engine.h"
 
 #include <sstream>
+#include <QString>
 
-using namespace std::string_literals;
+QString operator "" _qs(const char *text, std::size_t size){
+	return QString::fromStdString(std::string{text, text + size});
+}
 
 void Test_Data_engine::basic_load_from_config() {
 	std::stringstream input{R"([])"};
@@ -32,7 +35,7 @@ void Test_Data_engine::single_numeric_property_test() {
 	QCOMPARE(de.get_desired_relative_tolerance("voltage"), .1);
 	QCOMPARE(de.get_desired_minimum("voltage"), 900.);
 	QCOMPARE(de.get_desired_maximum("voltage"), 1100.);
-	QCOMPARE(de.get_unit("voltage"), ""s);
+	QCOMPARE(de.get_unit("voltage"), ""_qs);
 	de.set_actual_number("voltage", 1000.1234);
 	QVERIFY(de.is_complete());
 	QVERIFY(de.all_values_in_range());
@@ -86,18 +89,24 @@ void Test_Data_engine::test_text_entry() {
 void Test_Data_engine::test_preview() {
 	std::stringstream input{R"([
 							{
-							"name": "voltage",
-							"value": 1000,
-							"deviation": 100
+								"name": "voltage",
+								"value": 1000,
+								"deviation": 100
 							},
 							{
-							"name": "current",
-							"value": 200,
-							"deviation": 100
+								"name": "current",
+								"value": "[voltage]",
+								"deviation": 100
 							}
 							])"};
+	int argc = 1;
+	char executable[] = "";
+	char *executable2 = executable;
+	char **argv = &executable2;
+	QApplication app(argc, argv);
+
 	Data_engine de{input};
 	de.set_actual_number("voltage", 1000.1234);
-	de.set_actual_number("current", 500.);
-	de.get_preview();
+	//de.set_actual_number("current", 150.);
+	de.generate_pdf("test.pdf");
 }
