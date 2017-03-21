@@ -206,6 +206,10 @@ void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua) {
 }
 
 struct RPCDevice {
+    std::string get_protocol_name() {
+        return protocol->type.toStdString();
+    }
+
     sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
         if (QThread::currentThread()->isInterruptionRequested()) {
             throw sol::error("Abort Requested");
@@ -251,6 +255,16 @@ struct SCPIDevice {
     void send_command(std::string request) {
         protocol->send_command(request);
     }
+    std::string get_protocol_name() {
+        return protocol->type.toStdString();
+    }
+
+    sol::table get_device_descriptor() {
+        sol::table result = lua->create_table_with();
+        protocol->get_lua_device_descriptor(result);
+        return result;
+    }
+
     sol::table get_str(std::string request) {
         return protocol->get_str(*lua, request); //timeout possible
     }
@@ -604,18 +618,20 @@ void ScriptEngine::load_script(const QString &path) {
         }
         {
             lua->new_usertype<SCPIDevice>(
-                "SCPIDevice",                                                                                                                                 //
-                sol::meta_function::construct, sol::no_constructor,                                                                                           //
-                "get_str", [](SCPIDevice &protocoll, std::string request) { return protocoll.get_str(request); },                                             //
-                "get_str_param", [](SCPIDevice &protocoll, std::string request, std::string argument) { return protocoll.get_str_param(request, argument); }, //
-                "get_num", [](SCPIDevice &protocoll, std::string request) { return protocoll.get_num(request); },                                             //
-                "get_num_param", [](SCPIDevice &protocoll, std::string request, std::string argument) { return protocoll.get_num_param(request, argument); }, //
-                "get_name", [](SCPIDevice &protocoll) { return protocoll.get_name(); },                                                                       //
-                "get_serial_number", [](SCPIDevice &protocoll) { return protocoll.get_serial_number(); },                                                     //
-                "get_manufacturer", [](SCPIDevice &protocoll) { return protocoll.get_manufacturer(); },                                                       //
-                "is_event_received", [](SCPIDevice &protocoll, std::string event_name) { return protocoll.is_event_received(event_name); },                   //
-                "clear_event_list", [](SCPIDevice &protocoll) { return protocoll.clear_event_list(); },                                                       //
-                "get_event_list", [](SCPIDevice &protocoll) { return protocoll.get_event_list(); },                                                           //
+                "SCPIDevice",                                                                                                                               //
+                sol::meta_function::construct, sol::no_constructor,                                                                                         //
+                "get_protocol_name", [](SCPIDevice &protocol) { return protocol.get_protocol_name(); },                                                     //
+                "get_device_descriptor", [](SCPIDevice &protocol) { return protocol.get_device_descriptor(); },                                             //
+                "get_str", [](SCPIDevice &protocol, std::string request) { return protocol.get_str(request); },                                             //
+                "get_str_param", [](SCPIDevice &protocol, std::string request, std::string argument) { return protocol.get_str_param(request, argument); }, //
+                "get_num", [](SCPIDevice &protocol, std::string request) { return protocol.get_num(request); },                                             //
+                "get_num_param", [](SCPIDevice &protocol, std::string request, std::string argument) { return protocol.get_num_param(request, argument); }, //
+                "get_name", [](SCPIDevice &protocol) { return protocol.get_name(); },                                                                       //
+                "get_serial_number", [](SCPIDevice &protocol) { return protocol.get_serial_number(); },                                                     //
+                "get_manufacturer", [](SCPIDevice &protocol) { return protocol.get_manufacturer(); },                                                       //
+                "is_event_received", [](SCPIDevice &protocol, std::string event_name) { return protocol.is_event_received(event_name); },                   //
+                "clear_event_list", [](SCPIDevice &protocol) { return protocol.clear_event_list(); },                                                       //
+                "get_event_list", [](SCPIDevice &protocol) { return protocol.get_event_list(); },                                                           //
                 "set_validation_max_standard_deviation",
                 [](SCPIDevice &protocoll, double max_std_dev) { return protocoll.set_validation_max_standard_deviation(max_std_dev); },          //
                 "set_validation_retries", [](SCPIDevice &protocoll, unsigned int retries) { return protocoll.set_validation_retries(retries); }, //
@@ -673,6 +689,22 @@ QStringList ScriptEngine::get_string_list(const QString &name) {
     }
     return retval;
 }
+int get_quantity_num(sol::object &obj) {
+    int result = 0;
+    if (obj.get_type() == sol::type::string) {
+        std::string str = obj.as<std::string>();
+        QString qstr = QString().fromStdString(str);
+        bool ok = false;
+
+        result = qstr.toInt(&ok);
+        if (ok == false) {
+            result = INT_MAX;
+        }
+    } else if (obj.get_type() == sol::type::number) {
+        result = obj.as<int>();
+    }
+    return result;
+}
 
 std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const QString &name) {
     std::vector<DeviceRequirements> result{};
@@ -700,18 +732,12 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
                         item.device_names.append(QString().fromStdString(str));
                     }
                 } else if (protocol_entry_field.first.as<std::string>() == "quantity") {
-                    if (protocol_entry_field.second.get_type() == sol::type::string) {
-                        std::string str = protocol_entry_field.second.as<std::string>();
-                        QString qstr = QString().fromStdString(str);
-                        bool ok= false;
-
-                        item.quantity = qstr.toInt(&ok);
-                        if (ok == false){
-                            item.quantity = INT_MAX;
-                        }
-                    } else if (protocol_entry_field.second.get_type() == sol::type::number){
-                        item.quantity = protocol_entry_field.second.as<int>();
-                    }
+                    item.quantity_min = get_quantity_num(protocol_entry_field.second);
+                    item.quantity_max = item.quantity_min;
+                } else if (protocol_entry_field.first.as<std::string>() == "quantity_min") {
+                    item.quantity_min = get_quantity_num(protocol_entry_field.second);
+                } else if (protocol_entry_field.first.as<std::string>() == "quantity_max") {
+                    item.quantity_max = get_quantity_num(protocol_entry_field.second);
                 }
             }
             result.push_back(item);
@@ -742,6 +768,7 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
                                      [function_name](RPCDevice &device, const sol::variadic_args &va) { return device.call_rpc_function(function_name, va); });
                         add_enum_types(function, *lua);
                     }
+                    type_reg.set("get_protocol_name", [](RPCDevice &device) { return device.get_protocol_name(); });
                     const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
                     lua->set_usertype(type_name, type_reg);
                     while (device_protocol.first->waitReceived(CommunicationDevice::Duration{0}, 1)) {

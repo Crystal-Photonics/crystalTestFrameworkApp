@@ -242,3 +242,8 @@ void RPCProtocol::clear() {
     }
     channel_codec.reset_current_transfer();
 }
+
+std::string RPCProtocol::get_name()
+{
+    return device_data.name.toStdString();
+}

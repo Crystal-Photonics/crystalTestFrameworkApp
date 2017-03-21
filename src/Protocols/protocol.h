@@ -6,13 +6,14 @@
 #include <QString>
 
 struct Protocol {
-	QString type;
-	Protocol(QString type)
-		: type(type) {}
-	bool operator==(const QString &&type) const {
-		return this->type == type;
-	}
-	virtual ~Protocol() = default;
+    QString type;
+   // QString device_name;
+    Protocol(QString type)
+        : type(type) {}
+    bool operator==(const QString &&type) const {
+        return (this->type == type);
+    }
+    virtual ~Protocol() = default;
 };
 
 #endif // PROTOCOL_H

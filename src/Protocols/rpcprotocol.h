@@ -55,6 +55,7 @@ class RPCProtocol : public Protocol {
     //CommunicationDevice::Duration default_duration = std::chrono::milliseconds{600};
 	int retries_per_transmission{2};
 	void clear();
+    std::string get_name();
 
 	private:
 	RPCRunTimeProtocolDescription description;
