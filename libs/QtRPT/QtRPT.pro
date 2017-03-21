@@ -2,6 +2,6 @@ TEMPLATE = subdirs
 
 CONFIG += ordered
 
-SUBDIRS = zint QtRPT
+SUBDIRS = zint
 
 CONFIG += warn_off

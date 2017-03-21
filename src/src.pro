@@ -1,6 +1,8 @@
 include(../defaults.pri)
 DESTDIR = $$BINDIR
 
+include (../libs/QtRPT/QtRPT.pri)
+
 TARGET = crystalTestFrameworkApp
 
 TEMPLATE = lib
@@ -17,7 +19,6 @@ INCLUDEPATH += $$QPROTOCOL_INTERPRETER_PATH/project/src
 include($$QPROTOCOL_INTERPRETER_PATH/qProtocollInterpreter_static.pri)
 
 LIBS += -L$$BINDIR
-LIBS += -lQtRPT
 
 HEADERS += \
 	CommunicationDevices/communicationdevice.h \

@@ -52,8 +52,7 @@ void PathSettingsWindow::on_device_description_path_selector_clicked() {
 	}
 }
 
-void PathSettingsWindow::on_rpc_xml_files_path_selector_clicked()
-{
+void PathSettingsWindow::on_rpc_xml_files_path_selector_clicked() {
 	const auto selected_dir =
 		QFileDialog::getExistingDirectory(this, tr("Select RPC-xml path"), "", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 	if (!selected_dir.isEmpty()) {
@@ -61,10 +60,17 @@ void PathSettingsWindow::on_rpc_xml_files_path_selector_clicked()
 	}
 }
 
-void PathSettingsWindow::on_lua_editor_path_selector_clicked()
-{
+void PathSettingsWindow::on_lua_editor_path_selector_clicked() {
 	const auto selected_file = QFileDialog::getOpenFileName(this, tr("Select device description path"), "*.exe");
 	if (!selected_file.isEmpty()) {
 		ui->lua_editor_path_text->setText(selected_file);
+	}
+}
+
+void PathSettingsWindow::on_meta_path_selector_clicked() {
+	const auto selected_file =
+		QFileDialog::getOpenFileName(this, tr("Select device meta data path"), "");
+	if (!selected_file.isEmpty()) {
+		ui->meta_path_text->setText(selected_file);
 	}
 }

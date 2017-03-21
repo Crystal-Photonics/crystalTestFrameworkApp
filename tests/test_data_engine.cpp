@@ -6,23 +6,23 @@
 using namespace std::string_literals;
 
 void Test_Data_engine::basic_load_from_config() {
-	std::stringstream input{R"({"":[]})"};
+	std::stringstream input{R"([])"};
 	Data_engine de{input};
 }
 
 void Test_Data_engine::check_properties_of_empty_set() {
-	std::stringstream input{R"({"":[]})"};
+	std::stringstream input{R"([])"};
 	const Data_engine de{input};
 	QVERIFY(de.is_complete());
 	QVERIFY(de.all_values_in_range());
 }
 
 void Test_Data_engine::single_numeric_property_test() {
-	std::stringstream input{R"({"":[{
+	std::stringstream input{R"([{
 							"name": "voltage",
 							"value": 1000,
 							"deviation": 100
-							}]})"};
+							}])"};
 	Data_engine de{input};
 	QVERIFY(!de.is_complete());
 	QVERIFY(!de.all_values_in_range());
@@ -40,7 +40,7 @@ void Test_Data_engine::single_numeric_property_test() {
 }
 
 void Test_Data_engine::multiple_numeric_properties_test() {
-	std::stringstream input{R"({"":[
+	std::stringstream input{R"([
 							{
 							"name": "voltage",
 							"value": 1000,
@@ -51,7 +51,7 @@ void Test_Data_engine::multiple_numeric_properties_test() {
 							"value": 200,
 							"deviation": 100
 							}
-							]})"};
+							])"};
 	Data_engine de{input};
 	de.set_actual_number("voltage", 1000.1234);
 	QVERIFY(!de.is_complete());
@@ -65,10 +65,10 @@ void Test_Data_engine::multiple_numeric_properties_test() {
 }
 
 void Test_Data_engine::test_text_entry() {
-	std::stringstream input{R"({"":[{
+	std::stringstream input{R"([{
 							"name": "id",
 							"value": "DEV123"
-							}]})"};
+							}])"};
 	Data_engine de{input};
 	QVERIFY(!de.is_complete());
 	QVERIFY(!de.all_values_in_range());
@@ -84,7 +84,20 @@ void Test_Data_engine::test_text_entry() {
 }
 
 void Test_Data_engine::test_preview() {
-	std::stringstream input{R"({"":[]})"};
+	std::stringstream input{R"([
+							{
+							"name": "voltage",
+							"value": 1000,
+							"deviation": 100
+							},
+							{
+							"name": "current",
+							"value": 200,
+							"deviation": 100
+							}
+							])"};
 	Data_engine de{input};
+	de.set_actual_number("voltage", 1000.1234);
+	de.set_actual_number("current", 500.);
 	de.get_preview();
 }

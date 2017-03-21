@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>797</width>
-    <height>326</height>
+    <height>378</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -116,7 +116,7 @@
      <item>
       <widget class="QLabel" name="label_7">
        <property name="text">
-        <string>Path to the measurement equioment meta data file</string>
+        <string>Path to the measurement equipment meta data file</string>
        </property>
       </widget>
      </item>
