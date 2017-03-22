@@ -20,7 +20,7 @@ struct Device_data {
 
 	QString serialnumber;
 	QString deviceID;
-	QString guid;
+    QByteArray guid_bin;
 	QString boardRevision;
 
 	QString name;
@@ -32,7 +32,7 @@ struct Device_data {
 	private:
 	struct Description_source {
 		QString description;
-		const QString &source;
+        const QString source;
 	};
 	std::vector<Description_source> get_description_source() const;
 };

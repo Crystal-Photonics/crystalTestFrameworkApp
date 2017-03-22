@@ -24,47 +24,68 @@
 
 using namespace std::chrono_literals;
 
-static void set_description_data(Device_data &dd, const RPCRuntimeDecodedParam &param) {
+static void set_description_data(Device_data &dd, const RPCRuntimeDecodedParam &param, const std::string parent_field_name) {
     switch (param.get_desciption()->get_type()) {
-        case RPCRuntimeParameterDescription::Type::array:
-            for (int i = 0; i < param.get_desciption()->as_array().number_of_elements; i++) {
-                set_description_data(dd, param.as_array()[i]);
+        case RPCRuntimeParameterDescription::Type::array: {
+            std::string parameter_name = param.get_desciption()->get_parameter_name();
+            const auto &param_value = param.as_string();
+
+            if (parameter_name == "name") {
+                dd.name = dd.name + QString().fromStdString(param_value);
+            } else if (parameter_name == "version") {
+                dd.version = dd.version + QString::fromStdString(param_value);
+            } else if (parameter_name == "guid") {
+                const auto &param_guid = param.as_full_string();
+                dd.guid_bin = QByteArray::fromStdString(param_guid);
+            } else {
+                std::string field_name = param.get_desciption()->get_parameter_name();
+                for (int i = 0; i < param.get_desciption()->as_array().number_of_elements; i++) {
+                    set_description_data(dd, param.as_array()[i], field_name);
+                }
             }
-            break;
-        case RPCRuntimeParameterDescription::Type::character:
-            break;
+        }
+
+        break;
+        case RPCRuntimeParameterDescription::Type::character: {
+
+        } break;
         case RPCRuntimeParameterDescription::Type::enumeration:
             break;
-        case RPCRuntimeParameterDescription::Type::integer:
-            if (param.get_desciption()->get_parameter_name() == "githash") {
+        case RPCRuntimeParameterDescription::Type::integer: {
+            std::string parameter_name = param.get_desciption()->get_parameter_name();
+            if (parameter_name == "") {
+                parameter_name = parent_field_name;
+            }
+            if (parameter_name == "githash") {
                 const auto &param_value = param.as_integer();
                 dd.githash = QString::number(param_value, 16);
-            } else if (param.get_desciption()->get_parameter_name() == "gitDate_unix") {
+            } else if (parameter_name == "gitDate_unix") {
                 const auto &param_value = param.as_integer();
                 dd.gitDate_unix = QDateTime::fromTime_t(param_value).toString();
-            } else if (param.get_desciption()->get_parameter_name() == "serialnumber") {
+            } else if (parameter_name == "serialnumber") {
                 const auto &param_value = param.as_integer();
                 dd.serialnumber = QString::number(param_value);
-            } else if (param.get_desciption()->get_parameter_name() == "deviceID") {
+            } else if (parameter_name == "deviceID") {
                 const auto &param_value = param.as_integer();
                 dd.deviceID = QString::number(param_value);
-            } else if (param.get_desciption()->get_parameter_name() == "boardRevision") {
+            } else if (parameter_name == "boardRevision") {
                 const auto &param_value = param.as_integer();
                 dd.boardRevision = QString::number(param_value);
             }
-            break;
-        case RPCRuntimeParameterDescription::Type::structure:
+        } break;
+        case RPCRuntimeParameterDescription::Type::structure: {
+            std::string field_name = param.get_desciption()->get_parameter_name();
             for (auto &member : param.as_struct()) {
-                set_description_data(dd, member.type);
+                set_description_data(dd, member.type, field_name);
             }
-            break;
+        } break;
     }
 }
 
 static Device_data get_description_data(const RPCRuntimeDecodedFunctionCall &call) {
     Device_data dd;
     for (auto &param : call.get_decoded_parameters()) {
-        set_description_data(dd, param);
+        set_description_data(dd, param, "");
     }
     return dd;
 }
@@ -92,18 +113,12 @@ void Device_data::get_lua_data(sol::table &t) const {
 }
 
 std::vector<Device_data::Description_source> Device_data::get_description_source() const {
-    return {{"GitHash", githash},
-            {"GitDate", gitDate_unix},
-            {"Serialnumber", serialnumber},
-            {"DeviceID", deviceID},
-            {"GUID", guid},
-            {"BoardRevision", boardRevision},
-            {"Name", name},
-            {"Serialnumber", serialnumber}};
+    return {{"GitHash", githash},   {"GitDate", gitDate_unix},     {"Serialnumber", serialnumber},
+            {"DeviceID", deviceID}, {"GUID", guid_bin.toHex()},    {"BoardRevision", boardRevision},
+            {"Name", name},         {"Serialnumber", serialnumber}};
 }
 
-
-RPCProtocol::RPCProtocol(CommunicationDevice &device,DeviceProtocolSetting &setting)
+RPCProtocol::RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting)
     : Protocol{"RPC"}
     , decoder{description}
     , encoder{description}
@@ -124,7 +139,7 @@ RPCProtocol::~RPCProtocol() {
 }
 
 bool RPCProtocol::is_correct_protocol() {
-   // const CommunicationDevice::Duration TIMEOUT = std::chrono::milliseconds{100};
+    // const CommunicationDevice::Duration TIMEOUT = std::chrono::milliseconds{100};
     int retries_per_transmission_backup = retries_per_transmission;
     retries_per_transmission = 0;
     auto result = call_and_wait(encoder.encode(0), device_protocol_setting.timeout);
@@ -243,7 +258,6 @@ void RPCProtocol::clear() {
     channel_codec.reset_current_transfer();
 }
 
-std::string RPCProtocol::get_name()
-{
+std::string RPCProtocol::get_name() {
     return device_data.name.toStdString();
 }
