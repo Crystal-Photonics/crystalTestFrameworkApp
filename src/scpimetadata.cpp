@@ -90,7 +90,7 @@ void SCPIMetaData::parse_meta_data_file(QString file_name) {
             tmp = obj["purchase_date"].toString();
             device.purchase_date = QDate::fromString(tmp, DATE_FORMAT);
 
-            device.blocked = obj["blocked"].toBool();
+            device.locked = obj["locked"].toBool();
             device.note = obj["note"].toString();
             device.calibration_certificate_path = obj["calibration_certificate_path"].toString();
             device_type.devices.append(device);

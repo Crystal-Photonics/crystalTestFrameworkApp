@@ -21,7 +21,7 @@ struct ComportDescription {
 };
 
 class DevicesToMatchEntry {
-public:
+    public:
     enum class MatchDefinitionState { OverDefined, UnderDefined, FullDefined };
     MatchDefinitionState match_definition = MatchDefinitionState::UnderDefined;
     DeviceRequirements device_requirement;
@@ -45,20 +45,23 @@ class DeviceMatcher : public QDialog {
     std::vector<std::pair<CommunicationDevice *, Protocol *>> get_matched_devices();
     bool was_successful();
 
-private slots:
+    private slots:
     void on_DeviceMatcher_accepted();
-
-
     void on_tree_required_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
+    void on_tree_available_itemChanged(QTreeWidgetItem *item, int column);
+    void on_btn_cancel_clicked();
+    void on_btn_ok_clicked();
 
-private:
+    private:
     Ui::DeviceMatcher *ui;
-    void make_gui();
+    void make_treeview();
+    void calc_gui_match_definition();
     void load_available_devices(int required_index);
     QList<DevicesToMatchEntry> devices_to_match;
-    //std::vector<std::pair<CommunicationDevice *, Protocol *>> device_matching_result;
     bool successful_matching = false;
     QString script_name;
+    DevicesToMatchEntry *selected_requirement = nullptr;
+    void calc_requirement_definitions();
 };
 
 #endif // DEVICEMATCHER_H
