@@ -35,8 +35,12 @@ QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
 #QMAKE_CXXFLAGS_DEBUG += -static-libasan -static-libubsan #some day windows will support a reasonable development environment ...
 
-Debug{
-	BINDIR = $$PWD/bin/debug
-}else{
-	BINDIR = $$PWD/bin/release
+CONFIG(debug, debug|release) {
+    BINSUB_DIR = bin/debug
+    BINDIR = $$OUT_PWD/../$$BINSUB_DIR
+    BINDIR_ZINT = $$OUT_PWD/../../../$$BINSUB_DIR
+} else {
+    BINSUB_DIR = bin/release
+    BINDIR = $$OUT_PWD/../$$BINSUB_DIR
+    BINDIR_ZINT = $$OUT_PWD/../../../$$BINSUB_DIR
 }

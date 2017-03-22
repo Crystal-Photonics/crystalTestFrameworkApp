@@ -1,5 +1,6 @@
 include(../../../defaults.pri)
-DESTDIR = $$BINDIR
+DESTDIR = $$BINDIR_ZINT
+message(destdit zint $$BINDIR_ZINT)
 
 DEFINES += NO_PNG
 

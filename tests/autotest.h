@@ -97,7 +97,7 @@ A typical test class header would look something like this:
         #ifndef FOOTESTS_H
         #define FOOTESTS_H
 
-        #include "AutoTest.h"
+        #include "autotest.h"
 
         class FooTests : public QObject
 {
