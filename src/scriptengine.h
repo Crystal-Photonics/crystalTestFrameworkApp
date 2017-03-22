@@ -15,6 +15,7 @@ class QStringList;
 class QSplitter;
 class QPlainTextEdit;
 struct Protocol;
+class Data_engine;
 
 class DeviceRequirements{
 public:
@@ -25,14 +26,13 @@ public:
 	QString get_description() const;
 };
 
-
 class ScriptEngine {
     public:
     friend class TestRunner;
     friend class TestDescriptionLoader;
     friend class DeviceWorker;
 
-    ScriptEngine(QSplitter *parent, QPlainTextEdit *console);
+	ScriptEngine(QSplitter *parent, QPlainTextEdit *console, Data_engine *data_engine);
     ~ScriptEngine();
     void load_script(const QString &path);
     static void launch_editor(QString path, int error_line = 1);
@@ -55,6 +55,7 @@ class ScriptEngine {
     int error_line{0};
     QSplitter *parent{nullptr};
     QPlainTextEdit *console{nullptr};
+	Data_engine *data_engine{nullptr};
 };
 
 template <class ReturnType, class... Arguments>

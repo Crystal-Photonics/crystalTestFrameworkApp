@@ -1,5 +1,6 @@
 #include "pathsettingswindow.h"
 #include "config.h"
+#include "mainwindow.h"
 #include "ui_pathsettingswindow.h"
 
 #include <QDebug>
@@ -11,12 +12,9 @@ PathSettingsWindow::PathSettingsWindow(QWidget *parent)
 	, ui(new Ui::PathSettingsWindow) {
 	ui->setupUi(this);
 	setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint); //remove question mark from the title bar
-	ui->test_script_path_text->setText(QSettings{}.value(Globals::test_script_path_settings_key, "").toString());
-	ui->device_description_path_text->setText(QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString());
-	ui->rpc_xml_files_path_text->setText(QSettings{}.value(Globals::rpc_xml_files_path_settings_key, "").toString());
-	ui->lua_editor_path_text->setText(QSettings{}.value(Globals::lua_editor_path_settings_key, "").toString());
-	ui->lua_editor_parameters_text->setText(QSettings{}.value(Globals::lua_editor_parameters_settings_key, "").toString());
-    ui->meta_path_text->setText(QSettings{}.value(Globals::measurement_equipment_meta_data_path, "").toString());
+	for (auto &conf : get_config_lines()) {
+		conf.first->setText(QSettings{}.value(conf.second, "").toString());
+	}
 }
 
 PathSettingsWindow::~PathSettingsWindow() {
@@ -24,12 +22,9 @@ PathSettingsWindow::~PathSettingsWindow() {
 }
 
 void PathSettingsWindow::on_settings_confirmation_accepted() {
-	QSettings{}.setValue(Globals::test_script_path_settings_key, ui->test_script_path_text->text());
-	QSettings{}.setValue(Globals::device_protocols_file_settings_key, ui->device_description_path_text->text());
-	QSettings{}.setValue(Globals::rpc_xml_files_path_settings_key, ui->rpc_xml_files_path_text->text());
-	QSettings{}.setValue(Globals::lua_editor_path_settings_key, ui->lua_editor_path_text->text());
-	QSettings{}.setValue(Globals::lua_editor_parameters_settings_key, ui->lua_editor_parameters_text->text());
-    QSettings{}.setValue(Globals::measurement_equipment_meta_data_path, ui->meta_path_text->text());
+	for (auto &conf : get_config_lines()) {
+		QSettings{}.setValue(conf.second, conf.first->text());
+	}
 	close();
 }
 
@@ -37,40 +32,58 @@ void PathSettingsWindow::on_settings_confirmation_rejected() {
 	close();
 }
 
-void PathSettingsWindow::on_test_script_path_selector_clicked() {
-	const auto selected_dir =
-		QFileDialog::getExistingDirectory(this, tr("Select test script path"), "", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+std::vector<std::pair<QLineEdit *, const char *>> PathSettingsWindow::get_config_lines() const {
+	return {
+		{ui->test_script_path_text, Globals::test_script_path_settings_key},
+		{ui->device_description_path_text, Globals::device_protocols_file_settings_key},
+		{ui->rpc_xml_files_path_text, Globals::rpc_xml_files_path_settings_key},
+		{ui->lua_editor_path_text, Globals::lua_editor_path_settings_key},
+		{ui->lua_editor_parameters_text, Globals::lua_editor_parameters_settings_key},
+		{ui->meta_path_text, Globals::measurement_equipment_meta_data_path},
+		{ui->forms_path_directory_text, Globals::form_directory},
+		{ui->forms_definitions_path_directory_text, Globals::form_definitions_directory},
+	};
+}
+
+static void request_user_dir(QLineEdit *text, QString title, const char *key) {
+	const auto selected_dir = QFileDialog::getExistingDirectory(MainWindow::mw, title, QSettings{}.value(key, "").toString(),
+																QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 	if (!selected_dir.isEmpty()) {
-		ui->test_script_path_text->setText(selected_dir);
+		text->setText(selected_dir);
 	}
+}
+
+static void request_user_file(QLineEdit *text, QString title, const char *key, const char *file_extension) {
+	const auto selected_file = QFileDialog::getOpenFileName(MainWindow::mw, title, QSettings{}.value(key, "").toString(), file_extension);
+	if (!selected_file.isEmpty()) {
+		text->setText(selected_file);
+	}
+}
+
+void PathSettingsWindow::on_test_script_path_selector_clicked() {
+	request_user_dir(ui->test_script_path_text, tr("Select test script path"), Globals::test_script_path_settings_key);
 }
 
 void PathSettingsWindow::on_device_description_path_selector_clicked() {
-	const auto selected_file = QFileDialog::getOpenFileName(this, tr("Select device description path"), "");
-	if (!selected_file.isEmpty()) {
-		ui->device_description_path_text->setText(selected_file);
-	}
+	request_user_file(ui->device_description_path_text, tr("Select device protocols description file"), Globals::device_protocols_file_settings_key, "*.json");
 }
 
 void PathSettingsWindow::on_rpc_xml_files_path_selector_clicked() {
-	const auto selected_dir =
-		QFileDialog::getExistingDirectory(this, tr("Select RPC-xml path"), "", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-	if (!selected_dir.isEmpty()) {
-		ui->rpc_xml_files_path_text->setText(selected_dir);
-	}
+	request_user_dir(ui->rpc_xml_files_path_text, tr("Select RPC-xml path"), Globals::rpc_xml_files_path_settings_key);
 }
 
 void PathSettingsWindow::on_lua_editor_path_selector_clicked() {
-	const auto selected_file = QFileDialog::getOpenFileName(this, tr("Select device description path"), "*.exe");
-	if (!selected_file.isEmpty()) {
-		ui->lua_editor_path_text->setText(selected_file);
-	}
+	request_user_file(ui->lua_editor_path_text, tr("Select lua editor executable"), Globals::lua_editor_path_settings_key, "*.exe");
 }
 
 void PathSettingsWindow::on_meta_path_selector_clicked() {
-	const auto selected_file =
-		QFileDialog::getOpenFileName(this, tr("Select device meta data path"), "");
-	if (!selected_file.isEmpty()) {
-		ui->meta_path_text->setText(selected_file);
-	}
+	request_user_file(ui->meta_path_text, tr("Select measurement equipment meta data file"), Globals::measurement_equipment_meta_data_path, "*.json");
+}
+
+void PathSettingsWindow::on_forms_path_directory_selector_clicked() {
+	request_user_dir(ui->forms_path_directory_text, tr("Select directory for XML-forms layout files"), Globals::form_directory);
+}
+
+void PathSettingsWindow::on_forms_definitions_path_directory_selector_clicked() {
+	request_user_dir(ui->forms_definitions_path_directory_text, tr("Select directory for JSON-forms definition files"), Globals::form_definitions_directory);
 }

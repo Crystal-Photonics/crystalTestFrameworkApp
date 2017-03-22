@@ -17,6 +17,10 @@
 constexpr auto unavailable_value = "/";
 
 Data_engine::Data_engine(std::istream &source) {
+	set_source(source);
+}
+
+void Data_engine::set_source(std::istream &source) {
 	QByteArray data;
 	constexpr auto eof = std::remove_reference<decltype(source)>::type::traits_type::eof();
 	while (source) {
@@ -56,7 +60,17 @@ bool Data_engine::value_in_range(const FormID &id) const {
 }
 
 void Data_engine::set_actual_number(const FormID &id, double number) {
-	get_entry(id)->as<Numeric_entry>()->actual_value = number;
+	auto entry = get_entry(id);
+	if (entry == nullptr) {
+		qDebug() << "Tried setting invalid field" << id;
+		return;
+	}
+	auto number_entry = entry->as<Numeric_entry>();
+	if (number_entry == nullptr) {
+		qDebug() << "Tried setting number to non-number field" << id;
+		return;
+	}
+	number_entry->actual_value = number;
 }
 
 void Data_engine::set_actual_text(const FormID &id, QString text) {
@@ -116,8 +130,9 @@ void Data_engine::generate_pdf(const std::string &path) const {
 }
 
 void Data_engine::add_entry(std::pair<FormID, std::unique_ptr<Data_engine_entry>> &&entry) {
+	auto debug = &entry;
 	if (entry.first.isEmpty()) {
-		auto pos = std::lower_bound(std::begin(data_entries), std::end(data_entries), entry, entry_compare);
+		auto pos = std::lower_bound(std::begin(data_entries), std::end(data_entries), entry.second, entry_compare);
 		data_entries.insert(pos, std::move(entry.second));
 	} else {
 		auto pos = std::lower_bound(std::begin(id_entries), std::end(id_entries), entry, entry_compare);
@@ -141,11 +156,17 @@ const Data_engine_entry *Data_engine::get_entry(const FormID &id) const {
 		if (pos != std::end(data_entries) && pos->get()->get_description() == id) {
 			return pos->get();
 		}
+		if (pos != std::end(data_entries)) {
+			auto desc = pos->get()->get_description();
+			if (desc == id) {
+				return pos->get();
+			}
+		}
+		return nullptr;
 	}
-	return nullptr;
 }
 
-bool Data_engine::entry_compare(FormIdWrapper lhs, FormIdWrapper rhs) {
+bool Data_engine::entry_compare(const FormIdWrapper &lhs, const FormIdWrapper &rhs) {
 	return lhs.value < rhs.value;
 }
 

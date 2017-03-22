@@ -58,7 +58,7 @@ void TestDescriptionLoader::launch_editor() {
 void TestDescriptionLoader::load_description() {
 	ui_entry->setText(1, "");
 	try {
-		ScriptEngine script{nullptr, nullptr};
+		ScriptEngine script{nullptr, nullptr, nullptr};
         script.load_script(file_path);
         device_requirements.clear();
         device_requirements =  script.get_device_requirement_list("device_requirements");

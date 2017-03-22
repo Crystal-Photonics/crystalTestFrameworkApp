@@ -2,6 +2,9 @@
 #define PATHSETTINGSWINDOW_H
 
 #include <QDialog>
+#include <vector>
+
+class QLineEdit;
 
 namespace Ui {
 	class PathSettingsWindow;
@@ -27,8 +30,14 @@ class PathSettingsWindow : public QDialog {
 
 	void on_meta_path_selector_clicked();
 
+	void on_forms_path_directory_selector_clicked();
+
+	void on_forms_definitions_path_directory_selector_clicked();
+
 	private:
 	Ui::PathSettingsWindow *ui;
+
+	std::vector<std::pair<QLineEdit *, const char *>> get_config_lines() const;
 };
 
 #endif // PATHSETTINGSWINDOW_H

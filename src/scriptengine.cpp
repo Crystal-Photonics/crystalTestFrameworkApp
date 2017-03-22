@@ -7,6 +7,7 @@
 #include "Protocols/scpiprotocol.h"
 #include "config.h"
 #include "console.h"
+#include "data_engine/data_engine.h"
 #include "lua_functions.h"
 #include "mainwindow.h"
 #include "rpcruntime_decoded_function_call.h"
@@ -319,10 +320,11 @@ struct SCPIDevice {
     ScriptEngine *engine = nullptr;
 };
 
-ScriptEngine::ScriptEngine(QSplitter *parent, QPlainTextEdit *console)
+ScriptEngine::ScriptEngine(QSplitter *parent, QPlainTextEdit *console, Data_engine *data_engine)
     : lua(std::make_unique<sol::state>())
     , parent(parent)
-    , console(console) {}
+	, console(console)
+	, data_engine(data_engine) {}
 
 ScriptEngine::~ScriptEngine() {}
 
@@ -493,6 +495,30 @@ void ScriptEngine::load_script(const QString &path) {
             };
         }
 
+		//bind data engine
+		{
+			struct Data_engine_handle {
+				Data_engine *data_engine{nullptr};
+				Data_engine_handle() = delete;
+			};
+
+			lua->new_usertype<Data_engine_handle>("Data_engine", //
+												  sol::meta_function::construct,
+												  [data_engine = data_engine](const std::string &xml_file, const std::string &json_file) {
+													  QString form_dir = QSettings{}.value(Globals::form_directory, QDir::currentPath()).toString();
+													  auto file_path = QDir{form_dir}.absoluteFilePath(QString::fromStdString(json_file)).toStdString();
+													  std::ifstream f(file_path);
+													  if (!f) {
+														  throw std::runtime_error("Failed opening file " + file_path);
+													  }
+													  data_engine->set_source(f);
+													  return Data_engine_handle{data_engine};
+												  }, //
+												  "set",
+												  [](Data_engine_handle &handle, const std::string &field_id, double number) {
+													  handle.data_engine->set_actual_number(QString::fromStdString(field_id), number);
+												  });
+		}
         //bind UI
         auto ui_table = lua->create_named_table("Ui");
 

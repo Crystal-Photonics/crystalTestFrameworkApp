@@ -1,6 +1,7 @@
 #ifndef TESTRUNNER_H
 #define TESTRUNNER_H
 
+#include "data_engine/data_engine.h"
 #include "qt_util.h"
 #include "scriptengine.h"
 #include "sol.hpp"
@@ -22,6 +23,7 @@ class TestRunner : QObject {
 	public:
 	TestRunner(const TestDescriptionLoader &description);
 	~TestRunner();
+
 	void interrupt();
 	void join();
 	sol::table create_table();
@@ -32,13 +34,15 @@ class TestRunner : QObject {
 	bool is_running();
 	const QString &get_name() const;
 	void launch_editor() const;
-	QPlainTextEdit *console = nullptr;
+
+	QPlainTextEdit *console{nullptr};
 
 	private:
-	QThread thread;
-	QSplitter *lua_ui_container = nullptr;
+	QThread thread{};
+	QSplitter *lua_ui_container{nullptr};
+	std::unique_ptr<Data_engine> data_engine{std::make_unique<Data_engine>()};
 	ScriptEngine script;
-	QString name;
+	QString name{};
 };
 
 template <class ReturnType, class... Arguments>

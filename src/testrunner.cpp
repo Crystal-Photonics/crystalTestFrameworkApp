@@ -18,7 +18,7 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
 		return console;
 	}())
 	, lua_ui_container(new QSplitter(MainWindow::mw))
-	, script(lua_ui_container, console)
+	, script(lua_ui_container, console, data_engine.get())
 	, name(description.get_name()) {
 	Console::note(console) << "Script started";
 	lua_ui_container->addWidget(console);

@@ -9,6 +9,8 @@ namespace Globals {
 	static const auto lua_editor_parameters_settings_key = "lua editor parameters";
     static const auto measurement_equipment_meta_data_path = "measurement equipment meta data path";
 	static const auto last_csv_saved_directory = "last csv saved directory";
+	static const auto form_directory = "form directory";
+	static const auto form_definitions_directory = "forms definitions directory";
 }
 
 #endif // CONFIG_H

@@ -77,7 +77,7 @@ struct Text_entry : Data_engine_entry {
 };
 
 class Data_engine {
-	struct Statistics{
+	struct Statistics {
 		int number_of_id_fields{};
 		int number_of_data_fields{};
 		int number_of_filled_fields{};
@@ -86,8 +86,10 @@ class Data_engine {
 	};
 
 	public:
+	Data_engine() = default;
 	Data_engine(std::istream &source);
 
+	void set_source(std::istream &source);
 	bool is_complete() const;
 	bool all_values_in_range() const;
 	bool value_in_range(const FormID &id) const;
@@ -120,7 +122,7 @@ class Data_engine {
 		QString value;
 	};
 
-	static bool entry_compare(FormIdWrapper lhs, FormIdWrapper rhs);
+	static bool entry_compare(const FormIdWrapper &lhs, const FormIdWrapper &rhs);
 	std::vector<std::pair<FormID, std::unique_ptr<Data_engine_entry>>> id_entries;
 	std::vector<std::unique_ptr<Data_engine_entry>> data_entries;
 	void setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) const;

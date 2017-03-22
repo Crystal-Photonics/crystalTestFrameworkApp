@@ -20,7 +20,7 @@ struct Device_data {
 
 	QString serialnumber;
 	QString deviceID;
-    QByteArray guid_bin;
+	QByteArray guid_bin;
 	QString boardRevision;
 
 	QString name;
@@ -32,14 +32,14 @@ struct Device_data {
 	private:
 	struct Description_source {
 		QString description;
-        const QString source;
+		const QString source;
 	};
 	std::vector<Description_source> get_description_source() const;
 };
 
 class RPCProtocol : public Protocol {
 	public:
-    RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting);
+	RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting);
 	~RPCProtocol();
 	RPCProtocol(const RPCProtocol &) = delete;
 	RPCProtocol(RPCProtocol &&other) = delete;
@@ -52,10 +52,9 @@ class RPCProtocol : public Protocol {
 	void get_lua_device_descriptor(sol::table &t) const;
 	RPCRuntimeEncodedFunctionCall encode_function(const std::string &name) const;
 	const channel_codec_instance_t *debug_get_channel_codec_instance() const;
-    //CommunicationDevice::Duration default_duration = std::chrono::milliseconds{600};
 	int retries_per_transmission{2};
 	void clear();
-    std::string get_name();
+	std::string get_name();
 
 	private:
 	RPCRunTimeProtocolDescription description;
@@ -66,7 +65,7 @@ class RPCProtocol : public Protocol {
 	std::unique_ptr<RPCRuntimeDecodedFunctionCall> descriptor_answer;
 	CommunicationDevice *device;
 	Device_data device_data;
-    DeviceProtocolSetting &device_protocol_setting;
+	DeviceProtocolSetting device_protocol_setting;
 };
 
 #endif // RPCPROTOCOL_H
