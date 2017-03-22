@@ -20,6 +20,9 @@ DeviceMatcher::~DeviceMatcher() {
 std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::vector<ComportDescription *> candidates, TestRunner &runner) {
     std::vector<std::pair<CommunicationDevice *, Protocol *>> devices;
     for (auto device : candidates) {
+        if (device->ui_entry->text(3).size()){ //is device in use? well, this is quite dirty.
+            continue;
+        }
         auto rpc_protocol = dynamic_cast<RPCProtocol *>(device->protocol.get());
         auto scpi_protocol = dynamic_cast<SCPIProtocol *>(device->protocol.get());
         if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
@@ -115,18 +118,15 @@ void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runne
             case DevicesToMatchEntry::MatchDefinitionState::OverDefined: {
                 successful_matching = false;
                 over_defined_found = true;
+                for (size_t i = 0; i < device_match_entry.selected_candidate.size(); i++) {
+                    device_match_entry.selected_candidate[i] = true;
+                }
             }
-
-                // exec();
-                //found multiple viable options
-                //QMessageBox::critical(MainWindow::mw, "TODO", "TODO: implementation for multiple viable device options");
-                // return;
-                // }
         }
         devices_to_match.append(device_match_entry);
     }
     if (over_defined_found) {
-        make_gui();
+        make_treeview();
         exec();
     }
 }
@@ -135,7 +135,11 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> DeviceMatcher::get_mat
     std::vector<std::pair<CommunicationDevice *, Protocol *>> device_matching_result;
     for (auto d : devices_to_match) {
         if (d.match_definition == DevicesToMatchEntry::MatchDefinitionState::FullDefined) {
-            device_matching_result.insert(device_matching_result.end(), d.accepted_candidates.begin(), d.accepted_candidates.end()); //
+            for (unsigned int i = 0; i < d.accepted_candidates.size(); i++) {
+                if (d.selected_candidate[i]) {
+                    device_matching_result.push_back(d.accepted_candidates[i]);
+                }
+            }
         }
     }
     return device_matching_result;
@@ -147,61 +151,142 @@ bool DeviceMatcher::was_successful() {
 
 void DeviceMatcher::on_DeviceMatcher_accepted() {}
 
-void DeviceMatcher::make_gui() {
-    ui->tree_required->setColumnCount(2);
-    QList<QTreeWidgetItem *> items;
-    int requirement_index_to_select = 0;
+void DeviceMatcher::calc_gui_match_definition() {
+    int i = 0;
+    bool evertything_ok = true;
     for (auto d : devices_to_match) {
-        QTreeWidgetItem *tv = new QTreeWidgetItem(ui->tree_required);
+        auto item = ui->tree_required->topLevelItem(i);
 
-        tv->setText(0, d.device_requirement.device_names.join("/"));
         switch (d.match_definition) {
             case DevicesToMatchEntry::MatchDefinitionState::FullDefined: {
-                tv->setText(1, "Ok");
+                item->setText(1, "Ok");
             } break;
             case DevicesToMatchEntry::MatchDefinitionState::UnderDefined: {
-                tv->setText(1, "Less");
+                item->setText(1, "Less");
+                evertything_ok = false;
 
             } break;
             case DevicesToMatchEntry::MatchDefinitionState::OverDefined: {
-                tv->setText(1, "More");
-                requirement_index_to_select = items.count();
+                item->setText(1, "More");
+                evertything_ok = false;
             } break;
         }
+        i++;
+    }
+    ui->btn_ok->setEnabled(evertything_ok);
+}
+
+void DeviceMatcher::make_treeview() {
+    ui->tree_required->setColumnCount(2);
+    QList<QTreeWidgetItem *> items;
+    for (auto d : devices_to_match) {
+        QTreeWidgetItem *tv = new QTreeWidgetItem(ui->tree_required);
+        tv->setText(0, d.device_requirement.device_names.join("/"));
 
         items.append(tv);
     }
     ui->tree_required->insertTopLevelItems(0, items);
+    calc_gui_match_definition();
 }
-
-//treeWidget.model().dataChanged.connect(handle_dataChanged)
 
 void DeviceMatcher::load_available_devices(int required_index) {
     assert(devices_to_match.count() > required_index);
     ui->tree_available->clear();
-    DevicesToMatchEntry requirement = devices_to_match[required_index];
-    ui->tree_available->setColumnCount(2);
+    DevicesToMatchEntry &requirement = devices_to_match[required_index];
+    ui->tree_available->setColumnCount(3);
     QList<QTreeWidgetItem *> items;
     assert(requirement.accepted_candidates.size() == requirement.selected_candidate.size());
+
     for (size_t i = 0; i < requirement.accepted_candidates.size(); i++) {
         auto d = requirement.accepted_candidates[i];
         QTreeWidgetItem *tv = new QTreeWidgetItem(ui->tree_available);
         auto com_port = dynamic_cast<ComportCommunicationDevice *>(d.first);
+        auto scpi_protocol = dynamic_cast<SCPIProtocol *>(d.second);
+        auto rpc_protocol = dynamic_cast<RPCProtocol *>(d.second);
         if (com_port) {
             tv->setText(0, com_port->port.portName());
+            if (scpi_protocol) {
+                QTreeWidgetItem *tv_child = new QTreeWidgetItem(tv);
+                tv_child->setText(0, scpi_protocol->get_device_summary());
+                tv->setText(1, QString::fromStdString(scpi_protocol->get_serial_number()));
+                tv->setText(2, scpi_protocol->get_approved_state_str());
+            } else if (rpc_protocol) {
+                //QTreeWidgetItem *tv_child = new QTreeWidgetItem(tv);
+                //tv_child->setText(0, rpc_protocol->get_device_summary());
+            }
         }
+
         if (requirement.selected_candidate[i]) {
             tv->setCheckState(0, Qt::Checked);
         } else {
             tv->setCheckState(0, Qt::Unchecked);
         }
+
         items.append(tv);
     }
 
     ui->tree_available->insertTopLevelItems(0, items);
+    selected_requirement = &requirement;
+}
+
+void DeviceMatcher::calc_requirement_definitions() {
+    for (auto &device_match_entry : devices_to_match) {
+        int selected_devices = 0;
+        for (auto sc : device_match_entry.selected_candidate) {
+            if (sc) {
+                selected_devices++;
+            }
+        }
+        device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
+        int quantity_min = device_match_entry.device_requirement.quantity_min;
+        int quantity_max = device_match_entry.device_requirement.quantity_max;
+        if ((quantity_min <= selected_devices) && (selected_devices <= quantity_max)) {
+            device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::FullDefined;
+        } else if (selected_devices > quantity_max) {
+            device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::OverDefined;
+        } else if (selected_devices < quantity_min) {
+            device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
+        }
+    }
+    calc_gui_match_definition();
 }
 
 void DeviceMatcher::on_tree_required_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous) {
     (void)previous;
+    selected_requirement = nullptr;
     load_available_devices(ui->tree_required->indexOfTopLevelItem(current));
+}
+
+void DeviceMatcher::on_tree_available_itemChanged(QTreeWidgetItem *item, int column) {
+    (void)column;
+    if (selected_requirement) {
+        int row = ui->tree_available->indexOfTopLevelItem(item);
+        if ((row > -1) && (row < selected_requirement->selected_candidate.size())) {
+            if (item->checkState(0) == Qt::Checked) {
+                selected_requirement->selected_candidate[row] = true;
+                if (selected_requirement->device_requirement.quantity_max == 1) {
+                    for (unsigned int i = 0; i < selected_requirement->selected_candidate.size(); i++) {
+                        if (i == row) {
+                            continue;
+                        }
+
+                        auto item_to_uncheck = ui->tree_available->topLevelItem(i);
+                        item_to_uncheck->setCheckState(0, Qt::Unchecked);
+                    }
+                }
+            } else if (item->checkState(0) == Qt::Unchecked) {
+                selected_requirement->selected_candidate[row] = false;
+            }
+        }
+        calc_requirement_definitions();
+    }
+}
+
+void DeviceMatcher::on_btn_cancel_clicked() {
+    close();
+}
+
+void DeviceMatcher::on_btn_ok_clicked() {
+    successful_matching = true;
+    close();
 }

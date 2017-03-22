@@ -18,13 +18,13 @@
 
 using namespace std::chrono_literals;
 
-static void set_display_data(QTreeWidgetItem *item, const SCPI_Device_Data &data) {
+static void set_display_data(QTreeWidgetItem *item,  SCPI_Device_Data &data) {
     const auto &summary = data.get_summary();
     item->setToolTip(0, summary);
     item->addChild(new QTreeWidgetItem(item, QStringList{} << summary));
 }
 
-QString SCPI_Device_Data::get_summary() const {
+QString SCPI_Device_Data::get_summary()  {
     QStringList statustip;
     auto ds = get_description_source();
     for (auto &d : ds) {
@@ -35,26 +35,49 @@ QString SCPI_Device_Data::get_summary() const {
     return statustip.join("\n");
 }
 
-void SCPI_Device_Data::get_lua_data(sol::table &t) const {
+void SCPI_Device_Data::get_lua_data(sol::table &t)  {
     for (auto &d : get_description_source()) {
         t.set(d.name.toStdString(), d.source.toStdString());
     }
 }
 
-std::vector<SCPI_Device_Data::Description_source> SCPI_Device_Data::get_description_source() const {
+SCPIApprovedState SCPI_Device_Data::get_approved_state() {
+    if (metadata_valid) {
+        return SCPIApprovedState::Unknown;
+    }
+    if (locked) {
+        return SCPIApprovedState::Locked;
+    }
+    if ((QDateTime().currentDateTime() > QDateTime(expery_date)) && (expery_date.isValid())) {
+        return SCPIApprovedState::Expired;
+    }
+
+    return SCPIApprovedState::Approved;
+}
+
+QString SCPI_Device_Data::get_approved_state_str() {
+    switch (get_approved_state()) {
+        case SCPIApprovedState::Approved:
+            return "calibration approved";
+
+        case SCPIApprovedState::Unknown:
+            return "unknown";
+
+        case SCPIApprovedState::Locked:
+            return "locked";
+
+        case SCPIApprovedState::Expired:
+            return "calibration expired";
+    }
+}
+
+std::vector<SCPI_Device_Data::Description_source> SCPI_Device_Data::get_description_source() {
     QString expery_date_str = expery_date.toString("yyyy.MM.dd");
     QString blocked_str = "";
     QString valid_str = "";
     if (metadata_valid) {
         valid_str = "ok";
-        if (blocked) {
-            blocked_str = "approved";
-        } else {
-            blocked_str = "unapproved";
-        }
-        if ((QDateTime().currentDateTime() > QDateTime(expery_date)) && (expery_date.isValid())) {
-            blocked_str = "calibration expired";
-        }
+        blocked_str = get_approved_state_str();
     } else {
         valid_str = "failed";
     }
@@ -126,8 +149,12 @@ void SCPIProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
     }
 }
 
-void SCPIProtocol::get_lua_device_descriptor(sol::table &t) const {
+void SCPIProtocol::get_lua_device_descriptor(sol::table &t)  {
     return device_data.get_lua_data(t);
+}
+
+QString SCPIProtocol::get_device_summary()  {
+    return device_data.get_summary();
 }
 
 void SCPIProtocol::clear() {}
@@ -371,6 +398,15 @@ std::string SCPIProtocol::get_name() {
 std::string SCPIProtocol::get_serial_number() {
     return device_data.serial_number.toStdString();
 }
+
+SCPIApprovedState SCPIProtocol::get_approved_state() {
+    return device_data.get_approved_state();
+}
+
+QString SCPIProtocol::get_approved_state_str() {
+    return device_data.get_approved_state_str();
+}
+
 
 std::string SCPIProtocol::get_manufacturer() {
     return device_data.manufacturer.toStdString();

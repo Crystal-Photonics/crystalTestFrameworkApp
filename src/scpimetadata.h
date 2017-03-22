@@ -10,7 +10,7 @@ public:
     QString serial_number;
     QDate expery_date;
     QDate purchase_date;
-    bool blocked=false;
+    bool locked=false;
     QString note;
     QString calibration_certificate_path;
 

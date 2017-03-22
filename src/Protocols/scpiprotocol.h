@@ -2,14 +2,21 @@
 #define SCPIPROTOCOL_H
 
 #include "CommunicationDevices/communicationdevice.h"
+#include "device_protocols_settings.h"
 #include "protocol.h"
+#include "scpimetadata.h"
 #include <chrono>
 #include <memory>
 #include <sol.hpp>
-#include "device_protocols_settings.h"
-#include "scpimetadata.h"
 
 class QTreeWidgetItem;
+
+enum class SCPIApprovedState{
+    Unknown,
+    Approved,
+    Locked,
+    Expired
+};
 
 struct SCPI_Device_Data {
     QString serial_number;
@@ -18,22 +25,24 @@ struct SCPI_Device_Data {
     QString version;
     QDate expery_date;
     QDate purchase_date;
-    bool blocked;
+    bool locked;
     bool metadata_valid;
     QString manual_path;
     QString calibration_certificate_path;
     QString note;
 
-    QString get_summary() const;
-    void get_lua_data(sol::table &t) const;
+    QString get_summary() ;
+    void get_lua_data(sol::table &t) ;
 
+    SCPIApprovedState get_approved_state();
+    QString get_approved_state_str();
     private:
     struct Description_source {
         QString name;
         QString description;
         const QString source;
     };
-    std::vector<Description_source> get_description_source() const;
+    std::vector<Description_source> get_description_source() ;
 };
 
 class SCPIProtocol : public Protocol {
@@ -47,11 +56,12 @@ class SCPIProtocol : public Protocol {
     bool is_correct_protocol();
     void set_ui_description(QTreeWidgetItem *ui_entry);
     SCPIProtocol &operator=(const SCPIProtocol &&) = delete;
-    void get_lua_device_descriptor(sol::table &t) const;
-
+    void get_lua_device_descriptor(sol::table &t) ;
+    SCPIApprovedState get_approved_state();
+    QString get_approved_state_str() ;
+    QString get_device_summary() ;
     void clear();
     void set_scpi_meta_data(SCPIDeviceType scpi_meta_data);
-
 
     sol::table get_str(sol::state &lua, std::string request);
     sol::table get_str_param(sol::state &lua, std::string request, std::string argument);
@@ -72,7 +82,7 @@ class SCPIProtocol : public Protocol {
     void set_validation_max_standard_deviation(double max_std_dev);
 
     private:
-    QStringList get_str_param_raw( std::string request, std::string argument);
+    QStringList get_str_param_raw(std::string request, std::string argument);
     QStringList parse_scpi_answers();
     QString parse_last_scpi_answer();
     void send_string(std::string data);
@@ -89,7 +99,6 @@ class SCPIProtocol : public Protocol {
     int retries_per_transmission{2};
     double maximal_acceptable_standard_deviation = 0.1;
     DeviceProtocolSetting device_protocol_setting;
-    //SCPIDeviceType scpi_meta_data;
 };
 
 #endif // RPCPROTOCOL_H
