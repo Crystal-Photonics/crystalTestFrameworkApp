@@ -180,9 +180,8 @@ void Data_engine::fill_report(QtRPT &report, const QString &form) const {
 		throw std::runtime_error("Failed opening form file " + form.toStdString());
 	}
 	report.recordCount << data_entries.size();
-    #warning is there an alternative to qOverload since qOverload is very new (since qt 5.7)
 	QObject::connect(
-		&report, qOverload<const int, const QString, QVariant &, const int>(&QtRPT::setValue),
+		&report, Utility::pick_overload<const int, const QString, QVariant &, const int>(&QtRPT::setValue),
 		[this](const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) { setValue(recNo, paramName, paramValue, reportPage); });
 }
 

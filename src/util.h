@@ -68,6 +68,21 @@ namespace Utility {
 	typename std::add_const<T>::type &as_const(T &t) {
 		return t;
 	}
+
+	template <class... Args>
+	struct Overload_picker {
+		template <class Return_type, class Class>
+		constexpr auto operator()(Return_type (Class::*function_pointer)(Args...)) const {
+			return function_pointer;
+		}
+		template <class Return_type, class Class>
+		constexpr auto operator()(Return_type (Class::*function_pointer)(Args...) const) const {
+			return function_pointer;
+		}
+	};
+
+	template <class... Args>
+	constexpr Overload_picker<Args...> pick_overload = {};
 }
 
 #endif // UTILITY_H
