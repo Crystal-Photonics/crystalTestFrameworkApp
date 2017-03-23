@@ -18,6 +18,14 @@ struct ComportDescription {
     QSerialPortInfo info;
     QTreeWidgetItem *ui_entry;
     std::unique_ptr<Protocol> protocol;
+    bool is_in_use = false;
+};
+
+class CandidateEntry{
+public:
+    CommunicationDevice * communication_device;
+    Protocol * protocol;
+    bool selected = false;
 };
 
 class DevicesToMatchEntry {
@@ -25,8 +33,7 @@ class DevicesToMatchEntry {
     enum class MatchDefinitionState { OverDefined, UnderDefined, FullDefined };
     MatchDefinitionState match_definition = MatchDefinitionState::UnderDefined;
     DeviceRequirements device_requirement;
-    std::vector<bool> selected_candidate;
-    std::vector<std::pair<CommunicationDevice *, Protocol *>> accepted_candidates;
+    std::vector<CandidateEntry> accepted_candidates;
 };
 
 namespace Ui {
@@ -52,7 +59,11 @@ class DeviceMatcher : public QDialog {
     void on_btn_cancel_clicked();
     void on_btn_ok_clicked();
 
-    private:
+    void on_btn_check_all_clicked();
+
+    void on_btn_uncheck_all_clicked();
+
+private:
     Ui::DeviceMatcher *ui;
     void make_treeview();
     void calc_gui_match_definition();
@@ -62,6 +73,7 @@ class DeviceMatcher : public QDialog {
     QString script_name;
     DevicesToMatchEntry *selected_requirement = nullptr;
     void calc_requirement_definitions();
+    void align_columns();
 };
 
 #endif // DEVICEMATCHER_H

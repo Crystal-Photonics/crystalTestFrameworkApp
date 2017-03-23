@@ -27,14 +27,14 @@ class DeviceWorker : public QObject {
 	void detect_device(QTreeWidgetItem *item);
 	void connect_to_device_console(QPlainTextEdit *console, CommunicationDevice *comport);
     std::vector<ComportDescription *> get_devices_with_protocol(const QString &protocol, const QStringList device_names);
-	void set_currently_running_test(CommunicationDevice *com_device, const QString &test_name) const;
+    void set_currently_running_test(CommunicationDevice *com_device, const QString &test_name);
 	QStringList get_string_list(ScriptEngine &script, const QString &name);
 
     public slots:
 	void poll_ports();
 
 	private:
-	std::list<ComportDescription> comport_devices;
+    std::list<ComportDescription> comport_devices;
 	void detect_devices(std::vector<ComportDescription *> comport_device_list);
     SCPIMetaData scpi_meta_data;
 };

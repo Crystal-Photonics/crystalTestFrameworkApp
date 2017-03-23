@@ -12,7 +12,8 @@ DEFINES += EXPORT_LIBRARY
 FORMS += \
 	mainwindow.ui \
 	pathsettingswindow.ui \
-    devicematcher.ui
+    devicematcher.ui \
+    scpimetadatadeviceselector.ui
 
 QPROTOCOL_INTERPRETER_PATH=$$PWD/../libs/qRPCRuntimeParser
 INCLUDEPATH += $$QPROTOCOL_INTERPRETER_PATH/project/src
@@ -52,7 +53,8 @@ HEADERS += \
 	util.h \
     device_protocols_settings.h \
     scpimetadata.h \
-    devicematcher.h
+    devicematcher.h \
+    scpimetadatadeviceselector.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -81,4 +83,5 @@ SOURCES += \
 	util.cpp \
     device_protocols_settings.cpp \
     scpimetadata.cpp \
-    devicematcher.cpp
+    devicematcher.cpp \
+    scpimetadatadeviceselector.cpp

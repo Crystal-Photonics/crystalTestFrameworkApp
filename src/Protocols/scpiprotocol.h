@@ -11,12 +11,7 @@
 
 class QTreeWidgetItem;
 
-enum class SCPIApprovedState{
-    Unknown,
-    Approved,
-    Locked,
-    Expired
-};
+
 
 struct SCPI_Device_Data {
     QString serial_number;
@@ -25,8 +20,8 @@ struct SCPI_Device_Data {
     QString version;
     QDate expery_date;
     QDate purchase_date;
-    bool locked;
-    bool metadata_valid;
+    bool locked = false;
+    //bool metadata_valid;
     QString manual_path;
     QString calibration_certificate_path;
     QString note;
@@ -36,12 +31,16 @@ struct SCPI_Device_Data {
 
     SCPIApprovedState get_approved_state();
     QString get_approved_state_str();
+
+    void set_approved_state(SCPIApprovedState as, QString sr);
     private:
     struct Description_source {
         QString name;
         QString description;
         const QString source;
     };
+    SCPIApprovedState approved_state;
+    QString approved_str;
     std::vector<Description_source> get_description_source() ;
 };
 

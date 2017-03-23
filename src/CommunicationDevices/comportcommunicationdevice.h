@@ -15,7 +15,8 @@ class ComportCommunicationDevice : public CommunicationDevice {
     bool waitReceived(Duration timeout, std::string escape_characters, std::string leading_pattern_indicating_skip_line) override;
 	void send(const QByteArray &data, const QByteArray &displayed_data = {}) override;
 	void close() override;
-	QSerialPort port;
+    QSerialPort port;
+    QString getName() override;
 };
 
 #endif // COMPORTCOMMUNICATIONDEVICE_H

@@ -49,3 +49,5 @@ void CommunicationDevice::set_currently_in_wait_received(bool in_wait_received)
 
 
 
+
+
