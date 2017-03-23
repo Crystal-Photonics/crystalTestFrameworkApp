@@ -58,7 +58,7 @@ QSplitter *TestRunner::get_lua_ui_container() const {
 	return lua_ui_container;
 }
 
-void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices, const DeviceWorker &device_worker) {
+void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices, DeviceWorker &device_worker) {
 	Utility::thread_call(this, [ this, devices = std::move(devices), &device_worker ]() mutable {
 		for (auto &dev_prot : devices) {
 			device_worker.set_currently_running_test(dev_prot.first, name);

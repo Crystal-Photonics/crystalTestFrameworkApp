@@ -20,7 +20,7 @@ class SCPIDeviceType{
 public:
     QString device_name;
     QString manual_path;
-    bool isEmpty = false;
+   // bool isEmpty = false;
     QList<SCPIDeviceDetail> devices;
     void clear();
 };

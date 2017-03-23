@@ -74,7 +74,7 @@ void SCPIMetaData::parse_meta_data_file(QString file_name) {
         SCPIDeviceType device_type{};
 
         QJsonObject obj = js_device_type.toObject();
-        device_type.isEmpty = true;
+       // device_type.isEmpty = false;
         device_type.device_name = obj["device_name"].toString();
         device_type.manual_path = obj["manual_path"].toString();
         QJsonArray js_devices = obj["devices"].toArray();
@@ -103,6 +103,6 @@ void SCPIDeviceType::clear()
 {
     device_name = "";
     manual_path  = "";
-    isEmpty = false;
+    //isEmpty = false;
     devices.clear();
 }

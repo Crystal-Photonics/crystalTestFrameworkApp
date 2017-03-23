@@ -20,9 +20,10 @@ DeviceMatcher::~DeviceMatcher() {
 std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::vector<ComportDescription *> candidates, TestRunner &runner) {
     std::vector<std::pair<CommunicationDevice *, Protocol *>> devices;
     for (auto device : candidates) {
-        if (device->ui_entry->text(3).size()){ //is device in use? well, this is quite dirty.
+        if (device->is_in_use) {
             continue;
         }
+
         auto rpc_protocol = dynamic_cast<RPCProtocol *>(device->protocol.get());
         auto scpi_protocol = dynamic_cast<SCPIProtocol *>(device->protocol.get());
         if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
@@ -32,37 +33,53 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
                 rpc_protocol->get_lua_device_descriptor(table);
                 message = runner.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
             } catch (const sol::error &e) {
-                const auto &message = QObject::tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
+                const auto &message = QObject::tr("Failed to call function RPC_acceptable for device %1 \nError message: %2")
+                                          .arg(QString::fromStdString(rpc_protocol->get_name()))
+                                          .arg(e.what());
                 Console::error(runner.console) << message;
-                return {};
             }
             if (message) {
                 //device incompatible, reason should be inside of message
-                Console::note(runner.console) << QObject::tr("Device rejected:") << message.value();
-                return {};
+                Console::note(runner.console) << QObject::tr("Device %1 rejected:").arg(QString::fromStdString(rpc_protocol->get_name())) << message.value();
             } else {
                 //acceptable device found
                 devices.emplace_back(device->device.get(), device->protocol.get());
             }
         } else if (scpi_protocol) {
+            if (scpi_protocol->get_approved_state() != SCPIApprovedState::Approved) {
+                const auto &message = QObject::tr("SCPI device %1 with serial number =\"%2\" is lacking approval.\nIts approval state: %3")
+                                          .arg(QString::fromStdString(scpi_protocol->get_name()))
+                                          .arg(QString::fromStdString(scpi_protocol->get_serial_number()))
+                                          .arg(scpi_protocol->get_approved_state_str());
+                Console::note(runner.console) << message;
+                continue;
+            }
             sol::optional<std::string> message;
             try {
                 sol::table table = runner.create_table();
                 scpi_protocol->get_lua_device_descriptor(table);
                 message = runner.call<sol::optional<std::string>>("SCPI_acceptable", std::move(table));
             } catch (const sol::error &e) {
-                const auto &message = QObject::tr("Failed to call function RPC_acceptable.\nError message: %1").arg(e.what());
+                const auto &message = QObject::tr("Failed to call function SCPI_acceptable for device %1 with serial number =\"%2 \"  \nError message: %3")
+                                          .arg(QString::fromStdString(scpi_protocol->get_name()))
+                                          .arg(QString::fromStdString(scpi_protocol->get_serial_number()))
+                                          .arg(e.what());
+
                 Console::error(runner.console) << message;
-                return {};
+                continue;
             }
             if (message) {
                 //device incompatible, reason should be inside of message
-                Console::note(runner.console) << QObject::tr("Device rejected:") << message.value();
-                return {};
+                Console::note(runner.console) << QObject::tr("Device %1 \"%2\" rejected:")
+                                                     .arg(QString::fromStdString(scpi_protocol->get_name()))
+                                                     .arg(QString::fromStdString(scpi_protocol->get_serial_number()))
+                                              << message.value();
+
             } else {
                 //acceptable device found
                 devices.emplace_back(device->device.get(), device->protocol.get());
             }
+
         } else {
             assert(!"TODO: handle non-RPC/SCPI protocol");
         }
@@ -83,9 +100,6 @@ void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runne
             std::vector<ComportDescription *> candidates =
                 device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
 
-            // candidates.
-            //TODO: skip over candidates that are already in use
-
             accepted_candidates = test_acceptances(candidates, runner);
         }
         device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
@@ -103,13 +117,18 @@ void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runne
             device_match_entry.selected_candidate.push_back(false);
         }
         switch (device_match_entry.match_definition) {
-            case DevicesToMatchEntry::MatchDefinitionState::UnderDefined:
+            case DevicesToMatchEntry::MatchDefinitionState::UnderDefined: {
                 //failed to find suitable device
                 successful_matching = false;
-                Console::error(runner.console) << QObject::tr(
-                                                      "The selected test \"%1\" requires a device with protocol \"%2\", but no such device is available.")
-                                                      .arg(test.get_name(), device_requirement.protocol_name);
-                return;
+                Console::error(runner.console)
+                    << QObject::tr(
+                           "The selected test \"%1\" requires %2 device(s) with protocol \"%3\", and the name \"%4\" but only %5 device(s) are available.")
+                           .arg(test.get_name())
+                           .arg(device_requirement.quantity_min)
+                           .arg(device_requirement.protocol_name)
+                           .arg(device_requirement.device_names.join("/"))
+                           .arg((int)accepted_candidates.size());
+            } break;
             case DevicesToMatchEntry::MatchDefinitionState::FullDefined: {
                 for (size_t i = 0; i < device_match_entry.selected_candidate.size(); i++) {
                     device_match_entry.selected_candidate[i] = true;

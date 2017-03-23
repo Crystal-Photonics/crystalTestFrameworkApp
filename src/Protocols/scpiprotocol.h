@@ -25,7 +25,7 @@ struct SCPI_Device_Data {
     QString version;
     QDate expery_date;
     QDate purchase_date;
-    bool locked;
+    bool locked = false;
     bool metadata_valid;
     QString manual_path;
     QString calibration_certificate_path;

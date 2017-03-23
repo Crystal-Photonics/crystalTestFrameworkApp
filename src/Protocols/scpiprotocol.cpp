@@ -42,7 +42,7 @@ void SCPI_Device_Data::get_lua_data(sol::table &t)  {
 }
 
 SCPIApprovedState SCPI_Device_Data::get_approved_state() {
-    if (metadata_valid) {
+    if (metadata_valid == false) {
         return SCPIApprovedState::Unknown;
     }
     if (locked) {
@@ -161,7 +161,6 @@ void SCPIProtocol::clear() {}
 
 void SCPIProtocol::set_scpi_meta_data(SCPIDeviceType scpi_meta_data) {
     bool match_is_ok = false;
-    //this->scpi_meta_data = scpi_meta_data;
     if (device_data.serial_number == "") {
         if (scpi_meta_data.devices.count() == 1) {
             assert(device_data.name == scpi_meta_data.device_name);
@@ -170,12 +169,12 @@ void SCPIProtocol::set_scpi_meta_data(SCPIDeviceType scpi_meta_data) {
     } else {
         if (scpi_meta_data.devices.count() == 1) {
             if (device_data.serial_number != scpi_meta_data.devices[0].serial_number) {
-                //scpi_meta_data.clear();
+
             } else {
                 match_is_ok = true;
             }
         } else {
-            //scpi_meta_data.clear();
+
         }
     }
     if (match_is_ok) {
@@ -186,6 +185,7 @@ void SCPIProtocol::set_scpi_meta_data(SCPIDeviceType scpi_meta_data) {
         device_data.manual_path = scpi_meta_data.manual_path;
         device_data.calibration_certificate_path = scpi_meta_data.devices[0].calibration_certificate_path;
         device_data.note = scpi_meta_data.devices[0].note;
+        device_data.locked = scpi_meta_data.devices[0].locked;
     } else {
         device_data.metadata_valid = false;
     }
@@ -390,6 +390,7 @@ sol::table SCPIProtocol::get_event_list(sol::state &lua) {
 void SCPIProtocol::clear_event_list() {
     event_list.clear();
 }
+
 
 std::string SCPIProtocol::get_name() {
     return device_data.name.toStdString();

@@ -266,9 +266,10 @@ std::vector<ComportDescription *> DeviceWorker::get_devices_with_protocol(const 
     });
 }
 
-void DeviceWorker::set_currently_running_test(CommunicationDevice *com_device, const QString &test_name) const {
+void DeviceWorker::set_currently_running_test(CommunicationDevice *com_device, const QString &test_name) {
     for (auto &device : comport_devices) {
         if (device.device.get() == com_device) {
+            device.is_in_use = test_name.size();
             MainWindow::mw->execute_in_gui_thread([ item = device.ui_entry, test_name ] { item->setText(3, test_name); });
             break;
         }
