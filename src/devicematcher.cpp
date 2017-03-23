@@ -110,12 +110,15 @@ void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runne
         } else if ((int)accepted_candidates.size() < device_requirement.quantity_min) {
             device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
         }
-        device_match_entry.accepted_candidates = accepted_candidates;
-        device_match_entry.device_requirement = device_requirement;
-        for (auto c : device_match_entry.accepted_candidates) {
-            (void)c;
-            device_match_entry.selected_candidate.push_back(false);
+        for (auto ce : accepted_candidates) {
+            CandidateEntry candidate_entry{};
+            candidate_entry.communication_device = ce.first;
+            candidate_entry.protocol = ce.second;
+            candidate_entry.selected = false;
+            device_match_entry.accepted_candidates.push_back(candidate_entry);
         }
+        device_match_entry.device_requirement = device_requirement;
+
         switch (device_match_entry.match_definition) {
             case DevicesToMatchEntry::MatchDefinitionState::UnderDefined: {
                 //failed to find suitable device
@@ -130,15 +133,15 @@ void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runne
                            .arg((int)accepted_candidates.size());
             } break;
             case DevicesToMatchEntry::MatchDefinitionState::FullDefined: {
-                for (size_t i = 0; i < device_match_entry.selected_candidate.size(); i++) {
-                    device_match_entry.selected_candidate[i] = true;
+                for(auto & ce : device_match_entry.accepted_candidates){
+                    ce.selected = true;
                 }
             } break;
             case DevicesToMatchEntry::MatchDefinitionState::OverDefined: {
                 successful_matching = false;
                 over_defined_found = true;
-                for (size_t i = 0; i < device_match_entry.selected_candidate.size(); i++) {
-                    device_match_entry.selected_candidate[i] = true;
+                for(auto & ce : device_match_entry.accepted_candidates){
+                    ce.selected = true;
                 }
             }
         }
@@ -154,9 +157,10 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> DeviceMatcher::get_mat
     std::vector<std::pair<CommunicationDevice *, Protocol *>> device_matching_result;
     for (auto d : devices_to_match) {
         if (d.match_definition == DevicesToMatchEntry::MatchDefinitionState::FullDefined) {
-            for (unsigned int i = 0; i < d.accepted_candidates.size(); i++) {
-                if (d.selected_candidate[i]) {
-                    device_matching_result.push_back(d.accepted_candidates[i]);
+            for (auto &ac : d.accepted_candidates) {
+                if (ac.selected) {
+                    std::pair<CommunicationDevice *, Protocol *> p{ac.communication_device,ac.protocol};
+                    device_matching_result.push_back(p);
                 }
             }
         }
@@ -206,6 +210,7 @@ void DeviceMatcher::make_treeview() {
     }
     ui->tree_required->insertTopLevelItems(0, items);
     calc_gui_match_definition();
+    align_columns();
 }
 
 void DeviceMatcher::load_available_devices(int required_index) {
@@ -214,14 +219,12 @@ void DeviceMatcher::load_available_devices(int required_index) {
     DevicesToMatchEntry &requirement = devices_to_match[required_index];
     ui->tree_available->setColumnCount(3);
     QList<QTreeWidgetItem *> items;
-    assert(requirement.accepted_candidates.size() == requirement.selected_candidate.size());
 
-    for (size_t i = 0; i < requirement.accepted_candidates.size(); i++) {
-        auto d = requirement.accepted_candidates[i];
+    for (auto &d : requirement.accepted_candidates) {
         QTreeWidgetItem *tv = new QTreeWidgetItem(ui->tree_available);
-        auto com_port = dynamic_cast<ComportCommunicationDevice *>(d.first);
-        auto scpi_protocol = dynamic_cast<SCPIProtocol *>(d.second);
-        auto rpc_protocol = dynamic_cast<RPCProtocol *>(d.second);
+        auto com_port = dynamic_cast<ComportCommunicationDevice *>(d.communication_device);
+        auto scpi_protocol = dynamic_cast<SCPIProtocol *>(d.protocol);
+        auto rpc_protocol = dynamic_cast<RPCProtocol *>(d.protocol);
         if (com_port) {
             tv->setText(0, com_port->port.portName());
             if (scpi_protocol) {
@@ -235,7 +238,7 @@ void DeviceMatcher::load_available_devices(int required_index) {
             }
         }
 
-        if (requirement.selected_candidate[i]) {
+        if (d.selected) {
             tv->setCheckState(0, Qt::Checked);
         } else {
             tv->setCheckState(0, Qt::Unchecked);
@@ -246,13 +249,14 @@ void DeviceMatcher::load_available_devices(int required_index) {
 
     ui->tree_available->insertTopLevelItems(0, items);
     selected_requirement = &requirement;
+    align_columns();
 }
 
 void DeviceMatcher::calc_requirement_definitions() {
     for (auto &device_match_entry : devices_to_match) {
         int selected_devices = 0;
-        for (auto sc : device_match_entry.selected_candidate) {
-            if (sc) {
+        for (auto sc : device_match_entry.accepted_candidates) {
+            if (sc.selected) {
                 selected_devices++;
             }
         }
@@ -276,25 +280,35 @@ void DeviceMatcher::on_tree_required_currentItemChanged(QTreeWidgetItem *current
     load_available_devices(ui->tree_required->indexOfTopLevelItem(current));
 }
 
+void DeviceMatcher::align_columns() {
+    ui->tree_required->expandAll();
+    ui->tree_available->expandAll();
+    for (int i = 0; i < ui->tree_available->columnCount(); i++) {
+        ui->tree_available->resizeColumnToContents(i);
+    }
+    for (int i = 0; i < ui->tree_required->columnCount(); i++) {
+        ui->tree_required->resizeColumnToContents(i);
+    }
+}
+
 void DeviceMatcher::on_tree_available_itemChanged(QTreeWidgetItem *item, int column) {
     (void)column;
     if (selected_requirement) {
         int row = ui->tree_available->indexOfTopLevelItem(item);
-        if ((row > -1) && (row < selected_requirement->selected_candidate.size())) {
+        if ((row > -1) && (row < selected_requirement->accepted_candidates.size())) {
             if (item->checkState(0) == Qt::Checked) {
-                selected_requirement->selected_candidate[row] = true;
+                selected_requirement->accepted_candidates[row].selected = true;
                 if (selected_requirement->device_requirement.quantity_max == 1) {
-                    for (unsigned int i = 0; i < selected_requirement->selected_candidate.size(); i++) {
+                    for (unsigned int i = 0; i < selected_requirement->accepted_candidates.size(); i++) {
                         if (i == row) {
                             continue;
                         }
-
                         auto item_to_uncheck = ui->tree_available->topLevelItem(i);
                         item_to_uncheck->setCheckState(0, Qt::Unchecked);
                     }
                 }
             } else if (item->checkState(0) == Qt::Unchecked) {
-                selected_requirement->selected_candidate[row] = false;
+                selected_requirement->accepted_candidates[row].selected = false;
             }
         }
         calc_requirement_definitions();
@@ -308,4 +322,18 @@ void DeviceMatcher::on_btn_cancel_clicked() {
 void DeviceMatcher::on_btn_ok_clicked() {
     successful_matching = true;
     close();
+}
+
+void DeviceMatcher::on_btn_check_all_clicked() {
+    for (unsigned int i = 0; i < selected_requirement->accepted_candidates.size(); i++) {
+        auto item_to_uncheck = ui->tree_available->topLevelItem(i);
+        item_to_uncheck->setCheckState(0, Qt::Checked);
+    }
+}
+
+void DeviceMatcher::on_btn_uncheck_all_clicked() {
+    for (unsigned int i = 0; i < selected_requirement->accepted_candidates.size(); i++) {
+        auto item_to_uncheck = ui->tree_available->topLevelItem(i);
+        item_to_uncheck->setCheckState(0, Qt::Unchecked);
+    }
 }
