@@ -133,14 +133,14 @@ void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runne
                            .arg((int)accepted_candidates.size());
             } break;
             case DevicesToMatchEntry::MatchDefinitionState::FullDefined: {
-                for(auto & ce : device_match_entry.accepted_candidates){
+                for (auto &ce : device_match_entry.accepted_candidates) {
                     ce.selected = true;
                 }
             } break;
             case DevicesToMatchEntry::MatchDefinitionState::OverDefined: {
                 successful_matching = false;
                 over_defined_found = true;
-                for(auto & ce : device_match_entry.accepted_candidates){
+                for (auto &ce : device_match_entry.accepted_candidates) {
                     ce.selected = true;
                 }
             }
@@ -159,7 +159,7 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> DeviceMatcher::get_mat
         if (d.match_definition == DevicesToMatchEntry::MatchDefinitionState::FullDefined) {
             for (auto &ac : d.accepted_candidates) {
                 if (ac.selected) {
-                    std::pair<CommunicationDevice *, Protocol *> p{ac.communication_device,ac.protocol};
+                    std::pair<CommunicationDevice *, Protocol *> p{ac.communication_device, ac.protocol};
                     device_matching_result.push_back(p);
                 }
             }
@@ -201,16 +201,22 @@ void DeviceMatcher::calc_gui_match_definition() {
 
 void DeviceMatcher::make_treeview() {
     ui->tree_required->setColumnCount(2);
+    int select_index = 0;
+    bool first_match_error_found = false;
     QList<QTreeWidgetItem *> items;
     for (auto d : devices_to_match) {
         QTreeWidgetItem *tv = new QTreeWidgetItem(ui->tree_required);
         tv->setText(0, d.device_requirement.device_names.join("/"));
-
+        if ((d.match_definition != DevicesToMatchEntry::MatchDefinitionState::FullDefined) && (!first_match_error_found)) {
+            first_match_error_found = true;
+            select_index = items.count();
+        }
         items.append(tv);
     }
     ui->tree_required->insertTopLevelItems(0, items);
     calc_gui_match_definition();
     align_columns();
+    ui->tree_required->setCurrentItem(ui->tree_required->topLevelItem(select_index));
 }
 
 void DeviceMatcher::load_available_devices(int required_index) {
@@ -233,8 +239,7 @@ void DeviceMatcher::load_available_devices(int required_index) {
                 tv->setText(1, QString::fromStdString(scpi_protocol->get_serial_number()));
                 tv->setText(2, scpi_protocol->get_approved_state_str());
             } else if (rpc_protocol) {
-                //QTreeWidgetItem *tv_child = new QTreeWidgetItem(tv);
-                //tv_child->setText(0, rpc_protocol->get_device_summary());
+
             }
         }
 

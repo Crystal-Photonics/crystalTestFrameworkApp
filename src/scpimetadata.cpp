@@ -149,6 +149,5 @@ void SCPIMetaData::parse_meta_data_file(QString file_name) {
 void SCPIDeviceType::clear() {
     device_name = "";
     manual_path = "";
-    //isEmpty = false;
     devices.clear();
 }

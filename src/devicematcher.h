@@ -33,7 +33,6 @@ class DevicesToMatchEntry {
     enum class MatchDefinitionState { OverDefined, UnderDefined, FullDefined };
     MatchDefinitionState match_definition = MatchDefinitionState::UnderDefined;
     DeviceRequirements device_requirement;
-    //std::vector<bool> selected_candidate;
     std::vector<CandidateEntry> accepted_candidates;
 };
 
