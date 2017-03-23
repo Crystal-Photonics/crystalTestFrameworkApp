@@ -95,5 +95,11 @@ bool SocketCommunicationDevice::isConnected() {
 }
 
 void SocketCommunicationDevice::receiveData(QByteArray data) {
-	emit received(std::move(data));
+    emit received(std::move(data));
+}
+
+QString SocketCommunicationDevice::getName()
+{
+
+    return "TCP/IP";
 }

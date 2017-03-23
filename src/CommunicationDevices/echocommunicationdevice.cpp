@@ -31,3 +31,8 @@ bool EchoCommunicationDevice::waitReceived(Duration timeout, std::string escape_
 }
 
 void EchoCommunicationDevice::close() {}
+
+QString EchoCommunicationDevice::getName()
+{
+    return "echo";
+}

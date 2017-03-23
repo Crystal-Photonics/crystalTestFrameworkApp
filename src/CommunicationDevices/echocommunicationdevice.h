@@ -14,6 +14,8 @@ class EXPORT EchoCommunicationDevice final : public CommunicationDevice {
     bool waitReceived(Duration timeout = std::chrono::seconds(1), int bytes = 1, bool isPolling = false) override;
     bool waitReceived(Duration timeout, std::string escape_characters, std::string sleading_pattern_indicating_skip_line) override;
 	void close() override;
+
+        QString getName() override;
 };
 
 #endif // ECHOCOMMUNICATIONDEVICE_H

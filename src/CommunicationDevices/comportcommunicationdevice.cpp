@@ -127,3 +127,8 @@ void ComportCommunicationDevice::send(const QByteArray &data, const QByteArray &
 void ComportCommunicationDevice::close() {
     return Utility::promised_thread_call(this, [this] { port.close(); });
 }
+
+QString ComportCommunicationDevice::getName()
+{
+    return port.portName();
+}

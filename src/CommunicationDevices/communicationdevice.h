@@ -28,6 +28,7 @@ class EXPORT CommunicationDevice : public QObject {
     const QString &getTarget() const;
     bool is_waiting_for_message() const;
     void set_currently_in_wait_received(bool in_wait_received);
+    virtual QString getName() = 0;
 
     signals:
     void connected();

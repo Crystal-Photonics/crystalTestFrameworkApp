@@ -12,6 +12,39 @@
 
 SCPIMetaData::SCPIMetaData() {}
 
+SCPIApprovedState SCPIDeviceDetail::get_approved_state() {
+    if (valid == false) {
+        return SCPIApprovedState::Unknown;
+    }
+    if (locked) {
+        return SCPIApprovedState::Locked;
+    }
+    if ((QDateTime().currentDateTime() > QDateTime(expery_date)) && (expery_date.isValid())) {
+        return SCPIApprovedState::Expired;
+    }
+
+    return SCPIApprovedState::Approved;
+}
+
+QString SCPIDeviceDetail::get_approved_state_str() {
+    switch (get_approved_state()) {
+        case SCPIApprovedState::Approved:
+            if (expery_date.isValid()) {
+                return "calibrated until " + expery_date.toString("yyyy.MM.dd");
+            } else {
+                return "calibration approved";
+            }
+        case SCPIApprovedState::Unknown:
+            return "unknown";
+
+        case SCPIApprovedState::Locked:
+            return "locked";
+
+        case SCPIApprovedState::Expired:
+            return "calibration expired";
+    }
+}
+
 void SCPIMetaData::reload(QString file_name) {
     parse_meta_data_file(file_name);
 }
@@ -29,10 +62,12 @@ SCPIDeviceType SCPIMetaData::query(QString serial_number, QString device_name) {
         if (look_for_serial) {
             for (auto d : t.devices) {
                 if (d.serial_number == serial_number) {
-                    result = t;
-                    result.devices.clear();
-                    result.devices.append(d);
-                    break;
+                    if (device_name == t.device_name) {
+                        result = t;
+                        result.devices.clear();
+                        result.devices.append(d);
+                        break;
+                    }
                 }
             }
         } else {
@@ -74,7 +109,7 @@ void SCPIMetaData::parse_meta_data_file(QString file_name) {
         SCPIDeviceType device_type{};
 
         QJsonObject obj = js_device_type.toObject();
-       // device_type.isEmpty = false;
+        // device_type.isEmpty = false;
         device_type.device_name = obj["device_name"].toString();
         device_type.manual_path = obj["manual_path"].toString();
         QJsonArray js_devices = obj["devices"].toArray();
@@ -89,8 +124,20 @@ void SCPIMetaData::parse_meta_data_file(QString file_name) {
             device.expery_date = QDate::fromString(tmp, DATE_FORMAT);
             tmp = obj["purchase_date"].toString();
             device.purchase_date = QDate::fromString(tmp, DATE_FORMAT);
+            device.valid = true;
+            device.locked = false;
 
-            device.locked = obj["locked"].toBool();
+            QString locked_str = obj["locked"].toString();
+            if (locked_str == "yes"){
+                device.locked = true;
+            }
+            if (locked_str == "true"){
+                device.locked = true;
+            }
+            int locked_num = obj["locked"].toInt();
+            if (locked_num){
+                device.locked = true;
+            }
             device.note = obj["note"].toString();
             device.calibration_certificate_path = obj["calibration_certificate_path"].toString();
             device_type.devices.append(device);
@@ -99,10 +146,9 @@ void SCPIMetaData::parse_meta_data_file(QString file_name) {
     }
 }
 
-void SCPIDeviceType::clear()
-{
+void SCPIDeviceType::clear() {
     device_name = "";
-    manual_path  = "";
+    manual_path = "";
     //isEmpty = false;
     devices.clear();
 }
