@@ -20,6 +20,10 @@ include($$QPROTOCOL_INTERPRETER_PATH/qProtocollInterpreter_static.pri)
 
 LIBS += -L$$BINDIR
 
+#QMAKE_CXXFLAGS += --time-report
+#QMAKE_CXXFLAGS += -flto
+#QMAKE_LFLAGS += -fno-use-linker-plugin -flto
+
 HEADERS += \
 	CommunicationDevices/communicationdevice.h \
 	CommunicationDevices/comportcommunicationdevice.h \

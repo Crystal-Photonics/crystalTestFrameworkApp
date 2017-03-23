@@ -108,5 +108,5 @@ void Test_Data_engine::test_preview() {
 	Data_engine de{input};
 	de.set_actual_number("voltage", 1000.1234);
 	//de.set_actual_number("current", 150.);
-	de.generate_pdf("test.pdf");
+	de.generate_pdf("test.xml", "test.pdf");
 }

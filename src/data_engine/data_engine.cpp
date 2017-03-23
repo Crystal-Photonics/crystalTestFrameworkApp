@@ -123,10 +123,10 @@ std::unique_ptr<QWidget> Data_engine::get_preview() const {
 	return nullptr;
 }
 
-void Data_engine::generate_pdf(const std::string &path) const {
+void Data_engine::generate_pdf(const std::string &form, const std::string &destination) const {
 	QtRPT report;
-	fill_report(report, "test.xml");
-	report.printPDF(QString::fromStdString(path));
+	fill_report(report, QString::fromStdString(form));
+	report.printPDF(QString::fromStdString(destination));
 }
 
 void Data_engine::add_entry(std::pair<FormID, std::unique_ptr<Data_engine_entry>> &&entry) {

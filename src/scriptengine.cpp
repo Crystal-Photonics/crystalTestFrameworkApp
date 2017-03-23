@@ -36,18 +36,18 @@ struct Lua_UI_Wrapper {
     }
     Lua_UI_Wrapper(Lua_UI_Wrapper &&other)
         : id(other.id) {
-        other.id = -1;
+		other.id = -1;
     }
     Lua_UI_Wrapper &operator=(Lua_UI_Wrapper &&other) {
         std::swap(id, other.id);
     }
-    ~Lua_UI_Wrapper() {
+	~Lua_UI_Wrapper() {
         if (id != -1) {
             Utility::thread_call(MainWindow::mw, [id = this->id] { MainWindow::mw->remove_lua_UI_class<T>(id); });
         }
     }
 
-    int id = id_counter++;
+	int id = id_counter++;
 
     private:
     static int id_counter;
@@ -502,25 +502,29 @@ void ScriptEngine::load_script(const QString &path) {
 				Data_engine_handle() = delete;
 			};
 
-			lua->new_usertype<Data_engine_handle>("Data_engine", //
-												  sol::meta_function::construct,
-												  [data_engine = data_engine](const std::string &xml_file, const std::string &json_file) {
-													  QString form_dir = QSettings{}.value(Globals::form_directory, QDir::currentPath()).toString();
-													  auto file_path = QDir{form_dir}.absoluteFilePath(QString::fromStdString(json_file)).toStdString();
-													  std::ifstream f(file_path);
-													  if (!f) {
-														  throw std::runtime_error("Failed opening file " + file_path);
-													  }
-													  data_engine->set_source(f);
-													  return Data_engine_handle{data_engine};
-												  }, //
-												  "set",
-												  [](Data_engine_handle &handle, const std::string &field_id, double number) {
-													  handle.data_engine->set_actual_number(QString::fromStdString(field_id), number);
-												  });
+			lua->new_usertype<Data_engine_handle>(
+				"Data_engine", //
+				sol::meta_function::construct, [ data_engine = data_engine, pdf_filepath = pdf_filepath.get(),
+												 form_filepath = form_filepath.get() ](const std::string &xml_file, const std::string &json_file) {
+					QString form_dir = QSettings{}.value(Globals::form_directory, QDir::currentPath()).toString();
+					auto file_path = QDir{form_dir}.absoluteFilePath(QString::fromStdString(json_file)).toStdString();
+					std::ifstream f(file_path);
+					if (!f) {
+						throw std::runtime_error("Failed opening file " + file_path);
+					}
+					data_engine->set_source(f);
+					*pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
+					*form_filepath =
+						QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath(QString::fromStdString(xml_file)).toStdString();
+					return Data_engine_handle{data_engine};
+				}, //
+				"set",
+				[](Data_engine_handle &handle, const std::string &field_id, double number) {
+					handle.data_engine->set_actual_number(QString::fromStdString(field_id), number);
+				});
 		}
         //bind UI
-        auto ui_table = lua->create_named_table("Ui");
+		auto ui_table = lua->create_named_table("Ui");
 
         //bind plot
         {
@@ -778,8 +782,10 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
 void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices) {
     auto reset_lua_state = [this] {
         lua = std::make_unique<sol::state>();
-        load_script(path);
-    };
+		if (pdf_filepath->empty() == false) {
+			data_engine->generate_pdf(*form_filepath, *pdf_filepath);
+		}
+	};
     try {
         {
             auto device_list = lua->create_table_with();

@@ -105,7 +105,7 @@ class Data_engine {
 	Statistics get_statistics() const;
 
 	std::unique_ptr<QWidget> get_preview() const;
-	void generate_pdf(const std::string &path) const;
+	void generate_pdf(const std::string &form, const std::__cxx11::string &destination) const;
 	std::string get_json() const;
 
 	private:
