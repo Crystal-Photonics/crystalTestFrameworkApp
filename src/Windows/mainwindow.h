@@ -80,6 +80,8 @@ class EXPORT MainWindow : public QMainWindow {
 
 	void on_console_tabs_customContextMenuRequested(const QPoint &pos);
 
+	void on_actionHotkey_triggered();
+
 	private:
 	std::vector<TestDescriptionLoader> test_descriptions;
 	std::vector<std::unique_ptr<TestRunner>> test_runners;

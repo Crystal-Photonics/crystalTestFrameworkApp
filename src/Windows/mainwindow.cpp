@@ -6,6 +6,7 @@
 #include "config.h"
 #include "console.h"
 #include "deviceworker.h"
+#include "hotkey_picker.h"
 #include "pathsettingswindow.h"
 #include "qt_util.h"
 #include "scriptengine.h"
@@ -14,6 +15,7 @@
 #include "ui_mainwindow.h"
 #include "util.h"
 
+#include "devicematcher.h"
 #include <QAction>
 #include <QByteArray>
 #include <QDebug>
@@ -34,7 +36,6 @@
 #include <future>
 #include <iterator>
 #include <memory>
-#include "devicematcher.h"
 
 namespace GUI {
     //ID's referring to the device
@@ -454,4 +455,9 @@ void MainWindow::on_console_tabs_customContextMenuRequested(const QPoint &pos) {
     menu.addAction(&action_clear);
 
     menu.exec(ui->console_tabs->mapToGlobal(pos));
+}
+
+void MainWindow::on_actionHotkey_triggered() {
+	Hotkey_picker hp{this};
+	hp.exec();
 }

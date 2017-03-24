@@ -7,8 +7,8 @@
 #include "Protocols/sg04countprotocol.h"
 #include "config.h"
 #include "console.h"
-#include "devicematcher.h"
-#include "mainwindow.h"
+#include "Windows/devicematcher.h"
+#include "Windows/mainwindow.h"
 #include "util.h"
 
 #include <QSettings>

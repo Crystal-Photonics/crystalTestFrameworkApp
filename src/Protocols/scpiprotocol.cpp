@@ -1,9 +1,9 @@
 #include "scpiprotocol.h"
 #include "config.h"
 #include "console.h"
-#include "mainwindow.h"
+#include "Windows/mainwindow.h"
 #include "qt_util.h"
-#include "scpimetadatadeviceselector.h"
+#include "Windows/scpimetadatadeviceselector.h"
 
 #include <QByteArray>
 #include <QDateTime>

@@ -1,5 +1,5 @@
 #include "window.h"
-#include "mainwindow.h"
+#include "Windows/mainwindow.h"
 #include "testrunner.h"
 
 #include <QCloseEvent>

@@ -1,5 +1,5 @@
 #include "device_protocols_settings.h"
-#include "mainwindow.h"
+#include "Windows/mainwindow.h"
 #include <QDebug>
 #include <QFile>
 #include <QJsonArray>

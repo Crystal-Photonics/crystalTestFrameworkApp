@@ -1,5 +1,5 @@
 #include "console.h"
-#include "mainwindow.h"
+#include "Windows/mainwindow.h"
 #include "util.h"
 
 #include <QTime>
