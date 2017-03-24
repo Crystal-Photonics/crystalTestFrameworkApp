@@ -436,10 +436,13 @@ void ScriptEngine::load_script(const QString &path) {
                 dir.cdUp();
                 lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
             };
-			(*lua)["await_hotkey"] = [] {
-
+			(*lua)["await_hotkey"] = [target_window = MainWindow::mw] {
+				Utility::Event_filter event_filter{nullptr};
+				target_window->installEventFilter(&event_filter);
+				target_window->removeEventFilter(&event_filter);
 			};
         }
+
         //table functions
         {
             (*lua)["table_sum"] = [](sol::table table) { return table_sum(table); };

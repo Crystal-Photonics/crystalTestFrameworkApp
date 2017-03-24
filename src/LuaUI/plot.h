@@ -8,7 +8,9 @@
 #include <memory>
 #include <vector>
 
-class Event_filter;
+namespace Utility {
+	class Event_filter;
+}
 class Plot;
 class QAction;
 class QColor;
@@ -202,7 +204,7 @@ class Curve {
     unsigned int median_kernel_size{3};
     double offset{0};
     double gain{1};
-	Event_filter *event_filter{nullptr};
+	Utility::Event_filter *event_filter{nullptr};
 	///\endcond
     friend class Plot;
 };
@@ -270,4 +272,4 @@ class Plot {
     friend class Curve;
 };
 /** \} */ // end of group ui
-#endif // PLOT_H
+#endif    // PLOT_H

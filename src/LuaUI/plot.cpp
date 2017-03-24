@@ -21,7 +21,7 @@
 Curve::Curve(QSplitter *, Plot *plot)
     : plot(plot)
     , curve(new QwtPlotCurve)
-    , event_filter(new Event_filter(plot->plot->canvas())) {
+	, event_filter(new Utility::Event_filter(plot->plot->canvas())) {
     curve->attach(plot->plot);
     curve->setTitle("curve" + QString::number(plot->curve_id_counter++));
     plot->curves.push_back(this);
