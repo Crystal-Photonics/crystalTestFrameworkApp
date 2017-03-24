@@ -2,8 +2,15 @@
 #include <QDebug>
 #include <assert.h>
 
-static uint16_t valid_sg04_count_package(QByteArray &indata){
-
+static uint16_t parse_sg04_count_package(uint8_t indata[4], bool &ok) {
+    uint16_t result = 0;
+    ok = false;
+    if ((indata[0] == 0xAA) && (indata[3] == 0xAA)) {
+        result = indata[2];
+        result |= indata[1] << 8;
+        ok = true;
+    }
+    return result;
 }
 
 SG04CountProtocol::SG04CountProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting)
@@ -12,30 +19,37 @@ SG04CountProtocol::SG04CountProtocol(CommunicationDevice &device, DeviceProtocol
     , device_protocol_setting(setting) {
 #if 1
     connection = QObject::connect(&device, &CommunicationDevice::received, [this](const QByteArray &data) {
-//qDebug() << "SG04-Count received" << data.size() << "bytes from device";
-//qDebug() << "SG04-Count received" << data << "bytes from device";
-#if 1
         incoming_data.append(data);
         if (incoming_data.count() > 3) {
             for (int searching_offset = 0; searching_offset < 4; searching_offset++) {
-                if (incoming_data.count() < 4 + searching_offset) {
-                    break;
-                }
-                if (((uint8_t)incoming_data.at(searching_offset + 0) == 0xAA) && ((uint8_t)incoming_data.at(searching_offset + 3) == 0xAA)) {
-                    while (incoming_data.count() > 3) {
-                        uint16_t counts = 0;
-                        counts = incoming_data.at(searching_offset + 2);
-                        counts |= incoming_data.at(searching_offset + 1) << 8;
+                int offset = searching_offset;
+                uint8_t package[4];
+                bool ok = true;
+                bool right_offset_found = false;
+                while (ok) {
+                    if (incoming_data.count() < 4 + offset) {
+                        break;
+                    }
+                    for (int i = 0; i < 4; i++) {
+                        package[i] = incoming_data[i + offset];
+                    }
+
+                    uint16_t counts = parse_sg04_count_package(package, ok);
+                    if (ok) {
                         received_counts += counts;
                         received_count_interval++;
-                        qDebug() << "SG04-Count received" << counts;
-                        incoming_data.remove(0, searching_offset + 4);
-
+                        right_offset_found = true;
+                        //qDebug() << "SG04-Count received" << counts;
+                        incoming_data.remove(0, offset + 4);
+                        offset = 0;
                     }
+                }
+                if (right_offset_found) {
+                    break;
                 }
             }
         }
-#endif
+
     });
 #endif
     assert(connection);
