@@ -254,6 +254,14 @@ struct RPCDevice {
 };
 
 struct SG04CountDevice {
+    std::string get_protocol_name() {
+        return protocol->type.toStdString();
+    }
+
+    sol::table get_sg04_counts(bool clear) {
+        return protocol->get_sg04_counts(*lua, clear);
+    }
+
     sol::state *lua = nullptr;
     SG04CountProtocol *protocol = nullptr;
     CommunicationDevice *device = nullptr;
@@ -682,6 +690,16 @@ void ScriptEngine::load_script(const QString &path) {
                 );
         }
 
+        {
+            lua->new_usertype<SG04CountDevice>("SG04CountDevice",                                                                      //
+                                               sol::meta_function::construct, sol::no_constructor,                                     //
+                                               "get_protocol_name", [](SCPIDevice &protocol) { return protocol.get_protocol_name(); }, //
+                                               "get_sg04_counts",
+                                               [](SG04CountDevice &protocol, bool clear_on_read) { return protocol.get_sg04_counts(clear_on_read); } //
+
+                                               );
+        }
+
         lua->script_file(path.toStdString());
     } catch (const sol::error &error) {
         set_error(error);
@@ -822,6 +840,9 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
 
                 } else if (auto scpip = dynamic_cast<SCPIProtocol *>(device_protocol.second)) {
                     device_list.add(SCPIDevice{&*lua, scpip, device_protocol.first, this});
+                    scpip->clear();
+                } else if (auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device_protocol.second)) {
+                    device_list.add(SG04CountDevice{&*lua, sg04_count_protocol, device_protocol.first, this});
                     scpip->clear();
                 } else {
                     //TODO: other protocols

@@ -4,6 +4,8 @@
 #include "Protocols/protocol.h"
 #include "device_protocols_settings.h"
 #include <QTreeWidgetItem>
+#include <sol.hpp>
+
 class SG04CountProtocol : public Protocol {
     public:
     SG04CountProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting);
@@ -14,13 +16,21 @@ class SG04CountProtocol : public Protocol {
     bool is_correct_protocol();
     void set_ui_description(QTreeWidgetItem *ui_entry);
 
+
+    void sg04_counts_clear();
+    sol::table get_sg04_counts(sol::state &lua, bool clear);
+    int await_count_package();
+
     private:
     QMetaObject::Connection connection;
     CommunicationDevice *device;
     DeviceProtocolSetting device_protocol_setting;
     QByteArray incoming_data;
-    uint32_t received_counts = 0;
-    uint32_t received_count_interval = 0;
+    uint32_t received_counts_gui = 0;
+    uint32_t received_count_interval_gui = 0;
+
+    uint32_t received_counts_lua = 0;
+    uint32_t received_count_interval_lua = 0;
 };
 
 #endif // SG04COUNTPROTOCOL_H
