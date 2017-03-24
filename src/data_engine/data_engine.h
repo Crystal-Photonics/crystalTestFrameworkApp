@@ -42,7 +42,7 @@ const T *Data_engine_entry::Data_engine_entry::as() const {
 }
 
 struct Numeric_entry : Data_engine_entry {
-	Numeric_entry(double target_value, double deviation, QString unit, QString description);
+	Numeric_entry(double target_value, double tolerance, QString unit, QString description);
 	bool valid() const;
 	bool is_complete() const override;
 	bool is_in_range() const override;
@@ -55,7 +55,7 @@ struct Numeric_entry : Data_engine_entry {
 	double get_max_value() const;
 
 	double target_value{};
-	double deviation{};
+	double tolerance{};
 	QString unit{};
 	QString description{};
 	std::experimental::optional<double> actual_value{};
