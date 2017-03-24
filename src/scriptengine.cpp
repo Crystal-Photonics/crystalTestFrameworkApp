@@ -6,11 +6,11 @@
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
 #include "Protocols/sg04countprotocol.h"
+#include "Windows/mainwindow.h"
 #include "config.h"
 #include "console.h"
 #include "data_engine/data_engine.h"
 #include "lua_functions.h"
-#include "Windows/mainwindow.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_encoded_function_call.h"
 #include "util.h"
@@ -37,18 +37,18 @@ struct Lua_UI_Wrapper {
     }
     Lua_UI_Wrapper(Lua_UI_Wrapper &&other)
         : id(other.id) {
-		other.id = -1;
+        other.id = -1;
     }
     Lua_UI_Wrapper &operator=(Lua_UI_Wrapper &&other) {
         std::swap(id, other.id);
     }
-	~Lua_UI_Wrapper() {
+    ~Lua_UI_Wrapper() {
         if (id != -1) {
             Utility::thread_call(MainWindow::mw, [id = this->id] { MainWindow::mw->remove_lua_UI_class<T>(id); });
         }
     }
 
-	int id = id_counter++;
+    int id = id_counter++;
 
     private:
     static int id_counter;
@@ -254,6 +254,13 @@ struct RPCDevice {
 };
 
 struct SG04CountDevice {
+    std::string get_protocol_name() {
+        return protocol->type.toStdString();
+    }
+
+    sol::table get_sg04_counts(bool clear) {
+        return protocol->get_sg04_counts(*lua, clear);
+    }
 
     sol::state *lua = nullptr;
     SG04CountProtocol *protocol = nullptr;
@@ -332,8 +339,8 @@ struct SCPIDevice {
 ScriptEngine::ScriptEngine(QSplitter *parent, QPlainTextEdit *console, Data_engine *data_engine)
     : lua(std::make_unique<sol::state>())
     , parent(parent)
-	, console(console)
-	, data_engine(data_engine) {}
+    , console(console)
+    , data_engine(data_engine) {}
 
 ScriptEngine::~ScriptEngine() {}
 
@@ -504,36 +511,36 @@ void ScriptEngine::load_script(const QString &path) {
             };
         }
 
-		//bind data engine
-		{
-			struct Data_engine_handle {
-				Data_engine *data_engine{nullptr};
-				Data_engine_handle() = delete;
-			};
+        //bind data engine
+        {
+            struct Data_engine_handle {
+                Data_engine *data_engine{nullptr};
+                Data_engine_handle() = delete;
+            };
 
-			lua->new_usertype<Data_engine_handle>(
-				"Data_engine", //
-				sol::meta_function::construct, [ data_engine = data_engine, pdf_filepath = pdf_filepath.get(),
-												 form_filepath = form_filepath.get() ](const std::string &xml_file, const std::string &json_file) {
-					QString form_dir = QSettings{}.value(Globals::form_directory, QDir::currentPath()).toString();
-					auto file_path = QDir{form_dir}.absoluteFilePath(QString::fromStdString(json_file)).toStdString();
-					std::ifstream f(file_path);
-					if (!f) {
-						throw std::runtime_error("Failed opening file " + file_path);
-					}
-					data_engine->set_source(f);
-					*pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
-					*form_filepath =
-						QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath(QString::fromStdString(xml_file)).toStdString();
-					return Data_engine_handle{data_engine};
-				}, //
-				"set",
-				[](Data_engine_handle &handle, const std::string &field_id, double number) {
-					handle.data_engine->set_actual_number(QString::fromStdString(field_id), number);
-				});
-		}
+            lua->new_usertype<Data_engine_handle>(
+                "Data_engine", //
+                sol::meta_function::construct, [ data_engine = data_engine, pdf_filepath = pdf_filepath.get(),
+                                                 form_filepath = form_filepath.get() ](const std::string &xml_file, const std::string &json_file) {
+                    QString form_dir = QSettings{}.value(Globals::form_directory, QDir::currentPath()).toString();
+                    auto file_path = QDir{form_dir}.absoluteFilePath(QString::fromStdString(json_file)).toStdString();
+                    std::ifstream f(file_path);
+                    if (!f) {
+                        throw std::runtime_error("Failed opening file " + file_path);
+                    }
+                    data_engine->set_source(f);
+                    *pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
+                    *form_filepath =
+                        QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath(QString::fromStdString(xml_file)).toStdString();
+                    return Data_engine_handle{data_engine};
+                }, //
+                "set",
+                [](Data_engine_handle &handle, const std::string &field_id, double number) {
+                    handle.data_engine->set_actual_number(QString::fromStdString(field_id), number);
+                });
+        }
         //bind UI
-		auto ui_table = lua->create_named_table("Ui");
+        auto ui_table = lua->create_named_table("Ui");
 
         //bind plot
         {
@@ -679,6 +686,16 @@ void ScriptEngine::load_script(const QString &path) {
                 );
         }
 
+        {
+            lua->new_usertype<SG04CountDevice>("SG04CountDevice",                                                                      //
+                                               sol::meta_function::construct, sol::no_constructor,                                     //
+                                               "get_protocol_name", [](SCPIDevice &protocol) { return protocol.get_protocol_name(); }, //
+                                               "get_sg04_counts",
+                                               [](SG04CountDevice &protocol, bool clear_on_read) { return protocol.get_sg04_counts(clear_on_read); } //
+
+                                               );
+        }
+
         lua->script_file(path.toStdString());
     } catch (const sol::error &error) {
         set_error(error);
@@ -791,10 +808,10 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
 void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices) {
     auto reset_lua_state = [this] {
         lua = std::make_unique<sol::state>();
-		if (pdf_filepath->empty() == false) {
-			data_engine->generate_pdf(*form_filepath, *pdf_filepath);
-		}
-	};
+        if (pdf_filepath->empty() == false) {
+            data_engine->generate_pdf(*form_filepath, *pdf_filepath);
+        }
+    };
     try {
         {
             auto device_list = lua->create_table_with();
@@ -820,6 +837,9 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
                 } else if (auto scpip = dynamic_cast<SCPIProtocol *>(device_protocol.second)) {
                     device_list.add(SCPIDevice{&*lua, scpip, device_protocol.first, this});
                     scpip->clear();
+                } else if (auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device_protocol.second)) {
+                    device_list.add(SG04CountDevice{&*lua, sg04_count_protocol, device_protocol.first, this});
+                    scpip->clear();
                 } else {
                     //TODO: other protocols
                     throw std::runtime_error("invalid protocol: " + device_protocol.second->type.toStdString());
@@ -836,13 +856,13 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
 }
 
 QString DeviceRequirements::get_description() const {
-	QString quantity;
-	if (quantity_max == INT_MAX) {
-		quantity = "(" + QString::number(quantity_min) + "+)";
-	} else if (quantity_min == quantity_max) {
-		quantity = "(" + QString::number(quantity_min) + ")";
-	} else {
-		quantity = "(" + QString::number(quantity_min) + "-" + QString::number(quantity_max) + ")";
-	}
-	return device_names.join("/") + " " + quantity;
+    QString quantity;
+    if (quantity_max == INT_MAX) {
+        quantity = "(" + QString::number(quantity_min) + "+)";
+    } else if (quantity_min == quantity_max) {
+        quantity = "(" + QString::number(quantity_min) + ")";
+    } else {
+        quantity = "(" + QString::number(quantity_min) + "-" + QString::number(quantity_max) + ")";
+    }
+    return device_names.join("/") + " " + quantity;
 }
