@@ -10,7 +10,7 @@
 #include "console.h"
 #include "data_engine/data_engine.h"
 #include "lua_functions.h"
-#include "mainwindow.h"
+#include "Windows/mainwindow.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_encoded_function_call.h"
 #include "util.h"

@@ -1,7 +1,7 @@
 #include "testrunner.h"
 #include "console.h"
 #include "deviceworker.h"
-#include "mainwindow.h"
+#include "Windows/mainwindow.h"
 #include "scriptengine.h"
 #include "testdescriptionloader.h"
 

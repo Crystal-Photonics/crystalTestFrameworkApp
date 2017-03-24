@@ -318,10 +318,8 @@ QString Text_entry::get_maximum() const {
 
 QString Data_engine::Statistics::to_qstring() const {
 	const int total = number_of_id_fields + number_of_data_fields;
-	return QString(R"(Number of fields: %1
-Fields filled: %2/%3
-Fields succeeded: %4/%5)")
-		.arg(total) //
+	return QString(R"(Fields filled: %1/%2
+Fields succeeded: %3/%4)")
 		.arg(number_of_filled_fields)
 		.arg(total)
 		.arg(number_of_inrange_fields)

@@ -10,10 +10,11 @@ TEMPLATE = lib
 DEFINES += EXPORT_LIBRARY
 
 FORMS += \
-	mainwindow.ui \
-	pathsettingswindow.ui \
-    devicematcher.ui \
-    scpimetadatadeviceselector.ui
+	Windows/mainwindow.ui \
+	Windows/pathsettingswindow.ui \
+	Windows/devicematcher.ui \
+	Windows/scpimetadatadeviceselector.ui \
+	Windows/hotkey_picker.ui
 
 QPROTOCOL_INTERPRETER_PATH=$$PWD/../libs/qRPCRuntimeParser
 INCLUDEPATH += $$QPROTOCOL_INTERPRETER_PATH/project/src
@@ -41,8 +42,8 @@ HEADERS += \
 	LuaUI/lineedit.h \
 	LuaUI/plot.h \
 	LuaUI/window.h \
-	mainwindow.h \
-	pathsettingswindow.h \
+	Windows/mainwindow.h \
+	Windows/pathsettingswindow.h \
 	Protocols/protocol.h \
 	Protocols/rpcprotocol.h \
 	Protocols/scpiprotocol.h \
@@ -53,9 +54,10 @@ HEADERS += \
 	util.h \
     device_protocols_settings.h \
     scpimetadata.h \
-    devicematcher.h \
-    scpimetadatadeviceselector.h \
-    Protocols/sg04countprotocol.h
+	Windows/devicematcher.h \
+	Windows/scpimetadatadeviceselector.h \
+	Protocols/sg04countprotocol.h \
+	Windows/hotkey_picker.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -72,8 +74,8 @@ SOURCES += \
 	LuaUI/lineedit.cpp \
 	LuaUI/plot.cpp \
 	LuaUI/window.cpp \
-	mainwindow.cpp \
-	pathsettingswindow.cpp \
+	Windows/mainwindow.cpp \
+	Windows/pathsettingswindow.cpp \
 	Protocols/protocol.cpp \
 	Protocols/rpcprotocol.cpp \
 	Protocols/scpiprotocol.cpp \
@@ -84,6 +86,7 @@ SOURCES += \
 	util.cpp \
     device_protocols_settings.cpp \
     scpimetadata.cpp \
-    devicematcher.cpp \
-    scpimetadatadeviceselector.cpp \
-    Protocols/sg04countprotocol.cpp
+	Windows/devicematcher.cpp \
+	Windows/scpimetadatadeviceselector.cpp \
+	Protocols/sg04countprotocol.cpp \
+	Windows/hotkey_picker.cpp

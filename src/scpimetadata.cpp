@@ -1,6 +1,6 @@
 #include "scpimetadata.h"
+#include "Windows/mainwindow.h"
 
-#include "mainwindow.h"
 #include <QDate>
 #include <QFile>
 #include <QJsonArray>

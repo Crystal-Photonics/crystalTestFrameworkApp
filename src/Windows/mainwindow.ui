@@ -274,12 +274,18 @@
      <string>Settings</string>
     </property>
     <addaction name="actionPaths"/>
+    <addaction name="actionHotkey"/>
    </widget>
    <addaction name="menuSettings"/>
   </widget>
   <action name="actionPaths">
    <property name="text">
     <string>Paths ...</string>
+   </property>
+  </action>
+  <action name="actionHotkey">
+   <property name="text">
+    <string>Hotkeys...</string>
    </property>
   </action>
  </widget>

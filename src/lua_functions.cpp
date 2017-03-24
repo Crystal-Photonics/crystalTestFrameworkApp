@@ -2,7 +2,7 @@
 
 #include "lua_functions.h"
 #include "console.h"
-#include "mainwindow.h"
+#include "Windows/mainwindow.h"
 #include "scriptengine.h"
 #include "util.h"
 

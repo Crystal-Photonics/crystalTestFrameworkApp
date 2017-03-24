@@ -1,6 +1,6 @@
 #include "testdescriptionloader.h"
 #include "console.h"
-#include "mainwindow.h"
+#include "Windows/mainwindow.h"
 #include "scriptengine.h"
 
 #include <QDebug>
