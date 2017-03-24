@@ -6,11 +6,11 @@
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
 #include "Protocols/sg04countprotocol.h"
+#include "Windows/mainwindow.h"
 #include "config.h"
 #include "console.h"
 #include "data_engine/data_engine.h"
 #include "lua_functions.h"
-#include "Windows/mainwindow.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_encoded_function_call.h"
 #include "util.h"
@@ -254,7 +254,6 @@ struct RPCDevice {
 };
 
 struct SG04CountDevice {
-
     sol::state *lua = nullptr;
     SG04CountProtocol *protocol = nullptr;
     CommunicationDevice *device = nullptr;
@@ -429,6 +428,9 @@ void ScriptEngine::load_script(const QString &path) {
                 dir.cdUp();
                 lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
             };
+			(*lua)["await_hotkey"] = [] {
+
+			};
         }
         //table functions
         {
@@ -532,6 +534,7 @@ void ScriptEngine::load_script(const QString &path) {
 					handle.data_engine->set_actual_number(QString::fromStdString(field_id), number);
 				});
 		}
+
         //bind UI
 		auto ui_table = lua->create_named_table("Ui");
 

@@ -3,6 +3,8 @@
 
 #include <QDialog>
 
+#include <tuple>
+
 class QKeySequenceEdit;
 
 namespace Ui {
@@ -27,7 +29,14 @@ class Hotkey_picker : public QDialog {
 
 	void load();
 	void save() const;
-	std::vector<std::pair<QKeySequenceEdit *, const char *>> get_key_sequence_config() const;
+
+	struct Key_config {
+		QKeySequenceEdit *edit_field{};
+		const char *config{};
+		const char *default_key{};
+	};
+
+	std::vector<Key_config> get_key_sequence_config() const;
 };
 
 #endif // HOTKEY_PICKER_H

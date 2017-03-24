@@ -27,20 +27,20 @@ void Hotkey_picker::on_buttonBox_rejected() {
 
 void Hotkey_picker::load() {
 	for (const auto &ks : get_key_sequence_config()) {
-		ks.first->setKeySequence(QKeySequence::fromString(QSettings{}.value(ks.second, "").toString()));
+		ks.edit_field->setKeySequence(QKeySequence::fromString(QSettings{}.value(ks.config, ks.default_key).toString()));
 	}
 }
 
 void Hotkey_picker::save() const {
 	for (const auto &ks : get_key_sequence_config()) {
-		QSettings{}.setValue(ks.second, ks.first->keySequence().toString(QKeySequence::PortableText));
+		QSettings{}.setValue(ks.config, ks.edit_field->keySequence().toString(QKeySequence::PortableText));
 	}
 }
 
-std::vector<std::pair<QKeySequenceEdit *, const char *>> Hotkey_picker::get_key_sequence_config() const {
+std::vector<Hotkey_picker::Key_config> Hotkey_picker::get_key_sequence_config() const {
 	return {
-		{ui->confirm_keySequenceEdit, Globals::confirm_key_sequence},
-		{ui->skip_keySequenceEdit, Globals::skip_key_sequence},
-		{ui->cancel_keySequenceEdit, Globals::cancel_key_sequence},
+		{ui->confirm_keySequenceEdit, Globals::confirm_key_sequence, "Enter"},
+		{ui->skip_keySequenceEdit, Globals::skip_key_sequence, "Space"},
+		{ui->cancel_keySequenceEdit, Globals::cancel_key_sequence, "Esc"},
 	};
 }
