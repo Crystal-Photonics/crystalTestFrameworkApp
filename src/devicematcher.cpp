@@ -2,6 +2,7 @@
 #include "CommunicationDevices/comportcommunicationdevice.h"
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
+#include "Protocols/sg04countprotocol.h"
 #include "console.h"
 #include "mainwindow.h"
 #include "ui_devicematcher.h"
@@ -26,6 +27,7 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
 
         auto rpc_protocol = dynamic_cast<RPCProtocol *>(device->protocol.get());
         auto scpi_protocol = dynamic_cast<SCPIProtocol *>(device->protocol.get());
+        auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device->protocol.get());
         if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
             sol::optional<std::string> message;
             try {
@@ -80,8 +82,15 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
                 devices.emplace_back(device->device.get(), device->protocol.get());
             }
 
+        } else if (sg04_count_protocol) {
+
+            {
+                //acceptable device found
+                devices.emplace_back(device->device.get(), device->protocol.get());
+            }
+
         } else {
-            assert(!"TODO: handle non-RPC/SCPI protocol");
+            assert(!"TODO: handle non-RPC/SCPI/SG04 protocol");
         }
     }
     return devices;
@@ -231,6 +240,8 @@ void DeviceMatcher::load_available_devices(int required_index) {
         auto com_port = dynamic_cast<ComportCommunicationDevice *>(d.communication_device);
         auto scpi_protocol = dynamic_cast<SCPIProtocol *>(d.protocol);
         auto rpc_protocol = dynamic_cast<RPCProtocol *>(d.protocol);
+        auto sg04_count_protocol = dynamic_cast<RPCProtocol *>(d.protocol);
+
         if (com_port) {
             tv->setText(0, com_port->port.portName());
             if (scpi_protocol) {
@@ -239,7 +250,14 @@ void DeviceMatcher::load_available_devices(int required_index) {
                 tv->setText(1, QString::fromStdString(scpi_protocol->get_serial_number()));
                 tv->setText(2, scpi_protocol->get_approved_state_str());
             } else if (rpc_protocol) {
-
+                QTreeWidgetItem *tv_child = new QTreeWidgetItem(tv);
+                tv_child->setText(0, rpc_protocol->get_device_summary());
+                //TODO shall we put more information here?
+            }else if (sg04_count_protocol) {
+                QTreeWidgetItem *tv_child = new QTreeWidgetItem(tv);
+                tv_child->setText(0, "SG04");
+                tv_child->setText(1, "Display countrate here");
+                //TODO shall we put more information here?
             }
         }
 

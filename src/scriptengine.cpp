@@ -5,6 +5,7 @@
 #include "LuaUI/plot.h"
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
+#include "Protocols/sg04countprotocol.h"
 #include "config.h"
 #include "console.h"
 #include "data_engine/data_engine.h"
@@ -248,6 +249,14 @@ struct RPCDevice {
     }
     sol::state *lua = nullptr;
     RPCProtocol *protocol = nullptr;
+    CommunicationDevice *device = nullptr;
+    ScriptEngine *engine = nullptr;
+};
+
+struct SG04CountDevice {
+
+    sol::state *lua = nullptr;
+    SG04CountProtocol *protocol = nullptr;
     CommunicationDevice *device = nullptr;
     ScriptEngine *engine = nullptr;
 };

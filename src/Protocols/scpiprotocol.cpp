@@ -110,7 +110,7 @@ QStringList SCPIProtocol::parse_scpi_answers() {
     answer_string = answer_string.trimmed();
     result = answer_string.split(QString::fromStdString(escape_characters));
     if (answer_string.count()) {
-        qDebug() << result;
+      //  qDebug() << result;
     }
     return result;
 }
@@ -203,7 +203,7 @@ bool SCPIProtocol::is_correct_protocol() {
     if (send_scpi_request(TIMEOUT, "*IDN?", true, true)) {
         result = true;
         QString answer = parse_last_scpi_answer();
-        qDebug() << answer;
+        //qDebug() << answer;
 
         load_idn_string(answer.toStdString());
     }
@@ -360,7 +360,7 @@ double SCPIProtocol::get_num_param(std::string request, std::string argument) {
         if (standard_deviation > maximal_acceptable_standard_deviation) {
             //TODO put variance error here
         }
-        qDebug() << "SCPI standard deviation: " << standard_deviation;
+       // qDebug() << "SCPI standard deviation: " << standard_deviation;
     } else {
         //TODO put conversion error
         qDebug() << "SCPI conversion error";

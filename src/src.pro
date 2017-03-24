@@ -54,7 +54,8 @@ HEADERS += \
     device_protocols_settings.h \
     scpimetadata.h \
     devicematcher.h \
-    scpimetadatadeviceselector.h
+    scpimetadatadeviceselector.h \
+    Protocols/sg04countprotocol.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -84,4 +85,5 @@ SOURCES += \
     device_protocols_settings.cpp \
     scpimetadata.cpp \
     devicematcher.cpp \
-    scpimetadatadeviceselector.cpp
+    scpimetadatadeviceselector.cpp \
+    Protocols/sg04countprotocol.cpp

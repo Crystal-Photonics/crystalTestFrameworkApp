@@ -52,9 +52,10 @@ class SCPIProtocol : public Protocol {
     ~SCPIProtocol();
     SCPIProtocol(const SCPIProtocol &) = delete;
     SCPIProtocol(SCPIProtocol &&other) = delete;
+    SCPIProtocol &operator=(const SCPIProtocol &&) = delete;
     bool is_correct_protocol();
     void set_ui_description(QTreeWidgetItem *ui_entry);
-    SCPIProtocol &operator=(const SCPIProtocol &&) = delete;
+
     void get_lua_device_descriptor(sol::table &t) ;
     SCPIApprovedState get_approved_state();
     QString get_approved_state_str() ;
@@ -84,6 +85,7 @@ class SCPIProtocol : public Protocol {
     QStringList get_str_param_raw(std::string request, std::string argument);
     QStringList parse_scpi_answers();
     QString parse_last_scpi_answer();
+
     void send_string(std::string data);
     QMetaObject::Connection connection;
     bool send_scpi_request(Duration timeout, std::string request, bool use_leading_escape, bool answer_expected);

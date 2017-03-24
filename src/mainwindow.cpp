@@ -2,8 +2,7 @@
 #include "CommunicationDevices/comportcommunicationdevice.h"
 #include "LuaUI/plot.h"
 #include "LuaUI/window.h"
-#include "Protocols/rpcprotocol.h"
-#include "Protocols/scpiprotocol.h"
+
 #include "config.h"
 #include "console.h"
 #include "deviceworker.h"

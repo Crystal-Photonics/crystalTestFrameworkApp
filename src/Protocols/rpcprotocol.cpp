@@ -226,6 +226,10 @@ const RPCRunTimeProtocolDescription &RPCProtocol::get_description() {
     return description;
 }
 
+QString RPCProtocol::get_device_summary() {
+    return device_data.get_summary();
+}
+
 void RPCProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
     if (descriptor_answer) {
         auto data = get_description_data(*descriptor_answer);

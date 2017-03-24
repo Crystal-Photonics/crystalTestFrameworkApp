@@ -56,7 +56,8 @@ class RPCProtocol : public Protocol {
 	void clear();
 	std::string get_name();
 
-	private:
+    QString get_device_summary();
+private:
 	RPCRunTimeProtocolDescription description;
 	RPCRuntimeDecoder decoder;
 	RPCRuntimeEncoder encoder;

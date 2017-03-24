@@ -31,6 +31,7 @@ class DeviceProtocolsSettings {
 
     QList<DeviceProtocolSetting> protocols_rpc;
     QList<DeviceProtocolSetting> protocols_scpi;
+    QList<DeviceProtocolSetting> protocols_sg04_count;
 
     private:
     void parse_settings_file(QString file_name);

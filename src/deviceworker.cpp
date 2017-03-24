@@ -4,11 +4,12 @@
 
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
+#include "Protocols/sg04countprotocol.h"
 #include "config.h"
 #include "console.h"
+#include "devicematcher.h"
 #include "mainwindow.h"
 #include "util.h"
-#include "devicematcher.h"
 
 #include <QSettings>
 #include <QTimer>
@@ -16,7 +17,6 @@
 #include <functional>
 #include <initializer_list>
 #include <regex>
-
 
 void DeviceWorker::poll_ports() {
     Utility::thread_call(this, [this] {
@@ -61,6 +61,7 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
 
     auto &rpc_devices = device_protocol_settings.protocols_rpc;
     auto &scpi_devices = device_protocol_settings.protocols_scpi;
+    auto &sg04_count_devices = device_protocol_settings.protocols_sg04_count;
     auto check_rpc_protocols = [&rpc_devices, &device_protocol_settings_file](ComportDescription &device) {
         for (auto &rpc_device : rpc_devices) {
             if (rpc_device.match(device.info.portName()) == false) {
@@ -121,11 +122,43 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
             }
         }
     };
+    auto check_sg04_count_protocols = [&sg04_count_devices, &device_protocol_settings_file](ComportDescription &device) {
+        for (auto &sg04_count_device : sg04_count_devices) {
+            if (sg04_count_device.match(device.info.portName()) == false) {
+                continue;
+            }
+
+            const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(sg04_count_device.baud);
+            if (is_valid_baudrate(baudrate) == false) {
+                MainWindow::mw->show_message_box(
+                    tr("Input Error"),
+                    tr(R"(Invalid baudrate %1 specified in settings file "%2".)").arg(QString::number(baudrate), device_protocol_settings_file),
+                    QMessageBox::Critical);
+                continue;
+            }
+            if (device.device->connect(device.info, baudrate) == false) {
+                Console::warning() << tr("Failed opening") << device.device->getTarget();
+                return;
+            }
+            auto protocol = std::make_unique<SG04CountProtocol>(*device.device, sg04_count_device);
+            if (protocol) {
+                if (protocol->is_correct_protocol()) {
+
+                    MainWindow::mw->execute_in_gui_thread(
+                        [ protocol = protocol.get(), ui_entry = device.ui_entry ] { protocol->set_ui_description(ui_entry); });
+                    device.protocol = std::move(protocol);
+
+                } else {
+                    device.device->close();
+                }
+            }
+        }
+    };
 
     //TODO: Add non-rpc device discovery here
 
     for (auto &device : comport_device_list) {
-        std::function<void(ComportDescription &)> protocol_functions[] = {check_rpc_protocols, check_scpi_protocols};
+        std::function<void(ComportDescription &)> protocol_functions[] = {check_rpc_protocols, check_scpi_protocols, check_sg04_count_protocols};
         for (auto &protocol_check_function : protocol_functions) {
             if (device->device->isConnected()) {
                 break;
@@ -239,25 +272,25 @@ std::vector<ComportDescription *> DeviceWorker::get_devices_with_protocol(const 
             QString device_name;
             if (scpi_protocol) {
                 device_name = QString().fromStdString(scpi_protocol->get_name());
-            }else if (rpc_protocol) {
+            } else if (rpc_protocol) {
                 device_name = QString().fromStdString(rpc_protocol->get_name());
             }
-                if (device_names.indexOf(device_name) > -1) {
+            if (device_names.indexOf(device_name) > -1) {
+                device_name_match = true;
+            }
+            if (device_names.count() == 0) {
+                device_name_match = true;
+            }
+            for (auto s : device_names) {
+                if (s == "*") {
                     device_name_match = true;
+                    break;
                 }
-                if (device_names.count() == 0) {
+                if (s == "") {
                     device_name_match = true;
+                    break;
                 }
-                for (auto s : device_names) {
-                    if (s == "*") {
-                        device_name_match = true;
-                        break;
-                    }
-                    if (s == "") {
-                        device_name_match = true;
-                        break;
-                    }
-                }
+            }
             if ((device.protocol->type == protocol) && (device_name_match)) {
                 candidates.push_back(&device);
             }

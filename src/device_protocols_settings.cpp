@@ -19,9 +19,10 @@ DeviceProtocolsSettings::DeviceProtocolsSettings(QString file_name) {
 void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
     protocols_rpc.clear();
     protocols_scpi.clear();
+    protocols_sg04_count.clear();
     exclusive_ports.clear();
 
-    QStringList protocol_identifiers{"SCPI", "RPC"};
+    QStringList protocol_identifiers{"SCPI", "RPC","SG04Count"};
 
     QFile file;
 
@@ -84,6 +85,9 @@ void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
                 devices_parsed = true;
             } else if (protocol_identifier == "RPC") {
                 protocols_rpc.append(setting);
+                devices_parsed = true;
+            } else if (protocol_identifier == "SG04Count") {
+                protocols_sg04_count.append(setting);
                 devices_parsed = true;
             }
         }
