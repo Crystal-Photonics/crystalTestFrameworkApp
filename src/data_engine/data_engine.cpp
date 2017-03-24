@@ -82,19 +82,19 @@ double Data_engine::get_desired_value(const FormID &id) const {
 }
 
 double Data_engine::get_desired_absolute_tolerance(const FormID &id) const {
-	return get_entry(id)->as<Numeric_entry>()->deviation;
+	return get_entry(id)->as<Numeric_entry>()->tolerance;
 }
 
 double Data_engine::get_desired_relative_tolerance(const FormID &id) const {
-	return get_entry(id)->as<Numeric_entry>()->deviation / get_entry(id)->as<Numeric_entry>()->target_value;
+	return get_entry(id)->as<Numeric_entry>()->tolerance / get_entry(id)->as<Numeric_entry>()->target_value;
 }
 
 double Data_engine::get_desired_minimum(const FormID &id) const {
-	return get_entry(id)->as<Numeric_entry>()->target_value - get_entry(id)->as<Numeric_entry>()->deviation;
+	return get_entry(id)->as<Numeric_entry>()->target_value - get_entry(id)->as<Numeric_entry>()->tolerance;
 }
 
 double Data_engine::get_desired_maximum(const FormID &id) const {
-	return get_entry(id)->as<Numeric_entry>()->target_value + get_entry(id)->as<Numeric_entry>()->deviation;
+	return get_entry(id)->as<Numeric_entry>()->target_value + get_entry(id)->as<Numeric_entry>()->tolerance;
 }
 
 const QString &Data_engine::get_unit(const FormID &id) const {
@@ -215,7 +215,7 @@ std::pair<FormID, std::unique_ptr<Data_engine_entry>> Data_engine_entry::from_js
 	const auto &value = object.value("value");
 	if (value.isDouble()) {
 		double target_value{};
-		double deviation{};
+		double tolerance{};
 		QString unit{};
 		QString description{};
 
@@ -226,15 +226,15 @@ std::pair<FormID, std::unique_ptr<Data_engine_entry>> Data_engine_entry::from_js
 				description = object.value(key).toString();
 			} else if (key == "value") {
 				target_value = object.value(key).toDouble(0.);
-			} else if (key == "deviation") {
-				deviation = object.value(key).toDouble(0.);
+			} else if (key == "tolerance") {
+				tolerance = object.value(key).toDouble(0.);
 			} else if (key == "unit") {
 				unit = object.value(key).toString();
 			} else {
 				throw std::runtime_error("Invalid key \"" + key.toStdString() + "\" in numeric JSON object");
 			}
 		}
-		return {std::move(form), std::make_unique<Numeric_entry>(target_value, deviation, std::move(unit), std::move(description))};
+		return {std::move(form), std::make_unique<Numeric_entry>(target_value, tolerance, std::move(unit), std::move(description))};
 	} else if (value.isString()) {
 		QString target_value{};
 		for (const auto &key : keys) {
@@ -251,9 +251,9 @@ std::pair<FormID, std::unique_ptr<Data_engine_entry>> Data_engine_entry::from_js
 	throw std::runtime_error("invalid JSON object");
 }
 
-Numeric_entry::Numeric_entry(double target_value, double deviation, QString unit, QString description)
+Numeric_entry::Numeric_entry(double target_value, double tolerance, QString unit, QString description)
 	: target_value(target_value)
-	, deviation(deviation)
+	, tolerance(tolerance)
 	, unit(std::move(unit))
 	, description(std::move(description)) {}
 
@@ -262,7 +262,7 @@ bool Numeric_entry::is_complete() const {
 }
 
 bool Numeric_entry::is_in_range() const {
-	return is_complete() && std::abs(actual_value.value() - target_value) <= deviation;
+	return is_complete() && std::abs(actual_value.value() - target_value) <= tolerance;
 }
 
 QString Numeric_entry::get_value() const {
@@ -282,11 +282,11 @@ QString Numeric_entry::get_maximum() const {
 }
 
 double Numeric_entry::get_min_value() const {
-	return target_value - deviation;
+	return target_value - tolerance;
 }
 
 double Numeric_entry::get_max_value() const {
-	return target_value + deviation;
+	return target_value + tolerance;
 }
 
 Text_entry::Text_entry(QString target_value)
