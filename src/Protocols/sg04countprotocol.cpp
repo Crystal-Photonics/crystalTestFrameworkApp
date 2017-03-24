@@ -19,14 +19,13 @@ SG04CountProtocol::SG04CountProtocol(CommunicationDevice &device, DeviceProtocol
     , device_protocol_setting(setting) {
 #if 1
     connection = QObject::connect(&device, &CommunicationDevice::received, [this](const QByteArray &data) {
-
-#if 1
         incoming_data.append(data);
         if (incoming_data.count() > 3) {
             for (int searching_offset = 0; searching_offset < 4; searching_offset++) {
                 int offset = searching_offset;
                 uint8_t package[4];
-
+                bool ok = true;
+                bool right_offset_found = false;
                 while (ok) {
                     if (incoming_data.count() < 4 + offset) {
                         break;
@@ -34,21 +33,23 @@ SG04CountProtocol::SG04CountProtocol(CommunicationDevice &device, DeviceProtocol
                     for (int i = 0; i < 4; i++) {
                         package[i] = incoming_data[i + offset];
                     }
-                    bool ok = false;
+
                     uint16_t counts = parse_sg04_count_package(package, ok);
                     if (ok) {
                         received_counts += counts;
                         received_count_interval++;
-                        qDebug() << "SG04-Count received" << counts;
+                        right_offset_found = true;
+                        //qDebug() << "SG04-Count received" << counts;
                         incoming_data.remove(0, offset + 4);
                         offset = 0;
-                    } else {
-                        break;
                     }
+                }
+                if (right_offset_found) {
+                    break;
                 }
             }
         }
-#endif
+
     });
 #endif
     assert(connection);
