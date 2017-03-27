@@ -18,7 +18,9 @@ struct ComportDescription {
     QSerialPortInfo info;
     QTreeWidgetItem *ui_entry;
     std::unique_ptr<Protocol> protocol;
-    bool is_in_use = false;
+    void set_is_in_use(bool in_use);
+    bool get_is_in_use(void);
+
 };
 
 class CandidateEntry{

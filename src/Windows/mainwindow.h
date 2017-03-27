@@ -82,7 +82,8 @@ class EXPORT MainWindow : public QMainWindow {
 
 	void on_actionHotkey_triggered();
 
-	private:
+    void poll_sg04_counts();
+private:
 	std::vector<TestDescriptionLoader> test_descriptions;
 	std::vector<std::unique_ptr<TestRunner>> test_runners;
 

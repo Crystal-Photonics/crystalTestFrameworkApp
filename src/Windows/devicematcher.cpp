@@ -21,7 +21,7 @@ DeviceMatcher::~DeviceMatcher() {
 std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::vector<ComportDescription *> candidates, TestRunner &runner) {
     std::vector<std::pair<CommunicationDevice *, Protocol *>> devices;
     for (auto device : candidates) {
-        if (device->is_in_use) {
+        if (device->get_is_in_use()) {
             continue;
         }
 
@@ -359,4 +359,14 @@ void DeviceMatcher::on_btn_uncheck_all_clicked() {
         auto item_to_uncheck = ui->tree_available->topLevelItem(i);
         item_to_uncheck->setCheckState(0, Qt::Unchecked);
     }
+}
+
+void ComportDescription::set_is_in_use(bool in_use)
+{
+    device.get()->set_is_in_use(in_use);
+}
+
+bool ComportDescription::get_is_in_use()
+{
+    return device.get()->get_is_in_use();
 }

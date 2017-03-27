@@ -21,16 +21,18 @@ class SG04CountProtocol : public Protocol {
     sol::table get_sg04_counts(sol::state &lua, bool clear);
     int await_count_package();
 
+    uint16_t get_actual_count_rate();
+    unsigned int get_actual_count_rate_cps();
     private:
     QMetaObject::Connection connection;
     CommunicationDevice *device;
     DeviceProtocolSetting device_protocol_setting;
     QByteArray incoming_data;
-    uint32_t received_counts_gui = 0;
-    uint32_t received_count_interval_gui = 0;
+    uint16_t actual_count_rate;
 
-    uint32_t received_counts_lua = 0;
-    uint32_t received_count_interval_lua = 0;
+    uint32_t received_counts = 0;
+
+    QList<uint16_t> received_count_packages;
 };
 
 #endif // SG04COUNTPROTOCOL_H

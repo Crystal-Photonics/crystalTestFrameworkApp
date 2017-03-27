@@ -29,6 +29,8 @@ class EXPORT CommunicationDevice : public QObject {
     bool is_waiting_for_message() const;
     void set_currently_in_wait_received(bool in_wait_received);
     virtual QString getName() = 0;
+    void set_is_in_use(bool in_use);
+    bool get_is_in_use() const;
 
     signals:
     void connected();
@@ -42,6 +44,10 @@ class EXPORT CommunicationDevice : public QObject {
     protected:
     QString target;
     bool currently_in_waitReceived;
+
+    private:
+    bool in_use=false;
+
 };
 
 #endif // COMMUNICATIONDEVICE_H

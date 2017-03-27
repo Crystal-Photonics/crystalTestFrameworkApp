@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "CommunicationDevices/comportcommunicationdevice.h"
+#include "Protocols/sg04countprotocol.h"
 #include "LuaUI/plot.h"
 #include "LuaUI/window.h"
 
@@ -77,6 +78,7 @@ MainWindow::MainWindow(QWidget *parent)
     device_worker->moveToThread(&devices_thread);
     devices_thread.start();
     QTimer::singleShot(16, device_worker.get(), &DeviceWorker::poll_ports);
+    QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
     Console::console = ui->console_edit;
     Console::mw = this;
     ui->update_devices_list_button->click();
@@ -458,6 +460,19 @@ void MainWindow::on_console_tabs_customContextMenuRequested(const QPoint &pos) {
 }
 
 void MainWindow::on_actionHotkey_triggered() {
-	Hotkey_picker hp{this};
-	hp.exec();
+    Hotkey_picker hp{this};
+    hp.exec();
+}
+
+void MainWindow::poll_sg04_counts() {
+    QString sg04_prot_string = "SG04Count";
+    auto sg04_count_devices = device_worker.get()->get_devices_with_protocol(sg04_prot_string, QStringList{""});
+    for (auto &sg04_count_device : sg04_count_devices) {
+        auto sg04_count_protocol = dynamic_cast<SG04CountProtocol*>(sg04_count_device->protocol.get());
+        if (sg04_count_protocol) {
+             unsigned int cps = sg04_count_protocol->get_actual_count_rate();
+             sg04_count_device->ui_entry->setText(2,"cps: "+QString::number(cps));
+        }
+    }
+    QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
 }
