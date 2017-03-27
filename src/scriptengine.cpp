@@ -15,9 +15,12 @@
 #include "rpcruntime_encoded_function_call.h"
 #include "util.h"
 
+#include <QPlainTextEdit>
 #include <QDebug>
 #include <QDir>
 #include <QEventLoop>
+#include <QKeyEvent>
+#include <QKeySequence>
 #include <QMessageBox>
 #include <QProcess>
 #include <QSettings>
@@ -436,10 +439,43 @@ void ScriptEngine::load_script(const QString &path) {
                 dir.cdUp();
                 lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
             };
-			(*lua)["await_hotkey"] = [target_window = MainWindow::mw] {
-				Utility::Event_filter event_filter{nullptr};
-				target_window->installEventFilter(&event_filter);
-				target_window->removeEventFilter(&event_filter);
+			(*lua)["await_hotkey"] = [target_window = console] {
+				std::unique_ptr<Utility::Event_filter> event_filter;
+				enum { confirm_pressed, skip_pressed, cancel_pressed };
+				QEventLoop event_loop;
+
+				Utility::thread_call(MainWindow::mw, [&event_filter, &event_loop, target_window] {
+					event_filter = std::make_unique<Utility::Event_filter>(MainWindow::mw);
+					event_filter->add_callback([&event_loop](QEvent *event) -> bool {
+						if (event->type() == QEvent::Type::KeyPress) {
+							QKeyEvent *key_event = static_cast<QKeyEvent *>(event);
+							auto confirm_key_sequence = QKeySequence::fromString(QSettings{}.value(Globals::confirm_key_sequence, "").toString());
+							auto skip_key_sequence = QKeySequence::fromString(QSettings{}.value(Globals::skip_key_sequence, "").toString());
+							auto cancel_key_sequence = QKeySequence::fromString(QSettings{}.value(Globals::cancel_key_sequence, "").toString());
+							const QKeySequence event_key_sequence = key_event->key() | key_event->modifiers();
+							if (event_key_sequence == confirm_key_sequence) {
+								event_loop.exit(confirm_pressed);
+								return true;
+							}
+							if (event_key_sequence == skip_key_sequence) {
+								event_loop.exit(skip_pressed);
+								return true;
+							}
+							if (event_key_sequence == cancel_key_sequence) {
+								event_loop.exit(cancel_pressed);
+								return true;
+							}
+						}
+						return false;
+					});
+					target_window->installEventFilter(event_filter.get());
+				});
+				auto exit_value = event_loop.exec();
+				Utility::promised_thread_call(MainWindow::mw, [target_window, &event_filter] {
+					target_window->removeEventFilter(event_filter.get());
+					event_filter = nullptr;
+				});
+				return exit_value;
 			};
         }
 
