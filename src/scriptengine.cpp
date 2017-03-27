@@ -15,15 +15,16 @@
 #include "rpcruntime_encoded_function_call.h"
 #include "util.h"
 
-#include <QPlainTextEdit>
 #include <QDebug>
 #include <QDir>
 #include <QEventLoop>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QMessageBox>
+#include <QPlainTextEdit>
 #include <QProcess>
 #include <QSettings>
+#include <QShortcut>
 #include <QThread>
 #include <QTimer>
 #include <functional>
@@ -439,43 +440,29 @@ void ScriptEngine::load_script(const QString &path) {
                 dir.cdUp();
                 lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
             };
-			(*lua)["await_hotkey"] = [target_window = console] {
-				std::unique_ptr<Utility::Event_filter> event_filter;
-				enum { confirm_pressed, skip_pressed, cancel_pressed };
+			(*lua)["await_hotkey"] = [] {
 				QEventLoop event_loop;
-
-				Utility::thread_call(MainWindow::mw, [&event_filter, &event_loop, target_window] {
-					event_filter = std::make_unique<Utility::Event_filter>(MainWindow::mw);
-					event_filter->add_callback([&event_loop](QEvent *event) -> bool {
-						if (event->type() == QEvent::Type::KeyPress) {
-							QKeyEvent *key_event = static_cast<QKeyEvent *>(event);
-							auto confirm_key_sequence = QKeySequence::fromString(QSettings{}.value(Globals::confirm_key_sequence, "").toString());
-							auto skip_key_sequence = QKeySequence::fromString(QSettings{}.value(Globals::skip_key_sequence, "").toString());
-							auto cancel_key_sequence = QKeySequence::fromString(QSettings{}.value(Globals::cancel_key_sequence, "").toString());
-							const QKeySequence event_key_sequence = key_event->key() | key_event->modifiers();
-							if (event_key_sequence == confirm_key_sequence) {
-								event_loop.exit(confirm_pressed);
-								return true;
-							}
-							if (event_key_sequence == skip_key_sequence) {
-								event_loop.exit(skip_pressed);
-								return true;
-							}
-							if (event_key_sequence == cancel_key_sequence) {
-								event_loop.exit(cancel_pressed);
-								return true;
-							}
-						}
-						return false;
-					});
-					target_window->installEventFilter(event_filter.get());
+				enum { confirm_pressed, skip_pressed, cancel_pressed };
+				std::array<std::unique_ptr<QShortcut>, 3> shortcuts;
+				MainWindow::mw->execute_in_gui_thread([&event_loop, &shortcuts] {
+					const char *settings_keys[] = {Globals::confirm_key_sequence, Globals::skip_key_sequence, Globals::cancel_key_sequence};
+					for (std::size_t i = 0; i < shortcuts.size(); i++) {
+						shortcuts[i] =
+							std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
+						QObject::connect(shortcuts[i].get(), &QShortcut::activated, [&event_loop, i] { event_loop.exit(i); });
+					}
 				});
 				auto exit_value = event_loop.exec();
-				Utility::promised_thread_call(MainWindow::mw, [target_window, &event_filter] {
-					target_window->removeEventFilter(event_filter.get());
-					event_filter = nullptr;
-				});
-				return exit_value;
+				Utility::promised_thread_call(MainWindow::mw, [&shortcuts] { std::fill(std::begin(shortcuts), std::end(shortcuts), nullptr); });
+				switch (exit_value) {
+					case confirm_pressed:
+						return "confirm";
+					case skip_pressed:
+						return "skip";
+					case cancel_pressed:
+						return "cancel";
+				}
+				return "unknown";
 			};
         }
 
