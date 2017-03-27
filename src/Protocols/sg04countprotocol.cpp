@@ -18,7 +18,7 @@ SG04CountProtocol::SG04CountProtocol(CommunicationDevice &device, DeviceProtocol
     , device(&device)
     , device_protocol_setting(setting) {
 #if 1
-    connection = QObject::connect(&device, &CommunicationDevice::received, [this](const QByteArray &data) {
+    connection = QObject::connect(&device, &CommunicationDevice::received, [&device, this](const QByteArray &data) {
         incoming_data.append(data);
         if (incoming_data.count() > 3) {
             for (int searching_offset = 0; searching_offset < 4; searching_offset++) {
@@ -36,11 +36,18 @@ SG04CountProtocol::SG04CountProtocol(CommunicationDevice &device, DeviceProtocol
 
                     uint16_t counts = parse_sg04_count_package(package, ok);
                     if (ok) {
-                        received_counts_gui += counts;
-                        received_count_interval_gui++;
+                        actual_count_rate = counts;
 
-                        received_counts_lua += counts;
-                        received_count_interval_lua++;
+                        received_counts += counts;
+                        received_count_packages.append(counts);
+                        int max_count_entries = 1;
+                        if (device.get_is_in_use()) {
+                            max_count_entries = 1000;
+                        }
+                        if (received_count_packages.count() > max_count_entries) {
+                            received_count_packages.removeFirst();
+                        }
+
                         right_offset_found = true;
                         //qDebug() << "SG04-Count received" << counts;
                         incoming_data.remove(0, offset + 4);
@@ -69,28 +76,42 @@ void SG04CountProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
     ui_entry->setText(2, "");
 }
 
+void SG04CountProtocol::sg04_counts_clear() {
+    received_count_packages.clear();
+    received_counts = 0;
+}
+
 sol::table SG04CountProtocol::get_sg04_counts(sol::state &lua, bool clear) {
     sol::table result = lua.create_table_with();
-    result["counts"] = received_counts_lua;
-    result["interval"] = received_count_interval_lua;
-    if (clear){
-        received_count_interval_lua = 0;
-        received_counts_lua = 0;
+    sol::table counts_table = lua.create_table_with();
+    for (auto i : received_count_packages) {
+        counts_table.add(i);
+    }
+    result["total"] = received_counts;
+    result["counts"] = counts_table;
+    if (clear) {
+        sg04_counts_clear();
     }
     return result;
 }
 
-int SG04CountProtocol::await_count_package()
-{
+int SG04CountProtocol::await_count_package() {}
 
+uint16_t SG04CountProtocol::get_actual_count_rate()
+{
+    return actual_count_rate;
+}
+
+unsigned int SG04CountProtocol::get_actual_count_rate_cps()
+{
+    return actual_count_rate*50;
 }
 
 bool SG04CountProtocol::is_correct_protocol() {
     incoming_data.clear();
-    received_count_interval_gui = 0;
-    received_counts_gui = 0;
+    received_count_packages.clear();
     if (device->waitReceived(device_protocol_setting.timeout, 4, false)) {
-        if (received_count_interval_gui) {
+        if (received_count_packages.count()) {
             return true;
         }
     }

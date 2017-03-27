@@ -47,6 +47,16 @@ void CommunicationDevice::set_currently_in_wait_received(bool in_wait_received)
     currently_in_waitReceived = in_wait_received;
 }
 
+void CommunicationDevice::set_is_in_use(bool in_use)
+{
+    this->in_use = in_use;
+}
+
+bool CommunicationDevice::get_is_in_use() const
+{
+    return in_use;
+}
+
 
 
 
