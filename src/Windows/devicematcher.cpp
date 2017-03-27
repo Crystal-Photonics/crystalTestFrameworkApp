@@ -7,11 +7,13 @@
 #include "mainwindow.h"
 #include "ui_devicematcher.h"
 #include <QMessageBox>
+#include <QTimer>
 
 DeviceMatcher::DeviceMatcher(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::DeviceMatcher) {
     ui->setupUi(this);
+    QTimer::singleShot(500, this, &DeviceMatcher::poll_sg04_counts);
 }
 
 DeviceMatcher::~DeviceMatcher() {
@@ -83,7 +85,6 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
             }
 
         } else if (sg04_count_protocol) {
-
             {
                 //acceptable device found
                 devices.emplace_back(device->device.get(), device->protocol.get());
@@ -216,6 +217,9 @@ void DeviceMatcher::make_treeview() {
     for (auto d : devices_to_match) {
         QTreeWidgetItem *tv = new QTreeWidgetItem(ui->tree_required);
         tv->setText(0, d.device_requirement.device_names.join("/"));
+        if (d.device_requirement.device_names.join("").count() == 0) {
+            tv->setText(0, d.device_requirement.protocol_name);
+        }
         if ((d.match_definition != DevicesToMatchEntry::MatchDefinitionState::FullDefined) && (!first_match_error_found)) {
             first_match_error_found = true;
             select_index = items.count();
@@ -235,12 +239,14 @@ void DeviceMatcher::load_available_devices(int required_index) {
     ui->tree_available->setColumnCount(3);
     QList<QTreeWidgetItem *> items;
 
+    bool is_sg04_count_protocol = false;
+
     for (auto &d : requirement.accepted_candidates) {
         QTreeWidgetItem *tv = new QTreeWidgetItem(ui->tree_available);
         auto com_port = dynamic_cast<ComportCommunicationDevice *>(d.communication_device);
         auto scpi_protocol = dynamic_cast<SCPIProtocol *>(d.protocol);
         auto rpc_protocol = dynamic_cast<RPCProtocol *>(d.protocol);
-        auto sg04_count_protocol = dynamic_cast<RPCProtocol *>(d.protocol);
+        auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(d.protocol);
 
         if (com_port) {
             tv->setText(0, com_port->port.portName());
@@ -253,11 +259,9 @@ void DeviceMatcher::load_available_devices(int required_index) {
                 QTreeWidgetItem *tv_child = new QTreeWidgetItem(tv);
                 tv_child->setText(0, rpc_protocol->get_device_summary());
                 //TODO shall we put more information here?
-            }else if (sg04_count_protocol) {
-                QTreeWidgetItem *tv_child = new QTreeWidgetItem(tv);
-                tv_child->setText(0, "SG04");
-                tv_child->setText(1, "Display countrate here");
-                //TODO shall we put more information here?
+            } else if (sg04_count_protocol) {
+                is_sg04_count_protocol = true;
+                tv->setText(1, "SG04");
             }
         }
 
@@ -269,7 +273,11 @@ void DeviceMatcher::load_available_devices(int required_index) {
 
         items.append(tv);
     }
-
+    if (is_sg04_count_protocol) {
+        ui->tree_available->setHeaderLabels(QStringList{"Port","","Actual count-rate"});
+    } else {
+        ui->tree_available->setHeaderLabels(QStringList{"Port","Serialnumber","Calibration"});
+    }
     ui->tree_available->insertTopLevelItems(0, items);
     selected_requirement = &requirement;
     align_columns();
@@ -361,12 +369,29 @@ void DeviceMatcher::on_btn_uncheck_all_clicked() {
     }
 }
 
-void ComportDescription::set_is_in_use(bool in_use)
-{
+void ComportDescription::set_is_in_use(bool in_use) {
     device.get()->set_is_in_use(in_use);
 }
 
-bool ComportDescription::get_is_in_use()
-{
+bool ComportDescription::get_is_in_use() {
     return device.get()->get_is_in_use();
+}
+
+void DeviceMatcher::poll_sg04_counts() {
+    const QString sg04_prot_string = "SG04Count";
+    int index = 0;
+    if (selected_requirement) {
+        if (selected_requirement->device_requirement.protocol_name == sg04_prot_string) {
+            for (auto &candidate_entry : selected_requirement->accepted_candidates) {
+                auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(candidate_entry.protocol);
+                if (sg04_count_protocol) {
+                    unsigned int cps = sg04_count_protocol->get_actual_count_rate_cps();
+                    ui->tree_available->topLevelItem(index)->setText(2, "cps: " + QString::number(cps));
+                }
+                index++;
+            }
+        }
+    }
+
+    QTimer::singleShot(500, this, &DeviceMatcher::poll_sg04_counts);
 }

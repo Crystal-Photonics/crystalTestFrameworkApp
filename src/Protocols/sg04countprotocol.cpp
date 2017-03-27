@@ -104,7 +104,7 @@ uint16_t SG04CountProtocol::get_actual_count_rate()
 
 unsigned int SG04CountProtocol::get_actual_count_rate_cps()
 {
-    return actual_count_rate*50;
+    return actual_count_rate*10;
 }
 
 bool SG04CountProtocol::is_correct_protocol() {

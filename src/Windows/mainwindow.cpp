@@ -470,7 +470,7 @@ void MainWindow::poll_sg04_counts() {
     for (auto &sg04_count_device : sg04_count_devices) {
         auto sg04_count_protocol = dynamic_cast<SG04CountProtocol*>(sg04_count_device->protocol.get());
         if (sg04_count_protocol) {
-             unsigned int cps = sg04_count_protocol->get_actual_count_rate();
+             unsigned int cps = sg04_count_protocol->get_actual_count_rate_cps();
              sg04_count_device->ui_entry->setText(2,"cps: "+QString::number(cps));
         }
     }
