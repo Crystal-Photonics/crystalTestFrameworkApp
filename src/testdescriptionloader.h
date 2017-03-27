@@ -15,13 +15,15 @@ class TestDescriptionLoader {
 	TestDescriptionLoader(QTreeWidget *test_list, const QString &file_path, const QString &display_name);
 	TestDescriptionLoader(TestDescriptionLoader &&other);
 	~TestDescriptionLoader();
-    const std::vector<DeviceRequirements> &get_device_requirements() const;
-	std::unique_ptr<QPlainTextEdit> console;
-	std::unique_ptr<QTreeWidgetItem> ui_entry;
+
+	const std::vector<DeviceRequirements> &get_device_requirements() const;
 	const QString &get_name() const;
 	const QString &get_filepath() const;
 	void reload();
 	void launch_editor();
+
+	std::unique_ptr<QPlainTextEdit> console;
+	std::unique_ptr<QTreeWidgetItem> ui_entry;
 
 	private:
 	void load_description();

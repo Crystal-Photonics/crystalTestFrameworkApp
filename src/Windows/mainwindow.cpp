@@ -247,6 +247,9 @@ void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
     (void)column;
     Utility::thread_call(this, [this, item] {
         auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
+		if (test == nullptr){
+			return;
+		}
         Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
         ui->test_tabs->setCurrentIndex(0);
     });
@@ -255,7 +258,7 @@ void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
 void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
     Utility::thread_call(this, [this, pos] {
         auto item = ui->tests_list->itemAt(pos);
-        if (item) {
+		if (item && get_test_from_ui()) {
             while (ui->tests_list->indexOfTopLevelItem(item) == -1) {
                 item = item->parent();
             }

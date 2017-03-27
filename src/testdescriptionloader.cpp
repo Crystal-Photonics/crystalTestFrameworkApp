@@ -9,6 +9,41 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 
+//TODO: find a way to combine these 2 functions
+static QTreeWidgetItem *add_entry(QTreeWidgetItem *item, QStringList &list){
+	assert(list.isEmpty() == false);
+	for (int i = 0; i < item->childCount(); i++){
+		if (item->child(i)->text(0) == list.front()){
+			list.pop_front();
+			return add_entry(item->child(i), list);
+		}
+	}
+	auto child = new QTreeWidgetItem(QStringList{} << list.front());
+	list.pop_front();
+	item->addChild(child);
+	if (list.isEmpty()){
+		return child;
+	}
+	return add_entry(child, list);
+}
+
+static QTreeWidgetItem *add_entry(QTreeWidget *item, QStringList &&list){
+	assert(list.isEmpty() == false);
+	for (int i = 0; i < item->topLevelItemCount(); i++){
+		if (item->topLevelItem(i)->text(0) == list.front()){
+			list.pop_front();
+			return add_entry(item->topLevelItem(i), list);
+		}
+	}
+	auto child = new QTreeWidgetItem(item, QStringList{} << list.front());
+	list.pop_front();
+	item->addTopLevelItem(child);
+	if (list.isEmpty()){
+		return child;
+	}
+	return add_entry(child, list);
+}
+
 TestDescriptionLoader::TestDescriptionLoader(QTreeWidget *test_list, const QString &file_path, const QString &display_name)
 	: console(std::make_unique<QPlainTextEdit>())
 	, name(display_name)
@@ -18,9 +53,8 @@ TestDescriptionLoader::TestDescriptionLoader(QTreeWidget *test_list, const QStri
 	if (name.endsWith(".lua")) {
 		name.chop(4);
 	}
-	ui_entry = std::make_unique<QTreeWidgetItem>(test_list, QStringList{} << name);
+	ui_entry.reset(add_entry(test_list, display_name.split('/')));
 	ui_entry->setData(0, Qt::UserRole, Utility::make_qvariant(this));
-	test_list->addTopLevelItem(ui_entry.get());
 	reload();
 }
 
