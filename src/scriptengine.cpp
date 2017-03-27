@@ -18,9 +18,13 @@
 #include <QDebug>
 #include <QDir>
 #include <QEventLoop>
+#include <QKeyEvent>
+#include <QKeySequence>
 #include <QMessageBox>
+#include <QPlainTextEdit>
 #include <QProcess>
 #include <QSettings>
+#include <QShortcut>
 #include <QThread>
 #include <QTimer>
 #include <functional>
@@ -436,11 +440,30 @@ void ScriptEngine::load_script(const QString &path) {
                 dir.cdUp();
                 lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
             };
-            (*lua)["await_hotkey"] = [target_window = MainWindow::mw] {
-                Utility::Event_filter event_filter{nullptr};
-                target_window->installEventFilter(&event_filter);
-                target_window->removeEventFilter(&event_filter);
-            };
+			(*lua)["await_hotkey"] = [] {
+				QEventLoop event_loop;
+				enum { confirm_pressed, skip_pressed, cancel_pressed };
+				std::array<std::unique_ptr<QShortcut>, 3> shortcuts;
+				MainWindow::mw->execute_in_gui_thread([&event_loop, &shortcuts] {
+					const char *settings_keys[] = {Globals::confirm_key_sequence, Globals::skip_key_sequence, Globals::cancel_key_sequence};
+					for (std::size_t i = 0; i < shortcuts.size(); i++) {
+						shortcuts[i] =
+							std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
+						QObject::connect(shortcuts[i].get(), &QShortcut::activated, [&event_loop, i] { event_loop.exit(i); });
+					}
+				});
+				auto exit_value = event_loop.exec();
+				Utility::promised_thread_call(MainWindow::mw, [&shortcuts] { std::fill(std::begin(shortcuts), std::end(shortcuts), nullptr); });
+				switch (exit_value) {
+					case confirm_pressed:
+						return "confirm";
+					case skip_pressed:
+						return "skip";
+					case cancel_pressed:
+						return "cancel";
+				}
+				return "unknown";
+			};
         }
 
         //table functions

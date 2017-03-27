@@ -48,8 +48,8 @@ class ScriptEngine {
 	void run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices);
 	template <class ReturnType, class... Arguments>
 	ReturnType call(const char *function_name, Arguments &&... args);
-
 	void set_error(const sol::error &error);
+
 	std::unique_ptr<sol::state> lua{};
 	QString path{};
 	int error_line{0};
