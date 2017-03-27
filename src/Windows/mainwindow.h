@@ -83,7 +83,9 @@ class EXPORT MainWindow : public QMainWindow {
 	void on_actionHotkey_triggered();
 
     void poll_sg04_counts();
-private:
+	void on_close_finished_tests_button_clicked();
+
+	private:
 	std::vector<TestDescriptionLoader> test_descriptions;
 	std::vector<std::unique_ptr<TestRunner>> test_runners;
 
@@ -95,6 +97,8 @@ private:
 
 	TestDescriptionLoader *get_test_from_ui(const QTreeWidgetItem *item = nullptr);
 	TestRunner *get_runner_from_tab_index(int index);
+
+	static void close_finished_tests();
 };
 
 template <class T>
