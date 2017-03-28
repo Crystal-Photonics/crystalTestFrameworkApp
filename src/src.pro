@@ -57,7 +57,8 @@ HEADERS += \
 	Windows/devicematcher.h \
 	Windows/scpimetadatadeviceselector.h \
 	Protocols/sg04countprotocol.h \
-	Windows/hotkey_picker.h
+        Windows/hotkey_picker.h \
+    datalogger.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -89,4 +90,5 @@ SOURCES += \
 	Windows/devicematcher.cpp \
 	Windows/scpimetadatadeviceselector.cpp \
 	Protocols/sg04countprotocol.cpp \
-	Windows/hotkey_picker.cpp
+        Windows/hotkey_picker.cpp \
+    datalogger.cpp

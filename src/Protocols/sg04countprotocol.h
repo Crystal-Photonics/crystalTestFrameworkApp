@@ -5,6 +5,7 @@
 #include "device_protocols_settings.h"
 #include <QTreeWidgetItem>
 #include <sol.hpp>
+#include <Qtime>
 
 class SG04CountProtocol : public Protocol {
     public:
@@ -33,6 +34,7 @@ class SG04CountProtocol : public Protocol {
     uint32_t received_counts = 0;
 
     QList<uint16_t> received_count_packages;
+    QTime performance_measurement_timer;
 };
 
 #endif // SG04COUNTPROTOCOL_H

@@ -21,6 +21,10 @@ SG04CountProtocol::SG04CountProtocol(CommunicationDevice &device, DeviceProtocol
     connection = QObject::connect(&device, &CommunicationDevice::received, [&device, this](const QByteArray &data) {
         incoming_data.append(data);
         if (incoming_data.count() > 3) {
+
+          //  qDebug() << "bytes: "<<incoming_data.count() << "  elapsed[ms]: "<< performance_measurement_timer.elapsed();
+
+          //  performance_measurement_timer.start();
             for (int searching_offset = 0; searching_offset < 4; searching_offset++) {
                 int offset = searching_offset;
                 uint8_t package[4];
@@ -84,6 +88,7 @@ void SG04CountProtocol::sg04_counts_clear() {
 sol::table SG04CountProtocol::get_sg04_counts(sol::state &lua, bool clear) {
     sol::table result = lua.create_table_with();
     sol::table counts_table = lua.create_table_with();
+  //  counts_table.
     for (auto i : received_count_packages) {
         counts_table.add(i);
     }

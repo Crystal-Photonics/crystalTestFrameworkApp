@@ -15,6 +15,8 @@ void show_info(const QString &path, const sol::optional<std::string> &title, con
 void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
 void sleep_ms(const unsigned int timeout_ms);
 double round_double(const double value, const unsigned int precision);
+void table_save_to_file(const std::string file_name, const std::string format, sol::table input_table, bool over_write_file);
+sol::table table_load_from_file(sol::state &lua, const std::string file_name);
 double table_sum(sol::table input_values);
 double table_mean(sol::table input_values);
 sol::table table_set_constant(sol::state &lua, sol::table input_values, double constant);

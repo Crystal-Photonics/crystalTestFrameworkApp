@@ -1,11 +1,14 @@
 /// @cond HIDDEN_SYMBOLS
 
 #include "lua_functions.h"
-#include "console.h"
 #include "Windows/mainwindow.h"
+#include "console.h"
 #include "scriptengine.h"
 #include "util.h"
 
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QTimer>
 #include <cmath>
 
@@ -529,6 +532,156 @@ double table_sum(sol::table input_values) {
     return retval;
 };
 /// @endcond
+
+void lua_object_to_string(sol::object &obj, QString &v, QString &t) {
+    v = "";
+    t = "";
+    if (obj.get_type() == sol::type::number) {
+        v = QString::number(obj.as<double>());
+        t = "n";
+    } else if (obj.get_type() == sol::type::boolean) {
+        if (obj.as<bool>()) {
+            v = "1";
+        } else {
+            v = "0";
+        }
+        t = "b";
+    } else if (obj.get_type() == sol::type::nil) {
+        v = "";
+        t = "l";
+    } else if (obj.get_type() == sol::type::string) {
+        v = QString::fromStdString(obj.as<std::string>());
+        v = v.replace("\"", "\\\"");
+        //v = "\"" + v + "\"";
+        t = "s";
+    }
+}
+
+void table_to_json_object(QJsonArray &jarray, const sol::table &input_table) {
+    for (auto &i : input_table) {
+        QJsonObject jobj;
+        QString f;
+        QString t;
+        lua_object_to_string(i.first, f, t);
+        jobj["i"] = f;
+        jobj["ti"] = t;
+        if (i.second.get_type() == sol::type::table) {
+            QJsonArray jarray;
+            table_to_json_object(jarray, i.second.as<sol::table>());
+            jobj["v"] = jarray;
+        } else {
+            if ((i.second.get_type() == sol::type::boolean) || (i.second.get_type() == sol::type::nil) || (i.second.get_type() == sol::type::number) ||
+                (i.second.get_type() == sol::type::string)) {
+                QString t;
+                QString s;
+                lua_object_to_string(i.second, s, t);
+                jobj["v"] = s;
+                jobj["tv"] = t;
+            } else {
+                qDebug() << "unsopported type";
+                // TODO put error here
+            }
+        }
+        jarray.append(jobj);
+    }
+}
+
+void table_save_to_file(const std::string file_name, const std::string format, sol::table input_table, bool over_write_file) {
+    QString fn = QString::fromStdString(file_name);
+    if (over_write_file && QFile::exists(fn)) {
+        // TODO put error here
+    }
+    QFile saveFile(fn);
+
+    if (!saveFile.open(QIODevice::WriteOnly)) {
+        qWarning("Couldn't open save file.");
+        // TODO put error here
+        return;
+    }
+
+    QJsonArray jarray;
+
+    table_to_json_object(jarray, input_table);
+    QJsonObject obj;
+    obj["table"] = jarray;
+    QJsonDocument saveDoc(obj);
+    saveFile.write(saveDoc.toJson());
+};
+
+sol::object sol_object_from_type_string(sol::state &lua, const QString &value_type, const QString &v) {
+    if (value_type == "s") {
+        return sol::make_object(lua, v.toStdString());
+    } else if (value_type == "b") {
+        if (v == "1") {
+            return sol::make_object(lua, true);
+        } else {
+            return sol::make_object(lua, false);
+        }
+    } else if (value_type == "n") {
+        bool ok = false;
+        double index_d = v.toFloat(&ok);
+        if (!ok) {
+            //TODO put error here
+        }
+        return sol::make_object(lua, index_d);
+    }
+}
+
+sol::table jsonarray_to_table(sol::state &lua, const QJsonArray &jarray) {
+    sol::table result = lua.create_table_with();
+
+    for (auto jv : jarray) {
+        QJsonObject obj = jv.toObject();
+
+        QString index_type = obj["ti"].toString();
+
+        sol::object val = [&obj, &lua]()->sol::object{
+            if (obj["v"].isArray()) {
+                sol::table luatable = jsonarray_to_table(lua, obj["v"].toArray());
+                return luatable;
+            } else {
+                QString value = obj["v"].toString();
+                QString value_type = obj["tv"].toString();
+                //TODO put aassert(value_type != "") here
+                return sol_object_from_type_string(lua, value_type, value);
+            }
+        }();
+
+        if (index_type == "s") {
+            QString index = obj["i"].toString();
+            result[index.toStdString()] = val;
+        } else if (index_type == "b") {
+        } else if (index_type == "n") {
+            QString index = obj["i"].toString();
+            bool ok = false;
+            double index_d = index.toFloat(&ok);
+            if (!ok) {
+                //TODO put error here
+            }
+            result[index_d] = val;
+        }
+    }
+    return result;
+}
+
+sol::table table_load_from_file(sol::state &lua, const std::string file_name) {
+    QString fn = QString::fromStdString(file_name);
+
+    QFile loadFile(fn);
+
+    if (!loadFile.open(QIODevice::ReadOnly)) {
+        qWarning("Couldn't open save file.");
+        // TODO put error here
+    }
+
+    QByteArray saveData = loadFile.readAll();
+
+    QJsonDocument loadDoc(QJsonDocument::fromJson(saveData));
+
+    QJsonObject obj = loadDoc.object();
+    QJsonArray jarray = obj["table"].toArray();
+    return jsonarray_to_table(lua, jarray);
+};
 
 /*! \fn double table_mean(table input_values);
 \brief Returns the mean value of the table \c input_values

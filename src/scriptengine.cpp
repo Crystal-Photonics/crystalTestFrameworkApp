@@ -10,6 +10,7 @@
 #include "config.h"
 #include "console.h"
 #include "data_engine/data_engine.h"
+#include "datalogger.h"
 #include "lua_functions.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_encoded_function_call.h"
@@ -110,6 +111,23 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
         //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
         //using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
         return Utility::promised_thread_call(MainWindow::mw, [ function, id = lui.id, args = std::forward_as_tuple(std::forward<Args>(args)...) ]() mutable {
+            UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
+            return detail::call(function, ui, std::move(args));
+        });
+    };
+}
+
+template <class ReturnType, class UI_class, class... Args>
+auto thread_call_wrapper_non_waiting(ReturnType (UI_class::*function)(Args...)) {
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        throw sol::error("Abort Requested");
+    }
+    return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
+        //TODO: Decide if we should use promised_thread_call or thread_call
+        //promised_thread_call lets us get return values while thread_call does not
+        //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
+        //using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
+        return Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
             UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
             return detail::call(function, ui, std::move(args));
         });
@@ -440,34 +458,40 @@ void ScriptEngine::load_script(const QString &path) {
                 dir.cdUp();
                 lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
             };
-			(*lua)["await_hotkey"] = [] {
-				QEventLoop event_loop;
-				enum { confirm_pressed, skip_pressed, cancel_pressed };
-				std::array<std::unique_ptr<QShortcut>, 3> shortcuts;
-				MainWindow::mw->execute_in_gui_thread([&event_loop, &shortcuts] {
-					const char *settings_keys[] = {Globals::confirm_key_sequence, Globals::skip_key_sequence, Globals::cancel_key_sequence};
-					for (std::size_t i = 0; i < shortcuts.size(); i++) {
-						shortcuts[i] =
-							std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
-						QObject::connect(shortcuts[i].get(), &QShortcut::activated, [&event_loop, i] { event_loop.exit(i); });
-					}
-				});
-				auto exit_value = event_loop.exec();
-				Utility::promised_thread_call(MainWindow::mw, [&shortcuts] { std::fill(std::begin(shortcuts), std::end(shortcuts), nullptr); });
-				switch (exit_value) {
-					case confirm_pressed:
-						return "confirm";
-					case skip_pressed:
-						return "skip";
-					case cancel_pressed:
-						return "cancel";
-				}
-				return "unknown";
-			};
+            (*lua)["await_hotkey"] = [] {
+                QEventLoop event_loop;
+                enum { confirm_pressed, skip_pressed, cancel_pressed };
+                std::array<std::unique_ptr<QShortcut>, 3> shortcuts;
+                MainWindow::mw->execute_in_gui_thread([&event_loop, &shortcuts] {
+                    const char *settings_keys[] = {Globals::confirm_key_sequence, Globals::skip_key_sequence, Globals::cancel_key_sequence};
+                    for (std::size_t i = 0; i < shortcuts.size(); i++) {
+                        shortcuts[i] =
+                            std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
+                        QObject::connect(shortcuts[i].get(), &QShortcut::activated, [&event_loop, i] { event_loop.exit(i); });
+                    }
+                });
+                auto exit_value = event_loop.exec();
+                Utility::promised_thread_call(MainWindow::mw, [&shortcuts] { std::fill(std::begin(shortcuts), std::end(shortcuts), nullptr); });
+                switch (exit_value) {
+                    case confirm_pressed:
+                        return "confirm";
+                    case skip_pressed:
+                        return "skip";
+                    case cancel_pressed:
+                        return "cancel";
+                }
+                return "unknown";
+            };
         }
 
         //table functions
         {
+            (*lua)["table_save_to_file"] = [](const std::string file_name, const std::string format, sol::table input_table, bool over_write_file) {
+                table_save_to_file(file_name, format, input_table, over_write_file);
+            };
+            (*lua)["table_load_from_file"] = [&lua = *lua](const std::string file_name) {
+                return table_load_from_file(lua, file_name);
+            };
             (*lua)["table_sum"] = [](sol::table table) { return table_sum(table); };
 
             (*lua)["table_mean"] = [](sol::table table) { return table_mean(table); };
@@ -539,7 +563,21 @@ void ScriptEngine::load_script(const QString &path) {
                 return measure_noise_level_czt(lua, rpc_device, dacs_quantity, max_possible_dac_value);
             };
         }
+#if 1
+        //bind data engine
+        {
+            lua->new_usertype<DataLogger>("DataLogger", //
+                                          sol::meta_function::construct,
+                                          [](const std::string &file_name, const std::string &format, char seperating_character, sol::table field_names) {
+                                              return DataLogger{file_name, format, seperating_character, field_names};
+                                          }, //
 
+                                          "append_data",
+                                          [](DataLogger &handle, const sol::table &data_record) { return handle.append_data(data_record); }, //
+                                          "save", [](DataLogger &handle) { handle.save(); }                                                  //
+                                          );
+        }
+#endif
         //bind data engine
         {
             struct Data_engine_handle {
@@ -575,9 +613,9 @@ void ScriptEngine::load_script(const QString &path) {
         //bind plot
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Curve>>(
-                "Curve",                                                                                //
-                sol::meta_function::construct, sol::no_constructor,                                     //
-                "append_point", thread_call_wrapper<void, Curve, double, double>(&Curve::append_point), //
+                "Curve",                                                                                            //
+                sol::meta_function::construct, sol::no_constructor,                                                 //
+                "append_point", thread_call_wrapper_non_waiting<void, Curve, double, double>(&Curve::append_point), //
                 "add_spectrum",
                 [](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
                     std::vector<double> data;
@@ -690,6 +728,29 @@ void ScriptEngine::load_script(const QString &path) {
                     auto text = Utility::promised_thread_call(MainWindow::mw, [&le] { return le.get_text(); });
                     return text;
                 } //
+                );
+        }
+        {
+            lua->new_usertype<SCPIDevice>(
+                "SCPIDevice",                                                                                                                               //
+                sol::meta_function::construct, sol::no_constructor,                                                                                         //
+                "get_protocol_name", [](SCPIDevice &protocol) { return protocol.get_protocol_name(); },                                                     //
+                "get_device_descriptor", [](SCPIDevice &protocol) { return protocol.get_device_descriptor(); },                                             //
+                "get_str", [](SCPIDevice &protocol, std::string request) { return protocol.get_str(request); },                                             //
+                "get_str_param", [](SCPIDevice &protocol, std::string request, std::string argument) { return protocol.get_str_param(request, argument); }, //
+                "get_num", [](SCPIDevice &protocol, std::string request) { return protocol.get_num(request); },                                             //
+                "get_num_param", [](SCPIDevice &protocol, std::string request, std::string argument) { return protocol.get_num_param(request, argument); }, //
+                "get_name", [](SCPIDevice &protocol) { return protocol.get_name(); },                                                                       //
+                "get_serial_number", [](SCPIDevice &protocol) { return protocol.get_serial_number(); },                                                     //
+                "get_manufacturer", [](SCPIDevice &protocol) { return protocol.get_manufacturer(); },                                                       //
+                "is_event_received", [](SCPIDevice &protocol, std::string event_name) { return protocol.is_event_received(event_name); },                   //
+                "clear_event_list", [](SCPIDevice &protocol) { return protocol.clear_event_list(); },                                                       //
+                "get_event_list", [](SCPIDevice &protocol) { return protocol.get_event_list(); },                                                           //
+                "set_validation_max_standard_deviation",
+                [](SCPIDevice &protocoll, double max_std_dev) { return protocoll.set_validation_max_standard_deviation(max_std_dev); },          //
+                "set_validation_retries", [](SCPIDevice &protocoll, unsigned int retries) { return protocoll.set_validation_retries(retries); }, //
+                "send_command", [](SCPIDevice &protocoll, std::string request) { return protocoll.send_command(request); }                       //
+
                 );
         }
         {

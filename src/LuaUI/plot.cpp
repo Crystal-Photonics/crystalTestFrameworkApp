@@ -17,11 +17,15 @@
 #include <qwt_plot_marker.h>
 #include <qwt_plot_picker.h>
 
+#include <chrono>
+
+using namespace std::chrono;
+
 ///\cond HIDDEN_SYMBOLS
 Curve::Curve(QSplitter *, Plot *plot)
     : plot(plot)
     , curve(new QwtPlotCurve)
-	, event_filter(new Utility::Event_filter(plot->plot->canvas())) {
+    , event_filter(new Utility::Event_filter(plot->plot->canvas())) {
     curve->attach(plot->plot);
     curve->setTitle("curve" + QString::number(plot->curve_id_counter++));
     plot->curves.push_back(this);
@@ -42,8 +46,11 @@ void Curve::add(const std::vector<double> &data) {
 }
 ///\endcond
 void Curve::append_point(double x, double y) {
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
     xvalues.push_back(x);
     yvalues_orig.push_back(y);
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    qDebug() << "append pushback[ms]: " << duration_cast<milliseconds>(t2 - t1).count();
     update();
 }
 
@@ -135,10 +142,14 @@ void Curve::set_onetime_click_callback(std::function<void(double, double)> click
 
 void Curve::resize(std::size_t size) {
     if (xvalues.size() > size) {
+        high_resolution_clock::time_point t1 = high_resolution_clock::now();
         xvalues.resize(size);
         yvalues_orig.resize(size);
         yvalues_plot.resize(size);
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        qDebug() << "resize >: " << duration_cast<milliseconds>(t2 - t1).count();
     } else if (xvalues.size() < size) {
+        high_resolution_clock::time_point t1 = high_resolution_clock::now();
         auto old_size = xvalues.size();
         xvalues.resize(size);
         for (auto i = old_size; i < size; i++) {
@@ -146,11 +157,15 @@ void Curve::resize(std::size_t size) {
         }
         yvalues_orig.resize(size, 0.);
         yvalues_plot.resize(size, 0.);
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        qDebug() << "resize <: " << duration_cast<milliseconds>(t2 - t1).count();
     }
 }
 
 void Curve::update() {
+#if 1
     if (median_enable && (median_kernel_size < yvalues_orig.size())) {
+        high_resolution_clock::time_point t1 = high_resolution_clock::now();
         std::vector<double> kernel(median_kernel_size);
         const unsigned int HALF_KERNEL_SIZE = median_kernel_size / 2;
 
@@ -169,12 +184,30 @@ void Curve::update() {
             std::sort(kernel.begin(), kernel.end());
             yvalues_plot[i] = kernel[HALF_KERNEL_SIZE];
         }
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        qDebug() << "update median: " << duration_cast<milliseconds>(t2 - t1).count();
 
     } else {
+        high_resolution_clock::time_point t1 = high_resolution_clock::now();
         yvalues_plot = yvalues_orig;
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        qDebug() << "update yvalues_plot = yvalues_orig[ms]: " << duration_cast<milliseconds>(t2 - t1).count();
     }
-    curve->setRawSamples(xvalues.data(), yvalues_plot.data(), xvalues.size());
-    plot->update();
+    {
+        high_resolution_clock::time_point t1 = high_resolution_clock::now();
+        curve->setRawSamples(xvalues.data(), yvalues_plot.data(), xvalues.size());
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        qDebug() << "update setRawSamples[ms]: " << duration_cast<milliseconds>(t2 - t1).count();
+    }
+#else
+    curve->setRawSamples(yvalues_orig.data(), yvalues_orig.data(), yvalues_orig.size());
+#endif
+    {
+        high_resolution_clock::time_point t1 = high_resolution_clock::now();
+        plot->update();
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        qDebug() << "update update[ms]: " << duration_cast<milliseconds>(t2 - t1).count();
+    }
 }
 
 void Curve::detach() {
