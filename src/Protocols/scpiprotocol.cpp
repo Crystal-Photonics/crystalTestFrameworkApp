@@ -1,9 +1,9 @@
 #include "scpiprotocol.h"
+#include "Windows/mainwindow.h"
+#include "Windows/scpimetadatadeviceselector.h"
 #include "config.h"
 #include "console.h"
-#include "Windows/mainwindow.h"
 #include "qt_util.h"
-#include "Windows/scpimetadatadeviceselector.h"
 
 #include <QByteArray>
 #include <QDateTime>
@@ -110,7 +110,7 @@ QStringList SCPIProtocol::parse_scpi_answers() {
     answer_string = answer_string.trimmed();
     result = answer_string.split(QString::fromStdString(escape_characters));
     if (answer_string.count()) {
-      //  qDebug() << result;
+        //  qDebug() << result;
     }
     return result;
 }
@@ -278,19 +278,19 @@ void SCPIProtocol::load_idn_string(std::string idn) {
     q_idn = q_idn.trimmed();
     QStringList idn_nodes = q_idn.split(",");
     if (idn_nodes.count() == 4) {
-        device_data.manufacturer = idn_nodes[0];
-        device_data.name = idn_nodes[1];
-        device_data.serial_number = idn_nodes[2];
+        device_data.manufacturer = idn_nodes[0].trimmed();
+        device_data.name = idn_nodes[1].trimmed();
+        device_data.serial_number = idn_nodes[2].trimmed();
         device_data.version = idn_nodes[3];
     } else if (idn_nodes.count() == 3) {
-        device_data.manufacturer = idn_nodes[0];
-        device_data.name = idn_nodes[1];
-        device_data.version = idn_nodes[2];
+        device_data.manufacturer = idn_nodes[0].trimmed();
+        device_data.name = idn_nodes[1].trimmed();
+        device_data.version = idn_nodes[2].trimmed();
         device_data.serial_number.clear();
     } else if (idn_nodes.count() == 2) {
         device_data.manufacturer = "";
-        device_data.name = idn_nodes[0];
-        device_data.version = idn_nodes[1];
+        device_data.name = idn_nodes[0].trimmed();
+        device_data.version = idn_nodes[1].trimmed();
         device_data.serial_number.clear();
     }
 }
@@ -342,6 +342,13 @@ double SCPIProtocol::get_num_param(std::string request, std::string argument) {
             QString s = sl[0];
             QStringList colon_seperated_list = s.split(":"); //sometimes we receive a "FRQ:10.000E+0" and just want the number
             s = colon_seperated_list.last().trimmed();
+            while (s[0].isLetter()) { //sometimes we receive a "10.00160V" but we just want the number
+                s = s.remove(0, 1);
+            }
+            while (s.right(1)[0].isLetter()) {
+                s = s.remove(s.size() - 1, 1);
+            }
+            s = s.trimmed();
             result = s.toDouble(&ok);
             if (ok && s.count()) {
                 values.append(result);
@@ -360,7 +367,7 @@ double SCPIProtocol::get_num_param(std::string request, std::string argument) {
         if (standard_deviation > maximal_acceptable_standard_deviation) {
             //TODO put variance error here
         }
-       // qDebug() << "SCPI standard deviation: " << standard_deviation;
+        // qDebug() << "SCPI standard deviation: " << standard_deviation;
     } else {
         //TODO put conversion error
         qDebug() << "SCPI conversion error";

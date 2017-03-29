@@ -42,7 +42,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes, bool 
     }
     do {
         try_read();
-    } while (received_bytes < bytes && std::chrono::high_resolution_clock::now() - now < timeout);
+    } while (received_bytes < bytes && std::chrono::high_resolution_clock::now() - now <= timeout); //we want a <= because if we poll with 0ms we still put a heavy load on cpu(100% for 1ms each 16ms)
     try_read();
     if (!isPolling) {
         currently_in_waitReceived = false;
@@ -102,7 +102,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
             }
             inbuffer.clear();
         }
-    } while (run && std::chrono::high_resolution_clock::now() - now < timeout);
+    } while (run && std::chrono::high_resolution_clock::now() - now <= timeout);
     //  try_read();
     currently_in_waitReceived = false;
 
