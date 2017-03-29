@@ -58,7 +58,8 @@ HEADERS += \
 	Windows/scpimetadatadeviceselector.h \
 	Protocols/sg04countprotocol.h \
         Windows/hotkey_picker.h \
-    datalogger.h
+    datalogger.h \
+    LuaUI/isotopesourceselector.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -91,4 +92,5 @@ SOURCES += \
 	Windows/scpimetadatadeviceselector.cpp \
 	Protocols/sg04countprotocol.cpp \
         Windows/hotkey_picker.cpp \
-    datalogger.cpp
+    datalogger.cpp \
+    LuaUI/isotopesourceselector.cpp

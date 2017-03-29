@@ -1,15 +1,30 @@
 #include "datalogger.h"
+#include "Windows/mainwindow.h"
+#include "console.h"
+#include "qt_util.h"
 #include <QFile>
 #include <QTextStream>
 
-DataLogger::DataLogger(std::string filename, std::string format, char seperating_character, sol::table field_names) {
+DataLogger::DataLogger(QPlainTextEdit *console, std::string filename, char seperating_character, sol::table field_names, bool over_write_file) {
     this->filename = QString::fromStdString(filename);
-    if (format == "csv") {
-        this->format = LoggerSaveFormat::csv;
+    this->format = LoggerSaveFormat::csv;
+    this->console = console;
+    if (!over_write_file) {
+        if (QFile::exists(this->filename)) {
+            const auto &message = QObject::tr("File for saving csv already exists and must not be overwritten: %1").arg(this->filename);
+            Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+            throw sol::error("File already exists");
+        }
     }
-    if (QFile::exists(this->filename)){
-        //TODO put error here
+
+    QFile file(this->filename);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        const auto &message = QObject::tr("File for saving csv can not be opened: %1").arg(this->filename);
+        Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        throw sol::error("Cannot open file");
     }
+    file.close();
+
     this->seperating_character = seperating_character;
     QStringList fns;
     field_formats.clear();
@@ -19,10 +34,10 @@ DataLogger::DataLogger(std::string filename, std::string format, char seperating
         field_formats.append(LoggerFieldFormat::string);
     }
     data_to_save.append(fns);
+    save();
 }
 
-DataLogger::~DataLogger()
-{
+DataLogger::~DataLogger() {
     dump_data_to_file();
 }
 
@@ -50,16 +65,18 @@ void DataLogger::save() {
 }
 
 void DataLogger::dump_data_to_file() {
-    QFile file(filename);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
-        //TODO
-        //put lua error here
-        return;
+    if (data_to_save.count()) {
+        QFile file(filename);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
+            const auto &message = QObject::tr("File for saving csv can not be opened: for appending %1").arg(this->filename);
+            Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+            throw sol::error("Cannot open file");
+        }
+        QTextStream out(&file);
+        for (auto &record : data_to_save) {
+            QString record_s = record.join(seperating_character);
+            out << record_s << "\n";
+        }
+        data_to_save.clear();
     }
-    QTextStream out(&file);
-    for (auto &record : data_to_save) {
-        QString record_s = record.join(seperating_character);
-        out << record_s << "\n";
-    }
-    data_to_save.clear();
 }

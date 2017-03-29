@@ -5,7 +5,7 @@
 #include "device_protocols_settings.h"
 #include <QTreeWidgetItem>
 #include <sol.hpp>
-#include <Qtime>
+#include <QTime>
 
 class SG04CountProtocol : public Protocol {
     public:

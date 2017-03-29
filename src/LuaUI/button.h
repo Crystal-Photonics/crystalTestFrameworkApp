@@ -1,9 +1,9 @@
 #ifndef BUTTON_H
 #define BUTTON_H
 
-#include <functional>
-
 #include <QMetaObject>
+#include <functional>
+#include <string>
 
 class QPushButton;
 class QSplitter;
@@ -19,7 +19,7 @@ struct Button {
     ///\endcond
     ~Button();
 
-    bool has_been_pressed() const; //!<\brief Returns true if button has been pressed.
+    bool has_been_clicked() const; //!<\brief Returns true if button has been pressed.
                                    //!< \par examples:
                                    //!< \code
                                    //!  local button = Ui.Button.new("My Button")
@@ -29,10 +29,13 @@ struct Button {
                                    //!  end
                                    //! \endcode
 
+    void set_single_shot_return_pressed_callback(std::function<void()> callback);
+
     private:
     QPushButton *button = nullptr;
     QMetaObject::Connection pressed_connection;
     bool pressed = false;
+    QMetaObject::Connection callback_connection = {};
 };
 
 /** \} */ // end of group ui

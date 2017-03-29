@@ -34,6 +34,7 @@ void PathSettingsWindow::on_settings_confirmation_rejected() {
 
 std::vector<std::pair<QLineEdit *, const char *>> PathSettingsWindow::get_config_lines() const {
 	return {
+        {ui->isotope_db_path, Globals::isotope_source_data_base_path},
 		{ui->test_script_path_text, Globals::test_script_path_settings_key},
 		{ui->device_description_path_text, Globals::device_protocols_file_settings_key},
 		{ui->rpc_xml_files_path_text, Globals::rpc_xml_files_path_settings_key},

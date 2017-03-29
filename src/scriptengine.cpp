@@ -1,6 +1,7 @@
 #include "scriptengine.h"
 #include "LuaUI/button.h"
 #include "LuaUI/color.h"
+#include "LuaUI/isotopesourceselector.h"
 #include "LuaUI/lineedit.h"
 #include "LuaUI/plot.h"
 #include "Protocols/rpcprotocol.h"
@@ -486,11 +487,11 @@ void ScriptEngine::load_script(const QString &path) {
 
         //table functions
         {
-            (*lua)["table_save_to_file"] = [](const std::string file_name, const std::string format, sol::table input_table, bool over_write_file) {
-                table_save_to_file(file_name, format, input_table, over_write_file);
+            (*lua)["table_save_to_file"] = [console = console](const std::string file_name, sol::table input_table, bool over_write_file) {
+                table_save_to_file(console, file_name, input_table, over_write_file);
             };
-            (*lua)["table_load_from_file"] = [&lua = *lua](const std::string file_name) {
-                return table_load_from_file(lua, file_name);
+            (*lua)["table_load_from_file"] = [&lua = *lua, console = console ](const std::string file_name) {
+                return table_load_from_file(console, lua, file_name);
             };
             (*lua)["table_sum"] = [](sol::table table) { return table_sum(table); };
 
@@ -566,16 +567,17 @@ void ScriptEngine::load_script(const QString &path) {
 #if 1
         //bind data engine
         {
-            lua->new_usertype<DataLogger>("DataLogger", //
-                                          sol::meta_function::construct,
-                                          [](const std::string &file_name, const std::string &format, char seperating_character, sol::table field_names) {
-                                              return DataLogger{file_name, format, seperating_character, field_names};
-                                          }, //
+            lua->new_usertype<DataLogger>(
+                "DataLogger", //
+                sol::meta_function::construct,
+                [console = console](const std::string &file_name, char seperating_character, sol::table field_names, bool over_write_file) {
+                    return DataLogger{console, file_name, seperating_character, field_names, over_write_file};
+                }, //
 
-                                          "append_data",
-                                          [](DataLogger &handle, const sol::table &data_record) { return handle.append_data(data_record); }, //
-                                          "save", [](DataLogger &handle) { handle.save(); }                                                  //
-                                          );
+                "append_data",
+                [](DataLogger &handle, const sol::table &data_record) { return handle.append_data(data_record); }, //
+                "save", [](DataLogger &handle) { handle.save(); }                                                  //
+                );
         }
 #endif
         //bind data engine
@@ -697,17 +699,35 @@ void ScriptEngine::load_script(const QString &path) {
             ui_table["Color_from_r_g_b"] = [](int r, int g, int b) { return Color::Color_from_r_g_b(r, g, b); };
             ui_table["Color_from_rgb"] = [](int rgb) { return Color{rgb}; };
         }
+        //bind IsotopeSourceSelector
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<IsotopeSourceSelector>>(
+                "IsotopeSourceSelector",                                                                                            //
+                sol::meta_function::construct, [parent = this->parent]() { return Lua_UI_Wrapper<IsotopeSourceSelector>{parent}; }, //
+                "get_selected_activity_Bq",
+                thread_call_wrapper(&IsotopeSourceSelector::get_selected_activity_Bq),                                //
+                "get_selected_serial_number", thread_call_wrapper(&IsotopeSourceSelector::get_selected_serial_number) //
+                );
+        }
         //bind button
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //
-                                                          sol::meta_function::construct,
-                                                          [parent = this->parent](const std::string &title) {
-                                                              return Lua_UI_Wrapper<Button>{parent, title};
-                                                          }, //
-                                                          "has_been_pressed",
-                                                          thread_call_wrapper(&Button::has_been_pressed) //
-                                                          );
+            ui_table.new_usertype<Lua_UI_Wrapper<Button>>(
+                "Button", //
+                sol::meta_function::construct,
+                [parent = this->parent](const std::string &title) {
+                    return Lua_UI_Wrapper<Button>{parent, title};
+                }, //
+                "has_been_clicked",
+                thread_call_wrapper(&Button::has_been_clicked), //
+                "await_click",
+                [](const Lua_UI_Wrapper<Button> &lew) {
+                    auto &lb = MainWindow::mw->get_lua_UI_class<Button>(lew.id);
+                    lb.set_single_shot_return_pressed_callback([thread = QThread::currentThread()] { thread->exit(); });
+                    QEventLoop{}.exec();
+                } //
+                );
         }
+
         //bind edit field
         {
             ui_table.new_usertype<Lua_UI_Wrapper<LineEdit>>(
@@ -728,29 +748,6 @@ void ScriptEngine::load_script(const QString &path) {
                     auto text = Utility::promised_thread_call(MainWindow::mw, [&le] { return le.get_text(); });
                     return text;
                 } //
-                );
-        }
-        {
-            lua->new_usertype<SCPIDevice>(
-                "SCPIDevice",                                                                                                                               //
-                sol::meta_function::construct, sol::no_constructor,                                                                                         //
-                "get_protocol_name", [](SCPIDevice &protocol) { return protocol.get_protocol_name(); },                                                     //
-                "get_device_descriptor", [](SCPIDevice &protocol) { return protocol.get_device_descriptor(); },                                             //
-                "get_str", [](SCPIDevice &protocol, std::string request) { return protocol.get_str(request); },                                             //
-                "get_str_param", [](SCPIDevice &protocol, std::string request, std::string argument) { return protocol.get_str_param(request, argument); }, //
-                "get_num", [](SCPIDevice &protocol, std::string request) { return protocol.get_num(request); },                                             //
-                "get_num_param", [](SCPIDevice &protocol, std::string request, std::string argument) { return protocol.get_num_param(request, argument); }, //
-                "get_name", [](SCPIDevice &protocol) { return protocol.get_name(); },                                                                       //
-                "get_serial_number", [](SCPIDevice &protocol) { return protocol.get_serial_number(); },                                                     //
-                "get_manufacturer", [](SCPIDevice &protocol) { return protocol.get_manufacturer(); },                                                       //
-                "is_event_received", [](SCPIDevice &protocol, std::string event_name) { return protocol.is_event_received(event_name); },                   //
-                "clear_event_list", [](SCPIDevice &protocol) { return protocol.clear_event_list(); },                                                       //
-                "get_event_list", [](SCPIDevice &protocol) { return protocol.get_event_list(); },                                                           //
-                "set_validation_max_standard_deviation",
-                [](SCPIDevice &protocoll, double max_std_dev) { return protocoll.set_validation_max_standard_deviation(max_std_dev); },          //
-                "set_validation_retries", [](SCPIDevice &protocoll, unsigned int retries) { return protocoll.set_validation_retries(retries); }, //
-                "send_command", [](SCPIDevice &protocoll, std::string request) { return protocoll.send_command(request); }                       //
-
                 );
         }
         {

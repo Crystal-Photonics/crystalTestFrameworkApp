@@ -533,7 +533,7 @@ double table_sum(sol::table input_values) {
 };
 /// @endcond
 
-void lua_object_to_string(sol::object &obj, QString &v, QString &t) {
+void lua_object_to_string(QPlainTextEdit *console, sol::object &obj, QString &v, QString &t) {
     v = "";
     t = "";
     if (obj.get_type() == sol::type::number) {
@@ -554,61 +554,63 @@ void lua_object_to_string(sol::object &obj, QString &v, QString &t) {
         v = v.replace("\"", "\\\"");
         //v = "\"" + v + "\"";
         t = "s";
+    } else {
+        const auto &message = QObject::tr("Failed to save table to file. Unsupported table field type.");
+        Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        throw sol::error("Unsupported table field type");
     }
 }
 
-void table_to_json_object(QJsonArray &jarray, const sol::table &input_table) {
+void table_to_json_object(QPlainTextEdit *console, QJsonArray &jarray, const sol::table &input_table) {
     for (auto &i : input_table) {
         QJsonObject jobj;
         QString f;
         QString t;
-        lua_object_to_string(i.first, f, t);
+        lua_object_to_string(console, i.first, f, t);
         jobj["i"] = f;
         jobj["ti"] = t;
         if (i.second.get_type() == sol::type::table) {
             QJsonArray jarray;
-            table_to_json_object(jarray, i.second.as<sol::table>());
+            table_to_json_object(console, jarray, i.second.as<sol::table>());
             jobj["v"] = jarray;
         } else {
-            if ((i.second.get_type() == sol::type::boolean) || (i.second.get_type() == sol::type::nil) || (i.second.get_type() == sol::type::number) ||
-                (i.second.get_type() == sol::type::string)) {
-                QString t;
-                QString s;
-                lua_object_to_string(i.second, s, t);
-                jobj["v"] = s;
-                jobj["tv"] = t;
-            } else {
-                qDebug() << "unsopported type";
-                // TODO put error here
-            }
+            QString t;
+            QString s;
+            lua_object_to_string(console, i.second, s, t);
+            jobj["v"] = s;
+            jobj["tv"] = t;
         }
         jarray.append(jobj);
     }
 }
 
-void table_save_to_file(const std::string file_name, const std::string format, sol::table input_table, bool over_write_file) {
+void table_save_to_file(QPlainTextEdit *console, const std::string file_name, sol::table input_table, bool over_write_file) {
     QString fn = QString::fromStdString(file_name);
-    if (over_write_file && QFile::exists(fn)) {
-        // TODO put error here
+    if (!over_write_file && QFile::exists(fn)) {
+        const auto &message = QObject::tr("File for saving table already exists and must not be overwritten: %1").arg(fn);
+        Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        throw sol::error("File already exists");
+        return;
     }
     QFile saveFile(fn);
 
     if (!saveFile.open(QIODevice::WriteOnly)) {
-        qWarning("Couldn't open save file.");
-        // TODO put error here
+        const auto &message = QObject::tr("Failed open file for saving table: %1").arg(fn);
+        Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        throw sol::error("could not open file");
         return;
     }
 
     QJsonArray jarray;
 
-    table_to_json_object(jarray, input_table);
+    table_to_json_object(console, jarray, input_table);
     QJsonObject obj;
     obj["table"] = jarray;
     QJsonDocument saveDoc(obj);
     saveFile.write(saveDoc.toJson());
 };
 
-sol::object sol_object_from_type_string(sol::state &lua, const QString &value_type, const QString &v) {
+sol::object sol_object_from_type_string(QPlainTextEdit *console, sol::state &lua, const QString &value_type, const QString &v) {
     if (value_type == "s") {
         return sol::make_object(lua, v.toStdString());
     } else if (value_type == "b") {
@@ -621,13 +623,19 @@ sol::object sol_object_from_type_string(sol::state &lua, const QString &value_ty
         bool ok = false;
         double index_d = v.toFloat(&ok);
         if (!ok) {
-            //TODO put error here
+            const auto &message = QObject::tr("Could not convert string value to number while loading file to table. Failed string: \"%1\"").arg(v);
+            Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+            throw sol::error("Conversion Error");
         }
         return sol::make_object(lua, index_d);
+    } else {
+        const auto &message = QObject::tr("Unknown value type in file to be loaded into table. Type: \"%1\"").arg(value_type);
+        Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        throw sol::error("unknown type");
     }
 }
 
-sol::table jsonarray_to_table(sol::state &lua, const QJsonArray &jarray) {
+sol::table jsonarray_to_table(QPlainTextEdit *console, sol::state &lua, const QJsonArray &jarray) {
     sol::table result = lua.create_table_with();
 
     for (auto jv : jarray) {
@@ -635,15 +643,15 @@ sol::table jsonarray_to_table(sol::state &lua, const QJsonArray &jarray) {
 
         QString index_type = obj["ti"].toString();
 
-        sol::object val = [&obj, &lua]()->sol::object{
+        sol::object val = [&obj, &lua, console]() -> sol::object {
             if (obj["v"].isArray()) {
-                sol::table luatable = jsonarray_to_table(lua, obj["v"].toArray());
+                sol::table luatable = jsonarray_to_table(console, lua, obj["v"].toArray());
                 return luatable;
             } else {
                 QString value = obj["v"].toString();
                 QString value_type = obj["tv"].toString();
-                //TODO put aassert(value_type != "") here
-                return sol_object_from_type_string(lua, value_type, value);
+
+                return sol_object_from_type_string(console, lua, value_type, value);
             }
         }();
 
@@ -656,22 +664,29 @@ sol::table jsonarray_to_table(sol::state &lua, const QJsonArray &jarray) {
             bool ok = false;
             double index_d = index.toFloat(&ok);
             if (!ok) {
-                //TODO put error here
+                const auto &message = QObject::tr("Could not convert string index to number while loading file to table. Failed string: \"%1\"").arg(index);
+                Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+                throw sol::error("Conversion Error");
             }
             result[index_d] = val;
+        } else {
+            const auto &message = QObject::tr("Unknown index type in file to be loaded into table. Type: \"%1\"").arg(index_type);
+            Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+            throw sol::error("unknown type");
         }
     }
     return result;
 }
 
-sol::table table_load_from_file(sol::state &lua, const std::string file_name) {
+sol::table table_load_from_file(QPlainTextEdit *console, sol::state &lua, const std::string file_name) {
     QString fn = QString::fromStdString(file_name);
 
     QFile loadFile(fn);
 
     if (!loadFile.open(QIODevice::ReadOnly)) {
-        qWarning("Couldn't open save file.");
-        // TODO put error here
+        const auto &message = QObject::tr("Can not open file for reading: \"%1\"").arg(fn);
+        Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        throw sol::error("cant open file");
     }
 
     QByteArray saveData = loadFile.readAll();
@@ -680,7 +695,7 @@ sol::table table_load_from_file(sol::state &lua, const std::string file_name) {
 
     QJsonObject obj = loadDoc.object();
     QJsonArray jarray = obj["table"].toArray();
-    return jsonarray_to_table(lua, jarray);
+    return jsonarray_to_table(console, lua, jarray);
 };
 
 /*! \fn double table_mean(table input_values);

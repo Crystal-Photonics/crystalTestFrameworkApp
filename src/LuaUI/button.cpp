@@ -1,22 +1,30 @@
 #include "button.h"
 
 #include <QPushButton>
-#include <QString>
 #include <QSplitter>
+#include <QString>
 ///\cond HIDDEN_SYMBOLS
 Button::Button(QSplitter *parent, const std::string &title)
-	: button(new QPushButton(QString::fromStdString(title), parent)) {
-	parent->addWidget(button);
-	pressed_connection = QObject::connect(button, &QPushButton::pressed, [this] {
-		pressed = true;
-	});
+    : button(new QPushButton(QString::fromStdString(title), parent)) {
+    parent->addWidget(button);
+    pressed_connection = QObject::connect(button, &QPushButton::pressed, [this] { pressed = true; });
 }
 
 Button::~Button() {
-	QObject::disconnect(pressed_connection);
-	button->setEnabled(false);
+    QObject::disconnect(pressed_connection);
+    QObject::disconnect(callback_connection);
+    button->setEnabled(false);
 }
 ///\endcond
-bool Button::has_been_pressed() const {
-	return pressed;
+bool Button::has_been_clicked() const {
+    return pressed;
 }
+
+///\cond HIDDEN_SYMBOLS
+void Button::set_single_shot_return_pressed_callback(std::function<void()> callback) {
+    callback_connection = QObject::connect(button, &QPushButton::clicked, [&callback_connection = this->callback_connection, callback = std::move(callback) ] {
+        callback();
+        QObject::disconnect(callback_connection);
+    });
+}
+///\endcond
