@@ -1,6 +1,7 @@
 #include "scriptengine.h"
 #include "LuaUI/button.h"
 #include "LuaUI/color.h"
+#include "LuaUI/combofileselector.h"
 #include "LuaUI/isotopesourceselector.h"
 #include "LuaUI/lineedit.h"
 #include "LuaUI/plot.h"
@@ -698,6 +699,20 @@ void ScriptEngine::load_script(const QString &path) {
             ui_table["Color_from_name"] = [](const std::string &name) { return Color::Color_from_name(name); };
             ui_table["Color_from_r_g_b"] = [](int r, int g, int b) { return Color::Color_from_r_g_b(r, g, b); };
             ui_table["Color_from_rgb"] = [](int rgb) { return Color{rgb}; };
+        }
+        //bind ComboBoxFileSelector
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<ComboBoxFileSelector>>("ComboBoxFileSelector", //
+                                                                        sol::meta_function::construct,
+                                                                        [parent = this->parent](const std::string &directory, const sol::table &filters) {
+                                                                            return Lua_UI_Wrapper<ComboBoxFileSelector>{parent, directory, filters};
+                                                                        }, //
+                                                                        "get_selected_file",
+                                                                        thread_call_wrapper(&ComboBoxFileSelector::get_selected_file), //
+                                                                        "set_order_by",
+                                                                        thread_call_wrapper(&ComboBoxFileSelector::set_order_by) //
+
+                                                                        );
         }
         //bind IsotopeSourceSelector
         {
