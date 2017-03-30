@@ -59,7 +59,8 @@ HEADERS += \
 	Protocols/sg04countprotocol.h \
         Windows/hotkey_picker.h \
     datalogger.h \
-    LuaUI/isotopesourceselector.h
+    LuaUI/isotopesourceselector.h \
+    LuaUI/combofileselector.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -93,4 +94,5 @@ SOURCES += \
 	Protocols/sg04countprotocol.cpp \
         Windows/hotkey_picker.cpp \
     datalogger.cpp \
-    LuaUI/isotopesourceselector.cpp
+    LuaUI/isotopesourceselector.cpp \
+    LuaUI/combofileselector.cpp

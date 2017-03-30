@@ -83,7 +83,7 @@ void IsotopeSourceSelector::load_isotope_database() {
         isotope_source.start_activity_becquerel = obj["start_activity_kBq"].toDouble() * 1000;
         if ((isotope_source.isotope.toLower() == "co57") || (isotope_source.isotope.toLower() == "co-57")) {
             //271 Tage 17 Stunden
-            isotope_source.half_time_days = 271 + 24 / 17;
+            isotope_source.half_time_days = 271 + 17 / 24;
 
         } else if ((isotope_source.isotope.toLower() == "na22") || (isotope_source.isotope.toLower() == "na-22")) {
             //2.6 Years
