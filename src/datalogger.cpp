@@ -51,7 +51,17 @@ void DataLogger::append_data(sol::table data_record) {
             field_entry = "\"" + field_entry + "\"";
             record.append(field_entry);
         } else if (field.second.get_type() == sol::type::number) {
-            record.append(QString::number(field.second.as<double>()));
+            QString numStr;
+            numStr = QString::number(field.second.as<double>(), 'f', 10);
+            if (numStr.indexOf(".") > 0) {
+                while (numStr.endsWith("0")) {
+                    numStr.remove(numStr.count() - 1, 1);
+                }
+                if (numStr.endsWith(".")) {
+                    numStr.remove(numStr.count() - 1, 1);
+                }
+            }
+            record.append(numStr);
         }
     }
     data_to_save.append(record);

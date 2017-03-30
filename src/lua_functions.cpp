@@ -11,7 +11,7 @@
 #include <QJsonObject>
 #include <QTimer>
 #include <cmath>
-
+#include <QFile>
 /// @endcond
 
 /** \defgroup convenience Convenience functions

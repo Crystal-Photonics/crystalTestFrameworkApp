@@ -43,9 +43,8 @@ IsotopeSource IsotopeSourceSelector::get_source_by_serial_number(QString serial_
             return item;
         }
     }
-    // const auto &message = QObject::tr("Can not open file for reading: \"%1\"").arg(fn);
-    //Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
-    throw sol::error("cant find isotope source serial_number");
+    QString msg = QString{"cant find isotope source serial_number \"%1\""}.arg(serial_number);
+    throw sol::error(msg.toStdString());
 }
 
 void IsotopeSourceSelector::load_isotope_database() {
@@ -57,9 +56,8 @@ void IsotopeSourceSelector::load_isotope_database() {
     QFile loadFile(fn);
 
     if (!loadFile.open(QIODevice::ReadOnly)) {
-        // const auto &message = QObject::tr("Can not open file for reading: \"%1\"").arg(fn);
-        //Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
-        //throw sol::error("cant open file");
+        QString msg = QString{"cant open isotope source file %1"}.arg(fn);
+        throw sol::error(msg.toStdString());
     }
 
     QByteArray saveData = loadFile.readAll();
@@ -95,7 +93,8 @@ void IsotopeSourceSelector::load_isotope_database() {
             //1,57 * 10^7  years;
             isotope_source.half_time_days = 1.57e7 * 365;
         } else {
-            //TODO Error
+            QString msg = QString{"dont knwo halftime of isotope \"%1\" in isotope source database."}.arg(isotope_source.isotope);
+            throw sol::error(msg.toStdString());
         }
 
         if (most_recent_serial_number == isotope_source.serial_number) {
