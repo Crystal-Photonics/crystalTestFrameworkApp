@@ -454,7 +454,7 @@ void ScriptEngine::load_script(const QString &path) {
             };
 
             (*lua)["sleep_ms"] = [](const unsigned int timeout_ms) { sleep_ms(timeout_ms); };
-
+            (*lua)["current_date_time_ms"] = []() { return current_date_time_ms(); };
             (*lua)["round"] = [](const double value, const unsigned int precision = 0) { return round_double(value, precision); };
             (*lua)["require"] = [ path = path, &lua = *lua ](const std::string &file) {
                 QDir dir(path);
@@ -587,7 +587,7 @@ void ScriptEngine::load_script(const QString &path) {
 
                                              "add_current", [](ChargeCounter &handle, const double current) { return handle.add_current(current); }, //
                                              "reset", [](ChargeCounter &handle, const double current) { handle.reset(); },                           //
-                                             "get_current_hours", [](ChargeCounter &handle) { return handle.get_current_hours(); }                          //
+                                             "get_current_hours", [](ChargeCounter &handle) { return handle.get_current_hours(); }                   //
                                              );
         }
         //bind data engine

@@ -12,6 +12,7 @@
 #include <QTimer>
 #include <cmath>
 #include <QFile>
+#include <QDateTime>
 /// @endcond
 
 /** \defgroup convenience Convenience functions
@@ -473,6 +474,27 @@ void sleep_ms(const unsigned int timeout_ms) {
 };
 /// @endcond
 
+/*! \fn double current_date_time_ms();
+\brief Returns the current Milliseconds since epoch (1970-01-01T00:00:00.000).
+
+\details    \par example:
+\code{.lua}
+    local value = current_date_time_ms()
+    print(value)
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+double current_date_time_ms();
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+double current_date_time_ms() {
+    return QDateTime::currentMSecsSinceEpoch();
+}
+/// @endcond
+
 /*! \fn double round(double value, int precision);
 \brief Returns the rounded value of \c value
 \param value                 Input value of int or double values.
@@ -494,6 +516,10 @@ void sleep_ms(const unsigned int timeout_ms) {
 double round(double value, int precision);
 #endif
 
+
+
+
+///
 /// @cond HIDDEN_SYMBOLS
 double round_double(const double value, const unsigned int precision) {
     double faktor = pow(10, precision);
