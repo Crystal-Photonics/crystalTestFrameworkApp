@@ -107,7 +107,8 @@ void ComboBoxFileSelector::set_order_by(const std::string &field, const bool asc
             }
         });
     } else {
-        //TODO error
+        QString msg = QString{"cannot sort by \"%1\""}.arg(order_by);
+        throw sol::error(msg.toStdString());
     }
     fill_combobox();
 }

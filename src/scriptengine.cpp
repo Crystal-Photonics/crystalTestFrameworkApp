@@ -9,6 +9,7 @@
 #include "Protocols/scpiprotocol.h"
 #include "Protocols/sg04countprotocol.h"
 #include "Windows/mainwindow.h"
+#include "chargecounter.h"
 #include "config.h"
 #include "console.h"
 #include "data_engine/data_engine.h"
@@ -565,8 +566,7 @@ void ScriptEngine::load_script(const QString &path) {
                 return measure_noise_level_czt(lua, rpc_device, dacs_quantity, max_possible_dac_value);
             };
         }
-#if 1
-        //bind data engine
+        //bind DataLogger
         {
             lua->new_usertype<DataLogger>(
                 "DataLogger", //
@@ -580,7 +580,16 @@ void ScriptEngine::load_script(const QString &path) {
                 "save", [](DataLogger &handle) { handle.save(); }                                                  //
                 );
         }
-#endif
+        //bind data engine
+        {
+            lua->new_usertype<ChargeCounter>("ChargeCounter",                                                                  //
+                                             sol::meta_function::construct, [console = console]() { return ChargeCounter{}; }, //
+
+                                             "add_current", [](ChargeCounter &handle, const double current) { return handle.add_current(current); }, //
+                                             "reset", [](ChargeCounter &handle, const double current) { handle.reset(); },                           //
+                                             "get_current_hours", [](ChargeCounter &handle) { return handle.get_current_hours(); }                          //
+                                             );
+        }
         //bind data engine
         {
             struct Data_engine_handle {

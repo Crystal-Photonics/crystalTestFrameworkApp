@@ -60,7 +60,8 @@ HEADERS += \
         Windows/hotkey_picker.h \
     datalogger.h \
     LuaUI/isotopesourceselector.h \
-    LuaUI/combofileselector.h
+    LuaUI/combofileselector.h \
+    chargecounter.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -95,4 +96,5 @@ SOURCES += \
         Windows/hotkey_picker.cpp \
     datalogger.cpp \
     LuaUI/isotopesourceselector.cpp \
-    LuaUI/combofileselector.cpp
+    LuaUI/combofileselector.cpp \
+    chargecounter.cpp
