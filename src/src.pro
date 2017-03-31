@@ -63,7 +63,8 @@ HEADERS += \
     LuaUI/combofileselector.h \
     chargecounter.h \
     LuaUI/combobox.h \
-    LuaUI/checkbox.h
+    LuaUI/checkbox.h \
+    LuaUI/label.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -101,4 +102,5 @@ SOURCES += \
     LuaUI/combofileselector.cpp \
     chargecounter.cpp \
     LuaUI/combobox.cpp \
-    LuaUI/checkbox.cpp
+    LuaUI/checkbox.cpp \
+    LuaUI/label.cpp

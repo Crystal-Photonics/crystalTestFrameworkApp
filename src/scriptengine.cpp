@@ -7,6 +7,7 @@
 #include "LuaUI/lineedit.h"
 #include "LuaUI/checkbox.h"
 #include "LuaUI/plot.h"
+#include "LuaUI/label.h"
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
 #include "Protocols/sg04countprotocol.h"
@@ -757,7 +758,17 @@ void ScriptEngine::load_script(const QString &path) {
         }
 
 
-
+        //bind Label
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<Label>>("Label", //
+                                                            sol::meta_function::construct,
+                                                            [parent = this->parent](const std::string &text) { return Lua_UI_Wrapper<Label>{parent,text}; }, //
+                                                            "set_text",
+                                                            thread_call_wrapper(&Label::set_text), //
+                                                            "get_text",
+                                                            thread_call_wrapper(&Label::get_text)
+                                                            );
+        }
         //bind CheckBox
         {
             ui_table.new_usertype<Lua_UI_Wrapper<CheckBox>>("CheckBox", //
