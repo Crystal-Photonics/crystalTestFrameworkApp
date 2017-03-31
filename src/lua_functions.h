@@ -14,6 +14,7 @@ std::string show_question(const QString &path, const sol::optional<std::string> 
 void show_info(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
 void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
 void sleep_ms(const unsigned int timeout_ms);
+void pc_speaker_beep();
 double current_date_time_ms(void);
 double round_double(const double value, const unsigned int precision);
 void table_save_to_file(QPlainTextEdit *console, const std::string file_name, sol::table input_table, bool over_write_file);

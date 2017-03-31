@@ -13,6 +13,7 @@
 #include <cmath>
 #include <QFile>
 #include <QDateTime>
+#include <QApplication>
 /// @endcond
 
 /** \defgroup convenience Convenience functions
@@ -1324,4 +1325,27 @@ double table_min_abs(sol::table input_values) {
     return min;
 }
 /// @endcond
+
+/*! \fn pc_speaker_beep();
+    \brief Sounds the bell, using the default volume and sound.
+
+    \details    \par example:
+    \code{.lua}
+        pc_speaker_beep()
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+pc_speaker_beep();
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+void pc_speaker_beep()
+{
+    QApplication::beep();
+}
+/// @endcond
 /** \} */ // end of group convenience
+
+
