@@ -61,7 +61,8 @@ HEADERS += \
     datalogger.h \
     LuaUI/isotopesourceselector.h \
     LuaUI/combofileselector.h \
-    chargecounter.h
+    chargecounter.h \
+    LuaUI/combobox.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -97,4 +98,5 @@ SOURCES += \
     datalogger.cpp \
     LuaUI/isotopesourceselector.cpp \
     LuaUI/combofileselector.cpp \
-    chargecounter.cpp
+    chargecounter.cpp \
+    LuaUI/combobox.cpp

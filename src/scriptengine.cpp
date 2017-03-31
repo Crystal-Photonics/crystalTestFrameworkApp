@@ -1,6 +1,7 @@
 #include "scriptengine.h"
 #include "LuaUI/button.h"
 #include "LuaUI/color.h"
+#include "LuaUI/combobox.h"
 #include "LuaUI/combofileselector.h"
 #include "LuaUI/isotopesourceselector.h"
 #include "LuaUI/lineedit.h"
@@ -734,6 +735,26 @@ void ScriptEngine::load_script(const QString &path) {
                 "get_selected_serial_number", thread_call_wrapper(&IsotopeSourceSelector::get_selected_serial_number) //
                 );
         }
+        //bind ComboBox
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<ComboBox>>("ComboBox", //
+                                                            sol::meta_function::construct,
+                                                            [parent = this->parent]() { return Lua_UI_Wrapper<ComboBox>{parent}; }, //
+                                                            "set_items",
+                                                            thread_call_wrapper(&ComboBox::set_items), //
+                                                            "get_text",
+                                                            thread_call_wrapper(&ComboBox::get_text), //
+                                                            "set_index",
+                                                            thread_call_wrapper(&ComboBox::set_index), //
+                                                            "get_index",
+                                                            thread_call_wrapper(&ComboBox::get_index), //
+                                                            "set_caption",
+                                                            thread_call_wrapper(&ComboBox::set_caption), //
+                                                            "get_caption",
+                                                            thread_call_wrapper(&ComboBox::get_caption) //
+                                                            );
+        }
+
         //bind button
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Button>>(
