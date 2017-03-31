@@ -62,7 +62,8 @@ HEADERS += \
     LuaUI/isotopesourceselector.h \
     LuaUI/combofileselector.h \
     chargecounter.h \
-    LuaUI/combobox.h
+    LuaUI/combobox.h \
+    LuaUI/checkbox.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -99,4 +100,5 @@ SOURCES += \
     LuaUI/isotopesourceselector.cpp \
     LuaUI/combofileselector.cpp \
     chargecounter.cpp \
-    LuaUI/combobox.cpp
+    LuaUI/combobox.cpp \
+    LuaUI/checkbox.cpp

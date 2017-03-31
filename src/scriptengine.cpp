@@ -5,6 +5,7 @@
 #include "LuaUI/combofileselector.h"
 #include "LuaUI/isotopesourceselector.h"
 #include "LuaUI/lineedit.h"
+#include "LuaUI/checkbox.h"
 #include "LuaUI/plot.h"
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
@@ -755,6 +756,23 @@ void ScriptEngine::load_script(const QString &path) {
                                                             );
         }
 
+
+
+        //bind CheckBox
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<CheckBox>>("CheckBox", //
+                                                            sol::meta_function::construct,
+                                                            [parent = this->parent]() { return Lua_UI_Wrapper<CheckBox>{parent}; }, //
+                                                            "set_checked",
+                                                            thread_call_wrapper(&CheckBox::set_checked), //
+                                                            "get_checked",
+                                                            thread_call_wrapper(&CheckBox::get_checked), //
+                                                            "set_text",
+                                                            thread_call_wrapper(&CheckBox::set_text), //
+                                                            "get_text",
+                                                            thread_call_wrapper(&CheckBox::get_text)
+                                                            );
+        }
         //bind button
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Button>>(
