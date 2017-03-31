@@ -15,9 +15,9 @@ class CheckBox {
     void set_text(const std::string text);
     std::string get_text() const;
 
-
     private:
     QCheckBox *checkbox = nullptr;
+    QWidget *base_widget = nullptr;
 };
 
 #endif // CHECKBOX_H

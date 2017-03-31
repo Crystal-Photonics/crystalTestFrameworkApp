@@ -4,7 +4,7 @@
 #include <QMetaObject>
 #include <functional>
 #include <string>
-
+#include <QLabel>
 class QSplitter;
 class QLineEdit;
 /** \ingroup ui
@@ -84,6 +84,20 @@ class LineEdit {
                                   //! \sa get_number()
                                   //! \sa set_name()
 
+    void set_caption(const std::string &caption); //!<\brief Sets the caption of an line edit object.
+                                            //!< \param caption String value. The caption of the line edit object.
+                                            //!< \details Caption is displayed as a title of the line edit.
+                                            //! \sa get_caption()
+                                            //!< \par examples:
+                                            //!< \code
+                                            //!  	local le = Ui.LineEdit.new()
+                                            //!  	le:set_caption("TestEdit")
+                                            //! \endcode
+
+    std::string get_caption() const; //!<\brief Returns the caption.
+                                  //!< \return the caption of the line edit object set by set_caption() as a string value.
+                                  //! \sa set_caption()
+
 ///\endcond
 //! \brief Waits until user hits the return key.
 //! \par examples:
@@ -100,6 +114,9 @@ class LineEdit {
     ///\endcond
     private:
     QLineEdit *edit = nullptr;
+    QLabel *label = nullptr;
+    QWidget *base_widget = nullptr;
+
     std::string name;
     QMetaObject::Connection callback_connection = {};
 };

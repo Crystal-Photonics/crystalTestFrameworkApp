@@ -4,14 +4,33 @@
 #include <QLineEdit>
 #include <QSplitter>
 #include <QString>
+#include <QLabel>
+#include <QVBoxLayout>
+
 ///\cond HIDDEN_SYMBOLS
-LineEdit::LineEdit(QSplitter *parent)
-    : edit(new QLineEdit(parent)) {
-    parent->addWidget(edit);
+LineEdit::LineEdit(QSplitter *parent) {
+
+    base_widget = new QWidget(parent);
+    label = new QLabel(base_widget);
+    edit = new QLineEdit(base_widget);
+
+    QVBoxLayout *layout = new QVBoxLayout();
+
+    label->setVisible(false);
+    layout->addWidget(label);
+    layout->addWidget(edit);
+    base_widget->setLayout(layout);
+    parent->addWidget(base_widget);
+
+    base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+    edit->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+    label->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Minimum);
+
 }
 
 LineEdit::~LineEdit() {
     edit->setReadOnly(true);
+    base_widget->setEnabled(false);
     QObject::disconnect(callback_connection);
 }
 ///\endcond
@@ -34,6 +53,16 @@ void LineEdit::set_name(const std::string &name) {
 std::string LineEdit::get_name() const {
     return name;
 }
+
+void LineEdit::set_caption(const std::string &caption) {
+    label->setText(QString::fromStdString(caption));
+    label->setVisible(label->text().size());
+}
+
+std::string LineEdit::get_caption() const {
+    label->text().toStdString();
+}
+
 
 double LineEdit::get_number() const {
     bool ok = true;
