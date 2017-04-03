@@ -1,13 +1,13 @@
 #include "scriptengine.h"
 #include "LuaUI/button.h"
+#include "LuaUI/checkbox.h"
 #include "LuaUI/color.h"
 #include "LuaUI/combobox.h"
 #include "LuaUI/combofileselector.h"
 #include "LuaUI/isotopesourceselector.h"
-#include "LuaUI/lineedit.h"
-#include "LuaUI/checkbox.h"
-#include "LuaUI/plot.h"
 #include "LuaUI/label.h"
+#include "LuaUI/lineedit.h"
+#include "LuaUI/plot.h"
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
 #include "Protocols/sg04countprotocol.h"
@@ -128,12 +128,8 @@ auto thread_call_wrapper_non_waiting(ReturnType (UI_class::*function)(Args...)) 
     if (QThread::currentThread()->isInterruptionRequested()) {
         throw sol::error("Abort Requested");
     }
-    return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
-        //TODO: Decide if we should use promised_thread_call or thread_call
-        //promised_thread_call lets us get return values while thread_call does not
-        //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
-        //using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
-        return Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
+	return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
+		Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
             UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
             return detail::call(function, ui, std::move(args));
         });
@@ -584,7 +580,7 @@ void ScriptEngine::load_script(const QString &path) {
                 "save", [](DataLogger &handle) { handle.save(); }                                                  //
                 );
         }
-        //bind data engine
+		//bind charge counter
         {
             lua->new_usertype<ChargeCounter>("ChargeCounter",                                                                  //
                                              sol::meta_function::construct, [console = console]() { return ChargeCounter{}; }, //
@@ -629,9 +625,9 @@ void ScriptEngine::load_script(const QString &path) {
         //bind plot
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Curve>>(
-                "Curve",                                                                                            //
-                sol::meta_function::construct, sol::no_constructor,                                                 //
-                "append_point", thread_call_wrapper_non_waiting<void, Curve, double, double>(&Curve::append_point), //
+				"Curve",                                                               //
+				sol::meta_function::construct, sol::no_constructor,                    //
+				"append_point", thread_call_wrapper_non_waiting(&Curve::append_point), //
                 "add_spectrum",
                 [](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
                     std::vector<double> data;
@@ -757,17 +753,16 @@ void ScriptEngine::load_script(const QString &path) {
                                                             );
         }
 
-
         //bind Label
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Label>>("Label", //
-                                                            sol::meta_function::construct,
-                                                            [parent = this->parent](const std::string &text) { return Lua_UI_Wrapper<Label>{parent,text}; }, //
-                                                            "set_text",
-                                                            thread_call_wrapper(&Label::set_text), //
-                                                            "get_text",
-                                                            thread_call_wrapper(&Label::get_text)
-                                                            );
+														 sol::meta_function::construct,
+														 [parent = this->parent](const std::string &text) {
+															 return Lua_UI_Wrapper<Label>{parent, text};
+														 }, //
+														 "set_text",
+														 thread_call_wrapper(&Label::set_text), //
+														 "get_text", thread_call_wrapper(&Label::get_text));
         }
         //bind CheckBox
         {
@@ -780,9 +775,7 @@ void ScriptEngine::load_script(const QString &path) {
                                                             thread_call_wrapper(&CheckBox::get_checked), //
                                                             "set_text",
                                                             thread_call_wrapper(&CheckBox::set_text), //
-                                                            "get_text",
-                                                            thread_call_wrapper(&CheckBox::get_text)
-                                                            );
+															"get_text", thread_call_wrapper(&CheckBox::get_text));
         }
         //bind button
         {

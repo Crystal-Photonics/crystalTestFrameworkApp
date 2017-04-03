@@ -21,6 +21,7 @@ class QwtPickerTrackerMachine;
 class QwtPlot;
 class QwtPlotCurve;
 class QwtPlotPicker;
+struct Curve_data;
 
 /** \ingroup ui
  *  \{
@@ -190,20 +191,13 @@ class Curve {
 
     private:
     ///\cond HIDDEN_SYMBOLS
-    void resize(std::size_t size);
     void update();
     void detach();
+	Curve_data &curve_data();
 
     ///\endcond
     Plot *plot{nullptr};
     QwtPlotCurve *curve{nullptr};
-    std::vector<double> xvalues{};
-    std::vector<double> yvalues_orig{};
-    std::vector<double> yvalues_plot{};
-    bool median_enable{false};
-    unsigned int median_kernel_size{3};
-    double offset{0};
-    double gain{1};
 	Utility::Event_filter *event_filter{nullptr};
 	///\endcond
     friend class Plot;
