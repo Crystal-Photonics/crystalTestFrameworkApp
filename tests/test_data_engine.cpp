@@ -24,7 +24,7 @@ void Test_Data_engine::single_numeric_property_test() {
 	std::stringstream input{R"([{
 							"name": "voltage",
 							"value": 1000,
-							"deviation": 100
+                            "tolerance_abs": 100
 							}])"};
 	Data_engine de{input};
 	QVERIFY(!de.is_complete());
@@ -47,12 +47,12 @@ void Test_Data_engine::multiple_numeric_properties_test() {
 							{
 							"name": "voltage",
 							"value": 1000,
-							"deviation": 100
+                            "tolerance_abs": 100
 							},
 							{
 							"name": "current",
 							"value": 200,
-							"deviation": 100
+                            "tolerance_abs": 100
 							}
 							])"};
 	Data_engine de{input};
@@ -91,12 +91,12 @@ void Test_Data_engine::test_preview() {
 							{
 								"name": "voltage",
 								"value": 1000,
-								"deviation": 100
+                                "tolerance_abs": 100
 							},
 							{
 								"name": "current",
 								"value": "[voltage]",
-								"deviation": 100
+                                "tolerance_abs": 100
 							}
 							])"};
 	int argc = 1;

@@ -618,10 +618,12 @@ void ScriptEngine::load_script(const QString &path) {
                         QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath(QString::fromStdString(xml_file)).toStdString();
                     return Data_engine_handle{data_engine};
                 }, //
-                "set",
+                "set_number",
                 [](Data_engine_handle &handle, const std::string &field_id, double number) {
                     handle.data_engine->set_actual_number(QString::fromStdString(field_id), number);
-                });
+                },
+                "set_text", [](Data_engine_handle &handle, const std::string &field_id,
+                                 const std::string text) { handle.data_engine->set_actual_text(QString::fromStdString(field_id), QString::fromStdString(text)); });
         }
 
         //bind UI
@@ -784,9 +786,8 @@ void ScriptEngine::load_script(const QString &path) {
         }
         //bind Image
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image", //
-                                                         sol::meta_function::construct,
-                                                         [parent = this->parent]() { return Lua_UI_Wrapper<Image>{parent}; }, //
+            ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image",                                                                                            //
+                                                         sol::meta_function::construct, [parent = this->parent]() { return Lua_UI_Wrapper<Image>{parent}; }, //
                                                          "load_image_file", thread_call_wrapper(&Image::load_image_file));
         }
         //bind button
