@@ -2,6 +2,7 @@
 #define UTILITY_H
 
 #include <QString>
+#include <chrono>
 #include <experimental/optional>
 #include <sstream>
 #include <type_traits>
@@ -28,7 +29,7 @@ namespace Utility {
 			RAII_Helper(InitFunction &&init, F &&exit)
 				: f_(std::forward<F>(exit))
 				, canceled(false) {
-				init();
+				std::forward<InitFunction>(init)();
 			}
 			RAII_Helper(F &&f)
 				: f_(f)
@@ -84,5 +85,22 @@ namespace Utility {
 	template <class... Args>
 	constexpr Overload_picker<Args...> pick_overload = {};
 }
+
+#ifdef __GNUC__
+#define PRETTY_FUNCTION __PRETTY_FUNCTION__
+#elif defined(_MSC_VER)
+#define PRETTY_FUNCTION __FUNCSIG__
+#else
+#define PRETTY_FUNCTION __FUNCTION__
+#endif
+
+#define LOG()                                                                                                                                                  \
+	auto log_printer = Utility::RAII_do([ now = std::chrono::high_resolution_clock::now(), function = PRETTY_FUNCTION ] {                                                         \
+		static std::chrono::nanoseconds sum;                                                                                                                   \
+		const auto diff = std::chrono::high_resolution_clock::now() - now;                                                                                     \
+		sum += diff;                                                                                                                                           \
+		qDebug() << function << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count() << '/'                                                     \
+				 << std::chrono::duration_cast<std::chrono::milliseconds>(sum).count() << "ms";                                                                \
+	})
 
 #endif // UTILITY_H

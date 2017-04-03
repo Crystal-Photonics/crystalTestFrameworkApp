@@ -1,5 +1,6 @@
 #include "comportcommunicationdevice.h"
 #include "qt_util.h"
+#include "util.h"
 
 #include <QApplication>
 #include <QDebug>
