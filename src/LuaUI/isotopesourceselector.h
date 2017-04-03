@@ -1,16 +1,16 @@
 #ifndef ISOTOPESOURCESELECTOR_H
 #define ISOTOPESOURCESELECTOR_H
 
-#include <QSplitter>
 #include <QComboBox>
+#include <QDateTime>
+#include <QList>
 #include <QMetaObject>
+#include <QSplitter>
 #include <functional>
 #include <string>
-#include <QList>
-#include <QDateTime>
 
-class IsotopeSource{
-public:
+class IsotopeSource {
+    public:
     QString serial_number;
     QString isotope;
     QString normal_user;
@@ -21,9 +21,8 @@ public:
     double get_activtiy_becquerel(QDate date_for_activity);
 };
 
-class IsotopeSourceSelector
-{
-public:
+class IsotopeSourceSelector {
+    public:
     IsotopeSourceSelector(QSplitter *parent);
 
     ~IsotopeSourceSelector();
@@ -31,15 +30,15 @@ public:
     double get_selected_activity_Bq();
     std::string get_selected_serial_number();
 
-private:
+    private:
     void load_isotope_database();
     QComboBox *combobox = nullptr;
+    QWidget *base_widget = nullptr;
     QMetaObject::Connection callback_connection = {};
     void set_single_shot_return_pressed_callback(std::function<void()> callback);
 
     void fill_combobox_with_isotopes();
     QList<IsotopeSource> isotope_sources;
     IsotopeSource get_source_by_serial_number(QString serial_number);
-
 };
 #endif // ISOTOPESOURCESELECTOR_H

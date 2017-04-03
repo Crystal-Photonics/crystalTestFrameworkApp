@@ -16,6 +16,7 @@ class Label {
 
     private:
     QLabel *label = nullptr;
+        QWidget *base_widget = nullptr;
 };
 
 #endif // LABEL_H

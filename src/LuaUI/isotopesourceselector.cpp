@@ -6,9 +6,20 @@
 #include <QJsonObject>
 #include <QSettings>
 #include <sol.hpp>
+#include <QVBoxLayout>
 
-IsotopeSourceSelector::IsotopeSourceSelector(QSplitter *parent)
-    : combobox(new QComboBox(parent)) {
+IsotopeSourceSelector::IsotopeSourceSelector(QSplitter *parent) {
+
+    base_widget = new QWidget(parent);
+    combobox = new QComboBox(base_widget);
+    QVBoxLayout *layout = new QVBoxLayout();
+    layout->addWidget(combobox);
+    base_widget->setLayout(layout);
+    parent->addWidget(base_widget);
+
+    base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+    combobox->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+
     parent->addWidget(combobox);
     load_isotope_database();
     fill_combobox_with_isotopes();

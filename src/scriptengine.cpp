@@ -4,6 +4,7 @@
 #include "LuaUI/color.h"
 #include "LuaUI/combobox.h"
 #include "LuaUI/combofileselector.h"
+#include "LuaUI/image.h"
 #include "LuaUI/isotopesourceselector.h"
 #include "LuaUI/label.h"
 #include "LuaUI/lineedit.h"
@@ -756,13 +757,13 @@ void ScriptEngine::load_script(const QString &path) {
         //bind Label
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Label>>("Label", //
-														 sol::meta_function::construct,
-														 [parent = this->parent](const std::string &text) {
-															 return Lua_UI_Wrapper<Label>{parent, text};
-														 }, //
-														 "set_text",
-														 thread_call_wrapper(&Label::set_text), //
-														 "get_text", thread_call_wrapper(&Label::get_text));
+                                                         sol::meta_function::construct,
+                                                         [parent = this->parent](const std::string &text) {
+                                                             return Lua_UI_Wrapper<Label>{parent, text};
+                                                         }, //
+                                                         "set_text",
+                                                         thread_call_wrapper(&Label::set_text), //
+                                                         "get_text", thread_call_wrapper(&Label::get_text));
         }
         //bind CheckBox
         {
@@ -775,7 +776,13 @@ void ScriptEngine::load_script(const QString &path) {
                                                             thread_call_wrapper(&CheckBox::get_checked), //
                                                             "set_text",
                                                             thread_call_wrapper(&CheckBox::set_text), //
-															"get_text", thread_call_wrapper(&CheckBox::get_text));
+                                                            "get_text", thread_call_wrapper(&CheckBox::get_text));
+        }
+        //bind Image
+        {
+			ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image",                                                                                            //
+														 sol::meta_function::construct, [parent = this->parent]() { return Lua_UI_Wrapper<Image>{parent}; }, //
+                                                         "load_image_file", thread_call_wrapper(&Image::load_image_file));
         }
         //bind button
         {
@@ -807,7 +814,8 @@ void ScriptEngine::load_script(const QString &path) {
                 "set_name", thread_call_wrapper(&LineEdit::set_name),                                                //
                 "get_name", thread_call_wrapper(&LineEdit::get_name),                                                //
                 "get_number", thread_call_wrapper(&LineEdit::get_number),                                            //
-
+                "get_caption", thread_call_wrapper(&LineEdit::get_caption),                                          //
+                "set_caption", thread_call_wrapper(&LineEdit::set_caption),                                          //
                 "await_return",
                 [](const Lua_UI_Wrapper<LineEdit> &lew) {
                     auto le = MainWindow::mw->get_lua_UI_class<LineEdit>(lew.id);

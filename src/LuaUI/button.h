@@ -4,8 +4,9 @@
 #include <QMetaObject>
 #include <functional>
 #include <string>
+#include <QPushButton>
 
-class QPushButton;
+
 class QSplitter;
 
 /** \defgroup ui User-intercation
@@ -33,6 +34,7 @@ struct Button {
 
     private:
     QPushButton *button = nullptr;
+    QWidget *base_widget = nullptr;
     QMetaObject::Connection pressed_connection;
     bool pressed = false;
     QMetaObject::Connection callback_connection = {};
