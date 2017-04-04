@@ -1,4 +1,5 @@
 #include "lineedit.h"
+#include "ui_container.h"
 
 #include <QInputDialog>
 #include <QLineEdit>
@@ -6,9 +7,10 @@
 #include <QString>
 #include <QLabel>
 #include <QVBoxLayout>
+#include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-LineEdit::LineEdit(QSplitter *parent) {
+LineEdit::LineEdit(UI_container *parent) {
 
     base_widget = new QWidget(parent);
     label = new QLabel(base_widget);
@@ -20,7 +22,7 @@ LineEdit::LineEdit(QSplitter *parent) {
     layout->addWidget(label);
     layout->addWidget(edit);
     base_widget->setLayout(layout);
-    parent->addWidget(base_widget);
+	parent->add_below(base_widget);
 
     base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     edit->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);

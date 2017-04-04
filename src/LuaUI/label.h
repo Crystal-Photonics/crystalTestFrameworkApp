@@ -1,14 +1,16 @@
 #ifndef LABEL_H
 #define LABEL_H
 
+#include <string>
 
-#include <QLabel>
-#include <QSplitter>
+class QLabel;
+class QWidget;
+class UI_container;
 
 class Label {
     public:
     ///\cond HIDDEN_SYMBOLS
-    Label(QSplitter *parent, const std::string text);
+	Label(UI_container *parent, const std::string text);
     ~Label();
     ///\endcond
     void set_text(const std::string text);
@@ -16,7 +18,7 @@ class Label {
 
     private:
     QLabel *label = nullptr;
-        QWidget *base_widget = nullptr;
+	QWidget *base_widget = nullptr;
 };
 
 #endif // LABEL_H

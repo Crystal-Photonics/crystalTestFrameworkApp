@@ -2,12 +2,13 @@
 #define CHECKBOX_H
 
 #include <QCheckBox>
-#include <QSplitter>
+
+class UI_container;
 
 class CheckBox {
     public:
     ///\cond HIDDEN_SYMBOLS
-    CheckBox(QSplitter *parent);
+	CheckBox(UI_container *parent);
     ~CheckBox();
     ///\endcond
     void set_checked(const bool checked);

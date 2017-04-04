@@ -21,6 +21,7 @@
 #include "lua_functions.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_encoded_function_call.h"
+#include "ui_container.h"
 #include "util.h"
 
 #include <QDebug>
@@ -44,7 +45,7 @@
 template <class T>
 struct Lua_UI_Wrapper {
     template <class... Args>
-    Lua_UI_Wrapper(QSplitter *parent, Args &&... args) {
+	Lua_UI_Wrapper(UI_container *parent, Args &&... args) {
         Utility::thread_call(MainWindow::mw, [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); });
     }
     Lua_UI_Wrapper(Lua_UI_Wrapper &&other)
@@ -361,7 +362,7 @@ struct SCPIDevice {
     ScriptEngine *engine = nullptr;
 };
 
-ScriptEngine::ScriptEngine(QSplitter *parent, QPlainTextEdit *console, Data_engine *data_engine)
+ScriptEngine::ScriptEngine(UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine)
     : lua(std::make_unique<sol::state>())
     , parent(parent)
     , console(console)
@@ -618,8 +619,10 @@ void ScriptEngine::load_script(const QString &path) {
                 [](Data_engine_handle &handle, const std::string &field_id, double number) {
                     handle.data_engine->set_actual_number(QString::fromStdString(field_id), number);
                 },
-                "set_text", [](Data_engine_handle &handle, const std::string &field_id,
-                                 const std::string text) { handle.data_engine->set_actual_text(QString::fromStdString(field_id), QString::fromStdString(text)); });
+				"set_text",
+				[](Data_engine_handle &handle, const std::string &field_id, const std::string text) {
+					handle.data_engine->set_actual_text(QString::fromStdString(field_id), QString::fromStdString(text));
+				});
         }
 
         //bind UI

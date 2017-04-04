@@ -36,7 +36,21 @@ namespace Utility {
 
 	QWidget *replace_tab_widget(QTabWidget *tabs, int index, QWidget *new_widget, const QString &title);
 
-	//=== The rest of this header is just the implementation for the templates above, don't read if you are alergic to templates.
+	class Event_filter : public QObject{
+		Q_OBJECT
+		public:
+		Event_filter(QObject *parent);
+		Event_filter(QObject *parent, std::function<bool(QEvent *)> function);
+		void add_callback(std::function<bool(QEvent *)> function);
+		void clear();
+		bool eventFilter(QObject *object, QEvent *ev) override;
+		private:
+		std::vector<std::function<bool(QEvent *)>> callbacks;
+	};
+
+	/*************************************************************************************************************************
+	   The rest of this header is just the implementation for the templates above, don't read if you are alergic to templates.
+	 *************************************************************************************************************************/
 
 	template <typename Fun>
 	void thread_call(QObject *obj, Fun &&fun) {
@@ -84,18 +98,6 @@ namespace Utility {
 		});
 		return future.get();
 	}
-
-	class Event_filter : public QObject{
-		Q_OBJECT
-		public:
-		Event_filter(QObject *parent);
-		Event_filter(QObject *parent, std::function<bool(QEvent *)> function);
-		void add_callback(std::function<bool(QEvent *)> function);
-		void clear();
-		bool eventFilter(QObject *object, QEvent *ev) override;
-		private:
-		std::vector<std::function<bool(QEvent *)>> callbacks;
-	};
 }
 
 

@@ -1,4 +1,6 @@
 #include "combofileselector.h"
+#include "ui_container.h"
+
 #include <QDir>
 #include <QHBoxLayout>
 #include <QMessageBox>
@@ -6,6 +8,8 @@
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QStringList>
+#include <QWidget>
+
 #if 1
 //from http://stackoverflow.com/questions/3490336/how-to-reveal-in-finder-or-show-in-explorer-with-qt
 void showInGraphicalShell(QWidget *parent, const QString &pathIn) {
@@ -51,7 +55,7 @@ void showInGraphicalShell(QWidget *parent, const QString &pathIn) {
 }
 #endif
 
-ComboBoxFileSelector::ComboBoxFileSelector(QSplitter *parent, const std::string &directory, const sol::table &filter) {
+ComboBoxFileSelector::ComboBoxFileSelector(UI_container *parent, const std::string &directory, const sol::table &filter) {
     this->parent = parent;
     base_widget = new QWidget(parent);
     combobox = new QComboBox(base_widget);
@@ -61,7 +65,7 @@ ComboBoxFileSelector::ComboBoxFileSelector(QSplitter *parent, const std::string 
     layout->addWidget(combobox);
     layout->addWidget(button);
     base_widget->setLayout(layout);
-    parent->addWidget(base_widget);
+	parent->add_below(base_widget);
 
     button->setText("explore..");
     base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);

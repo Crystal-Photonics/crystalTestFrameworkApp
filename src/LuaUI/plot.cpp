@@ -1,6 +1,7 @@
 #include "plot.h"
 #include "config.h"
 #include "qt_util.h"
+#include "ui_container.h"
 #include "util.h"
 
 #include <QAction>
@@ -155,7 +156,7 @@ bool Curve_data::use_interpolated_values() const {
 	return median_enable && (median_kernel_size < yvalues_orig.size());
 }
 
-Curve::Curve(QSplitter *, Plot *plot)
+Curve::Curve(UI_container *, Plot *plot)
     : plot(plot)
     , curve(new QwtPlotCurve)
     , event_filter(new Utility::Event_filter(plot->plot->canvas())) {
@@ -283,14 +284,14 @@ Curve_data &Curve::curve_data() {
 	return static_cast<Curve_data &>(*curve->data());
 }
 
-Plot::Plot(QSplitter *parent)
+Plot::Plot(UI_container *parent)
     : plot(new QwtPlot)
     , picker(new QwtPlotPicker(plot->canvas()))
     , track_picker(new QwtPlotPicker(plot->canvas()))
     , clicker(new QwtPickerClickPointMachine)
     , tracker(new QwtPickerTrackerMachine) {
     clicker->setState(clicker->PointSelection);
-    parent->addWidget(plot);
+	parent->add_below(plot);
     plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
     set_rightclick_action();
     picker->setStateMachine(clicker);

@@ -1,12 +1,15 @@
 #include "combobox.h"
+#include "ui_container.h"
+
 #include <QComboBox>
 #include <QInputDialog>
 #include <QSplitter>
 #include <QString>
 #include <QVBoxLayout>
+#include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-ComboBox::ComboBox(QSplitter *parent) {
+ComboBox::ComboBox(UI_container *parent) {
     base_widget = new QWidget(parent);
     label = new QLabel(base_widget);
     combobox = new QComboBox(base_widget);
@@ -17,7 +20,7 @@ ComboBox::ComboBox(QSplitter *parent) {
     layout->addWidget(label);
     layout->addWidget(combobox);
     base_widget->setLayout(layout);
-    parent->addWidget(base_widget);
+	parent->add_below(base_widget);
 
     base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     combobox->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);

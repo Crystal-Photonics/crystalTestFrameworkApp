@@ -1,11 +1,12 @@
 #include "window.h"
 #include "Windows/mainwindow.h"
 #include "testrunner.h"
+#include "ui_container.h"
 
+#include <QApplication>
 #include <QCloseEvent>
 #include <QSplitter>
 #include <QVBoxLayout>
-#include <QApplication>
 ///\cond HIDDEN_SYMBOLS
 Window::Window(TestRunner *test)
 	: QWidget(MainWindow::mw, Qt::Window)

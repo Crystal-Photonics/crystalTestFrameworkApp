@@ -4,6 +4,7 @@
 #include "Windows/mainwindow.h"
 #include "scriptengine.h"
 #include "testdescriptionloader.h"
+#include "ui_container.h"
 
 #include <QApplication>
 #include <QDebug>
@@ -17,12 +18,11 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
 		console->setMaximumBlockCount(1000);
 		return console;
 	}())
-	, lua_ui_container(new QSplitter(MainWindow::mw))
+	, lua_ui_container(new UI_container(MainWindow::mw))
 	, script(lua_ui_container, console, data_engine.get())
 	, name(description.get_name()) {
 	Console::note(console) << "Script started";
-	lua_ui_container->addWidget(console);
-	lua_ui_container->setOrientation(Qt::Vertical);
+	lua_ui_container->add_below(console);
 	moveToThread(&thread);
 	thread.start();
 	try {
@@ -54,7 +54,7 @@ sol::table TestRunner::create_table() {
 	return Utility::promised_thread_call(this, [this] { return script.create_table(); });
 }
 
-QSplitter *TestRunner::get_lua_ui_container() const {
+UI_container *TestRunner::get_lua_ui_container() const {
 	return lua_ui_container;
 }
 

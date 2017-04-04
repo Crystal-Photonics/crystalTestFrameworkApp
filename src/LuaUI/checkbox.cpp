@@ -1,15 +1,18 @@
 #include "checkbox.h"
+#include "ui_container.h"
+
 #include <QVBoxLayout>
+#include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-CheckBox::CheckBox(QSplitter *parent) {
+CheckBox::CheckBox(UI_container *parent) {
 
     base_widget = new QWidget(parent);
     checkbox = new QCheckBox(base_widget);
     QVBoxLayout *layout = new QVBoxLayout();
     layout->addWidget(checkbox);
     base_widget->setLayout(layout);
-    parent->addWidget(base_widget);
+	parent->add_below(base_widget);
 
     base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     checkbox->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);

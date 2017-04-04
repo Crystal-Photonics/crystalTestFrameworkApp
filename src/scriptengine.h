@@ -16,6 +16,7 @@ class QSplitter;
 class QPlainTextEdit;
 struct Protocol;
 class Data_engine;
+class UI_container;
 
 class DeviceRequirements{
 public:
@@ -32,7 +33,7 @@ class ScriptEngine {
 	friend class TestDescriptionLoader;
 	friend class DeviceWorker;
 
-	ScriptEngine(QSplitter *parent, QPlainTextEdit *console, Data_engine *data_engine);
+	ScriptEngine(UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine);
 	~ScriptEngine();
 	void load_script(const QString &path);
 	static void launch_editor(QString path, int error_line = 1);
@@ -53,7 +54,7 @@ class ScriptEngine {
 	std::unique_ptr<sol::state> lua{};
 	QString path{};
 	int error_line{0};
-	QSplitter *parent{nullptr};
+	UI_container *parent{nullptr};
 	QPlainTextEdit *console{nullptr};
 	Data_engine *data_engine{nullptr};
 	std::unique_ptr<std::string> pdf_filepath{std::make_unique<std::string>()};

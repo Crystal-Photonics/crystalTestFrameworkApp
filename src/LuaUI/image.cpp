@@ -1,18 +1,21 @@
 #include "image.h"
+#include "ui_container.h"
 
 #include <QFile>
 #include <QImage>
+#include <QLabel>
 #include <QVBoxLayout>
+#include <QWidget>
 #include <sol.hpp>
 
 ///\cond HIDDEN_SYMBOLS
-Image::Image(QSplitter *parent) {
+Image::Image(UI_container *parent) {
     base_widget = new QWidget(parent);
     label = new QLabel(base_widget);
     QVBoxLayout *layout = new QVBoxLayout();
     layout->addWidget(label);
     base_widget->setLayout(layout);
-    parent->addWidget(base_widget);
+	parent->add_below(base_widget);
 
     base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);

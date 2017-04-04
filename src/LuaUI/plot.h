@@ -22,6 +22,7 @@ class QwtPlot;
 class QwtPlotCurve;
 class QwtPlotPicker;
 struct Curve_data;
+class UI_container;
 
 /** \ingroup ui
  *  \{
@@ -30,7 +31,7 @@ struct Curve_data;
 class Curve {
     public:
     ///\cond HIDDEN_SYMBOLS
-    Curve(QSplitter *, Plot *plot);
+	Curve(UI_container *, Plot *plot);
     Curve(Curve &&other) = delete;
     ~Curve();
     void add(const std::vector<double> &data);
@@ -210,7 +211,7 @@ class Curve {
 class Plot {
     public:
     ///\cond HIDDEN_SYMBOLS
-    Plot(QSplitter *parent);
+	Plot(UI_container *parent);
     Plot(Plot &&other);
     Plot &operator=(Plot &&other);
     ~Plot();

@@ -1,14 +1,16 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
-#include <QLabel>
-#include <QSplitter>
 #include <QImage>
+
+class UI_container;
+class QLabel;
+class QWidget;
 
 class Image {
     public:
     ///\cond HIDDEN_SYMBOLS
-    Image(QSplitter *parent);
+	Image(UI_container *parent);
     ~Image();
     ///\endcond
 

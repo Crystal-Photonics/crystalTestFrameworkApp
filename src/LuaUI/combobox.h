@@ -3,13 +3,14 @@
 
 #include <QComboBox>
 #include <QLabel>
-#include <QSplitter>
 #include <sol.hpp>
+
+class UI_container;
 
 class ComboBox {
     public:
     ///\cond HIDDEN_SYMBOLS
-    ComboBox(QSplitter *parent);
+	ComboBox(UI_container *parent);
     ~ComboBox();
     ///\endcond
     void set_items(sol::table items);
