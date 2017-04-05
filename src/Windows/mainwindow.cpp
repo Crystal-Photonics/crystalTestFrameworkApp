@@ -77,8 +77,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     device_worker->moveToThread(&devices_thread);
     devices_thread.start();
-    QTimer::singleShot(16, device_worker.get(), &DeviceWorker::poll_ports);
-    QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
+	QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
     Console::console = ui->console_edit;
     Console::mw = this;
     ui->update_devices_list_button->click();

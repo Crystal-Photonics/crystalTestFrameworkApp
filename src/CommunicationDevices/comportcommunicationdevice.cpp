@@ -11,6 +11,11 @@
 
 ComportCommunicationDevice::ComportCommunicationDevice(QString target) {
     this->target = target;
+	QObject::connect(&port, &QSerialPort::readyRead, [this]() {
+		if (!currently_in_waitReceived) {
+			emit waitReceived(std::chrono::seconds{0}, 0);
+		}
+	});
 }
 
 bool ComportCommunicationDevice::isConnected() {
@@ -43,7 +48,9 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes, bool 
     }
     do {
         try_read();
-    } while (received_bytes < bytes && std::chrono::high_resolution_clock::now() - now <= timeout); //we want a <= because if we poll with 0ms we still put a heavy load on cpu(100% for 1ms each 16ms)
+	} while (received_bytes < bytes &&
+			 std::chrono::high_resolution_clock::now() - now <=
+				 timeout); //we want a <= because if we poll with 0ms we still put a heavy load on cpu(100% for 1ms each 16ms)
     try_read();
     if (!isPolling) {
         currently_in_waitReceived = false;
@@ -97,7 +104,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
 
             if ((!leading_pattern_indicating_skip_line.empty()) && skipline_match > 0) {
                 //if ((!leading_pattern_indicating_skip_line.empty()) && in_str.startsWith(QString::fromStdString(leading_pattern_indicating_skip_line))){
-                 now = std::chrono::high_resolution_clock::now();
+				now = std::chrono::high_resolution_clock::now();
             } else {
                 run = false;
             }
@@ -129,7 +136,6 @@ void ComportCommunicationDevice::close() {
     return Utility::promised_thread_call(this, [this] { port.close(); });
 }
 
-QString ComportCommunicationDevice::getName()
-{
+QString ComportCommunicationDevice::getName() {
     return port.portName();
 }
