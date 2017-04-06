@@ -11,7 +11,7 @@
 Button::Button(UI_container *parent, const std::string &title)
 	: button(new QPushButton(QString::fromStdString(title), parent)) {
 	parent->add(button);
-    button->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+	button->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
     pressed_connection = QObject::connect(button, &QPushButton::pressed, [this] { pressed = true; });
 }
 

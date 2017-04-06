@@ -16,8 +16,8 @@ ComboBox::ComboBox(UI_container *parent)
     label->setVisible(false);
     layout->addWidget(label);
     layout->addWidget(combobox);
-    combobox->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-    label->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Minimum);
+	combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
 	parent->add(layout);
 }
 

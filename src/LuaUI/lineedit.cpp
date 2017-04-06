@@ -16,10 +16,10 @@ LineEdit::LineEdit(UI_container *parent)
 	QVBoxLayout *layout = new QVBoxLayout;
     label->setVisible(false);
     layout->addWidget(label);
-    layout->addWidget(edit);
+	layout->addWidget(edit, 1, Qt::AlignBottom);
 	parent->add(layout);
-    edit->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-    label->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Minimum);
+	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+	edit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
 }
 
 LineEdit::~LineEdit() {

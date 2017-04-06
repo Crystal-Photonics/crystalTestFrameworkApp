@@ -15,7 +15,7 @@ struct Widget_paragraph {
 	}
 
 	void add(QWidget *widget) {
-		layout->addWidget(widget);
+		layout->addWidget(widget, 1, Qt::AlignBottom);
 	}
 
 	void add(QLayout *layout) {

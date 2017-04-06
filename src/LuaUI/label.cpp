@@ -4,12 +4,13 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QDebug>
 
 ///\cond HIDDEN_SYMBOLS
 Label::Label(UI_container *parent, const std::string text)
 	: label{new QLabel(parent)} {
 	parent->add(label);
-    label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+	label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Minimum);
     set_text(text);
 }
 

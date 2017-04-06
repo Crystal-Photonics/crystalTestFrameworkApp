@@ -7,7 +7,7 @@
 ///\cond HIDDEN_SYMBOLS
 CheckBox::CheckBox(UI_container *parent)
 	: checkbox(new QCheckBox(parent)) {
-    checkbox->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+	checkbox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 	parent->add(checkbox);
 }
 

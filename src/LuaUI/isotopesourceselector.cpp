@@ -15,7 +15,7 @@
 
 IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
 	: combobox{new QComboBox(parent)} {
-	combobox->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+	combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
 	parent->add(combobox);
     load_isotope_database();
     fill_combobox_with_isotopes();

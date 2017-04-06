@@ -33,7 +33,7 @@ class Aspect_ratio_label : public QLabel {
 Image::Image(UI_container *parent)
 	: label{new Aspect_ratio_label(parent)} {
 	parent->add(label);
-    label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     label->setScaledContents(true);
 }
 
