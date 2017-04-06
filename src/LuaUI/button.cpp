@@ -14,7 +14,7 @@ Button::Button(UI_container *parent, const std::string &title) {
     QVBoxLayout *layout = new QVBoxLayout();
     layout->addWidget(button);
     base_widget->setLayout(layout);
-	parent->add_below(base_widget);
+	parent->add(base_widget);
 
     base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     button->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);

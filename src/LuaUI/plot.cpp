@@ -291,7 +291,7 @@ Plot::Plot(UI_container *parent)
     , clicker(new QwtPickerClickPointMachine)
     , tracker(new QwtPickerTrackerMachine) {
     clicker->setState(clicker->PointSelection);
-	parent->add_below(plot);
+	parent->add(plot);
     plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
     set_rightclick_action();
     picker->setStateMachine(clicker);

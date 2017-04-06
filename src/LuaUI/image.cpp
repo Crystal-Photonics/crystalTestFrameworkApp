@@ -36,7 +36,7 @@ Image::Image(UI_container *parent) {
     QVBoxLayout *layout = new QVBoxLayout();
     layout->addWidget(label);
     base_widget->setLayout(layout);
-	parent->add_below(base_widget);
+	parent->add(base_widget);
 
     base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);

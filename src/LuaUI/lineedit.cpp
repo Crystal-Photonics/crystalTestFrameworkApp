@@ -22,7 +22,7 @@ LineEdit::LineEdit(UI_container *parent) {
     layout->addWidget(label);
     layout->addWidget(edit);
     base_widget->setLayout(layout);
-	parent->add_below(base_widget);
+	parent->add(base_widget);
 
     base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     edit->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);

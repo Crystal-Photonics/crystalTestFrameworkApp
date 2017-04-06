@@ -65,7 +65,7 @@ ComboBoxFileSelector::ComboBoxFileSelector(UI_container *parent, const std::stri
     layout->addWidget(combobox);
     layout->addWidget(button);
     base_widget->setLayout(layout);
-	parent->add_below(base_widget);
+	parent->add(base_widget);
 
     button->setText("explore..");
     base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);

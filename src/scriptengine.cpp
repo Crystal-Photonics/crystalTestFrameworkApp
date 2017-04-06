@@ -628,6 +628,13 @@ void ScriptEngine::load_script(const QString &path) {
         //bind UI
         auto ui_table = lua->create_named_table("Ui");
 
+		//UI functions
+		{
+			ui_table["set_column_count"] = [container = parent](int count) {
+				Utility::thread_call(MainWindow::mw, [container, count] { container->set_column_count(count); });
+			};
+		}
+
         //bind plot
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Curve>>(

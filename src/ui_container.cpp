@@ -1,11 +1,29 @@
 #include "ui_container.h"
 
 #include <QDebug>
+#include <QHBoxLayout>
 #include <QResizeEvent>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <algorithm>
 #include <memory>
+
+struct Widget_paragraph {
+	Widget_paragraph(QVBoxLayout *parent)
+		: layout{new QHBoxLayout} {
+		parent->addLayout(layout);
+	}
+
+	void add(QWidget *widget) {
+		layout->addWidget(widget);
+	}
+
+	void add(QLayout *layout) {
+		this->layout->addLayout(layout);
+	}
+
+	QHBoxLayout *layout{};
+};
 
 UI_container::UI_container(QWidget *parent)
 	: QScrollArea{parent}
@@ -16,12 +34,28 @@ UI_container::UI_container(QWidget *parent)
 	setWidget(widget.release());
 }
 
-void UI_container::add_below(QWidget *widget) {
-	layout->addWidget(widget);
-	widgets.push_back(widget);
-	const auto size = this->widget()->size();
-	QResizeEvent resize_event{size, size};
-	resizeEvent(&resize_event);
+UI_container::~UI_container() {
+	//this destructor is required because we destruct forward declared objects Widget_paragraph
+}
+
+void UI_container::add(QWidget *widget) {
+	if (paragraphs.size() < 2 || paragraphs.back().layout->count() >= column_count) {
+		paragraphs.emplace_back(this->layout);
+	}
+	paragraphs.back().add(widget);
+	trigger_resize();
+}
+
+void UI_container::add(QLayout *layout) {
+	if (paragraphs.size() < 2 || paragraphs.back().layout->count() >= column_count) {
+		paragraphs.emplace_back(this->layout);
+	}
+	paragraphs.back().add(layout);
+	trigger_resize();
+}
+
+void UI_container::set_column_count(int columns) {
+	column_count = columns;
 }
 
 void UI_container::resizeEvent(QResizeEvent *event) {
@@ -31,10 +65,16 @@ void UI_container::resizeEvent(QResizeEvent *event) {
 }
 
 int UI_container::compute_size(int width) {
-	return std::accumulate(std::begin(widgets), std::end(widgets), 0, [width](int size, QWidget *widget) {
-		if (widget->hasHeightForWidth()) {
-			return size + widget->heightForWidth(width);
+	return std::accumulate(std::begin(paragraphs), std::end(paragraphs), 0, [width](int size, const Widget_paragraph &paragraph) {
+		if (paragraph.layout->hasHeightForWidth()) {
+			return size + paragraph.layout->heightForWidth(width);
 		}
-		return size + widget->sizeHint().height();
+		return size + paragraph.layout->sizeHint().height();
 	});
+}
+
+void UI_container::trigger_resize() {
+	const auto size = this->widget()->size();
+	QResizeEvent resize_event{size, size};
+	resizeEvent(&resize_event);
 }

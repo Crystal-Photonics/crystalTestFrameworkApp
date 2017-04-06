@@ -22,7 +22,7 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
 	, script(lua_ui_container, console, data_engine.get())
 	, name(description.get_name()) {
 	Console::note(console) << "Script started";
-	lua_ui_container->add_below(console);
+	lua_ui_container->add(console);
 	moveToThread(&thread);
 	thread.start();
 	try {

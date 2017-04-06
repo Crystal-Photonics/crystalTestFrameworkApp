@@ -12,7 +12,7 @@ CheckBox::CheckBox(UI_container *parent) {
     QVBoxLayout *layout = new QVBoxLayout();
     layout->addWidget(checkbox);
     base_widget->setLayout(layout);
-	parent->add_below(base_widget);
+	parent->add(base_widget);
 
     base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     checkbox->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);

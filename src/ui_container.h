@@ -7,19 +7,25 @@
 class QVBoxLayout;
 class QResizeEvent;
 class QWidget;
+class QLayout;
+struct Widget_paragraph;
 
-class UI_container : public QScrollArea
-{
+class UI_container : public QScrollArea {
 	public:
 	UI_container(QWidget *parent = nullptr);
-	void add_right(QWidget *widget);
-	void add_below(QWidget *widget);
+	~UI_container();
+	void add(QWidget *widget);
+	void add(QLayout *layout);
+	void set_column_count(int columns);
+
 	private:
 	void resizeEvent(QResizeEvent *event) override;
 	int compute_size(int width);
+	void trigger_resize();
 
-	QVBoxLayout *layout;
-	std::vector<QWidget *> widgets;
+	QVBoxLayout *layout{nullptr};
+	std::vector<Widget_paragraph> paragraphs;
+	int column_count{1};
 };
 
 #endif // UI_CONTAINER_H

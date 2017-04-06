@@ -20,7 +20,7 @@ ComboBox::ComboBox(UI_container *parent) {
     layout->addWidget(label);
     layout->addWidget(combobox);
     base_widget->setLayout(layout);
-	parent->add_below(base_widget);
+	parent->add(base_widget);
 
     base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     combobox->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
