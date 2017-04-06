@@ -33,7 +33,6 @@ struct Button {
 
     private:
     QPushButton *button = nullptr;
-    QWidget *base_widget = nullptr;
     QMetaObject::Connection pressed_connection;
     bool pressed = false;
     QMetaObject::Connection callback_connection = {};

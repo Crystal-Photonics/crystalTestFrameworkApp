@@ -31,7 +31,6 @@ class ComboBoxFileSelector {
 	void fill_combobox();
 
 	UI_container *parent = nullptr;
-    QWidget *base_widget = nullptr;
     QComboBox *combobox = nullptr;
     QPushButton *button = nullptr;
     QList<FileEntry> file_entries;

@@ -2,37 +2,28 @@
 #include "ui_container.h"
 
 #include <QInputDialog>
+#include <QLabel>
 #include <QLineEdit>
 #include <QSplitter>
 #include <QString>
-#include <QLabel>
 #include <QVBoxLayout>
 #include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-LineEdit::LineEdit(UI_container *parent) {
-
-    base_widget = new QWidget(parent);
-    label = new QLabel(base_widget);
-    edit = new QLineEdit(base_widget);
-
-    QVBoxLayout *layout = new QVBoxLayout();
-
+LineEdit::LineEdit(UI_container *parent)
+	: label{new QLabel(parent)}
+	, edit{new QLineEdit(parent)} {
+	QVBoxLayout *layout = new QVBoxLayout;
     label->setVisible(false);
     layout->addWidget(label);
     layout->addWidget(edit);
-    base_widget->setLayout(layout);
-	parent->add(base_widget);
-
-    base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+	parent->add(layout);
     edit->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     label->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Minimum);
-
 }
 
 LineEdit::~LineEdit() {
     edit->setReadOnly(true);
-    base_widget->setEnabled(false);
     QObject::disconnect(callback_connection);
 }
 ///\endcond
@@ -64,7 +55,6 @@ void LineEdit::set_caption(const std::string &caption) {
 std::string LineEdit::get_caption() const {
     label->text().toStdString();
 }
-
 
 double LineEdit::get_number() const {
     bool ok = true;

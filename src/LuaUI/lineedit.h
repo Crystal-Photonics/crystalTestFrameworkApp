@@ -119,7 +119,6 @@ class LineEdit {
     private:
     QLineEdit *edit = nullptr;
     QLabel *label = nullptr;
-    QWidget *base_widget = nullptr;
 
     std::string name;
     QMetaObject::Connection callback_connection = {};

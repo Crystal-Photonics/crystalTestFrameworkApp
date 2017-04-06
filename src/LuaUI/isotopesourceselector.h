@@ -34,7 +34,6 @@ class IsotopeSourceSelector {
     private:
     void load_isotope_database();
     QComboBox *combobox = nullptr;
-    QWidget *base_widget = nullptr;
     QMetaObject::Connection callback_connection = {};
     void set_single_shot_return_pressed_callback(std::function<void()> callback);
 

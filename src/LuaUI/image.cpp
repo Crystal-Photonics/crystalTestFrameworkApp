@@ -30,15 +30,9 @@ class Aspect_ratio_label : public QLabel {
 	double aspect_ratio{};
 };
 
-Image::Image(UI_container *parent) {
-    base_widget = new QWidget(parent);
-	label = new Aspect_ratio_label(base_widget);
-    QVBoxLayout *layout = new QVBoxLayout();
-    layout->addWidget(label);
-    base_widget->setLayout(layout);
-	parent->add(base_widget);
-
-    base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+Image::Image(UI_container *parent)
+	: label{new Aspect_ratio_label(parent)} {
+	parent->add(label);
     label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     label->setScaledContents(true);
 }

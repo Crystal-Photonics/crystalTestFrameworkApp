@@ -24,7 +24,6 @@ class ComboBox {
     private:
     QComboBox *combobox = nullptr;
     QLabel *label = nullptr;
-    QWidget *base_widget = nullptr;
 };
 
 #endif // COMBOBOX_H

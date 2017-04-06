@@ -8,17 +8,10 @@
 #include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-Button::Button(UI_container *parent, const std::string &title) {
-    base_widget = new QWidget(parent);
-    button = new QPushButton(QString::fromStdString(title), base_widget);
-    QVBoxLayout *layout = new QVBoxLayout();
-    layout->addWidget(button);
-    base_widget->setLayout(layout);
-	parent->add(base_widget);
-
-    base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+Button::Button(UI_container *parent, const std::string &title)
+	: button(new QPushButton(QString::fromStdString(title), parent)) {
+	parent->add(button);
     button->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-
     pressed_connection = QObject::connect(button, &QPushButton::pressed, [this] { pressed = true; });
 }
 

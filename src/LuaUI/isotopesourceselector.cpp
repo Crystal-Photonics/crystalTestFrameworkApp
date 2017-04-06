@@ -13,19 +13,9 @@
 #include <QWidget>
 #include <sol.hpp>
 
-IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent) {
-	//TODO: tie base_widget and combobox together with a layout to avoid them getting separated when base_widget is added to the right of previous widgets while
-	//the combobox is added below
-    base_widget = new QWidget(parent);
-    combobox = new QComboBox(base_widget);
-    QVBoxLayout *layout = new QVBoxLayout();
-    layout->addWidget(combobox);
-    base_widget->setLayout(layout);
-	parent->add(base_widget);
-
-    base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-    combobox->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-
+IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
+	: combobox{new QComboBox(parent)} {
+	combobox->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
 	parent->add(combobox);
     load_isotope_database();
     fill_combobox_with_isotopes();

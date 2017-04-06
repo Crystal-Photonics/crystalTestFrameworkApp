@@ -18,7 +18,6 @@ class CheckBox {
 
     private:
     QCheckBox *checkbox = nullptr;
-    QWidget *base_widget = nullptr;
 };
 
 #endif // CHECKBOX_H

@@ -55,20 +55,17 @@ void showInGraphicalShell(QWidget *parent, const QString &pathIn) {
 }
 #endif
 
-ComboBoxFileSelector::ComboBoxFileSelector(UI_container *parent, const std::string &directory, const sol::table &filter) {
-    this->parent = parent;
-    base_widget = new QWidget(parent);
-    combobox = new QComboBox(base_widget);
-    button = new QPushButton(base_widget);
-    QHBoxLayout *layout = new QHBoxLayout();
+ComboBoxFileSelector::ComboBoxFileSelector(UI_container *parent, const std::string &directory, const sol::table &filter)
+	: parent{parent}
+	, combobox{new QComboBox(parent)}
+	, button{new QPushButton(parent)} {
+	QHBoxLayout *layout = new QHBoxLayout;
 
     layout->addWidget(combobox);
     layout->addWidget(button);
-    base_widget->setLayout(layout);
-	parent->add(base_widget);
+	parent->add(layout);
 
     button->setText("explore..");
-    base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     combobox->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
     button->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Minimum);
 
@@ -84,7 +81,7 @@ ComboBoxFileSelector::ComboBoxFileSelector(UI_container *parent, const std::stri
 }
 
 ComboBoxFileSelector::~ComboBoxFileSelector() {
-    base_widget->setEnabled(false);
+	combobox->setEnabled(false);
     QObject::disconnect(button_clicked_connection);
 }
 

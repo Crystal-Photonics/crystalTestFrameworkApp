@@ -20,7 +20,6 @@ class Image {
 
     private:
 	Aspect_ratio_label *label = nullptr;
-    QWidget *base_widget = nullptr;
     QImage image;
     void load_image(const std::string path_to_image);
 };
