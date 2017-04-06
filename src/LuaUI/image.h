@@ -6,6 +6,7 @@
 class UI_container;
 class QLabel;
 class QWidget;
+class Aspect_ratio_label;
 
 class Image {
     public:
@@ -18,7 +19,7 @@ class Image {
 
 
     private:
-    QLabel *label = nullptr;
+	Aspect_ratio_label *label = nullptr;
     QWidget *base_widget = nullptr;
     QImage image;
     void load_image(const std::string path_to_image);
