@@ -1,4 +1,6 @@
 #include "combofileselector.h"
+#include "ui_container.h"
+
 #include <QDir>
 #include <QHBoxLayout>
 #include <QMessageBox>
@@ -6,6 +8,8 @@
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QStringList>
+#include <QWidget>
+
 #if 1
 //from http://stackoverflow.com/questions/3490336/how-to-reveal-in-finder-or-show-in-explorer-with-qt
 void showInGraphicalShell(QWidget *parent, const QString &pathIn) {
@@ -51,22 +55,19 @@ void showInGraphicalShell(QWidget *parent, const QString &pathIn) {
 }
 #endif
 
-ComboBoxFileSelector::ComboBoxFileSelector(QSplitter *parent, const std::string &directory, const sol::table &filter) {
-    this->parent = parent;
-    base_widget = new QWidget(parent);
-    combobox = new QComboBox(base_widget);
-    button = new QPushButton(base_widget);
-    QHBoxLayout *layout = new QHBoxLayout();
+ComboBoxFileSelector::ComboBoxFileSelector(UI_container *parent, const std::string &directory, const sol::table &filter)
+	: parent{parent}
+	, combobox{new QComboBox(parent)}
+	, button{new QPushButton(parent)} {
+	QHBoxLayout *layout = new QHBoxLayout;
 
-    layout->addWidget(combobox);
+	layout->addWidget(combobox);
     layout->addWidget(button);
-    base_widget->setLayout(layout);
-    parent->addWidget(base_widget);
+	parent->add(layout);
 
     button->setText("explore..");
-    base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-    combobox->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-    button->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Minimum);
+	combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+	button->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
 
     current_directory = QString::fromStdString(directory);
     button_clicked_connection = QObject::connect(button, &QPushButton::pressed, [this] { showInGraphicalShell(this->parent, this->current_directory); });
@@ -80,7 +81,7 @@ ComboBoxFileSelector::ComboBoxFileSelector(QSplitter *parent, const std::string 
 }
 
 ComboBoxFileSelector::~ComboBoxFileSelector() {
-    base_widget->setEnabled(false);
+	combobox->setEnabled(false);
     QObject::disconnect(button_clicked_connection);
 }
 

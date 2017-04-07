@@ -3,7 +3,6 @@
 #include "LuaUI/plot.h"
 #include "LuaUI/window.h"
 #include "Protocols/sg04countprotocol.h"
-
 #include "config.h"
 #include "console.h"
 #include "deviceworker.h"
@@ -13,6 +12,7 @@
 #include "scriptengine.h"
 #include "testdescriptionloader.h"
 #include "testrunner.h"
+#include "ui_container.h"
 #include "ui_mainwindow.h"
 #include "util.h"
 
@@ -77,8 +77,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     device_worker->moveToThread(&devices_thread);
     devices_thread.start();
-    QTimer::singleShot(16, device_worker.get(), &DeviceWorker::poll_ports);
-    QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
+	QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
     Console::console = ui->console_edit;
     Console::mw = this;
     ui->update_devices_list_button->click();
@@ -476,8 +475,8 @@ void MainWindow::poll_sg04_counts() {
     for (auto &sg04_count_device : sg04_count_devices) {
 		auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(sg04_count_device->protocol.get());
         if (sg04_count_protocol) {
-             unsigned int cps = sg04_count_protocol->get_actual_count_rate_cps();
-             sg04_count_device->ui_entry->setText(2,"cps: "+QString::number(cps));
+			unsigned int cps = sg04_count_protocol->get_actual_count_rate_cps();
+			sg04_count_device->ui_entry->setText(2, "cps: " + QString::number(cps));
         }
     }
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);

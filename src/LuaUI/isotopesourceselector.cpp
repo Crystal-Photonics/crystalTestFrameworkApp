@@ -1,26 +1,22 @@
 #include "isotopesourceselector.h"
 #include "config.h"
+#include "ui_container.h"
+
+#include <QComboBox>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLabel>
 #include <QSettings>
-#include <sol.hpp>
 #include <QVBoxLayout>
+#include <QWidget>
+#include <sol.hpp>
 
-IsotopeSourceSelector::IsotopeSourceSelector(QSplitter *parent) {
-
-    base_widget = new QWidget(parent);
-    combobox = new QComboBox(base_widget);
-    QVBoxLayout *layout = new QVBoxLayout();
-    layout->addWidget(combobox);
-    base_widget->setLayout(layout);
-    parent->addWidget(base_widget);
-
-    base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-    combobox->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-
-    parent->addWidget(combobox);
+IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
+	: combobox{new QComboBox(parent)} {
+	combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+	parent->add(combobox);
     load_isotope_database();
     fill_combobox_with_isotopes();
 }
@@ -36,8 +32,7 @@ double IsotopeSourceSelector::get_selected_activity_Bq() {
     return get_source_by_serial_number(combobox->currentText()).get_activtiy_becquerel(QDate::currentDate());
 }
 
-std::string IsotopeSourceSelector::get_selected_serial_number()
-{
+std::string IsotopeSourceSelector::get_selected_serial_number() {
     return combobox->currentText().toStdString();
 }
 
@@ -79,7 +74,7 @@ void IsotopeSourceSelector::load_isotope_database() {
     QJsonArray jarray = obj["isotopes"].toArray();
     for (auto item : jarray) {
         QJsonObject obj = item.toObject();
-        if (obj["removed"].toString() == "yes"){
+		if (obj["removed"].toString() == "yes") {
             continue;
         }
         IsotopeSource isotope_source;

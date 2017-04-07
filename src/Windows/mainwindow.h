@@ -22,6 +22,7 @@ class QTreeWidget;
 class QTreeWidgetItem;
 class TestDescriptionLoader;
 class TestRunner;
+class UI_container;
 struct Protocol;
 
 namespace Ui {
@@ -43,7 +44,7 @@ class EXPORT MainWindow : public QMainWindow {
 	void execute_in_gui_thread(Function &&f);
 
 	template <class Lua_UI_class, class... Args>
-	void add_lua_UI_class(int id, QSplitter *parent, Args &&... args);
+	void add_lua_UI_class(int id, UI_container *parent, Args &&... args);
 	template <class Lua_UI_class>
 	void remove_lua_UI_class(int id);
 	template <class Lua_UI_class>
@@ -118,7 +119,7 @@ template <class Lua_UI_class>
 std::map<int, Lua_UI_class> lua_classes;
 
 template <class Lua_UI_class, class... Args>
-void MainWindow::add_lua_UI_class(int id, QSplitter *parent, Args &&... args) {
+void MainWindow::add_lua_UI_class(int id, UI_container *parent, Args &&... args) {
 	lua_classes<Lua_UI_class>.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(parent, std::forward<Args>(args)...));
 }
 

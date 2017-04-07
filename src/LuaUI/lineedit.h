@@ -4,16 +4,20 @@
 #include <QMetaObject>
 #include <functional>
 #include <string>
-#include <QLabel>
+
+class QLabel;
 class QSplitter;
 class QLineEdit;
+class UI_container;
+class QWidget;
+
 /** \ingroup ui
  *  \{
  */
 class LineEdit {
     public:
     ///\cond HIDDEN_SYMBOLS
-    LineEdit(QSplitter *parent);
+	LineEdit(UI_container *parent);
     ~LineEdit();
     ///\endcond
     void set_placeholder_text(const std::string &text); //!<\brief Puts a gray explaining text into the line edit.
@@ -115,7 +119,6 @@ class LineEdit {
     private:
     QLineEdit *edit = nullptr;
     QLabel *label = nullptr;
-    QWidget *base_widget = nullptr;
 
     std::string name;
     QMetaObject::Connection callback_connection = {};

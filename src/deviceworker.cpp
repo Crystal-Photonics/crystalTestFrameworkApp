@@ -18,19 +18,6 @@
 #include <initializer_list>
 #include <regex>
 
-void DeviceWorker::poll_ports() {
-    Utility::thread_call(this, [this] {
-        for (auto &device : comport_devices) {
-            if (device.device->isConnected()) {
-                if (device.device->is_waiting_for_message() == false) {
-                    device.device->waitReceived(CommunicationDevice::Duration{0}, 1, true);
-                }
-            }
-        }
-        QTimer::singleShot(16, this, &DeviceWorker::poll_ports);
-    });
-}
-
 static bool is_valid_baudrate(QSerialPort::BaudRate baudrate) {
     switch (baudrate) {
         case QSerialPort::Baud1200:

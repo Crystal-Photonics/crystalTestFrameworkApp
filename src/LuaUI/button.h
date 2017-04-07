@@ -6,8 +6,7 @@
 #include <string>
 #include <QPushButton>
 
-
-class QSplitter;
+class UI_container;
 
 /** \defgroup ui User-intercation
  *  Interface of built-in user interface functions.
@@ -16,7 +15,7 @@ class QSplitter;
 
 struct Button {
     ///\cond HIDDEN_SYMBOLS
-    Button(QSplitter *parent, const std::string &title);
+	Button(UI_container *parent, const std::string &title);
     ///\endcond
     ~Button();
 
@@ -34,7 +33,6 @@ struct Button {
 
     private:
     QPushButton *button = nullptr;
-    QWidget *base_widget = nullptr;
     QMetaObject::Connection pressed_connection;
     bool pressed = false;
     QMetaObject::Connection callback_connection = {};

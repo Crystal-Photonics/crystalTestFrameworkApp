@@ -1,14 +1,17 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
-#include <QLabel>
-#include <QSplitter>
 #include <QImage>
+
+class UI_container;
+class QLabel;
+class QWidget;
+class Aspect_ratio_label;
 
 class Image {
     public:
     ///\cond HIDDEN_SYMBOLS
-    Image(QSplitter *parent);
+	Image(UI_container *parent);
     ~Image();
     ///\endcond
 
@@ -16,8 +19,7 @@ class Image {
 
 
     private:
-    QLabel *label = nullptr;
-    QWidget *base_widget = nullptr;
+	Aspect_ratio_label *label = nullptr;
     QImage image;
     void load_image(const std::string path_to_image);
 };

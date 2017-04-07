@@ -1,13 +1,14 @@
 #ifndef ISOTOPESOURCESELECTOR_H
 #define ISOTOPESOURCESELECTOR_H
 
-#include <QComboBox>
 #include <QDateTime>
 #include <QList>
 #include <QMetaObject>
-#include <QSplitter>
 #include <functional>
 #include <string>
+
+class QComboBox;
+class UI_container;
 
 class IsotopeSource {
     public:
@@ -23,7 +24,7 @@ class IsotopeSource {
 
 class IsotopeSourceSelector {
     public:
-    IsotopeSourceSelector(QSplitter *parent);
+	IsotopeSourceSelector(UI_container *parent);
 
     ~IsotopeSourceSelector();
 
@@ -33,7 +34,6 @@ class IsotopeSourceSelector {
     private:
     void load_isotope_database();
     QComboBox *combobox = nullptr;
-    QWidget *base_widget = nullptr;
     QMetaObject::Connection callback_connection = {};
     void set_single_shot_return_pressed_callback(std::function<void()> callback);
 

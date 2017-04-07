@@ -1,6 +1,7 @@
 #include "plot.h"
 #include "config.h"
 #include "qt_util.h"
+#include "ui_container.h"
 #include "util.h"
 
 #include <QAction>
@@ -67,11 +68,13 @@ QRectF Curve_data::boundingRect() const {
 
 void Curve_data::append(double x, double y) {
 	if (xvalues.empty()) {
-		bounding_rect.setLeft(x);
-		bounding_rect.setBottom(y);
+		bounding_rect.setX(x);
+		bounding_rect.setY(y);
+		bounding_rect.setWidth(0);
+		bounding_rect.setHeight(0);
 	}
 	bounding_rect.setRight(x);
-	bounding_rect.setHeight(std::max(y, bounding_rect.height()));
+	bounding_rect.setHeight(std::max(y - bounding_rect.y(), bounding_rect.height()));
 	xvalues.push_back(x);
 	yvalues_orig.push_back(y);
 }
@@ -155,7 +158,7 @@ bool Curve_data::use_interpolated_values() const {
 	return median_enable && (median_kernel_size < yvalues_orig.size());
 }
 
-Curve::Curve(QSplitter *, Plot *plot)
+Curve::Curve(UI_container *, Plot *plot)
     : plot(plot)
     , curve(new QwtPlotCurve)
     , event_filter(new Utility::Event_filter(plot->plot->canvas())) {
@@ -283,14 +286,14 @@ Curve_data &Curve::curve_data() {
 	return static_cast<Curve_data &>(*curve->data());
 }
 
-Plot::Plot(QSplitter *parent)
+Plot::Plot(UI_container *parent)
     : plot(new QwtPlot)
     , picker(new QwtPlotPicker(plot->canvas()))
     , track_picker(new QwtPlotPicker(plot->canvas()))
     , clicker(new QwtPickerClickPointMachine)
     , tracker(new QwtPickerTrackerMachine) {
     clicker->setState(clicker->PointSelection);
-    parent->addWidget(plot);
+	parent->add(plot);
     plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
     set_rightclick_action();
     picker->setStateMachine(clicker);

@@ -30,9 +30,6 @@ class DeviceWorker : public QObject {
     void set_currently_running_test(CommunicationDevice *com_device, const QString &test_name);
 	QStringList get_string_list(ScriptEngine &script, const QString &name);
 
-    public slots:
-	void poll_ports();
-
 	private:
     std::list<ComportDescription> comport_devices;
 	void detect_devices(std::vector<ComportDescription *> comport_device_list);

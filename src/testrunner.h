@@ -15,12 +15,14 @@ class DeviceWorker;
 class QPlainTextEdit;
 class QSplitter;
 class TestDescriptionLoader;
+class UI_container;
 struct LuaUI;
 struct Protocol;
 
 class TestRunner : QObject {
 	Q_OBJECT
 	public:
+	using Lua_ui_container = QWidget;
 	TestRunner(const TestDescriptionLoader &description);
 	~TestRunner();
 
@@ -29,7 +31,7 @@ class TestRunner : QObject {
 	sol::table create_table();
 	template <class ReturnType, class... Arguments>
 	ReturnType call(const char *function_name, Arguments &&... args);
-	QSplitter *get_lua_ui_container() const;
+	UI_container *get_lua_ui_container() const;
     void run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices, DeviceWorker &device_worker);
 	bool is_running();
 	const QString &get_name() const;
@@ -39,7 +41,7 @@ class TestRunner : QObject {
 
 	private:
 	QThread thread{};
-	QSplitter *lua_ui_container{nullptr};
+	UI_container *lua_ui_container{nullptr};
 	std::unique_ptr<Data_engine> data_engine{std::make_unique<Data_engine>()};
 	ScriptEngine script;
 	QString name{};

@@ -65,7 +65,8 @@ HEADERS += \
     LuaUI/combobox.h \
     LuaUI/checkbox.h \
     LuaUI/label.h \
-    LuaUI/image.h
+    LuaUI/image.h \
+    ui_container.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -105,4 +106,5 @@ SOURCES += \
     LuaUI/combobox.cpp \
     LuaUI/checkbox.cpp \
     LuaUI/label.cpp \
-    LuaUI/image.cpp
+    LuaUI/image.cpp \
+    ui_container.cpp

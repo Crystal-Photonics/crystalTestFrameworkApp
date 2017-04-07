@@ -1,19 +1,16 @@
 #include "label.h"
+#include "ui_container.h"
+
+#include <QLabel>
 #include <QVBoxLayout>
+#include <QWidget>
+#include <QDebug>
 
 ///\cond HIDDEN_SYMBOLS
-Label::Label(QSplitter *parent, const std::string text) {
-
-    base_widget = new QWidget(parent);
-    label = new QLabel(base_widget);
-    QVBoxLayout *layout = new QVBoxLayout();
-    layout->addWidget(label);
-    base_widget->setLayout(layout);
-    parent->addWidget(base_widget);
-
-    base_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-    label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
-
+Label::Label(UI_container *parent, const std::string text)
+	: label{new QLabel(parent)} {
+	parent->add(label);
+	label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Minimum);
     set_text(text);
 }
 
@@ -22,12 +19,10 @@ Label::~Label() {
 }
 ///\endcond
 
-
-
 std::string Label::get_text() const {
     return label->text().toStdString();
 }
 
-void Label::set_text(std::string const text){
+void Label::set_text(std::string const text) {
     return label->setText(QString::fromStdString(text));
 }
