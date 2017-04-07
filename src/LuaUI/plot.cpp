@@ -68,11 +68,13 @@ QRectF Curve_data::boundingRect() const {
 
 void Curve_data::append(double x, double y) {
 	if (xvalues.empty()) {
-		bounding_rect.setLeft(x);
-		bounding_rect.setBottom(y);
+		bounding_rect.setX(x);
+		bounding_rect.setY(y);
+		bounding_rect.setWidth(0);
+		bounding_rect.setHeight(0);
 	}
 	bounding_rect.setRight(x);
-	bounding_rect.setHeight(std::max(y, bounding_rect.height()));
+	bounding_rect.setHeight(std::max(y - bounding_rect.y(), bounding_rect.height()));
 	xvalues.push_back(x);
 	yvalues_orig.push_back(y);
 }
