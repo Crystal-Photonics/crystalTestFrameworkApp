@@ -23,6 +23,13 @@ class Test_Data_engine : public QObject {
     void check_no_data_error_A();
     void check_duplicate_name_error_B();
     void check_duplicate_name_error_A();
+    void check_data_by_object();
+    void check_wrong_tolerance_type_A();
+    void check_non_existing_desired_value();
+    void check_non_faulty_field_id();
+    void check_non_existing_section_name();
+    void check_version_string_parsing();
+    void check_version_parsing();
 };
 
 DECLARE_TEST(Test_Data_engine)
