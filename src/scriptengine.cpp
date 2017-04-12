@@ -45,7 +45,7 @@
 template <class T>
 struct Lua_UI_Wrapper {
     template <class... Args>
-	Lua_UI_Wrapper(UI_container *parent, Args &&... args) {
+    Lua_UI_Wrapper(UI_container *parent, Args &&... args) {
         Utility::thread_call(MainWindow::mw, [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); });
     }
     Lua_UI_Wrapper(Lua_UI_Wrapper &&other)
@@ -130,8 +130,8 @@ auto thread_call_wrapper_non_waiting(ReturnType (UI_class::*function)(Args...)) 
     if (QThread::currentThread()->isInterruptionRequested()) {
         throw sol::error("Abort Requested");
     }
-	return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
-		Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
+    return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
+        Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
             UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
             return detail::call(function, ui, std::move(args));
         });
@@ -582,7 +582,7 @@ void ScriptEngine::load_script(const QString &path) {
                 "save", [](DataLogger &handle) { handle.save(); }                                                  //
                 );
         }
-		//bind charge counter
+        //bind charge counter
         {
             lua->new_usertype<ChargeCounter>("ChargeCounter",                                                                  //
                                              sol::meta_function::construct, [console = console]() { return ChargeCounter{}; }, //
@@ -617,30 +617,32 @@ void ScriptEngine::load_script(const QString &path) {
                 }, //
                 "set_number",
                 [](Data_engine_handle &handle, const std::string &field_id, double number) {
-                    handle.data_engine->set_actual_number(QString::fromStdString(field_id), number);
+                    QMap<QString, QVariant> dependency_tags; //TODO put Lua interface for dependency
+                    handle.data_engine->set_actual_number(QString::fromStdString(field_id),dependency_tags, number);
                 },
-				"set_text",
-				[](Data_engine_handle &handle, const std::string &field_id, const std::string text) {
-					handle.data_engine->set_actual_text(QString::fromStdString(field_id), QString::fromStdString(text));
-				});
+                "set_text",
+                [](Data_engine_handle &handle, const std::string &field_id, const std::string text) {
+                    QMap<QString, QVariant> dependency_tags; //TODO put Lua interface for dependency
+                    handle.data_engine->set_actual_text(QString::fromStdString(field_id),dependency_tags, QString::fromStdString(text));
+                });
         }
 
         //bind UI
         auto ui_table = lua->create_named_table("Ui");
 
-		//UI functions
-		{
-			ui_table["set_column_count"] = [container = parent](int count) {
-				Utility::thread_call(MainWindow::mw, [container, count] { container->set_column_count(count); });
-			};
-		}
+        //UI functions
+        {
+            ui_table["set_column_count"] = [container = parent](int count) {
+                Utility::thread_call(MainWindow::mw, [container, count] { container->set_column_count(count); });
+            };
+        }
 
         //bind plot
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Curve>>(
-				"Curve",                                                               //
-				sol::meta_function::construct, sol::no_constructor,                    //
-				"append_point", thread_call_wrapper_non_waiting(&Curve::append_point), //
+                "Curve",                                                               //
+                sol::meta_function::construct, sol::no_constructor,                    //
+                "append_point", thread_call_wrapper_non_waiting(&Curve::append_point), //
                 "add_spectrum",
                 [](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
                     std::vector<double> data;
@@ -792,8 +794,8 @@ void ScriptEngine::load_script(const QString &path) {
         }
         //bind Image
         {
-			ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image",                                                                                            //
-														 sol::meta_function::construct, [parent = this->parent]() { return Lua_UI_Wrapper<Image>{parent}; }, //
+            ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image",                                                                                            //
+                                                         sol::meta_function::construct, [parent = this->parent]() { return Lua_UI_Wrapper<Image>{parent}; }, //
                                                          "load_image_file", thread_call_wrapper(&Image::load_image_file));
         }
         //bind button

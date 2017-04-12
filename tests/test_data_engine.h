@@ -5,19 +5,18 @@
 #include <QObject>
 
 class Test_Data_engine : public QObject {
-	Q_OBJECT
-	public:
-	private slots:
+    Q_OBJECT
+    public:
+    private slots:
 
     void check_tolerance_parsing_A();
 
-	void basic_load_from_config();
-	void check_properties_of_empty_set();
-	void single_numeric_property_test();
-	void multiple_numeric_properties_test();
-	void test_text_entry();
+    void basic_load_from_config();
+    void check_properties_of_empty_set();
+    void single_numeric_property_test();
+    void multiple_numeric_properties_test();
+    void test_text_entry();
     void test_preview();
-    void check_value_matching_by_name_and_version_A();
     void check_value_matching_by_name();
     void check_no_data_error_B();
     void check_no_data_error_A();
@@ -29,7 +28,8 @@ class Test_Data_engine : public QObject {
     void check_non_faulty_field_id();
     void check_non_existing_section_name();
     void check_version_string_parsing();
-    void check_version_parsing();
+    void check_dependency_handling();
+    void check_dependency_ambiguity_handling();
 };
 
 DECLARE_TEST(Test_Data_engine)

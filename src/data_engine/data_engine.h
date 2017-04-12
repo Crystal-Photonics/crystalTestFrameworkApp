@@ -25,6 +25,7 @@ enum class DataEngineErrorNumber {
     duplicate_section,
     non_unique_desired_field_found,
     no_section_id_found,
+    no_field_id_found,
     faulty_field_id
 };
 class DataEngineError : public std::runtime_error {
@@ -42,14 +43,15 @@ class DataEngineError : public std::runtime_error {
 };
 
 struct DataEngineDataEntry {
+    DataEngineDataEntry(const FormID &field_name)
+        : field_name(field_name) {}
     FormID field_name;
 
     virtual bool is_complete() const = 0;
     virtual bool is_in_range() const = 0;
     virtual QString get_value() const = 0;
     virtual QString get_description() const = 0;
-    virtual QString get_minimum() const = 0;
-    virtual QString get_maximum() const = 0;
+    virtual QString get_desired_value_as_string() const = 0;
 
     template <class T>
     T *as();
@@ -72,15 +74,15 @@ const T *DataEngineDataEntry::DataEngineDataEntry::as() const {
 struct NumericTolerance {
     enum ToleranceType { Absolute, Percent };
 
-    bool test_in_range(const double desired, const double measured);
+    bool test_in_range(const double desired , const std::experimental::optional<double> &measured) const;
 
     public:
     void from_string(const QString &str);
-    QString to_string(const double desired_value);
+    QString to_string(const double desired_value) const;
 
     private:
     void str_to_num(QString str_in, double &number, ToleranceType &tol_type, bool &open, QStringList expected_sign_strings);
-    QString num_to_str(double number, ToleranceType tol_type);
+    QString num_to_str(double number, ToleranceType tol_type) const;
 
     ToleranceType tolerance_type;
     double deviation_limit_above;
@@ -91,19 +93,16 @@ struct NumericTolerance {
 };
 
 struct NumericDataEntry : DataEngineDataEntry {
-    NumericDataEntry(FormID field_name, double target_value, NumericTolerance tolerance, QString unit, QString description);
+    NumericDataEntry(FormID field_name, double desired_value, NumericTolerance tolerance, QString unit, QString description);
     bool valid() const;
     bool is_complete() const override;
     bool is_in_range() const override;
+    QString get_desired_value_as_string() const override;
+
     QString get_value() const override;
     QString get_description() const override;
-    QString get_minimum() const override;
-    QString get_maximum() const override;
 
-    double get_min_value() const;
-    double get_max_value() const;
-
-    double target_value{};
+    double desired_value{};
     QString unit{};
     QString description{};
     std::experimental::optional<double> actual_value{};
@@ -113,74 +112,61 @@ struct NumericDataEntry : DataEngineDataEntry {
 };
 
 struct TextDataEntry : DataEngineDataEntry {
-    TextDataEntry(FormID name, QString target_value);
+    TextDataEntry(const FormID name, QString desired_value);
 
     bool is_complete() const override;
     bool is_in_range() const override;
     QString get_value() const override;
     QString get_description() const override;
-    QString get_minimum() const override;
-    QString get_maximum() const override;
+    QString get_desired_value_as_string() const override;
 
-    QString target_value{};
+    QString desired_value{};
     QString description{};
     std::experimental::optional<QString> actual_value{};
 };
 
-struct DependencyVersion {
-    DependencyVersion();
+struct DependencyValue {
+    DependencyValue();
     enum Match_style { MatchExactly, MatchByRange, MatchEverything, MatchNone };
-    float version_number_match_exactly;
-    float version_number_low_including;
-    float version_number_high_excluding;
+    QVariant match_exactly;
+    double range_low_including;
+    double range_high_excluding;
     Match_style match_style;
 
     public:
     void from_json(const QJsonValue &object, const bool default_to_match_all);
-    bool is_matching(float version_number);
+    bool is_matching(const QVariant &test_value) const;
     void from_string(const QString &str);
 
     private:
-    void from_number(const double &version_number);
-    void parse_version_number(const QString &str, float &vnumber, bool &matcheverything);
-};
-
-struct DependencyVersions {
-    QMultiMap<QString,DependencyVersion> versions;
-
-    public:
-    bool is_matching(float version_number);
-
-    void from_json(const QJsonValue &object, const bool default_to_match_all, const QString &version_key_name);
+    void from_number(const double &number);
+    void from_bool(const bool &boolean);
+    void parse_number(const QString &str, float &vnumber, bool &matcheverything);
 };
 
 struct DependencyTags {
-    QMultiMap<QString, QVariant> tags;
+    QMultiMap<QString, DependencyValue> tags;
 
     public:
-
     void from_json(const QJsonValue &object);
 };
 
 struct VariantData {
     DependencyTags dependency_tags;
-    DependencyVersions versions_including;
-    DependencyVersions versions_excluding;
     std::vector<std::unique_ptr<DataEngineDataEntry>> data_entries;
 
     public:
-    bool is_matching_tags_n_versions(const QMultiMap<QString, QVariant> &tags, const QMap<QString, double> &versions_including_,
-                                                      const QMap<QString, double> &versions_excluding_) const;
+    bool is_dependency_matching(const QMap<QString, QVariant> &tags) const;
     void from_json(const QJsonObject &object);
     bool value_exists(QString field_name);
+    DataEngineDataEntry *get_value(QString field_name) const;
 };
 
 struct DataEngineSection {
     std::vector<VariantData> variants;
 
     public:
-    const VariantData *get_variant(const QMultiMap<QString, QVariant> &tags, const QMap<QString, double> &versions_including,
-                                   const QMap<QString, double> &versions_excluding) const;
+    const VariantData *get_variant(const QMap<QString, QVariant> &tags) const;
 
     void from_json(const QJsonValue &object, const QString &key_name);
     QString get_section_name() const;
@@ -194,8 +180,8 @@ struct DataEngineSections {
     std::vector<DataEngineSection> sections;
 
     public:
-    const DataEngineDataEntry *get_entry(const FormID &id, const QMultiMap<QString, QVariant> &tags, const QMap<QString, double> &versions_including,
-                                         const QMap<QString, double> &versions_excluding) const;
+    const DataEngineDataEntry *get_entry(const FormID &id, const QMap<QString, QVariant> &tags) const;
+    DataEngineDataEntry *get_entry(const FormID &id, const QMap<QString, QVariant> &tags);
     void from_json(const QJsonObject &object);
     bool section_exists(QString section_name);
 };
@@ -216,31 +202,25 @@ class Data_engine {
     void set_source(std::istream &source);
     bool is_complete() const;
     bool all_values_in_range() const;
-    bool value_in_range(const FormID &id) const;
-    void set_actual_number(const FormID &id, double number);
-    void set_actual_text(const FormID &id, QString text);
+    bool value_in_range(const FormID &id, const QMap<QString, QVariant> &tags) const;
+    void set_actual_number(const FormID &id, const QMap<QString, QVariant> &tags, double number);
+    void set_actual_text(const FormID &id, const QMap<QString, QVariant> &tags, QString text);
 
-    double get_desired_value(const FormID &id, const QMultiMap<QString, QVariant> &tags, const QMap<QString, double> &versions_including,
-                             const QMap<QString, double> &versions_excluding) const;
-    double get_desired_absolute_tolerance(const FormID &id) const;
-    double get_desired_relative_tolerance(const FormID &id) const;
-    double get_desired_minimum(const FormID &id) const;
-    double get_desired_maximum(const FormID &id) const;
+    double get_desired_value(const FormID &id, const QMap<QString, QVariant> &tags) const;
 
-    const QString &get_desired_text(const FormID &id) const;
-    const QString &get_unit(const FormID &id) const;
+    const QString &get_desired_text(const FormID &id, const QMap<QString, QVariant> &tags) const;
+    const QString &get_unit(const FormID &id, const QMap<QString, QVariant> &tags) const;
     Statistics get_statistics() const;
 
     std::unique_ptr<QWidget> get_preview() const;
     void generate_pdf(const std::string &form, const std::__cxx11::string &destination) const;
     std::string get_json() const;
 
+    QString get_desired_value_as_text(const FormID &id, const QMap<QString, QVariant> &tags) const;
+
     private:
-    void add_entry(std::pair<FormID, std::unique_ptr<DataEngineDataEntry>> &&entry);
-    DataEngineDataEntry *get_entry(const FormID &id, const QMultiMap<QString, QVariant> &tags, const QMap<QString, double> &versions_including,
-                                   const QMap<QString, double> &versions_excluding);
-    const DataEngineDataEntry *get_entry(const FormID &id, const QMultiMap<QString, QVariant> &tags, const QMap<QString, double> &versions_including,
-                                         const QMap<QString, double> &versions_excluding) const;
+
+
     struct FormIdWrapper {
         FormIdWrapper(const FormID &id)
             : value(id) {}
