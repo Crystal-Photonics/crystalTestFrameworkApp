@@ -89,8 +89,95 @@ namespace detail {
     ReturnType call(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<ParamArgs...> const &params) {
         return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
     }
+
+	//get number of parameters of a callable. Fails to compile when ambiguous for overloaded callables.
+	template <typename T>
+	struct number_of_parameters : number_of_parameters<decltype(&T::operator())> {};
+	template <typename R, typename... Args>
+	struct number_of_parameters<R (*)(Args...)> : std::integral_constant<unsigned, sizeof...(Args)> {};
+	template <typename R, typename C, typename... Args>
+	struct number_of_parameters<R (C::*)(Args...)> : std::integral_constant<unsigned, sizeof...(Args)> {};
+	template <typename R, typename C, typename... Args>
+	struct number_of_parameters<R (C::*)(Args...) const> : std::integral_constant<unsigned, sizeof...(Args)> {};
+
+	//used to return a variadic template parameter pack
+	template <class... Args>
+	struct Type_list {};
+
+	//allows conversion from sol::object into int, std::string, ...
+	struct Converter {
+		Converter(sol::object object)
+			: object{object} {}
+		sol::object object;
+		template <class T>
+		operator T() {
+			return object.as<T>();
+		}
+	};
+
+	//call a function with a list of sol::objects as the arguments
+	template <class Function, std::size_t... indexes>
+	auto call(std::vector<sol::object> &objects, Function &&function, std::index_sequence<indexes...>) {
+		return function(Converter(objects[indexes])...);
+	}
+
+	//check if a list of sol::objects is convertible to a given variadic template parameter pack
+	template <int index>
+	bool convertible(std::vector<sol::object> &) {
+		return true;
+	}
+	template <int index, class Head, class... Tail>
+	bool convertible(std::vector<sol::object> &objects) {
+		if (objects[index].is<Head>()) {
+			return convertible<index + 1, Tail...>(objects);
+		}
+		return false;
+	}
+	template <class... Args>
+	bool convertible(Type_list<Args...>, std::vector<sol::object> &objects) {
+		return convertible<0, Args...>(objects);
+	}
+
+	//get the parameter list of a callable object. Fails to compile if the list is ambiguous due to overloading.
+	template <class ReturnType, class... Args>
+	Type_list<Args...> parameter_list(ReturnType (*)(Args...)) {
+		return {};
+	}
+	template <class ReturnType, class Class, class... Args>
+	Type_list<Args...> parameter_list(ReturnType (Class::*)(Args...)) {
+		return {};
+	}
+	template <class ReturnType, class Class, class... Args>
+	Type_list<Args...> parameter_list(ReturnType (Class::*)(Args...) const) {
+		return {};
+	}
+	template <class Function>
+	auto parameter_list(Function) {
+		return parameter_list(&Function::operator());
+	}
+
+	//call a function if it is callable with the given sol::objects
+	template <class ReturnType>
+	std::experimental::optional<ReturnType> call_if_possible(std::vector<sol::object> &) {
+		return {};
+	}
+	template <class ReturnType, class FunctionHead, class... FunctionsTail>
+	std::experimental::optional<ReturnType> call_if_possible(std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
+		constexpr auto arity = detail::number_of_parameters<std::remove_reference_t<FunctionHead>>{}.value;
+		//skip function if it has the wrong number of parameters
+		if (arity != objects.size()) {
+			return call_if_possible<ReturnType>(objects, std::forward<FunctionsTail>(functions)...);
+		}
+		//skip function if the argument types don't match
+		if (convertible(parameter_list(function), objects)) {
+			return call(objects, std::forward<FunctionHead>(function), std::make_index_sequence<arity>());
+		}
+		//give up and try the next overload
+		return call_if_possible<ReturnType>(objects, functions...);
+	}
 }
 
+//wrapper that wraps a UI function such as Button::has_been_clicked so that it is called from the main window context. Waits for processing.
 template <class ReturnType, class UI_class, class... Args>
 auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
     if (QThread::currentThread()->isInterruptionRequested()) {
@@ -107,7 +194,6 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
         });
     };
 }
-
 template <class ReturnType, class UI_class, class... Args>
 auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
     if (QThread::currentThread()->isInterruptionRequested()) {
@@ -125,6 +211,7 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
     };
 }
 
+//wrapper that wraps a UI function such as Button::has_been_clicked so that it is called from the main window context. Doesn't wait for processing.
 template <class ReturnType, class UI_class, class... Args>
 auto thread_call_wrapper_non_waiting(ReturnType (UI_class::*function)(Args...)) {
     if (QThread::currentThread()->isInterruptionRequested()) {
@@ -136,6 +223,22 @@ auto thread_call_wrapper_non_waiting(ReturnType (UI_class::*function)(Args...)) 
             return detail::call(function, ui, std::move(args));
         });
     };
+}
+
+//create an overloaded function from a list of functions. When called the overloaded function will pick one of the given functions based on arguments.
+template <class ReturnType, class... Functions>
+auto overloaded_function(Functions &&... functions) {
+	return [functions...](sol::variadic_args args) {
+		std::vector<sol::object> objects;
+		for (auto object : args) {
+			objects.push_back(std::move(object));
+		}
+		auto value = detail::call_if_possible<ReturnType>(objects, functions...);
+		if (value) {
+			return value.value();
+		}
+		throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
+	};
 }
 
 static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedParam &param, sol::state &lua) {
@@ -412,7 +515,7 @@ std::string ScriptEngine::to_string(const sol::object &o) {
         }
         case sol::type::userdata:
             if (o.is<Color>()) {
-                return "Ui.Color_from_rgb(0x" + QString::number(o.as<Color>().rgb & 0xFFFFFFu, 16).toStdString() + ")";
+				return "Ui.Color(0x" + QString::number(o.as<Color>().rgb & 0xFFFFFFu, 16).toStdString() + ")";
             }
             return "unknown custom datatype";
         default:
@@ -618,12 +721,12 @@ void ScriptEngine::load_script(const QString &path) {
                 "set_number",
                 [](Data_engine_handle &handle, const std::string &field_id, double number) {
                     QMap<QString, QVariant> dependency_tags; //TODO put Lua interface for dependency
-                    handle.data_engine->set_actual_number(QString::fromStdString(field_id),dependency_tags, number);
+					handle.data_engine->set_actual_number(QString::fromStdString(field_id), dependency_tags, number);
                 },
                 "set_text",
                 [](Data_engine_handle &handle, const std::string &field_id, const std::string text) {
                     QMap<QString, QVariant> dependency_tags; //TODO put Lua interface for dependency
-                    handle.data_engine->set_actual_text(QString::fromStdString(field_id),dependency_tags, QString::fromStdString(text));
+					handle.data_engine->set_actual_text(QString::fromStdString(field_id), dependency_tags, QString::fromStdString(text));
                 });
         }
 
@@ -720,9 +823,9 @@ void ScriptEngine::load_script(const QString &path) {
         {
             ui_table.new_usertype<Color>("Color", //
                                          sol::meta_function::construct, sol::no_constructor);
-            ui_table["Color_from_name"] = [](const std::string &name) { return Color::Color_from_name(name); };
-            ui_table["Color_from_r_g_b"] = [](int r, int g, int b) { return Color::Color_from_r_g_b(r, g, b); };
-            ui_table["Color_from_rgb"] = [](int rgb) { return Color{rgb}; };
+			ui_table["Color"] = overloaded_function<Color>([](const std::string &name) { return Color::Color_from_name(name); },
+														   [](int r, int g, int b) { return Color::Color_from_r_g_b(r, g, b); }, //
+														   [](int rgb) { return Color{rgb}; });
         }
         //bind ComboBoxFileSelector
         {
