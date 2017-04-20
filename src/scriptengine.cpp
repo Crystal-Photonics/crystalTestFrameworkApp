@@ -90,19 +90,19 @@ namespace detail {
         return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
     }
 
-	//get number of parameters of a callable. Fails to compile when ambiguous for overloaded callables.
-	template <typename T>
-	struct number_of_parameters : number_of_parameters<decltype(&T::operator())> {};
-	template <typename R, typename... Args>
-	struct number_of_parameters<R (*)(Args...)> : std::integral_constant<unsigned, sizeof...(Args)> {};
-	template <typename R, typename C, typename... Args>
-	struct number_of_parameters<R (C::*)(Args...)> : std::integral_constant<unsigned, sizeof...(Args)> {};
-	template <typename R, typename C, typename... Args>
-	struct number_of_parameters<R (C::*)(Args...) const> : std::integral_constant<unsigned, sizeof...(Args)> {};
-
-	//used to return a variadic template parameter pack
+	//list of types useful for returning a variadic template parameter pack or inspecting some of the parameters
 	template <class... Args>
-	struct Type_list {};
+	struct Type_list;
+	template <class Head_, class... Tail>
+	struct Type_list<Head_, Tail...> {
+		using Head = Head_;
+		using Next = Type_list<Tail...>;
+		static constexpr auto size = sizeof...(Tail) + 1;
+	};
+	template <>
+	struct Type_list<> {
+		static constexpr auto size = 0;
+	};
 
 	//allows conversion from sol::object into int, std::string, ...
 	struct Converter {
@@ -123,57 +123,112 @@ namespace detail {
 
 	//check if a list of sol::objects is convertible to a given variadic template parameter pack
 	template <int index>
-	bool convertible(std::vector<sol::object> &) {
+	bool is_convertible(std::vector<sol::object> &) {
 		return true;
 	}
 	template <int index, class Head, class... Tail>
-	bool convertible(std::vector<sol::object> &objects) {
+	bool is_convertible(std::vector<sol::object> &objects) {
 		if (objects[index].is<Head>()) {
-			return convertible<index + 1, Tail...>(objects);
+			return is_convertible<index + 1, Tail...>(objects);
 		}
 		return false;
 	}
 	template <class... Args>
-	bool convertible(Type_list<Args...>, std::vector<sol::object> &objects) {
-		return convertible<0, Args...>(objects);
+	bool is_convertible(Type_list<Args...>, std::vector<sol::object> &objects) {
+		return is_convertible<0, Args...>(objects);
 	}
 
-	//get the parameter list of a callable object. Fails to compile if the list is ambiguous due to overloading.
+	//information for callable objects, such as number of parameters, parameter types and return type.
+	//Fails to compile if the list is ambiguous due to overloading.
+	template <class Return_type_, bool is_class_member_, class Parent_class_, class... Parameters_>
+	struct Callable_info {
+		using Return_type = Return_type_;
+		using Parameters = Type_list<Parameters_...>;
+		constexpr static bool is_class_member = is_class_member_;
+		using Parent_class = Parent_class_;
+	};
 	template <class ReturnType, class... Args>
-	Type_list<Args...> parameter_list(ReturnType (*)(Args...)) {
-		return {};
-	}
+	Callable_info<ReturnType, false, void, Args...> callable_info(ReturnType (*)(Args...));
 	template <class ReturnType, class Class, class... Args>
-	Type_list<Args...> parameter_list(ReturnType (Class::*)(Args...)) {
-		return {};
-	}
+	Callable_info<ReturnType, true, Class, Args...> callable_info(ReturnType (Class::*)(Args...));
 	template <class ReturnType, class Class, class... Args>
-	Type_list<Args...> parameter_list(ReturnType (Class::*)(Args...) const) {
-		return {};
-	}
+	Callable_info<ReturnType, true, Class, Args...> callable_info(ReturnType (Class::*)(Args...) const);
 	template <class Function>
-	auto parameter_list(Function) {
-		return parameter_list(&Function::operator());
-	}
+	auto callable_info(Function) -> decltype(callable_info(&Function::operator()));
+
+	template <class Function>
+	using Pointer_to_callable_t = std::add_pointer_t<std::remove_reference_t<Function>>;
+
+	//get the parameter list of a callable object. Fails to compile if the list is ambiguous due to overloading.
+	template <class Function>
+	auto get_parameter_list(Function &&function) -> typename decltype(callable_info(function))::Parameters;
+	template <class Function>
+	using parameter_list_t = decltype(get_parameter_list(*Pointer_to_callable_t<Function>{}));
+
+	//get the return type of a callable object. Fails to compile if the list is ambiguous due to overloading.
+	template <class Function>
+	auto get_return_type(Function &&function) -> typename decltype(callable_info(function))::Return_type;
+	template <class Function>
+	using return_type_t = decltype(get_return_type(*Pointer_to_callable_t<Function>{}));
+
+	//get number of parameters of a callable. Fails to compile when ambiguous for overloaded callables.
+	template <class Function>
+	constexpr auto number_of_parameters{decltype(get_parameter_list(*Pointer_to_callable_t<Function>{}))::size};
 
 	//call a function if it is callable with the given sol::objects
 	template <class ReturnType>
-	std::experimental::optional<ReturnType> call_if_possible(std::vector<sol::object> &) {
-		return {};
+	ReturnType try_call(std::false_type /*return void*/, std::vector<sol::object> &) {
+		throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
+	}
+	template <class ReturnType>
+	void try_call(std::true_type /*return void*/, std::vector<sol::object> &) {
+		throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
 	}
 	template <class ReturnType, class FunctionHead, class... FunctionsTail>
-	std::experimental::optional<ReturnType> call_if_possible(std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
-		constexpr auto arity = detail::number_of_parameters<std::remove_reference_t<FunctionHead>>{}.value;
+	ReturnType try_call(std::false_type /*return void*/, std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
+		constexpr auto arity = detail::number_of_parameters<FunctionHead>;
 		//skip function if it has the wrong number of parameters
 		if (arity != objects.size()) {
-			return call_if_possible<ReturnType>(objects, std::forward<FunctionsTail>(functions)...);
+			return try_call<ReturnType>(std::false_type{}, objects, std::forward<FunctionsTail>(functions)...);
 		}
 		//skip function if the argument types don't match
-		if (convertible(parameter_list(function), objects)) {
+		if (is_convertible(parameter_list_t<FunctionHead>{}, objects)) {
 			return call(objects, std::forward<FunctionHead>(function), std::make_index_sequence<arity>());
 		}
 		//give up and try the next overload
-		return call_if_possible<ReturnType>(objects, functions...);
+		return try_call<ReturnType>(std::false_type{}, objects, functions...);
+	}
+	template <class ReturnType, class FunctionHead, class... FunctionsTail>
+	void try_call(std::true_type /*return void*/, std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
+		constexpr auto arity = detail::number_of_parameters<FunctionHead>;
+		//skip function if it has the wrong number of parameters
+		if (arity != objects.size()) {
+			return try_call<ReturnType>(std::true_type{}, objects, std::forward<FunctionsTail>(functions)...);
+		}
+		//skip function if the argument types don't match
+		if (is_convertible(parameter_list_t<FunctionHead>{}, objects)) {
+			call(objects, std::forward<FunctionHead>(function), std::make_index_sequence<arity>());
+			return;
+		}
+		//give up and try the next overload
+		return try_call<ReturnType>(std::true_type{}, objects, functions...);
+	}
+
+	template <class ReturnType, class... Functions>
+	auto overloaded_function_helper(std::false_type /*should_returntype_be_deduced*/, Functions &&... functions) {
+		return [functions...](sol::variadic_args args) {
+			std::vector<sol::object> objects;
+			for (auto object : args) {
+				objects.push_back(std::move(object));
+			}
+			return try_call<ReturnType>(std::is_same<ReturnType, void>(), objects, functions...);
+		};
+	}
+
+	template <class ReturnType, class Functions_head, class... Functions_tail>
+	auto overloaded_function_helper(std::true_type /*should_returntype_be_deduced*/, Functions_head &&functions_head, Functions_tail &&... functions_tail) {
+		return overloaded_function_helper<return_type_t<Functions_head>>(std::false_type{}, std::forward<Functions_head>(functions_head),
+																		 std::forward<Functions_tail>(functions_tail)...);
 	}
 }
 
@@ -226,19 +281,9 @@ auto thread_call_wrapper_non_waiting(ReturnType (UI_class::*function)(Args...)) 
 }
 
 //create an overloaded function from a list of functions. When called the overloaded function will pick one of the given functions based on arguments.
-template <class ReturnType, class... Functions>
+template <class ReturnType = std::false_type, class... Functions>
 auto overloaded_function(Functions &&... functions) {
-	return [functions...](sol::variadic_args args) {
-		std::vector<sol::object> objects;
-		for (auto object : args) {
-			objects.push_back(std::move(object));
-		}
-		auto value = detail::call_if_possible<ReturnType>(objects, functions...);
-		if (value) {
-			return value.value();
-		}
-		throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
-	};
+	return detail::overloaded_function_helper<ReturnType>(typename std::is_same<ReturnType, std::false_type>::type{}, std::forward<Functions>(functions)...);
 }
 
 static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedParam &param, sol::state &lua) {
@@ -823,9 +868,9 @@ void ScriptEngine::load_script(const QString &path) {
         {
             ui_table.new_usertype<Color>("Color", //
                                          sol::meta_function::construct, sol::no_constructor);
-			ui_table["Color"] = overloaded_function<Color>([](const std::string &name) { return Color::Color_from_name(name); },
-														   [](int r, int g, int b) { return Color::Color_from_r_g_b(r, g, b); }, //
-														   [](int rgb) { return Color{rgb}; });
+			ui_table["Color"] = overloaded_function([](const std::string &name) { return Color::Color_from_name(name); },
+													[](int r, int g, int b) { return Color::Color_from_r_g_b(r, g, b); }, //
+													[](int rgb) { return Color{rgb}; });
         }
         //bind ComboBoxFileSelector
         {
