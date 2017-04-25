@@ -85,6 +85,26 @@ DataEngineDataEntry *DataEngineSections::get_entry(const FormID &id, const QMap<
     return const_cast<DataEngineDataEntry *>(Utility::as_const(*this).get_entry(id, tags));
 }
 
+bool DataEngineSections::is_complete(const QMap<QString, QVariant> &tags) const {
+    bool result = true;
+    for (const auto &section : sections) {
+        if (!section.is_complete(tags)) {
+            result = false;
+        }
+    }
+    return result;
+}
+
+bool DataEngineSections::all_values_in_range(const QMap<QString, QVariant> &tags) const {
+    bool result = true;
+    for (const auto &section : sections) {
+        if (!section.all_values_in_range(tags)) {
+            result = false;
+        }
+    }
+    return result;
+}
+
 void DataEngineSections::from_json(const QJsonObject &object) {
     for (const auto &key : object.keys()) {
         if (is_comment_key(key)) {
@@ -129,6 +149,28 @@ const VariantData *DataEngineSection::get_variant(const QMap<QString, QVariant> 
     }
     if (!matched) {
         throw DataEngineError(DataEngineErrorNumber::non_unique_desired_field_found, QString("No dependency fullfilling variant found"));
+    }
+    return result;
+}
+
+bool DataEngineSection::is_complete(const QMap<QString, QVariant> &tags) const {
+    bool result = true;
+    const VariantData *variant_to_test = get_variant(tags);
+    for (const auto &entry : variant_to_test->data_entries) {
+        if (!entry.get()->is_complete()) {
+            result = false;
+        }
+    }
+    return result;
+}
+
+bool DataEngineSection::all_values_in_range(const QMap<QString, QVariant> &tags) const {
+    bool result = true;
+    const VariantData *variant_to_test = get_variant(tags);
+    for (const auto &entry : variant_to_test->data_entries) {
+        if (!entry.get()->is_in_range()) {
+            result = false;
+        }
     }
     return result;
 }
@@ -433,12 +475,12 @@ void DependencyValue::from_bool(const bool &boolean) {
     range_high_excluding = 0;
 }
 
-bool Data_engine::is_complete() const {
-    return false;
+bool Data_engine::is_complete(const QMap<QString, QVariant> &tags) const {
+    return sections.is_complete(tags);
 }
 
-bool Data_engine::all_values_in_range() const {
-    return false;
+bool Data_engine::all_values_in_range(const QMap<QString, QVariant> &tags) const {
+    return sections.all_values_in_range(tags);
 }
 
 bool Data_engine::value_in_range(const FormID &id, const QMap<QString, QVariant> &tags) const {
@@ -460,15 +502,29 @@ void Data_engine::set_actual_number(const FormID &id, const QMap<QString, QVaria
 }
 
 void Data_engine::set_actual_text(const FormID &id, const QMap<QString, QVariant> &tags, QString text) {
-#if 0
-    get_entry(id)->as<TextDataEntry>()->actual_value = std::move(text);
-#endif
+    DataEngineDataEntry *data_entry = sections.get_entry(id, tags);
+    assert(data_entry); //TODO an exception is better option here
+
+    auto text_entry = data_entry->as<TextDataEntry>();
+    assert(text_entry); //TODO an exception is better option here
+
+    text_entry->actual_value = text;
+}
+
+void Data_engine::set_actual_bool(const FormID &id, const QMap<QString, QVariant> &tags, bool value) {
+    DataEngineDataEntry *data_entry = sections.get_entry(id, tags);
+    assert(data_entry); //TODO an exception is better option here
+
+    auto bool_entry = data_entry->as<BoolDataEntry>();
+    assert(bool_entry); //TODO an exception is better option here
+
+    bool_entry->actual_value = value;
 }
 
 double Data_engine::get_desired_value(const FormID &id, const QMap<QString, QVariant> &tags) const {
     const DataEngineDataEntry *data_entry = sections.get_entry(id, tags);
     assert(data_entry);
-    return data_entry->as<NumericDataEntry>()->desired_value;
+    return data_entry->as<NumericDataEntry>()->desired_value.value_or(std::numeric_limits<double>::quiet_NaN());
 }
 
 QString Data_engine::get_desired_value_as_text(const FormID &id, const QMap<QString, QVariant> &tags) const {
@@ -483,24 +539,6 @@ const QString &Data_engine::get_unit(const FormID &id, const QMap<QString, QVari
     return data_entry->as<NumericDataEntry>()->unit;
 }
 
-#if 0
-Data_engine::Statistics Data_engine::get_statistics() const {
-
-    int number_of_id_fields = id_entries.size();
-    int number_of_data_fields = data_entries.size();
-    int number_of_filled_fields = std::accumulate(std::begin(id_entries), std::end(id_entries), 0,
-                                                  [](int value, const auto &entry) { return value + (entry.second->is_complete() ? 1 : 0); }) +
-                                  std::accumulate(std::begin(data_entries), std::end(data_entries), 0,
-                                                  [](int value, const auto &entry) { return value + (entry->is_complete() ? 1 : 0); });
-    int number_of_inrange_fields = std::accumulate(std::begin(id_entries), std::end(id_entries), 0,
-                                                   [](int value, const auto &entry) { return value + (entry.second->is_in_range() ? 1 : 0); }) +
-                                   std::accumulate(std::begin(data_entries), std::end(data_entries), 0,
-                                                   [](int value, const auto &entry) { return value + (entry->is_in_range() ? 1 : 0); });
-
-    return {number_of_id_fields, number_of_data_fields, number_of_filled_fields, number_of_inrange_fields};
-
-}
-#endif
 std::unique_ptr<QWidget> Data_engine::get_preview() const {
     QtRPT report;
     fill_report(report, "test.xml");
@@ -513,7 +551,6 @@ void Data_engine::generate_pdf(const std::string &form, const std::string &desti
     fill_report(report, QString::fromStdString(form));
     report.printPDF(QString::fromStdString(destination));
 }
-
 
 bool Data_engine::entry_compare(const FormIdWrapper &lhs, const FormIdWrapper &rhs) {
     return lhs.value < rhs.value;
@@ -560,7 +597,6 @@ void Data_engine::fill_report(QtRPT &report, const QString &form) const {
 }
 
 bool NumericTolerance::test_in_range(const double desired, const std::experimental::optional<double> &measured) const {
-
     double min_value_absolute = 0;
     double max_value_absolute = 0;
 
@@ -570,8 +606,8 @@ bool NumericTolerance::test_in_range(const double desired, const std::experiment
             min_value_absolute = desired - deviation_limit_beneath;
         } break;
         case ToleranceType::Percent: {
-            max_value_absolute = desired + desired*deviation_limit_above/100.0;
-            min_value_absolute = desired - desired*deviation_limit_beneath/100.0;
+            max_value_absolute = desired + desired * deviation_limit_above / 100.0;
+            min_value_absolute = desired - desired * deviation_limit_beneath / 100.0;
         }
 
         break;
@@ -714,14 +750,16 @@ QString NumericTolerance::num_to_str(double number, ToleranceType tol_type) cons
 
 std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonObject &object) {
     FormID field_name;
-    EntryType entrytype;
+    EntryType entrytype = EntryType::Unspecified;
     const auto keys = object.keys();
+    bool entry_without_value;
     if (!keys.contains("value")) {
         if (!keys.contains("type")) {
-            throw std::runtime_error("JSON object must contain a key \"value\" or \"type\" ");
+            throw DataEngineError(DataEngineErrorNumber::data_entry_contains_neither_type_nor_value, "JSON object must contain a key \"value\" or \"type\" ");
         } else {
+            entry_without_value = true;
             QString str_type = object["type"].toString();
-            if (str_type == "numeric") {
+            if (str_type == "number") {
                 entrytype = EntryType::Numeric;
             } else if (str_type == "string") {
                 entrytype = EntryType::String;
@@ -730,6 +768,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             }
         }
     } else {
+        entry_without_value = false;
         auto value = object["value"];
         if (value.isDouble()) {
             entrytype = EntryType::Numeric;
@@ -741,12 +780,12 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
     }
 
     if (!keys.contains("name")) {
-        throw std::runtime_error("JSON object must contain key \"name\"");
+        throw DataEngineError(DataEngineErrorNumber::data_entry_contains_no_name, "JSON object must contain key \"name\"");
     }
     field_name = object.value("name").toString();
     switch (entrytype) {
         case EntryType::Numeric: {
-            double desired_value{};
+            std::experimental::optional<double> desired_value{};
             NumericTolerance tolerance{};
             double si_prefix = 1;
             QString unit{};
@@ -764,8 +803,10 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                     si_prefix = object.value(key).toDouble(0.);
                 } else if (key == "unit") {
                     unit = object.value(key).toString();
-                } else if (key == "value") {
+                } else if ((key == "value") && (entry_without_value == false)) {
                     desired_value = object.value(key).toDouble(0.);
+                } else if ((key == "type") && (entry_without_value == true)) {
+                    //already handled above
                 } else if (key == "tolerance") {
                     QString tol;
                     if (object.value(key).isDouble()) {
@@ -778,16 +819,13 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
 
                     tolerance.from_string(tol);
                 } else {
-                    throw std::runtime_error("Invalid key \"" + key.toStdString() + "\" in numeric JSON object");
+                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Invalid key \"" + key + "\" in numeric JSON object");
                 }
             }
             return std::make_unique<NumericDataEntry>(field_name, desired_value, tolerance, std::move(unit), std::move(nice_name));
         }
         case EntryType::Bool: {
-            break;
-        }
-        case EntryType::String: {
-            QString target_value{};
+            std::experimental::optional<bool> desired_value{};
             QString nice_name{};
             for (const auto &key : keys) {
                 if (key == "name") {
@@ -795,19 +833,45 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
 
                 } else if (key == "nice_name") {
                     nice_name = object.value(key).toString();
-                } else if (key == "value") {
-                    target_value = object.value(key).toString();
+                } else if ((key == "value") && (entry_without_value == false)) {
+                    desired_value = object.value(key).toBool();
+                } else if ((key == "type") && (entry_without_value == true)) {
+                    //already handled above
                 } else {
-                    throw std::runtime_error("Invalid key \"" + key.toStdString() + "\" in textual JSON object");
+                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Invalid key \"" + key + "\" in boolean JSON object");
                 }
             }
-            return std::make_unique<TextDataEntry>(field_name, target_value);
+            return std::make_unique<BoolDataEntry>(field_name, desired_value);
+            break;
+        }
+        case EntryType::String: {
+            std::experimental::optional<QString> desired_value{};
+            QString nice_name{};
+            for (const auto &key : keys) {
+                if (key == "name") {
+                    //already handled above
+
+                } else if (key == "nice_name") {
+                    nice_name = object.value(key).toString();
+                } else if ((key == "value") && (entry_without_value == false)) {
+                    desired_value = object.value(key).toString();
+                } else if ((key == "type") && (entry_without_value == true)) {
+                    //already handled above
+                } else {
+                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Invalid key \"" + key + "\" in textual JSON object");
+                }
+            }
+            return std::make_unique<TextDataEntry>(field_name, desired_value);
+        }
+        case EntryType::Unspecified: {
+            throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_type, "Invalid type in JSON object");
         }
     }
-    throw std::runtime_error("invalid JSON object");
+    throw DataEngineError(DataEngineErrorNumber::invalid_json_object, "invalid JSON object");
 }
 
-NumericDataEntry::NumericDataEntry(FormID field_name, double desired_value, NumericTolerance tolerance, QString unit, QString description)
+NumericDataEntry::NumericDataEntry(FormID field_name, std::experimental::optional<double> desired_value, NumericTolerance tolerance, QString unit,
+                                   QString description)
     : DataEngineDataEntry(field_name)
     , desired_value(desired_value)
     , tolerance(tolerance)
@@ -819,11 +883,19 @@ bool NumericDataEntry::is_complete() const {
 }
 
 bool NumericDataEntry::is_in_range() const {
-    return is_complete() && tolerance.test_in_range(desired_value, actual_value);
+    if (bool(desired_value)) {
+        return is_complete() && tolerance.test_in_range(desired_value.value(), actual_value);
+    } else {
+        return is_complete();
+    }
 }
 
 QString NumericDataEntry::get_desired_value_as_string() const {
-    return tolerance.to_string(desired_value);
+    if (bool(desired_value)) {
+        return tolerance.to_string(desired_value.value());
+    } else {
+        return "";
+    }
 }
 
 QString NumericDataEntry::get_value() const {
@@ -834,7 +906,7 @@ QString NumericDataEntry::get_description() const {
     return description;
 }
 
-TextDataEntry::TextDataEntry(const FormID name, QString desired_value)
+TextDataEntry::TextDataEntry(const FormID name, std::experimental::optional<QString> desired_value)
     : DataEngineDataEntry(name)
     , desired_value(std::move(desired_value)) {}
 
@@ -843,7 +915,11 @@ bool TextDataEntry::is_complete() const {
 }
 
 bool TextDataEntry::is_in_range() const {
-    return is_complete() && actual_value.value() == desired_value;
+    if (bool(desired_value)) {
+        return is_complete() && actual_value.value() == desired_value;
+    } else {
+        return is_complete();
+    }
 }
 
 QString TextDataEntry::get_value() const {
@@ -855,7 +931,11 @@ QString TextDataEntry::get_description() const {
 }
 
 QString TextDataEntry::get_desired_value_as_string() const {
-    return desired_value;
+    if (bool(desired_value)) {
+        return desired_value.value();
+    } else {
+        return "";
+    }
 }
 
 QString Data_engine::Statistics::to_qstring() const {
@@ -866,4 +946,48 @@ Fields succeeded: %3/%4)")
         .arg(total)
         .arg(number_of_inrange_fields)
         .arg(total);
+}
+
+BoolDataEntry::BoolDataEntry(const FormID name, std::experimental::optional<bool> desired_value)
+    : DataEngineDataEntry(name)
+    , desired_value(std::move(desired_value)) {}
+
+bool BoolDataEntry::is_complete() const {
+    return bool(actual_value);
+}
+
+bool BoolDataEntry::is_in_range() const {
+    if (bool(desired_value)) {
+        return is_complete() && actual_value.value() == desired_value;
+    } else {
+        return is_complete();
+    }
+}
+
+QString BoolDataEntry::get_value() const {
+    if (is_complete()) {
+        if (actual_value.value()) {
+            return "true";
+        } else {
+            return "false";
+        }
+    } else {
+        return unavailable_value;
+    }
+}
+
+QString BoolDataEntry::get_description() const {
+    return description;
+}
+
+QString BoolDataEntry::get_desired_value_as_string() const {
+    if (bool(desired_value)) {
+        if (desired_value.value()) {
+            return "true";
+        } else {
+            return "false";
+        }
+    } else {
+        return "";
+    }
 }

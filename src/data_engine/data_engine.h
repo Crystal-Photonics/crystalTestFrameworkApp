@@ -15,11 +15,16 @@ class QVariant;
 class QtRPT;
 
 using FormID = QString;
-enum class EntryType { Bool, String, Numeric };
+enum class EntryType { Unspecified, Bool, String, Numeric };
 
 enum class DataEngineErrorNumber {
     invalid_version_dependency_string,
     no_data_section_found,
+    invalid_data_entry_key,
+    invalid_data_entry_type,
+    invalid_json_object,
+    data_entry_contains_no_name,
+    data_entry_contains_neither_type_nor_value,
     tolerance_parsing_error,
     duplicate_field,
     duplicate_section,
@@ -93,7 +98,7 @@ struct NumericTolerance {
 };
 
 struct NumericDataEntry : DataEngineDataEntry {
-    NumericDataEntry(FormID field_name, double desired_value, NumericTolerance tolerance, QString unit, QString description);
+    NumericDataEntry(FormID field_name, std::experimental::optional<double> desired_value, NumericTolerance tolerance, QString unit, QString description);
     bool valid() const;
     bool is_complete() const override;
     bool is_in_range() const override;
@@ -102,7 +107,7 @@ struct NumericDataEntry : DataEngineDataEntry {
     QString get_value() const override;
     QString get_description() const override;
 
-    double desired_value{};
+    std::experimental::optional<double> desired_value{};
     QString unit{};
     QString description{};
     std::experimental::optional<double> actual_value{};
@@ -112,7 +117,7 @@ struct NumericDataEntry : DataEngineDataEntry {
 };
 
 struct TextDataEntry : DataEngineDataEntry {
-    TextDataEntry(const FormID name, QString desired_value);
+    TextDataEntry(const FormID name, std::experimental::optional<QString> desired_value);
 
     bool is_complete() const override;
     bool is_in_range() const override;
@@ -120,9 +125,23 @@ struct TextDataEntry : DataEngineDataEntry {
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
 
-    QString desired_value{};
+    std::experimental::optional<QString> desired_value{};
     QString description{};
     std::experimental::optional<QString> actual_value{};
+};
+
+struct BoolDataEntry : DataEngineDataEntry {
+    BoolDataEntry(const FormID name, std::experimental::optional<bool> desired_value);
+
+    bool is_complete() const override;
+    bool is_in_range() const override;
+    QString get_value() const override;
+    QString get_description() const override;
+    QString get_desired_value_as_string() const override;
+
+    std::experimental::optional<bool> desired_value{};
+    QString description{};
+    std::experimental::optional<bool> actual_value{};
 };
 
 struct DependencyValue {
@@ -167,6 +186,8 @@ struct DataEngineSection {
 
     public:
     const VariantData *get_variant(const QMap<QString, QVariant> &tags) const;
+    bool is_complete(const QMap<QString, QVariant> &tags) const;
+    bool all_values_in_range(const QMap<QString, QVariant> &tags) const;
 
     void from_json(const QJsonValue &object, const QString &key_name);
     QString get_section_name() const;
@@ -182,8 +203,11 @@ struct DataEngineSections {
     public:
     const DataEngineDataEntry *get_entry(const FormID &id, const QMap<QString, QVariant> &tags) const;
     DataEngineDataEntry *get_entry(const FormID &id, const QMap<QString, QVariant> &tags);
+    bool is_complete(const QMap<QString, QVariant> &tags) const;
+    bool all_values_in_range(const QMap<QString, QVariant> &tags) const;
     void from_json(const QJsonObject &object);
     bool section_exists(QString section_name);
+
 };
 
 class Data_engine {
@@ -200,11 +224,12 @@ class Data_engine {
     Data_engine(std::istream &source);
 
     void set_source(std::istream &source);
-    bool is_complete() const;
-    bool all_values_in_range() const;
+    bool is_complete(const QMap<QString, QVariant> &tags) const;
+    bool all_values_in_range(const QMap<QString, QVariant> &tags) const;
     bool value_in_range(const FormID &id, const QMap<QString, QVariant> &tags) const;
     void set_actual_number(const FormID &id, const QMap<QString, QVariant> &tags, double number);
     void set_actual_text(const FormID &id, const QMap<QString, QVariant> &tags, QString text);
+    void set_actual_bool(const FormID &id, const QMap<QString, QVariant> &tags, bool value);
 
     double get_desired_value(const FormID &id, const QMap<QString, QVariant> &tags) const;
 
