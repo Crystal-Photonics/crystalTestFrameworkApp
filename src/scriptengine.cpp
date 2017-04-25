@@ -90,146 +90,146 @@ namespace detail {
         return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
     }
 
-	//list of types useful for returning a variadic template parameter pack or inspecting some of the parameters
-	template <class... Args>
-	struct Type_list;
-	template <class Head_, class... Tail>
-	struct Type_list<Head_, Tail...> {
-		using Head = Head_;
-		using Next = Type_list<Tail...>;
-		static constexpr auto size = sizeof...(Tail) + 1;
-	};
-	template <>
-	struct Type_list<> {
-		static constexpr auto size = 0;
-	};
+    //list of types useful for returning a variadic template parameter pack or inspecting some of the parameters
+    template <class... Args>
+    struct Type_list;
+    template <class Head_, class... Tail>
+    struct Type_list<Head_, Tail...> {
+        using Head = Head_;
+        using Next = Type_list<Tail...>;
+        static constexpr auto size = sizeof...(Tail) + 1;
+    };
+    template <>
+    struct Type_list<> {
+        static constexpr auto size = 0;
+    };
 
-	//allows conversion from sol::object into int, std::string, ...
-	struct Converter {
-		Converter(sol::object object)
-			: object{object} {}
-		sol::object object;
-		template <class T>
-		operator T() {
-			return object.as<T>();
-		}
-	};
+    //allows conversion from sol::object into int, std::string, ...
+    struct Converter {
+        Converter(sol::object object)
+            : object{object} {}
+        sol::object object;
+        template <class T>
+        operator T() {
+            return object.as<T>();
+        }
+    };
 
-	//call a function with a list of sol::objects as the arguments
-	template <class Function, std::size_t... indexes>
-	auto call(std::vector<sol::object> &objects, Function &&function, std::index_sequence<indexes...>) {
-		return function(Converter(objects[indexes])...);
-	}
+    //call a function with a list of sol::objects as the arguments
+    template <class Function, std::size_t... indexes>
+    auto call(std::vector<sol::object> &objects, Function &&function, std::index_sequence<indexes...>) {
+        return function(Converter(objects[indexes])...);
+    }
 
-	//check if a list of sol::objects is convertible to a given variadic template parameter pack
-	template <int index>
-	bool is_convertible(std::vector<sol::object> &) {
-		return true;
-	}
-	template <int index, class Head, class... Tail>
-	bool is_convertible(std::vector<sol::object> &objects) {
-		if (objects[index].is<Head>()) {
-			return is_convertible<index + 1, Tail...>(objects);
-		}
-		return false;
-	}
-	template <class... Args>
-	bool is_convertible(Type_list<Args...>, std::vector<sol::object> &objects) {
-		return is_convertible<0, Args...>(objects);
-	}
+    //check if a list of sol::objects is convertible to a given variadic template parameter pack
+    template <int index>
+    bool is_convertible(std::vector<sol::object> &) {
+        return true;
+    }
+    template <int index, class Head, class... Tail>
+    bool is_convertible(std::vector<sol::object> &objects) {
+        if (objects[index].is<Head>()) {
+            return is_convertible<index + 1, Tail...>(objects);
+        }
+        return false;
+    }
+    template <class... Args>
+    bool is_convertible(Type_list<Args...>, std::vector<sol::object> &objects) {
+        return is_convertible<0, Args...>(objects);
+    }
 
-	//information for callable objects, such as number of parameters, parameter types and return type.
-	//Fails to compile if the list is ambiguous due to overloading.
-	template <class Return_type_, bool is_class_member_, class Parent_class_, class... Parameters_>
-	struct Callable_info {
-		using Return_type = Return_type_;
-		using Parameters = Type_list<Parameters_...>;
-		constexpr static bool is_class_member = is_class_member_;
-		using Parent_class = Parent_class_;
-	};
-	template <class ReturnType, class... Args>
-	Callable_info<ReturnType, false, void, Args...> callable_info(ReturnType (*)(Args...));
-	template <class ReturnType, class Class, class... Args>
-	Callable_info<ReturnType, true, Class, Args...> callable_info(ReturnType (Class::*)(Args...));
-	template <class ReturnType, class Class, class... Args>
-	Callable_info<ReturnType, true, Class, Args...> callable_info(ReturnType (Class::*)(Args...) const);
-	template <class Function>
-	auto callable_info(Function) -> decltype(callable_info(&Function::operator()));
+    //information for callable objects, such as number of parameters, parameter types and return type.
+    //Fails to compile if the list is ambiguous due to overloading.
+    template <class Return_type_, bool is_class_member_, class Parent_class_, class... Parameters_>
+    struct Callable_info {
+        using Return_type = Return_type_;
+        using Parameters = Type_list<Parameters_...>;
+        constexpr static bool is_class_member = is_class_member_;
+        using Parent_class = Parent_class_;
+    };
+    template <class ReturnType, class... Args>
+    Callable_info<ReturnType, false, void, Args...> callable_info(ReturnType (*)(Args...));
+    template <class ReturnType, class Class, class... Args>
+    Callable_info<ReturnType, true, Class, Args...> callable_info(ReturnType (Class::*)(Args...));
+    template <class ReturnType, class Class, class... Args>
+    Callable_info<ReturnType, true, Class, Args...> callable_info(ReturnType (Class::*)(Args...) const);
+    template <class Function>
+    auto callable_info(Function) -> decltype(callable_info(&Function::operator()));
 
-	template <class Function>
-	using Pointer_to_callable_t = std::add_pointer_t<std::remove_reference_t<Function>>;
+    template <class Function>
+    using Pointer_to_callable_t = std::add_pointer_t<std::remove_reference_t<Function>>;
 
-	//get the parameter list of a callable object. Fails to compile if the list is ambiguous due to overloading.
-	template <class Function>
-	auto get_parameter_list(Function &&function) -> typename decltype(callable_info(function))::Parameters;
-	template <class Function>
-	using parameter_list_t = decltype(get_parameter_list(*Pointer_to_callable_t<Function>{}));
+    //get the parameter list of a callable object. Fails to compile if the list is ambiguous due to overloading.
+    template <class Function>
+    auto get_parameter_list(Function &&function) -> typename decltype(callable_info(function))::Parameters;
+    template <class Function>
+    using parameter_list_t = decltype(get_parameter_list(*Pointer_to_callable_t<Function>{}));
 
-	//get the return type of a callable object. Fails to compile if the list is ambiguous due to overloading.
-	template <class Function>
-	auto get_return_type(Function &&function) -> typename decltype(callable_info(function))::Return_type;
-	template <class Function>
-	using return_type_t = decltype(get_return_type(*Pointer_to_callable_t<Function>{}));
+    //get the return type of a callable object. Fails to compile if the list is ambiguous due to overloading.
+    template <class Function>
+    auto get_return_type(Function &&function) -> typename decltype(callable_info(function))::Return_type;
+    template <class Function>
+    using return_type_t = decltype(get_return_type(*Pointer_to_callable_t<Function>{}));
 
-	//get number of parameters of a callable. Fails to compile when ambiguous for overloaded callables.
-	template <class Function>
-	constexpr auto number_of_parameters{decltype(get_parameter_list(*Pointer_to_callable_t<Function>{}))::size};
+    //get number of parameters of a callable. Fails to compile when ambiguous for overloaded callables.
+    template <class Function>
+    constexpr auto number_of_parameters{decltype(get_parameter_list(*Pointer_to_callable_t<Function>{}))::size};
 
-	//call a function if it is callable with the given sol::objects
-	template <class ReturnType>
-	ReturnType try_call(std::false_type /*return void*/, std::vector<sol::object> &) {
-		throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
-	}
-	template <class ReturnType>
-	void try_call(std::true_type /*return void*/, std::vector<sol::object> &) {
-		throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
-	}
-	template <class ReturnType, class FunctionHead, class... FunctionsTail>
-	ReturnType try_call(std::false_type /*return void*/, std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
-		constexpr auto arity = detail::number_of_parameters<FunctionHead>;
-		//skip function if it has the wrong number of parameters
-		if (arity != objects.size()) {
-			return try_call<ReturnType>(std::false_type{}, objects, std::forward<FunctionsTail>(functions)...);
-		}
-		//skip function if the argument types don't match
-		if (is_convertible(parameter_list_t<FunctionHead>{}, objects)) {
-			return call(objects, std::forward<FunctionHead>(function), std::make_index_sequence<arity>());
-		}
-		//give up and try the next overload
-		return try_call<ReturnType>(std::false_type{}, objects, functions...);
-	}
-	template <class ReturnType, class FunctionHead, class... FunctionsTail>
-	void try_call(std::true_type /*return void*/, std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
-		constexpr auto arity = detail::number_of_parameters<FunctionHead>;
-		//skip function if it has the wrong number of parameters
-		if (arity != objects.size()) {
-			return try_call<ReturnType>(std::true_type{}, objects, std::forward<FunctionsTail>(functions)...);
-		}
-		//skip function if the argument types don't match
-		if (is_convertible(parameter_list_t<FunctionHead>{}, objects)) {
-			call(objects, std::forward<FunctionHead>(function), std::make_index_sequence<arity>());
-			return;
-		}
-		//give up and try the next overload
-		return try_call<ReturnType>(std::true_type{}, objects, functions...);
-	}
+    //call a function if it is callable with the given sol::objects
+    template <class ReturnType>
+    ReturnType try_call(std::false_type /*return void*/, std::vector<sol::object> &) {
+        throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
+    }
+    template <class ReturnType>
+    void try_call(std::true_type /*return void*/, std::vector<sol::object> &) {
+        throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
+    }
+    template <class ReturnType, class FunctionHead, class... FunctionsTail>
+    ReturnType try_call(std::false_type /*return void*/, std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
+        constexpr auto arity = detail::number_of_parameters<FunctionHead>;
+        //skip function if it has the wrong number of parameters
+        if (arity != objects.size()) {
+            return try_call<ReturnType>(std::false_type{}, objects, std::forward<FunctionsTail>(functions)...);
+        }
+        //skip function if the argument types don't match
+        if (is_convertible(parameter_list_t<FunctionHead>{}, objects)) {
+            return call(objects, std::forward<FunctionHead>(function), std::make_index_sequence<arity>());
+        }
+        //give up and try the next overload
+        return try_call<ReturnType>(std::false_type{}, objects, functions...);
+    }
+    template <class ReturnType, class FunctionHead, class... FunctionsTail>
+    void try_call(std::true_type /*return void*/, std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
+        constexpr auto arity = detail::number_of_parameters<FunctionHead>;
+        //skip function if it has the wrong number of parameters
+        if (arity != objects.size()) {
+            return try_call<ReturnType>(std::true_type{}, objects, std::forward<FunctionsTail>(functions)...);
+        }
+        //skip function if the argument types don't match
+        if (is_convertible(parameter_list_t<FunctionHead>{}, objects)) {
+            call(objects, std::forward<FunctionHead>(function), std::make_index_sequence<arity>());
+            return;
+        }
+        //give up and try the next overload
+        return try_call<ReturnType>(std::true_type{}, objects, functions...);
+    }
 
-	template <class ReturnType, class... Functions>
-	auto overloaded_function_helper(std::false_type /*should_returntype_be_deduced*/, Functions &&... functions) {
-		return [functions...](sol::variadic_args args) {
-			std::vector<sol::object> objects;
-			for (auto object : args) {
-				objects.push_back(std::move(object));
-			}
-			return try_call<ReturnType>(std::is_same<ReturnType, void>(), objects, functions...);
-		};
-	}
+    template <class ReturnType, class... Functions>
+    auto overloaded_function_helper(std::false_type /*should_returntype_be_deduced*/, Functions &&... functions) {
+        return [functions...](sol::variadic_args args) {
+            std::vector<sol::object> objects;
+            for (auto object : args) {
+                objects.push_back(std::move(object));
+            }
+            return try_call<ReturnType>(std::is_same<ReturnType, void>(), objects, functions...);
+        };
+    }
 
-	template <class ReturnType, class Functions_head, class... Functions_tail>
-	auto overloaded_function_helper(std::true_type /*should_returntype_be_deduced*/, Functions_head &&functions_head, Functions_tail &&... functions_tail) {
-		return overloaded_function_helper<return_type_t<Functions_head>>(std::false_type{}, std::forward<Functions_head>(functions_head),
-																		 std::forward<Functions_tail>(functions_tail)...);
-	}
+    template <class ReturnType, class Functions_head, class... Functions_tail>
+    auto overloaded_function_helper(std::true_type /*should_returntype_be_deduced*/, Functions_head &&functions_head, Functions_tail &&... functions_tail) {
+        return overloaded_function_helper<return_type_t<Functions_head>>(std::false_type{}, std::forward<Functions_head>(functions_head),
+                                                                         std::forward<Functions_tail>(functions_tail)...);
+    }
 }
 
 //wrapper that wraps a UI function such as Button::has_been_clicked so that it is called from the main window context. Waits for processing.
@@ -283,7 +283,7 @@ auto thread_call_wrapper_non_waiting(ReturnType (UI_class::*function)(Args...)) 
 //create an overloaded function from a list of functions. When called the overloaded function will pick one of the given functions based on arguments.
 template <class ReturnType = std::false_type, class... Functions>
 auto overloaded_function(Functions &&... functions) {
-	return detail::overloaded_function_helper<ReturnType>(typename std::is_same<ReturnType, std::false_type>::type{}, std::forward<Functions>(functions)...);
+    return detail::overloaded_function_helper<ReturnType>(typename std::is_same<ReturnType, std::false_type>::type{}, std::forward<Functions>(functions)...);
 }
 
 static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedParam &param, sol::state &lua) {
@@ -560,7 +560,7 @@ std::string ScriptEngine::to_string(const sol::object &o) {
         }
         case sol::type::userdata:
             if (o.is<Color>()) {
-				return "Ui.Color(0x" + QString::number(o.as<Color>().rgb & 0xFFFFFFu, 16).toStdString() + ")";
+                return "Ui.Color(0x" + QString::number(o.as<Color>().rgb & 0xFFFFFFu, 16).toStdString() + ")";
             }
             return "unknown custom datatype";
         default:
@@ -744,6 +744,7 @@ void ScriptEngine::load_script(const QString &path) {
         {
             struct Data_engine_handle {
                 Data_engine *data_engine{nullptr};
+                QMap<QString, QVariant> dependency_tags;
                 Data_engine_handle() = delete;
             };
 
@@ -761,17 +762,36 @@ void ScriptEngine::load_script(const QString &path) {
                     *pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
                     *form_filepath =
                         QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath(QString::fromStdString(xml_file)).toStdString();
-                    return Data_engine_handle{data_engine};
+                    QMap<QString, QVariant> dependency_tags;
+                    return Data_engine_handle{data_engine, dependency_tags};
                 }, //
-                "set_number",
-                [](Data_engine_handle &handle, const std::string &field_id, double number) {
-                    QMap<QString, QVariant> dependency_tags; //TODO put Lua interface for dependency
-					handle.data_engine->set_actual_number(QString::fromStdString(field_id), dependency_tags, number);
+                "set_dependency_tags",
+                [](Data_engine_handle &handle, const sol::table &dependency_tags) {
+                    handle.dependency_tags.clear();
+
+                    for (auto &i : dependency_tags) {
+                        std::string tag_name = i.first.as<std::string>();
+                        QVariant value;
+                        if (i.second.get_type() == sol::type::string) {
+                            value = QString().fromStdString(i.second.as<std::string>());
+                        } else if (i.second.get_type() == sol::type::number) {
+                            value.setValue<double>(i.second.as<double>());
+                        } else if (i.second.get_type() == sol::type::boolean) {
+                            value.setValue<bool>(i.second.as<bool>());
+                        } else {
+                            throw std::runtime_error(QString("invalid type in field of dependency tags at index %1").arg(QString().fromStdString(tag_name)).toStdString());
+                        }
+                        handle.dependency_tags.insert(QString().fromStdString(tag_name), value);
+                    }
+
                 },
+                "set_bool", [](Data_engine_handle &handle, const std::string &field_id,
+                               bool value) { handle.data_engine->set_actual_bool(QString::fromStdString(field_id), handle.dependency_tags, value); },
+                "set_number", [](Data_engine_handle &handle, const std::string &field_id,
+                                 double number) { handle.data_engine->set_actual_number(QString::fromStdString(field_id), handle.dependency_tags, number); },
                 "set_text",
                 [](Data_engine_handle &handle, const std::string &field_id, const std::string text) {
-                    QMap<QString, QVariant> dependency_tags; //TODO put Lua interface for dependency
-					handle.data_engine->set_actual_text(QString::fromStdString(field_id), dependency_tags, QString::fromStdString(text));
+                    handle.data_engine->set_actual_text(QString::fromStdString(field_id), handle.dependency_tags, QString::fromStdString(text));
                 });
         }
 
@@ -868,9 +888,9 @@ void ScriptEngine::load_script(const QString &path) {
         {
             ui_table.new_usertype<Color>("Color", //
                                          sol::meta_function::construct, sol::no_constructor);
-			ui_table["Color"] = overloaded_function([](const std::string &name) { return Color::Color_from_name(name); },
-													[](int r, int g, int b) { return Color::Color_from_r_g_b(r, g, b); }, //
-													[](int rgb) { return Color{rgb}; });
+            ui_table["Color"] = overloaded_function([](const std::string &name) { return Color::Color_from_name(name); },
+                                                    [](int r, int g, int b) { return Color::Color_from_r_g_b(r, g, b); }, //
+                                                    [](int rgb) { return Color{rgb}; });
         }
         //bind ComboBoxFileSelector
         {

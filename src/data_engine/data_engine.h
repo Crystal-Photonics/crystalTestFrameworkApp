@@ -31,7 +31,8 @@ enum class DataEngineErrorNumber {
     non_unique_desired_field_found,
     no_section_id_found,
     no_field_id_found,
-    faulty_field_id
+    faulty_field_id,
+    setting_desired_value_with_wrong_type
 };
 class DataEngineError : public std::runtime_error {
     public:

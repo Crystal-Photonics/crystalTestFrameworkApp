@@ -493,30 +493,39 @@ bool Data_engine::value_in_range(const FormID &id, const QMap<QString, QVariant>
 
 void Data_engine::set_actual_number(const FormID &id, const QMap<QString, QVariant> &tags, double number) {
     DataEngineDataEntry *data_entry = sections.get_entry(id, tags);
-    assert(data_entry); //TODO an exception is better option here
+    assert(data_entry); //if field is not found an exception was already thrown above. Something bad must happen to assert here
 
     auto number_entry = data_entry->as<NumericDataEntry>();
-    assert(number_entry); //TODO an exception is better option here
+    if (!number_entry) {
+        throw DataEngineError(DataEngineErrorNumber::setting_desired_value_with_wrong_type,
+                              QString("The field \"%1\" is not numerical as it must be if you set it with the number (%2) ").arg(id).arg(number));
+    }
 
     number_entry->actual_value = number;
 }
 
 void Data_engine::set_actual_text(const FormID &id, const QMap<QString, QVariant> &tags, QString text) {
     DataEngineDataEntry *data_entry = sections.get_entry(id, tags);
-    assert(data_entry); //TODO an exception is better option here
+    assert(data_entry); //if field is not found an exception was already thrown above. Something bad must happen to assert here
 
     auto text_entry = data_entry->as<TextDataEntry>();
-    assert(text_entry); //TODO an exception is better option here
+    if (!text_entry) {
+        throw DataEngineError(DataEngineErrorNumber::setting_desired_value_with_wrong_type,
+                              QString("The field \"%1\" is not a string as it must be if you set it with the string \"%2\"").arg(id).arg(text));
+    }
 
     text_entry->actual_value = text;
 }
 
 void Data_engine::set_actual_bool(const FormID &id, const QMap<QString, QVariant> &tags, bool value) {
     DataEngineDataEntry *data_entry = sections.get_entry(id, tags);
-    assert(data_entry); //TODO an exception is better option here
+    assert(data_entry); //if field is not found an exception was already thrown above. Something bad must happen to assert here
 
     auto bool_entry = data_entry->as<BoolDataEntry>();
-    assert(bool_entry); //TODO an exception is better option here
+    if (!bool_entry) {
+        throw DataEngineError(DataEngineErrorNumber::setting_desired_value_with_wrong_type,
+                              QString("The field \"%1\" is not boolean as it must be if you set it with a bool type").arg(id));
+    }
 
     bool_entry->actual_value = value;
 }
@@ -794,13 +803,15 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             for (const auto &key : keys) {
                 if (key == "name") {
                     //already handled above
-
+                } else if (is_comment_key(key)) {
+                    //nothing to do
                 } else if (key == "si_prefix") {
                 } else if (key == "nice_name") {
                     nice_name = object.value(key).toString();
 
                 } else if (key == "si_prefix") {
                     si_prefix = object.value(key).toDouble(0.);
+
                 } else if (key == "unit") {
                     unit = object.value(key).toString();
                 } else if ((key == "value") && (entry_without_value == false)) {
@@ -830,7 +841,8 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             for (const auto &key : keys) {
                 if (key == "name") {
                     //already handled above
-
+                } else if (is_comment_key(key)) {
+                    //nothing to do
                 } else if (key == "nice_name") {
                     nice_name = object.value(key).toString();
                 } else if ((key == "value") && (entry_without_value == false)) {
@@ -850,7 +862,8 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             for (const auto &key : keys) {
                 if (key == "name") {
                     //already handled above
-
+                } else if (is_comment_key(key)) {
+                    //nothing to do
                 } else if (key == "nice_name") {
                     nice_name = object.value(key).toString();
                 } else if ((key == "value") && (entry_without_value == false)) {

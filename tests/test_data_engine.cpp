@@ -621,9 +621,9 @@ void Test_Data_engine::test_empty_entries() {
 {
     "print":{
         "data":[
-            {	"name": "multimeter_sn",	 	"type": "string",	"nice_name": "text just for printing"	},
-            {	"name": "24V_variante",         "type": "bool",     "nice_name": "bool just for printing"	},
-            {	"name": "number_test",          "type": "number",	"nice_name": "Number just for printing"	}
+            {	"name": "multimeter_sn",	 	"type": "string",	"nice_name": "text just for printing",      "_comment":"test"	},
+            {	"name": "24V_variante",         "type": "bool",     "nice_name": "bool just for printing",      "_comment":"test"	},
+            {	"name": "number_test",          "type": "number",	"nice_name": "Number just for printing",	"_comment":"test"	}
         ]
     }
 }
