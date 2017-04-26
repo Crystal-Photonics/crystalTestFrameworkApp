@@ -6,7 +6,7 @@
 #include <QString>
 #include <sstream>
 
-#define DISABLE_ALL 0
+#define DISABLE_ALL 1
 
 #define QVERIFY_EXCEPTION_THROWN_error_number(expression, error_number)                                                                                        \
     do {                                                                                                                                                       \
@@ -615,7 +615,7 @@ void Test_Data_engine::test_bool_entry() {
 }
 
 void Test_Data_engine::test_empty_entries() {
-#if !DISABLE_ALL || 1
+#if !DISABLE_ALL
 
     std::stringstream input{R"(
 {
@@ -660,26 +660,113 @@ void Test_Data_engine::test_empty_entries() {
 
     QVERIFY(de.is_complete(tags));
     QVERIFY(de.all_values_in_range(tags));
-
-
 #endif
 }
 
+void Test_Data_engine::test_references() {
+#if !DISABLE_ALL || 0
+//TODO: Test if fail when ambiguous
+//TODO: Test if fail when desired value is referenced but doesnt exist(actual value only field)
+//TODO: Test if fail when unit or si_prefix is defined twice(in source and reference)
+
+//TODO: Test in bool and String environment
+
+    std::stringstream input{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "voltage_source",       "value": "[test_valuesA/voltage_source.actual]",                                        "tolerance": "5",		"nice_name": "Spannungsvergleich"       },
+            {	"name": "voltage_color_ist",    "value": "[test_valuesB/voltage_green.actual,        test_valuesB/voltage_blue.actual]","tolerance": 5,         "nice_name": "Farbige Spannung ist"     },
+            {	"name": "voltage_color_soll",   "value": "[test_valuesB/voltage_green.desired,     test_valuesB/voltage_blue.desired]", "tolerance": "5",		"nice_name": "Farbige Spannung soll"    }
+        ]
+    },
+    "test_valuesA":{
+        "data":[
+            {	"name": "voltage_source",       "type": "number",                   "unit": "mV",   "si_prefix": 1e-3,  "nice_name": "text just for printing"	}
+        ]
+    },
+    "test_valuesB":[
+        {
+            "apply_if":{
+                "color":"blue"
+            },
+            "data":[
+               {	"name": "voltage_blue",     "value": 100,   "tolerance": 25,	"unit": "mV",   "si_prefix": 1e-3,  "nice_name": "Spannung blau"            }
+            ]
+        },
+        {
+            "apply_if":{
+                "color":"green"
+            },
+            "data":[
+                {	"name": "voltage_green",    "value": 50,    "tolerance": 10,	"unit": "mV",   "si_prefix": 1e-3,  "nice_name": "Spannung gruen"           }
+            ]
+        }
+    ]
+
+}
+                            )"};
+    Data_engine de{input};
+    QMap<QString, QVariant> tags;
+    tags.insert("color","green");
+    QVERIFY(!de.is_complete(tags));
+    QVERIFY(!de.all_values_in_range(tags));
+    QVERIFY(!de.value_in_range("referenzen/voltage_source", tags));
+
+    de.set_actual_number("test_valuesA/voltage_source", tags, 500);
+    QVERIFY(de.value_in_range("test_valuesA/voltage_source", tags));
+    QVERIFY(!de.value_in_range("referenzen/voltage_source", tags));
+    de.set_actual_number("referenzen/voltage_source", tags, 506);
+    QVERIFY(!de.value_in_range("referenzen/voltage_source", tags));
+    de.set_actual_number("referenzen/voltage_source", tags, 505);
+
+    QVERIFY(de.value_in_range("referenzen/voltage_source", tags));
+
+    QVERIFY(!de.is_complete(tags));
+    QVERIFY(!de.all_values_in_range(tags));
+
+
+    QVERIFY(!de.value_in_range("referenzen/voltage_color_ist", tags));
+    de.set_actual_number("referenzen/voltage_color_ist", tags, 300);
+    QVERIFY(!de.value_in_range("referenzen/voltage_color_ist", tags));
+
+    de.set_actual_number("test_valuesB/voltage_green", tags, 306);
+    QVERIFY(!de.value_in_range("referenzen/voltage_color_ist", tags));
+
+    de.set_actual_number("test_valuesB/voltage_green", tags, 305);
+    QVERIFY(de.value_in_range("referenzen/voltage_color_ist", tags));
+
+    QVERIFY(!de.is_complete(tags));
+    QVERIFY(!de.all_values_in_range(tags));
+
+
+    QVERIFY(!de.value_in_range("referenzen/voltage_color_soll", tags));
+    de.set_actual_number("referenzen/voltage_color_soll", tags, 56);
+    QVERIFY(!de.value_in_range("referenzen/voltage_color_soll", tags));
+
+    de.set_actual_number("test_valuesB/voltage_green", tags, 55);
+    QVERIFY(de.value_in_range("referenzen/voltage_color_soll", tags));
+
+
+    QVERIFY(de.is_complete(tags));
+    QVERIFY(de.all_values_in_range(tags));
+#endif
+}
 void Test_Data_engine::test_preview() {
-#if !DISABLE_ALL
-#if 0
-	std::stringstream input{R"([
-							{
-								"name": "voltage",
-								"value": 1000,
-                                "tolerance_abs": 100
-							},
-							{
-								"name": "current",
-								"value": "[voltage]",
-                                "tolerance_abs": 100
-							}
-							])"};
+#if !DISABLE_ALL || 1
+    std::stringstream input{R"(
+{
+    "supply":{
+        "data":[
+            {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Spannung +5V"	},
+            {	"name": "current",	 	"value": 100,	"tolerance": "5%",	"unit": "mA", "si_prefix": 1e-3,	"nice_name": "Strom +5V"	}
+        ]
+    }
+}
+                            )"};
+
+    QMap<QString, QVariant> tags;
+
 	int argc = 1;
 	char executable[] = "";
 	char *executable2 = executable;
@@ -687,9 +774,9 @@ void Test_Data_engine::test_preview() {
 	QApplication app(argc, argv);
 
 	Data_engine de{input};
-	de.set_actual_number("voltage", 1000.1234);
-	//de.set_actual_number("current", 150.);
+    de.set_actual_number("supply/voltage",tags, 5000);
+    de.set_actual_number("supply/current", tags, 150.);
 	de.generate_pdf("test.xml", "test.pdf");
-#endif
+
 #endif
 }

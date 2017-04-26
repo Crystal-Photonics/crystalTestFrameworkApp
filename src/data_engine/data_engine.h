@@ -15,7 +15,7 @@ class QVariant;
 class QtRPT;
 
 using FormID = QString;
-enum class EntryType { Unspecified, Bool, String, Numeric };
+enum class EntryType { Unspecified, Bool, String, Reference, Numeric };
 
 enum class DataEngineErrorNumber {
     invalid_version_dependency_string,
@@ -87,6 +87,7 @@ struct NumericTolerance {
     QString to_string(const double desired_value) const;
 
     private:
+    bool is_undefined = true;
     void str_to_num(QString str_in, double &number, ToleranceType &tol_type, bool &open, QStringList expected_sign_strings);
     QString num_to_str(double number, ToleranceType tol_type) const;
 
@@ -129,6 +130,20 @@ struct TextDataEntry : DataEngineDataEntry {
     std::experimental::optional<QString> desired_value{};
     QString description{};
     std::experimental::optional<QString> actual_value{};
+};
+
+struct ReferenceDataEntry : DataEngineDataEntry {
+    ReferenceDataEntry(const FormID name, QString reference_string, NumericTolerance tolerance);
+
+    bool is_complete() const override;
+    bool is_in_range() const override;
+    QString get_value() const override;
+    QString get_description() const override;
+    QString get_desired_value_as_string() const override;
+
+    QString reference_string;
+    NumericTolerance tolerance;
+    QString description{};
 };
 
 struct BoolDataEntry : DataEngineDataEntry {

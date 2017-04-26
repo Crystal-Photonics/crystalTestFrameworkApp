@@ -31,6 +31,7 @@ class Test_Data_engine : public QObject {
     void check_dependency_handling();
     void check_dependency_ambiguity_handling();
     void test_empty_entries();
+    void test_references();
 };
 
 DECLARE_TEST(Test_Data_engine)

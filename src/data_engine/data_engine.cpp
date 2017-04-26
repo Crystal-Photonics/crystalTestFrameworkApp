@@ -141,14 +141,16 @@ const VariantData *DataEngineSection::get_variant(const QMap<QString, QVariant> 
     for (auto &variant : variants) {
         if (variant.is_dependency_matching(tags)) {
             if (matched) {
-                throw DataEngineError(DataEngineErrorNumber::non_unique_desired_field_found, QString("More than one variant found fullfilling dependency"));
+                throw DataEngineError(DataEngineErrorNumber::non_unique_desired_field_found,
+                                      QString("More than one dependency fullfilling variant found in section: \"%1\"").arg(section_name));
             }
             result = &variant;
             matched = true;
         }
     }
     if (!matched) {
-        throw DataEngineError(DataEngineErrorNumber::non_unique_desired_field_found, QString("No dependency fullfilling variant found"));
+        throw DataEngineError(DataEngineErrorNumber::non_unique_desired_field_found,
+                              QString("No dependency fullfilling variant found in section: \"%1\"").arg(section_name));
     }
     return result;
 }
@@ -352,6 +354,7 @@ void DependencyValue::from_json(const QJsonValue &object, const bool default_to_
 }
 
 bool DependencyValue::is_matching(const QVariant &test_value) const {
+    const double PRECISION_REDUCTION = 1000 * 1000 * 10;
     switch (match_style) {
         case MatchExactly: {
             bool result = true;
@@ -359,7 +362,7 @@ bool DependencyValue::is_matching(const QVariant &test_value) const {
                 bool ok_a, ok_b;
                 double num_val_a = test_value.toDouble(&ok_a);
                 double num_val_b = match_exactly.toDouble(&ok_b);
-                if (std::round(num_val_a * 1000 * 1000 * 10) == std::round(num_val_b * 1000 * 1000 * 10)) {
+                if (std::round(num_val_a * PRECISION_REDUCTION) == std::round(num_val_b * PRECISION_REDUCTION)) {
                     result = true;
                 }
             } else if ((test_value.type() == QVariant::Bool) && (match_exactly.type() == QVariant::Bool)) {
@@ -373,15 +376,19 @@ bool DependencyValue::is_matching(const QVariant &test_value) const {
             bool ok;
             double num_val = test_value.toDouble(&ok);
 
+            double val_a = std::round(num_val * PRECISION_REDUCTION);
+            double val_high_excl = std::round(range_high_excluding * PRECISION_REDUCTION);
+            double val_low_incl = std::round(range_low_including * PRECISION_REDUCTION);
             assert(ok);
 
-            bool result = (range_low_including <= num_val);
-            if (almost_equal(range_low_including, num_val, 10)) {
+            bool result = (val_low_incl <= val_a);
+            if (almost_equal(val_low_incl, val_a, 10)) {
                 result = true;
             }
-            result = result && (num_val < range_high_excluding);
 
-            if (std::round(num_val * 1000 * 1000 * 10) == std::round(range_high_excluding * 1000 * 1000 * 10)) {
+            result = result && (val_a < val_high_excl);
+
+            if (val_a == val_high_excl) {
                 result = false;
             }
 
@@ -642,7 +649,7 @@ void NumericTolerance::from_string(const QString &str) {
         deviation_limit_beneath = deviation_limit_above;
         open_range_above = open_range;
         open_range_beneath = open_range;
-
+        is_undefined = false;
     } else if (sl.count() == 2) {
         ToleranceType tolerance_type_a;
         ToleranceType tolerance_type_b;
@@ -665,7 +672,7 @@ void NumericTolerance::from_string(const QString &str) {
         }
         open_range_above = open_range_a;
         open_range_beneath = open_range_b;
-
+        is_undefined = false;
     } else {
         throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, "tolerance string faulty");
     }
@@ -783,6 +790,10 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             entrytype = EntryType::Numeric;
         } else if (value.isString()) {
             entrytype = EntryType::String;
+            QString str = value.toString();
+            if ((str.startsWith("[")) && (str.endsWith("]"))) {
+                entrytype = EntryType::Reference;
+            }
         } else if (value.isBool()) {
             entrytype = EntryType::Bool;
         }
@@ -805,11 +816,11 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                     //already handled above
                 } else if (is_comment_key(key)) {
                     //nothing to do
-                } else if (key == "si_prefix") {
+
                 } else if (key == "nice_name") {
                     nice_name = object.value(key).toString();
 
-                } else if (key == "si_prefix") {
+                } else if ((key == "si_prefix")) {
                     si_prefix = object.value(key).toDouble(0.);
 
                 } else if (key == "unit") {
@@ -818,7 +829,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                     desired_value = object.value(key).toDouble(0.);
                 } else if ((key == "type") && (entry_without_value == true)) {
                     //already handled above
-                } else if (key == "tolerance") {
+                } else if ((key == "tolerance") && (entry_without_value == false)) {
                     QString tol;
                     if (object.value(key).isDouble()) {
                         tol = QString::number(object.value(key).toDouble());
@@ -829,8 +840,12 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                     }
 
                     tolerance.from_string(tol);
-                } else {
+                } else if (entry_without_value == false) {
                     throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Invalid key \"" + key + "\" in numeric JSON object");
+
+                } else {
+                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key,
+                                          "Invalid key \"" + key + "\" in numeric JSON object without desired value");
                 }
             }
             return std::make_unique<NumericDataEntry>(field_name, desired_value, tolerance, std::move(unit), std::move(nice_name));
@@ -875,6 +890,37 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                 }
             }
             return std::make_unique<TextDataEntry>(field_name, desired_value);
+        }
+        case EntryType::Reference: {
+            QString reference_string{};
+            QString nice_name{};
+            NumericTolerance tolerance{};
+            for (const auto &key : keys) {
+                if (key == "name") {
+                    //already handled above
+                } else if (is_comment_key(key)) {
+                    //nothing to do
+                } else if (key == "nice_name") {
+                    nice_name = object.value(key).toString();
+                } else if (key == "tolerance") {
+                    QString tol;
+                    if (object.value(key).isDouble()) {
+                        tol = QString::number(object.value(key).toDouble());
+                    } else if (object.value(key).isString()) {
+                        tol = object.value(key).toString();
+                    } else {
+                        throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, "wrong tolerance type");
+                    }
+
+                    tolerance.from_string(tol);
+                } else if (key == "value") {
+                    reference_string = object.value(key).toString();
+
+                } else {
+                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Invalid key \"" + key + "\" in reference JSON object");
+                }
+            }
+            return std::make_unique<ReferenceDataEntry>(field_name, reference_string, tolerance);
         }
         case EntryType::Unspecified: {
             throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_type, "Invalid type in JSON object");
@@ -1003,4 +1049,34 @@ QString BoolDataEntry::get_desired_value_as_string() const {
     } else {
         return "";
     }
+}
+
+ReferenceDataEntry::ReferenceDataEntry(const FormID name, QString reference_string, NumericTolerance tolerance)
+    : DataEngineDataEntry(name)
+    , reference_string(reference_string)
+    , tolerance(tolerance){}
+
+bool ReferenceDataEntry::is_complete() const
+{
+    return true;
+}
+
+bool ReferenceDataEntry::is_in_range() const
+{
+    return true;
+}
+
+QString ReferenceDataEntry::get_value() const
+{
+    return "";
+}
+
+QString ReferenceDataEntry::get_description() const
+{
+    return description;
+}
+
+QString ReferenceDataEntry::get_desired_value_as_string() const
+{
+    return "";
 }
