@@ -80,7 +80,7 @@ const T *DataEngineDataEntry::DataEngineDataEntry::as() const {
 struct NumericTolerance {
     enum ToleranceType { Absolute, Percent };
 
-    bool test_in_range(const double desired , const std::experimental::optional<double> &measured) const;
+    bool test_in_range(const double desired, const std::experimental::optional<double> &measured) const;
 
     public:
     void from_string(const QString &str);
@@ -132,6 +132,12 @@ struct TextDataEntry : DataEngineDataEntry {
     std::experimental::optional<QString> actual_value{};
 };
 
+struct ReferenceLink {
+    enum class ReferenceValue { ActualValue, DesiredValue };
+    QString link;
+    ReferenceValue value;
+};
+
 struct ReferenceDataEntry : DataEngineDataEntry {
     ReferenceDataEntry(const FormID name, QString reference_string, NumericTolerance tolerance);
 
@@ -140,10 +146,12 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     QString get_value() const override;
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
-
-    QString reference_string;
     NumericTolerance tolerance;
     QString description{};
+
+    private:
+    void parse_refence_string(QString reference_string);
+    std::vector<ReferenceLink> reference_links;
 };
 
 struct BoolDataEntry : DataEngineDataEntry {
@@ -223,7 +231,6 @@ struct DataEngineSections {
     bool all_values_in_range(const QMap<QString, QVariant> &tags) const;
     void from_json(const QJsonObject &object);
     bool section_exists(QString section_name);
-
 };
 
 class Data_engine {
@@ -260,8 +267,6 @@ class Data_engine {
     QString get_desired_value_as_text(const FormID &id, const QMap<QString, QVariant> &tags) const;
 
     private:
-
-
     struct FormIdWrapper {
         FormIdWrapper(const FormID &id)
             : value(id) {}

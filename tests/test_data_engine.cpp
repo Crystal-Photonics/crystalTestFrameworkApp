@@ -664,7 +664,7 @@ void Test_Data_engine::test_empty_entries() {
 }
 
 void Test_Data_engine::test_references() {
-#if !DISABLE_ALL || 0
+#if !DISABLE_ALL || 1
 //TODO: Test if fail when ambiguous
 //TODO: Test if fail when desired value is referenced but doesnt exist(actual value only field)
 //TODO: Test if fail when unit or si_prefix is defined twice(in source and reference)
@@ -753,7 +753,7 @@ void Test_Data_engine::test_references() {
 #endif
 }
 void Test_Data_engine::test_preview() {
-#if !DISABLE_ALL || 1
+#if !DISABLE_ALL || 0
     std::stringstream input{R"(
 {
     "supply":{

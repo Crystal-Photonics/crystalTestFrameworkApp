@@ -1053,30 +1053,56 @@ QString BoolDataEntry::get_desired_value_as_string() const {
 
 ReferenceDataEntry::ReferenceDataEntry(const FormID name, QString reference_string, NumericTolerance tolerance)
     : DataEngineDataEntry(name)
-    , reference_string(reference_string)
-    , tolerance(tolerance){}
+    , tolerance(tolerance) {
+    parse_refence_string(reference_string);
+}
 
-bool ReferenceDataEntry::is_complete() const
-{
+bool ReferenceDataEntry::is_complete() const {
     return true;
 }
 
-bool ReferenceDataEntry::is_in_range() const
-{
+bool ReferenceDataEntry::is_in_range() const {
     return true;
 }
 
-QString ReferenceDataEntry::get_value() const
-{
+QString ReferenceDataEntry::get_value() const {
     return "";
 }
 
-QString ReferenceDataEntry::get_description() const
-{
+QString ReferenceDataEntry::get_description() const {
     return description;
 }
 
-QString ReferenceDataEntry::get_desired_value_as_string() const
-{
+QString ReferenceDataEntry::get_desired_value_as_string() const {
     return "";
+}
+
+void ReferenceDataEntry::parse_refence_string(QString reference_string) {
+    const QString ACTUAL_VALUE = ".actual";
+    const QString DESIRED_VALUE = ".desired";
+    reference_links.clear();
+    if (reference_string.startsWith("[")) {
+        reference_string.remove(0, 1);
+    }
+    if (reference_string.endsWith("]")) {
+        reference_string.remove(reference_string.size() - 1, 1);
+    }
+    auto refs = reference_string.split(",");
+    for (auto &ref : refs) {
+        ref = ref.trimmed();
+        ReferenceLink ref_link;
+        ReferenceLink::ReferenceValue ref_value;
+        if (ref.endsWith(ACTUAL_VALUE)) {
+            ref = ref.remove(ref.size() - ACTUAL_VALUE.size(), ACTUAL_VALUE.size());
+            ref_link.value = ReferenceLink::ReferenceValue::ActualValue;
+            ref_link.link = ref;
+        } else if (ref.endsWith(DESIRED_VALUE)) {
+            ref = ref.remove(ref.size() - DESIRED_VALUE.size(), DESIRED_VALUE.size());
+            ref_link.value = ReferenceLink::ReferenceValue::DesiredValue;
+            ref_link.link = ref;
+        } else {
+            assert(0); // TODO: wo should throw exception here
+        }
+        reference_links.push_back(ref_link);
+    }
 }
