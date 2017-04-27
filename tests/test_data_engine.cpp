@@ -304,7 +304,6 @@ void Test_Data_engine::check_non_existing_desired_value() {
 struct TestDependencyData {
     QList<QPair<QString, QVariant>> values;
 
-    bool should_error;
     DataEngineErrorNumber expected_error;
 };
 
@@ -313,38 +312,27 @@ void Test_Data_engine::check_dependency_handling() {
     std::vector<TestDependencyData> in_data{
 
         {{{"sound", 1.2}, {"main", 1.43}, {"power_supply", 1.55}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
-         true,
-         DataEngineErrorNumber::non_unique_desired_field_found}, //
+         DataEngineErrorNumber::no_variant_found}, //
         {{{"sound", 1.42}, {"main", 1.43}, {"power_supply", 1.55}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
-         false,
-         DataEngineErrorNumber::non_unique_desired_field_found},
+         DataEngineErrorNumber::ok},
         {{{"sound", 1.42}, {"main", 1.42}, {"power_supply", 1.5}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
-         false,
-         DataEngineErrorNumber::non_unique_desired_field_found},
+         DataEngineErrorNumber::ok},
         {{{"sound", 1.42}, {"main", 1.42}, {"power_supply", 1.8}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
-         false,
-         DataEngineErrorNumber::non_unique_desired_field_found},
+         DataEngineErrorNumber::ok},
         {{{"sound", 1.42}, {"main", 1.42}, {"power_supply", 1.9}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
-         false,
-         DataEngineErrorNumber::non_unique_desired_field_found},
+         DataEngineErrorNumber::ok},
         {{{"sound", 1.42}, {"main", 1.42}, {"power_supply", 1.9}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", false}},
-         true,
-         DataEngineErrorNumber::non_unique_desired_field_found},
+         DataEngineErrorNumber::no_variant_found},
         {{{"sound", 1.42}, {"main", 1.42}, {"power_supply", 1.9}, {"color", "green"}, {"supply_version", "6V"}, {"high_power_edidtion", false}},
-         true,
-         DataEngineErrorNumber::non_unique_desired_field_found},
+         DataEngineErrorNumber::no_variant_found},
         {{{"sound", 1.42}, {"main", 1.42}, {"power_supply", 1.9}, {"color", "green"}, {"supply_version", "12V"}, {"high_power_edidtion", true}},
-         true,
-         DataEngineErrorNumber::non_unique_desired_field_found},
+         DataEngineErrorNumber::no_variant_found},
         {{{"sound", 1.42}, {"main", 1.42}, {"power_supply", 1.9}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
-         true,
-         DataEngineErrorNumber::non_unique_desired_field_found},
+         DataEngineErrorNumber::no_variant_found},
         {{{"sound", 1.442}, {"main", 1.42}, {"power_supply", 1.5}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
-         true,
-         DataEngineErrorNumber::non_unique_desired_field_found},
+         DataEngineErrorNumber::no_variant_found},
         {{{"sound", 1.442}, {"main", 1.42}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
-         true,
-         DataEngineErrorNumber::non_unique_desired_field_found}
+         DataEngineErrorNumber::no_variant_found}
 
     };
 
@@ -373,12 +361,14 @@ void Test_Data_engine::check_dependency_handling() {
             tags.insert(value.first, value.second);
             printer += value.first + ": " + value.second.toString() + ", ";
         }
-        Data_engine de{input, tags};
 
-        //qDebug() << printer;
-        if (data.should_error) {
-            QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage"), DataEngineErrorNumber::no_variant_found);
+       // qDebug() << printer;
+        if (data.expected_error == DataEngineErrorNumber::no_variant_found) {
+            Data_engine de(input, tags);
+            QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage"), data.expected_error);
+
         } else {
+            Data_engine de(input, tags);
             de.get_desired_value("supply-voltage/voltage");
         }
     }
@@ -386,23 +376,18 @@ void Test_Data_engine::check_dependency_handling() {
 }
 
 void Test_Data_engine::check_dependency_ambiguity_handling() {
-#if !DISABLE_ALL || 1
+#if !DISABLE_ALL || 0
     std::vector<TestDependencyData> in_data{
 
         {{{"sound", 1.2}, {"main", 1.43}, {"power_supply", 1.55}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
-         true,
          DataEngineErrorNumber::no_variant_found}, //
         {{{"sound", 1.42}, {"main", 1.43}, {"power_supply", 1.55}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
-         false,
          DataEngineErrorNumber::ok}, //
         {{{"sound", 1.43}, {"main", 1.43}, {"power_supply", 1.55}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
-         true,
          DataEngineErrorNumber::non_unique_desired_field_found}, //
         {{{"sound", 1.442}, {"main", 1.43}, {"power_supply", 1.55}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
-         false,
          DataEngineErrorNumber::ok}, //
         {{{"sound", 1.5}, {"main", 1.43}, {"power_supply", 1.55}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
-         false,
          DataEngineErrorNumber::ok}, //
     };
 
@@ -450,11 +435,11 @@ void Test_Data_engine::check_dependency_ambiguity_handling() {
 
         if (data.expected_error == DataEngineErrorNumber::non_unique_desired_field_found) {
             QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags), data.expected_error);
-        }else if (data.expected_error == DataEngineErrorNumber::no_variant_found) {
+        } else if (data.expected_error == DataEngineErrorNumber::no_variant_found) {
             Data_engine de(input, tags);
             QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage"), data.expected_error);
 
-        }else{
+        } else {
             Data_engine de(input, tags);
             de.get_desired_value("supply-voltage/voltage");
         }
@@ -589,7 +574,7 @@ void Test_Data_engine::test_text_entry() {
     QVERIFY(de.is_complete());
     QVERIFY(!de.all_values_in_range());
     QVERIFY(!de.value_in_range("test/id"));
-    de.set_actual_text("test/id",  "DEV123");
+    de.set_actual_text("test/id", "DEV123");
     QVERIFY(de.is_complete());
     QVERIFY(de.all_values_in_range());
     QVERIFY(de.value_in_range("test/id"));
@@ -614,11 +599,11 @@ void Test_Data_engine::test_bool_entry() {
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
     QVERIFY(!de.value_in_range("test/checked"));
-    de.set_actual_bool("test/checked",  false);
+    de.set_actual_bool("test/checked", false);
     QVERIFY(de.is_complete());
     QVERIFY(!de.all_values_in_range());
     QVERIFY(!de.value_in_range("test/checked"));
-    de.set_actual_bool("test/checked",  true);
+    de.set_actual_bool("test/checked", true);
     QVERIFY(de.is_complete());
     QVERIFY(de.all_values_in_range());
     QVERIFY(de.value_in_range("test/checked"));
@@ -645,28 +630,28 @@ void Test_Data_engine::test_empty_entries() {
 
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
-    QVERIFY(!de.value_in_range("print/multimeter_sn" ));
+    QVERIFY(!de.value_in_range("print/multimeter_sn"));
 
-    de.set_actual_text("print/multimeter_sn",  "DEV123");
+    de.set_actual_text("print/multimeter_sn", "DEV123");
     QVERIFY(de.value_in_range("print/multimeter_sn"));
-    de.set_actual_text("print/multimeter_sn",  "DEV321");
+    de.set_actual_text("print/multimeter_sn", "DEV321");
     QVERIFY(de.value_in_range("print/multimeter_sn"));
 
     QVERIFY(!de.is_complete());
 
     QVERIFY(!de.value_in_range("print/24V_variante"));
-    de.set_actual_bool("print/24V_variante",  true);
+    de.set_actual_bool("print/24V_variante", true);
     QVERIFY(de.value_in_range("print/24V_variante"));
-    de.set_actual_bool("print/24V_variante",  false);
+    de.set_actual_bool("print/24V_variante", false);
     QVERIFY(de.value_in_range("print/24V_variante"));
 
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
 
     QVERIFY(!de.value_in_range("print/number_test"));
-    de.set_actual_number("print/number_test",  500);
+    de.set_actual_number("print/number_test", 500);
     QVERIFY(de.value_in_range("print/number_test"));
-    de.set_actual_number("print/number_test",  300);
+    de.set_actual_number("print/number_test", 300);
     QVERIFY(de.value_in_range("print/number_test"));
 
     QVERIFY(de.is_complete());
@@ -675,18 +660,20 @@ void Test_Data_engine::test_empty_entries() {
 }
 
 void Test_Data_engine::test_references() {
-#if !DISABLE_ALL && 0
+#if !DISABLE_ALL
     //TODO: Test if fail when ambiguous
     //TODO: Test if fail when desired value is referenced but doesnt exist(actual value only field)
     //TODO: Test if fail when unit or si_prefix is defined twice(in source and reference)
 
     //TODO: Test in bool and String environment
+    //TODO: Test fail wenn typen sich unterscheiden
+    //TODO: beim bauen der referenzen prüfen ob es den desired value  auch gibt(value only)
 
     std::stringstream input{R"(
 {
     "referenzen":{
         "data":[
-            {	"name": "voltage_source",       "value": "[test_valuesA/voltage_source.actual,  test_valuesB/voltage_green.actual]",                                        "tolerance": "5",		"nice_name": "Spannungsvergleich"       },
+            {	"name": "voltage_source",       "value": "[test_valuesA/voltage_source.actual,  test_valuesB/voltage_blue.actual]",                                        "tolerance": "5",		"nice_name": "Spannungsvergleich"       },
             {	"name": "voltage_color_ist",    "value": "[test_valuesB/voltage_green.actual,        test_valuesB/voltage_blue.actual]","tolerance": 5,         "nice_name": "Farbige Spannung ist"     },
             {	"name": "voltage_color_soll",   "value": "[test_valuesB/voltage_green.desired,     test_valuesB/voltage_blue.desired]", "tolerance": "5",		"nice_name": "Farbige Spannung soll"    }
         ]
@@ -753,13 +740,121 @@ void Test_Data_engine::test_references() {
     de.set_actual_number("referenzen/voltage_color_soll", 56);
     QVERIFY(!de.value_in_range("referenzen/voltage_color_soll"));
 
-    de.set_actual_number("test_valuesB/voltage_green", 55);
+    de.set_actual_number("referenzen/voltage_color_soll", 55);
     QVERIFY(de.value_in_range("referenzen/voltage_color_soll"));
+
+    de.set_actual_number("test_valuesB/voltage_green", 60);
+    de.set_actual_number("referenzen/voltage_color_ist", 65);
 
     QVERIFY(de.is_complete());
     QVERIFY(de.all_values_in_range());
 #endif
 }
+
+void Test_Data_engine::test_references_ambiguous() {
+#if !DISABLE_ALL || 0
+    //TODO: Test if fail when desired value is referenced but doesnt exist(actual value only field)
+    //TODO: Test if fail when unit or si_prefix is defined twice(in source and reference)
+
+    //TODO: Test in bool and String environment
+    //TODO: Test fail wenn typen sich unterscheiden
+    //TODO: beim bauen der referenzen prüfen ob es den desired value  auch gibt(value only)
+
+    std::stringstream input{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "voltage_source",       "value": "[test_valuesA/voltage_source.actual,  test_valuesB/voltage_green.actual]",                                        "tolerance": "5",		"nice_name": "Spannungsvergleich"       }
+
+        ]
+    },
+    "test_valuesA":{
+        "data":[
+            {	"name": "voltage_source",       "type": "number",                   "unit": "mV",   "si_prefix": 1e-3,  "nice_name": "text just for printing"	}
+        ]
+    },
+    "test_valuesB":[
+        {
+            "apply_if":{
+                "color":"blue"
+            },
+            "data":[
+               {	"name": "voltage_blue",     "value": 100,   "tolerance": 25,	"unit": "mV",   "si_prefix": 1e-3,  "nice_name": "Spannung blau"            }
+            ]
+        },
+        {
+            "apply_if":{
+                "color":"green"
+            },
+            "data":[
+                {	"name": "voltage_green",    "value": 50,    "tolerance": 10,	"unit": "mV",   "si_prefix": 1e-3,  "nice_name": "Spannung gruen"           }
+            ]
+        }
+    ]
+
+}
+                            )"};
+    QMap<QString, QVariant> tags;
+    tags.insert("color", "green");
+
+    QVERIFY_EXCEPTION_THROWN_error_number(
+
+        Data_engine(input, tags), DataEngineErrorNumber::reference_ambiguous);
+#endif
+}
+
+void Test_Data_engine::test_references_non_existing() {
+#if !DISABLE_ALL || 1
+    //TODO: Test if fail when desired value is referenced but doesnt exist(actual value only field)
+    //TODO: Test if fail when unit or si_prefix is defined twice(in source and reference)
+
+    //TODO: Test in bool and String environment
+    //TODO: Test fail wenn typen sich unterscheiden
+    //TODO: beim bauen der referenzen prüfen ob es den desired value  auch gibt(value only)
+
+    std::stringstream input{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "voltage_source",       "value": "[test_valuesA/voltage_sourceas.actual,  test_valuesB/voltage_greendas.actual]",                                        "tolerance": "5",		"nice_name": "Spannungsvergleich"       }
+
+        ]
+    },
+    "test_valuesA":{
+        "data":[
+            {	"name": "voltage_source",       "type": "number",                   "unit": "mV",   "si_prefix": 1e-3,  "nice_name": "text just for printing"	}
+        ]
+    },
+    "test_valuesB":[
+        {
+            "apply_if":{
+                "color":"blue"
+            },
+            "data":[
+               {	"name": "voltage_blue",     "value": 100,   "tolerance": 25,	"unit": "mV",   "si_prefix": 1e-3,  "nice_name": "Spannung blau"            }
+            ]
+        },
+        {
+            "apply_if":{
+                "color":"green"
+            },
+            "data":[
+                {	"name": "voltage_green",    "value": 50,    "tolerance": 10,	"unit": "mV",   "si_prefix": 1e-3,  "nice_name": "Spannung gruen"           }
+            ]
+        }
+    ]
+
+}
+                            )"};
+    QMap<QString, QVariant> tags;
+    tags.insert("color", "green");
+    QVERIFY_EXCEPTION_THROWN_error_number(
+
+        Data_engine(input, tags), DataEngineErrorNumber::reference_not_found);
+
+#endif
+}
+
 void Test_Data_engine::test_preview() {
 #if !DISABLE_ALL && 0
     std::stringstream input{R"(
@@ -781,9 +876,9 @@ void Test_Data_engine::test_preview() {
     char **argv = &executable2;
     QApplication app(argc, argv);
 
-    Data_engine de{input,tags};
-    de.set_actual_number("supply/voltage",  5000);
-    de.set_actual_number("supply/current",  150.);
+    Data_engine de{input, tags};
+    de.set_actual_number("supply/voltage", 5000);
+    de.set_actual_number("supply/current", 150.);
     de.generate_pdf("test.xml", "test.pdf");
 
 #endif

@@ -35,7 +35,9 @@ enum class DataEngineErrorNumber {
     no_section_id_found,
     no_field_id_found,
     faulty_field_id,
-    setting_desired_value_with_wrong_type
+    setting_desired_value_with_wrong_type,
+    reference_ambiguous,
+    reference_not_found,
 };
 class DataEngineError : public std::runtime_error {
     public:
@@ -58,9 +60,13 @@ struct DataEngineDataEntry {
 
     virtual bool is_complete() const = 0;
     virtual bool is_in_range() const = 0;
-    virtual QString get_value() const = 0;
+    virtual QString get_actual_value() const = 0;
     virtual QString get_description() const = 0;
     virtual QString get_desired_value_as_string() const = 0;
+
+    virtual void set_desired_value_from_desired(DataEngineDataEntry *from) = 0;
+    virtual void set_desired_value_from_actual(DataEngineDataEntry *from) = 0;
+    virtual bool is_desired_value_set() = 0;
 
     template <class T>
     T *as();
@@ -109,7 +115,7 @@ struct NumericDataEntry : DataEngineDataEntry {
     bool is_in_range() const override;
     QString get_desired_value_as_string() const override;
 
-    QString get_value() const override;
+    QString get_actual_value() const override;
     QString get_description() const override;
 
     std::experimental::optional<double> desired_value{};
@@ -119,44 +125,57 @@ struct NumericDataEntry : DataEngineDataEntry {
 
     private:
     NumericTolerance tolerance;
+    void set_desired_value_from_desired(DataEngineDataEntry *from) override;
+    void set_desired_value_from_actual(DataEngineDataEntry *from) override;
+    bool is_desired_value_set() override;
 };
 
 struct TextDataEntry : DataEngineDataEntry {
-    TextDataEntry(const FormID name, std::experimental::optional<QString> desired_value);
+    TextDataEntry(const FormID name, std::experimental::optional<QString> desired_value, QString description);
 
     bool is_complete() const override;
     bool is_in_range() const override;
-    QString get_value() const override;
+    QString get_actual_value() const override;
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
 
     std::experimental::optional<QString> desired_value{};
     QString description{};
     std::experimental::optional<QString> actual_value{};
+
+    private:
+    void set_desired_value_from_desired(DataEngineDataEntry *from) override;
+    void set_desired_value_from_actual(DataEngineDataEntry *from) override;
+    bool is_desired_value_set() override;
 };
 
 struct BoolDataEntry : DataEngineDataEntry {
-    BoolDataEntry(const FormID name, std::experimental::optional<bool> desired_value);
+    BoolDataEntry(const FormID name, std::experimental::optional<bool> desired_value, QString description);
 
     bool is_complete() const override;
     bool is_in_range() const override;
-    QString get_value() const override;
+    QString get_actual_value() const override;
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
 
     std::experimental::optional<bool> desired_value{};
     QString description{};
     std::experimental::optional<bool> actual_value{};
+
+    private:
+    void set_desired_value_from_desired(DataEngineDataEntry *from) override;
+    void set_desired_value_from_actual(DataEngineDataEntry *from) override;
+    bool is_desired_value_set() override;
 };
 
 struct ReferenceLink {
     enum class ReferenceValue { ActualValue, DesiredValue };
-    QString link;
+    FormID link;
     ReferenceValue value;
 };
 
 struct ReferenceDataEntry : DataEngineDataEntry {
-    ReferenceDataEntry(const FormID name, QString reference_string, NumericTolerance tolerance);
+    ReferenceDataEntry(const FormID name, QString reference_string, NumericTolerance tolerance, QString description);
 
     //referenz erbt typ vom target
     //referenz erbt unit vom target
@@ -164,12 +183,16 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     //referenz erbt sollwert von target, dies kann jeweils enweder soll oder ist wert sein.
     bool is_complete() const override;
     bool is_in_range() const override;
-    QString get_value() const override;
+    QString get_actual_value() const override;
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
     NumericTolerance tolerance;
     QString description{};
-    void search_target(const DataEngineSections *sections, const QMap<QString, QVariant> &tags);
+    void dereference(DataEngineSections *sections);
+
+    void set_actual_value(double number);
+    void set_actual_value(QString val);
+    void set_actual_value(bool val);
 
     private:
     void parse_refence_string(QString reference_string);
@@ -177,12 +200,13 @@ struct ReferenceDataEntry : DataEngineDataEntry {
 
     DataEngineDataEntry *entry_target;
 
-    //BoolDataEntry entry_bool;
-    //TextDataEntry entry_text;
-    //NumericDataEntry entry_numeric;
+    std::unique_ptr<DataEngineDataEntry> entry;
+
+    private:
+    void set_desired_value_from_desired(DataEngineDataEntry *from) override;
+    void set_desired_value_from_actual(DataEngineDataEntry *from) override;
+    bool is_desired_value_set() override;
 };
-
-
 
 struct DependencyValue {
     DependencyValue();
@@ -241,14 +265,19 @@ struct DataEngineSection {
 struct DataEngineSections {
     std::vector<DataEngineSection> sections;
     void delete_unmatched_variants(const QMap<QString, QVariant> &tags);
+
     public:
     const DataEngineDataEntry *get_entry(const FormID &id) const;
     DataEngineDataEntry *get_entry(const FormID &id);
-    bool exists_uniquely(const FormID &id, const QMap<QString, QVariant> &tags) const;
+    bool exists_uniquely(const FormID &id) const;
     bool is_complete() const;
     bool all_values_in_range() const;
     void from_json(const QJsonObject &object);
     bool section_exists(QString section_name);
+    void deref_references();
+
+    private:
+    const DataEngineDataEntry *get_entry_raw(const FormID &id, DataEngineErrorNumber *error_num, QString &section_name, QString &field_name) const;
 };
 
 class Data_engine {
