@@ -31,11 +31,11 @@ bool is_comment_key(const QString &keyname) {
 
 constexpr auto unavailable_value = "/";
 
-Data_engine::Data_engine(std::istream &source) {
-    set_source(source);
+Data_engine::Data_engine(std::istream &source, const QMap<QString, QVariant> &tags) {
+    set_source(source, tags);
 }
 
-void Data_engine::set_source(std::istream &source) {
+void Data_engine::set_source(std::istream &source, const QMap<QString, QVariant> &tags) {
     QByteArray data;
     constexpr auto eof = std::remove_reference<decltype(source)>::type::traits_type::eof();
     while (source) {
@@ -52,9 +52,17 @@ void Data_engine::set_source(std::istream &source) {
     }
 
     sections.from_json(document.object());
+    sections.delete_unmatched_variants(tags);
 }
 
-const DataEngineDataEntry *DataEngineSections::get_entry(const FormID &id, const QMap<QString, QVariant> &tags) const {
+void DataEngineSections::delete_unmatched_variants(const QMap<QString, QVariant> &tags)
+{
+    for (auto & section:sections){
+        section.delete_unmatched_variants(tags);
+    }
+}
+
+const DataEngineDataEntry *DataEngineSections::get_entry(const FormID &id) const {
     auto names = id.split("/");
     if (names.count() != 2) {
         throw DataEngineError(DataEngineErrorNumber::faulty_field_id, QString("field id needs to be in format \"section-name/field-name\" but is %1").arg(id));
@@ -64,7 +72,7 @@ const DataEngineDataEntry *DataEngineSections::get_entry(const FormID &id, const
     QString field_name = names[1];
     for (auto &section : sections) {
         if (section.get_section_name() == section_name) {
-            const VariantData *variant = section.get_variant(tags);
+            const VariantData *variant = section.get_variant();
             assert(variant);
 
             section_found = true;
@@ -72,6 +80,10 @@ const DataEngineDataEntry *DataEngineSections::get_entry(const FormID &id, const
             if (result == nullptr) {
                 throw DataEngineError(DataEngineErrorNumber::no_field_id_found, QString("Could not find field with name = \"%1\"").arg(field_name));
             }
+            // ReferenceDataEntry *reference_entry = result->as<ReferenceDataEntry>();
+            // if (reference_entry){
+            //     result->search_target(this, tags);
+            // }
             return result;
         }
     }
@@ -81,24 +93,26 @@ const DataEngineDataEntry *DataEngineSections::get_entry(const FormID &id, const
     return nullptr;
 }
 
-DataEngineDataEntry *DataEngineSections::get_entry(const FormID &id, const QMap<QString, QVariant> &tags) {
-    return const_cast<DataEngineDataEntry *>(Utility::as_const(*this).get_entry(id, tags));
+DataEngineDataEntry *DataEngineSections::get_entry(const FormID &id) {
+    return const_cast<DataEngineDataEntry *>(Utility::as_const(*this).get_entry(id));
 }
 
-bool DataEngineSections::is_complete(const QMap<QString, QVariant> &tags) const {
+bool DataEngineSections::exists_uniquely(const FormID &id, const QMap<QString, QVariant> &tags) const {}
+
+bool DataEngineSections::is_complete() const {
     bool result = true;
     for (const auto &section : sections) {
-        if (!section.is_complete(tags)) {
+        if (!section.is_complete()) {
             result = false;
         }
     }
     return result;
 }
 
-bool DataEngineSections::all_values_in_range(const QMap<QString, QVariant> &tags) const {
+bool DataEngineSections::all_values_in_range() const {
     bool result = true;
     for (const auto &section : sections) {
-        if (!section.all_values_in_range(tags)) {
+        if (!section.all_values_in_range()) {
             result = false;
         }
     }
@@ -135,29 +149,35 @@ bool DataEngineSections::section_exists(QString section_name) {
     return result;
 }
 
-const VariantData *DataEngineSection::get_variant(const QMap<QString, QVariant> &tags) const {
-    bool matched = false;
-    const VariantData *result = nullptr;
-    for (auto &variant : variants) {
+void DataEngineSection::delete_unmatched_variants(const QMap<QString, QVariant> &tags) {
+    uint i = 0;
+    while (i < variants.size()) {
+        auto &variant = variants[i];
         if (variant.is_dependency_matching(tags)) {
-            if (matched) {
-                throw DataEngineError(DataEngineErrorNumber::non_unique_desired_field_found,
-                                      QString("More than one dependency fullfilling variant found in section: \"%1\"").arg(section_name));
-            }
-            result = &variant;
-            matched = true;
+            i++;
+        } else {
+            variants.erase(variants.begin() + i);
         }
     }
-    if (!matched) {
+    if (variants.size() > 1) {
         throw DataEngineError(DataEngineErrorNumber::non_unique_desired_field_found,
-                              QString("No dependency fullfilling variant found in section: \"%1\"").arg(section_name));
+                              QString("More than one dependency fullfilling variants (%1) found in section: \"%2\"").arg(variants.size()).arg(section_name));
     }
-    return result;
 }
 
-bool DataEngineSection::is_complete(const QMap<QString, QVariant> &tags) const {
+const VariantData *DataEngineSection::get_variant() const {
+    if (variants.size() == 1) {
+        return &variants[0];
+    }
+
+    throw DataEngineError(DataEngineErrorNumber::no_variant_found,
+                          QString("No dependency fullfilling variant found in section: \"%1\"").arg(section_name));
+    return nullptr;
+}
+
+bool DataEngineSection::is_complete() const {
     bool result = true;
-    const VariantData *variant_to_test = get_variant(tags);
+    const VariantData *variant_to_test = get_variant();
     for (const auto &entry : variant_to_test->data_entries) {
         if (!entry.get()->is_complete()) {
             result = false;
@@ -166,9 +186,9 @@ bool DataEngineSection::is_complete(const QMap<QString, QVariant> &tags) const {
     return result;
 }
 
-bool DataEngineSection::all_values_in_range(const QMap<QString, QVariant> &tags) const {
+bool DataEngineSection::all_values_in_range() const {
     bool result = true;
-    const VariantData *variant_to_test = get_variant(tags);
+    const VariantData *variant_to_test = get_variant();
     for (const auto &entry : variant_to_test->data_entries) {
         if (!entry.get()->is_in_range()) {
             result = false;
@@ -482,24 +502,24 @@ void DependencyValue::from_bool(const bool &boolean) {
     range_high_excluding = 0;
 }
 
-bool Data_engine::is_complete(const QMap<QString, QVariant> &tags) const {
-    return sections.is_complete(tags);
+bool Data_engine::is_complete() const {
+    return sections.is_complete();
 }
 
-bool Data_engine::all_values_in_range(const QMap<QString, QVariant> &tags) const {
-    return sections.all_values_in_range(tags);
+bool Data_engine::all_values_in_range() const {
+    return sections.all_values_in_range();
 }
 
-bool Data_engine::value_in_range(const FormID &id, const QMap<QString, QVariant> &tags) const {
-    const DataEngineDataEntry *data_entry = sections.get_entry(id, tags);
+bool Data_engine::value_in_range(const FormID &id) const {
+    const DataEngineDataEntry *data_entry = sections.get_entry(id);
     if (data_entry == nullptr) {
         return false;
     }
     return data_entry->is_in_range();
 }
 
-void Data_engine::set_actual_number(const FormID &id, const QMap<QString, QVariant> &tags, double number) {
-    DataEngineDataEntry *data_entry = sections.get_entry(id, tags);
+void Data_engine::set_actual_number(const FormID &id, double number) {
+    DataEngineDataEntry *data_entry = sections.get_entry(id);
     assert(data_entry); //if field is not found an exception was already thrown above. Something bad must happen to assert here
 
     auto number_entry = data_entry->as<NumericDataEntry>();
@@ -511,8 +531,8 @@ void Data_engine::set_actual_number(const FormID &id, const QMap<QString, QVaria
     number_entry->actual_value = number;
 }
 
-void Data_engine::set_actual_text(const FormID &id, const QMap<QString, QVariant> &tags, QString text) {
-    DataEngineDataEntry *data_entry = sections.get_entry(id, tags);
+void Data_engine::set_actual_text(const FormID &id, QString text) {
+    DataEngineDataEntry *data_entry = sections.get_entry(id);
     assert(data_entry); //if field is not found an exception was already thrown above. Something bad must happen to assert here
 
     auto text_entry = data_entry->as<TextDataEntry>();
@@ -524,8 +544,8 @@ void Data_engine::set_actual_text(const FormID &id, const QMap<QString, QVariant
     text_entry->actual_value = text;
 }
 
-void Data_engine::set_actual_bool(const FormID &id, const QMap<QString, QVariant> &tags, bool value) {
-    DataEngineDataEntry *data_entry = sections.get_entry(id, tags);
+void Data_engine::set_actual_bool(const FormID &id, bool value) {
+    DataEngineDataEntry *data_entry = sections.get_entry(id);
     assert(data_entry); //if field is not found an exception was already thrown above. Something bad must happen to assert here
 
     auto bool_entry = data_entry->as<BoolDataEntry>();
@@ -537,20 +557,20 @@ void Data_engine::set_actual_bool(const FormID &id, const QMap<QString, QVariant
     bool_entry->actual_value = value;
 }
 
-double Data_engine::get_desired_value(const FormID &id, const QMap<QString, QVariant> &tags) const {
-    const DataEngineDataEntry *data_entry = sections.get_entry(id, tags);
+double Data_engine::get_desired_value(const FormID &id) const {
+    const DataEngineDataEntry *data_entry = sections.get_entry(id);
     assert(data_entry);
     return data_entry->as<NumericDataEntry>()->desired_value.value_or(std::numeric_limits<double>::quiet_NaN());
 }
 
-QString Data_engine::get_desired_value_as_text(const FormID &id, const QMap<QString, QVariant> &tags) const {
-    const DataEngineDataEntry *data_entry = sections.get_entry(id, tags);
+QString Data_engine::get_desired_value_as_text(const FormID &id) const {
+    const DataEngineDataEntry *data_entry = sections.get_entry(id);
     assert(data_entry);
     return data_entry->as<NumericDataEntry>()->get_desired_value_as_string();
 }
 
-const QString &Data_engine::get_unit(const FormID &id, const QMap<QString, QVariant> &tags) const {
-    const DataEngineDataEntry *data_entry = sections.get_entry(id, tags);
+const QString &Data_engine::get_unit(const FormID &id) const {
+    const DataEngineDataEntry *data_entry = sections.get_entry(id);
     assert(data_entry);
     return data_entry->as<NumericDataEntry>()->unit;
 }
@@ -1077,6 +1097,10 @@ QString ReferenceDataEntry::get_desired_value_as_string() const {
     return "";
 }
 
+void ReferenceDataEntry::search_target(const DataEngineSections *sections, const QMap<QString, QVariant> &tags) {
+    // sections->exists_uniquely();
+}
+
 void ReferenceDataEntry::parse_refence_string(QString reference_string) {
     const QString ACTUAL_VALUE = ".actual";
     const QString DESIRED_VALUE = ".desired";
@@ -1091,7 +1115,6 @@ void ReferenceDataEntry::parse_refence_string(QString reference_string) {
     for (auto &ref : refs) {
         ref = ref.trimmed();
         ReferenceLink ref_link;
-        ReferenceLink::ReferenceValue ref_value;
         if (ref.endsWith(ACTUAL_VALUE)) {
             ref = ref.remove(ref.size() - ACTUAL_VALUE.size(), ACTUAL_VALUE.size());
             ref_link.value = ReferenceLink::ReferenceValue::ActualValue;
@@ -1101,7 +1124,7 @@ void ReferenceDataEntry::parse_refence_string(QString reference_string) {
             ref_link.value = ReferenceLink::ReferenceValue::DesiredValue;
             ref_link.link = ref;
         } else {
-            assert(0); // TODO: wo should throw exception here
+            assert(0); //TODO: wo should throw exception here
         }
         reference_links.push_back(ref_link);
     }

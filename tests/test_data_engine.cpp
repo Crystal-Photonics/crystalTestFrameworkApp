@@ -6,7 +6,7 @@
 #include <QString>
 #include <sstream>
 
-#define DISABLE_ALL 1
+#define DISABLE_ALL 0
 
 #define QVERIFY_EXCEPTION_THROWN_error_number(expression, error_number)                                                                                        \
     do {                                                                                                                                                       \
@@ -151,17 +151,18 @@ void Test_Data_engine::check_tolerance_parsing_A() {
 void Test_Data_engine::basic_load_from_config() {
 #if !DISABLE_ALL
     std::stringstream input{R"({})"};
-    Data_engine de{input};
+    QMap<QString, QVariant> tags;
+    Data_engine de{input, tags};
 #endif
 }
 
 void Test_Data_engine::check_properties_of_empty_set() {
 #if !DISABLE_ALL
     std::stringstream input{R"({})"};
-    const Data_engine de{input};
     QMap<QString, QVariant> tags;
-    QVERIFY(de.is_complete(tags));
-    QVERIFY(de.all_values_in_range(tags));
+    const Data_engine de{input, tags};
+    QVERIFY(de.is_complete());
+    QVERIFY(de.all_values_in_range());
 #endif
 }
 
@@ -177,9 +178,10 @@ void Test_Data_engine::check_no_data_error_A() {
 
 }
                             )"};
+    QMap<QString, QVariant> tags;
     QVERIFY_EXCEPTION_THROWN_error_number(
 
-        Data_engine{input}, DataEngineErrorNumber::no_data_section_found);
+        Data_engine(input, tags), DataEngineErrorNumber::no_data_section_found);
 #endif
 }
 
@@ -192,9 +194,10 @@ void Test_Data_engine::check_no_data_error_B() {
 
 }
                             )"};
+    QMap<QString, QVariant> tags;
     QVERIFY_EXCEPTION_THROWN_error_number(
 
-        Data_engine{input}, DataEngineErrorNumber::no_data_section_found);
+        Data_engine(input, tags), DataEngineErrorNumber::no_data_section_found);
 #endif
 }
 
@@ -209,9 +212,10 @@ void Test_Data_engine::check_wrong_tolerance_type_A() {
     }
 }
                             )"};
+    QMap<QString, QVariant> tags;
     QVERIFY_EXCEPTION_THROWN_error_number(
 
-        Data_engine{input}, DataEngineErrorNumber::tolerance_parsing_error);
+        Data_engine(input, tags), DataEngineErrorNumber::tolerance_parsing_error);
 #endif
 }
 
@@ -227,9 +231,10 @@ void Test_Data_engine::check_duplicate_name_error_A() {
     }
 }
                             )"};
+    QMap<QString, QVariant> tags;
     QVERIFY_EXCEPTION_THROWN_error_number(
 
-        Data_engine{input}, DataEngineErrorNumber::duplicate_field);
+        Data_engine(input, tags), DataEngineErrorNumber::duplicate_field);
 #endif
 }
 
@@ -268,10 +273,10 @@ void Test_Data_engine::check_non_faulty_field_id() {
 }
                             )"};
 
-    Data_engine de{input};
     QMap<QString, QVariant> tags;
+    Data_engine de{input, tags};
 
-    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage", tags), DataEngineErrorNumber::faulty_field_id);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage"), DataEngineErrorNumber::faulty_field_id);
 
 #endif
 }
@@ -288,10 +293,10 @@ void Test_Data_engine::check_non_existing_desired_value() {
 }
                             )"};
 
-    Data_engine de{input};
     QMap<QString, QVariant> tags;
+    Data_engine de{input, tags};
 
-    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage", tags), DataEngineErrorNumber::no_field_id_found);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage"), DataEngineErrorNumber::no_field_id_found);
 
 #endif
 }
@@ -362,42 +367,43 @@ void Test_Data_engine::check_dependency_handling() {
     }
                                 )"};
 
-        Data_engine de{input};
         QMap<QString, QVariant> tags;
         QString printer;
         for (const auto &value : data.values) {
             tags.insert(value.first, value.second);
             printer += value.first + ": " + value.second.toString() + ", ";
         }
+        Data_engine de{input, tags};
+
         //qDebug() << printer;
         if (data.should_error) {
-            QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage", tags), DataEngineErrorNumber::non_unique_desired_field_found);
+            QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage"), DataEngineErrorNumber::no_variant_found);
         } else {
-            de.get_desired_value("supply-voltage/voltage", tags);
+            de.get_desired_value("supply-voltage/voltage");
         }
     }
 #endif
 }
 
 void Test_Data_engine::check_dependency_ambiguity_handling() {
-#if !DISABLE_ALL || 0
+#if !DISABLE_ALL || 1
     std::vector<TestDependencyData> in_data{
 
         {{{"sound", 1.2}, {"main", 1.43}, {"power_supply", 1.55}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
          true,
-         DataEngineErrorNumber::non_unique_desired_field_found}, //
+         DataEngineErrorNumber::no_variant_found}, //
         {{{"sound", 1.42}, {"main", 1.43}, {"power_supply", 1.55}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
          false,
-         DataEngineErrorNumber::non_unique_desired_field_found}, //
+         DataEngineErrorNumber::ok}, //
         {{{"sound", 1.43}, {"main", 1.43}, {"power_supply", 1.55}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
          true,
          DataEngineErrorNumber::non_unique_desired_field_found}, //
         {{{"sound", 1.442}, {"main", 1.43}, {"power_supply", 1.55}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
          false,
-         DataEngineErrorNumber::non_unique_desired_field_found}, //
+         DataEngineErrorNumber::ok}, //
         {{{"sound", 1.5}, {"main", 1.43}, {"power_supply", 1.55}, {"color", "green"}, {"supply_version", "24V"}, {"high_power_edidtion", true}},
          false,
-         DataEngineErrorNumber::non_unique_desired_field_found}, //
+         DataEngineErrorNumber::ok}, //
     };
 
     for (const auto &data : in_data) {
@@ -434,7 +440,6 @@ void Test_Data_engine::check_dependency_ambiguity_handling() {
     }
                                 )"};
 
-        Data_engine de{input};
         QMap<QString, QVariant> tags;
         QString printer;
         for (const auto &value : data.values) {
@@ -442,10 +447,16 @@ void Test_Data_engine::check_dependency_ambiguity_handling() {
             printer += value.first + ": " + value.second.toString() + ", ";
         }
         //qDebug() << printer;
-        if (data.should_error) {
-            QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage", tags), DataEngineErrorNumber::non_unique_desired_field_found);
-        } else {
-            de.get_desired_value("supply-voltage/voltage", tags);
+
+        if (data.expected_error == DataEngineErrorNumber::non_unique_desired_field_found) {
+            QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags), data.expected_error);
+        }else if (data.expected_error == DataEngineErrorNumber::no_variant_found) {
+            Data_engine de(input, tags);
+            QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage"), data.expected_error);
+
+        }else{
+            Data_engine de(input, tags);
+            de.get_desired_value("supply-voltage/voltage");
         }
     }
 #endif
@@ -463,10 +474,10 @@ void Test_Data_engine::check_non_existing_section_name() {
 }
                             )"};
 
-    Data_engine de{input};
     QMap<QString, QVariant> tags;
+    Data_engine de{input, tags};
 
-    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage", tags), DataEngineErrorNumber::no_section_id_found);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage"), DataEngineErrorNumber::no_section_id_found);
 
 #endif
 }
@@ -481,9 +492,9 @@ void Test_Data_engine::check_data_by_object() {
     }
 }
                             )"};
-    Data_engine de{input};
     QMap<QString, QVariant> tags;
-    de.get_desired_value("supply-voltage/voltage", tags);
+    Data_engine de{input, tags};
+    de.get_desired_value("supply-voltage/voltage");
 
 #endif
 }
@@ -498,10 +509,10 @@ void Test_Data_engine::check_value_matching_by_name() {
     }
 }
                             )"};
-    const Data_engine de{input};
     QMap<QString, QVariant> tags;
-    QCOMPARE(de.get_desired_value("supply-voltage/voltage", tags), 5000.0);
-    QCOMPARE(de.get_desired_value_as_text("supply-voltage/voltage", tags), QString("5000 (±200)"));
+    const Data_engine de{input, tags};
+    QCOMPARE(de.get_desired_value("supply-voltage/voltage"), 5000.0);
+    QCOMPARE(de.get_desired_value_as_text("supply-voltage/voltage"), QString("5000 (±200)"));
 #endif
 }
 
@@ -520,38 +531,39 @@ void Test_Data_engine::single_numeric_property_test() {
 }
                             )"};
 
-    Data_engine de{input};
     QMap<QString, QVariant> tags;
-    QVERIFY(!de.is_complete(tags));
-    QVERIFY(!de.all_values_in_range(tags));
-    QVERIFY(!de.value_in_range("supply/voltage", tags));
+    Data_engine de{input, tags};
 
-    QCOMPARE(de.get_desired_value("supply/voltage", tags), 5000.);
-    QCOMPARE(de.get_unit("supply/voltage", tags), "mV"_qs);
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+    QVERIFY(!de.value_in_range("supply/voltage"));
 
-    de.set_actual_number("supply/voltage", tags, 5201);
-    QVERIFY(!de.value_in_range("supply/voltage", tags));
+    QCOMPARE(de.get_desired_value("supply/voltage"), 5000.);
+    QCOMPARE(de.get_unit("supply/voltage"), "mV"_qs);
 
-    de.set_actual_number("supply/voltage", tags, 5200);
-    QVERIFY(de.value_in_range("supply/voltage", tags));
+    de.set_actual_number("supply/voltage", 5201);
+    QVERIFY(!de.value_in_range("supply/voltage"));
 
-    de.set_actual_number("supply/current", tags, 106);
-    QVERIFY(!de.value_in_range("supply/current", tags));
+    de.set_actual_number("supply/voltage", 5200);
+    QVERIFY(de.value_in_range("supply/voltage"));
 
-    de.set_actual_number("supply/current", tags, 105);
-    QVERIFY(de.value_in_range("supply/current", tags));
+    de.set_actual_number("supply/current", 106);
+    QVERIFY(!de.value_in_range("supply/current"));
 
-    de.set_actual_number("supply/power", tags, 105);
-    QVERIFY(!de.value_in_range("supply/power", tags));
+    de.set_actual_number("supply/current", 105);
+    QVERIFY(de.value_in_range("supply/current"));
 
-    de.set_actual_number("supply/power", tags, 104);
-    QVERIFY(de.value_in_range("supply/power", tags));
+    de.set_actual_number("supply/power", 105);
+    QVERIFY(!de.value_in_range("supply/power"));
 
-    de.set_actual_number("supply/power", tags, 50);
-    QVERIFY(de.value_in_range("supply/power", tags));
+    de.set_actual_number("supply/power", 104);
+    QVERIFY(de.value_in_range("supply/power"));
 
-    QVERIFY(de.all_values_in_range(tags));
-    QVERIFY(de.is_complete(tags));
+    de.set_actual_number("supply/power", 50);
+    QVERIFY(de.value_in_range("supply/power"));
+
+    QVERIFY(de.all_values_in_range());
+    QVERIFY(de.is_complete());
 
 #endif
 }
@@ -568,19 +580,19 @@ void Test_Data_engine::test_text_entry() {
     }
 }
                             )"};
-    Data_engine de{input};
     QMap<QString, QVariant> tags;
-    QVERIFY(!de.is_complete(tags));
-    QVERIFY(!de.all_values_in_range(tags));
-    QVERIFY(!de.value_in_range("test/id", tags));
-    de.set_actual_text("test/id", tags, "DEV123456zjuthrgfd");
-    QVERIFY(de.is_complete(tags));
-    QVERIFY(!de.all_values_in_range(tags));
-    QVERIFY(!de.value_in_range("test/id", tags));
-    de.set_actual_text("test/id", tags, "DEV123");
-    QVERIFY(de.is_complete(tags));
-    QVERIFY(de.all_values_in_range(tags));
-    QVERIFY(de.value_in_range("test/id", tags));
+    Data_engine de{input, tags};
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+    QVERIFY(!de.value_in_range("test/id"));
+    de.set_actual_text("test/id", "DEV123456zjuthrgfd");
+    QVERIFY(de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+    QVERIFY(!de.value_in_range("test/id"));
+    de.set_actual_text("test/id",  "DEV123");
+    QVERIFY(de.is_complete());
+    QVERIFY(de.all_values_in_range());
+    QVERIFY(de.value_in_range("test/id"));
 
 #endif
 }
@@ -597,19 +609,19 @@ void Test_Data_engine::test_bool_entry() {
     }
 }
                             )"};
-    Data_engine de{input};
     QMap<QString, QVariant> tags;
-    QVERIFY(!de.is_complete(tags));
-    QVERIFY(!de.all_values_in_range(tags));
-    QVERIFY(!de.value_in_range("test/checked", tags));
-    de.set_actual_bool("test/checked", tags, false);
-    QVERIFY(de.is_complete(tags));
-    QVERIFY(!de.all_values_in_range(tags));
-    QVERIFY(!de.value_in_range("test/checked", tags));
-    de.set_actual_bool("test/checked", tags, true);
-    QVERIFY(de.is_complete(tags));
-    QVERIFY(de.all_values_in_range(tags));
-    QVERIFY(de.value_in_range("test/checked", tags));
+    Data_engine de{input, tags};
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+    QVERIFY(!de.value_in_range("test/checked"));
+    de.set_actual_bool("test/checked",  false);
+    QVERIFY(de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+    QVERIFY(!de.value_in_range("test/checked"));
+    de.set_actual_bool("test/checked",  true);
+    QVERIFY(de.is_complete());
+    QVERIFY(de.all_values_in_range());
+    QVERIFY(de.value_in_range("test/checked"));
 
 #endif
 }
@@ -628,54 +640,53 @@ void Test_Data_engine::test_empty_entries() {
     }
 }
                             )"};
-    Data_engine de{input};
     QMap<QString, QVariant> tags;
-    QVERIFY(!de.is_complete(tags));
-    QVERIFY(!de.all_values_in_range(tags));
-    QVERIFY(!de.value_in_range("print/multimeter_sn", tags));
+    Data_engine de{input, tags};
 
-    de.set_actual_text("print/multimeter_sn", tags, "DEV123");
-    QVERIFY(de.value_in_range("print/multimeter_sn", tags));
-    de.set_actual_text("print/multimeter_sn", tags, "DEV321");
-    QVERIFY(de.value_in_range("print/multimeter_sn", tags));
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+    QVERIFY(!de.value_in_range("print/multimeter_sn" ));
 
-    QVERIFY(!de.is_complete(tags));
+    de.set_actual_text("print/multimeter_sn",  "DEV123");
+    QVERIFY(de.value_in_range("print/multimeter_sn"));
+    de.set_actual_text("print/multimeter_sn",  "DEV321");
+    QVERIFY(de.value_in_range("print/multimeter_sn"));
 
-    QVERIFY(!de.value_in_range("print/24V_variante", tags));
-    de.set_actual_bool("print/24V_variante", tags, true);
-    QVERIFY(de.value_in_range("print/24V_variante", tags));
-    de.set_actual_bool("print/24V_variante", tags, false);
-    QVERIFY(de.value_in_range("print/24V_variante", tags));
+    QVERIFY(!de.is_complete());
 
-    QVERIFY(!de.is_complete(tags));
-    QVERIFY(!de.all_values_in_range(tags));
+    QVERIFY(!de.value_in_range("print/24V_variante"));
+    de.set_actual_bool("print/24V_variante",  true);
+    QVERIFY(de.value_in_range("print/24V_variante"));
+    de.set_actual_bool("print/24V_variante",  false);
+    QVERIFY(de.value_in_range("print/24V_variante"));
 
-    QVERIFY(!de.value_in_range("print/number_test", tags));
-    de.set_actual_number("print/number_test", tags, 500);
-    QVERIFY(de.value_in_range("print/number_test", tags));
-    de.set_actual_number("print/number_test", tags, 300);
-    QVERIFY(de.value_in_range("print/number_test", tags));
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
 
+    QVERIFY(!de.value_in_range("print/number_test"));
+    de.set_actual_number("print/number_test",  500);
+    QVERIFY(de.value_in_range("print/number_test"));
+    de.set_actual_number("print/number_test",  300);
+    QVERIFY(de.value_in_range("print/number_test"));
 
-
-    QVERIFY(de.is_complete(tags));
-    QVERIFY(de.all_values_in_range(tags));
+    QVERIFY(de.is_complete());
+    QVERIFY(de.all_values_in_range());
 #endif
 }
 
 void Test_Data_engine::test_references() {
-#if !DISABLE_ALL || 1
-//TODO: Test if fail when ambiguous
-//TODO: Test if fail when desired value is referenced but doesnt exist(actual value only field)
-//TODO: Test if fail when unit or si_prefix is defined twice(in source and reference)
+#if !DISABLE_ALL && 0
+    //TODO: Test if fail when ambiguous
+    //TODO: Test if fail when desired value is referenced but doesnt exist(actual value only field)
+    //TODO: Test if fail when unit or si_prefix is defined twice(in source and reference)
 
-//TODO: Test in bool and String environment
+    //TODO: Test in bool and String environment
 
     std::stringstream input{R"(
 {
     "referenzen":{
         "data":[
-            {	"name": "voltage_source",       "value": "[test_valuesA/voltage_source.actual]",                                        "tolerance": "5",		"nice_name": "Spannungsvergleich"       },
+            {	"name": "voltage_source",       "value": "[test_valuesA/voltage_source.actual,  test_valuesB/voltage_green.actual]",                                        "tolerance": "5",		"nice_name": "Spannungsvergleich"       },
             {	"name": "voltage_color_ist",    "value": "[test_valuesB/voltage_green.actual,        test_valuesB/voltage_blue.actual]","tolerance": 5,         "nice_name": "Farbige Spannung ist"     },
             {	"name": "voltage_color_soll",   "value": "[test_valuesB/voltage_green.desired,     test_valuesB/voltage_blue.desired]", "tolerance": "5",		"nice_name": "Farbige Spannung soll"    }
         ]
@@ -706,54 +717,51 @@ void Test_Data_engine::test_references() {
 
 }
                             )"};
-    Data_engine de{input};
     QMap<QString, QVariant> tags;
-    tags.insert("color","green");
-    QVERIFY(!de.is_complete(tags));
-    QVERIFY(!de.all_values_in_range(tags));
-    QVERIFY(!de.value_in_range("referenzen/voltage_source", tags));
+    tags.insert("color", "green");
+    Data_engine de{input, tags};
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+    QVERIFY(!de.value_in_range("referenzen/voltage_source"));
 
-    de.set_actual_number("test_valuesA/voltage_source", tags, 500);
-    QVERIFY(de.value_in_range("test_valuesA/voltage_source", tags));
-    QVERIFY(!de.value_in_range("referenzen/voltage_source", tags));
-    de.set_actual_number("referenzen/voltage_source", tags, 506);
-    QVERIFY(!de.value_in_range("referenzen/voltage_source", tags));
-    de.set_actual_number("referenzen/voltage_source", tags, 505);
+    de.set_actual_number("test_valuesA/voltage_source", 500);
+    QVERIFY(de.value_in_range("test_valuesA/voltage_source"));
+    QVERIFY(!de.value_in_range("referenzen/voltage_source"));
+    de.set_actual_number("referenzen/voltage_source", 506);
+    QVERIFY(!de.value_in_range("referenzen/voltage_source"));
+    de.set_actual_number("referenzen/voltage_source", 505);
 
-    QVERIFY(de.value_in_range("referenzen/voltage_source", tags));
+    QVERIFY(de.value_in_range("referenzen/voltage_source"));
 
-    QVERIFY(!de.is_complete(tags));
-    QVERIFY(!de.all_values_in_range(tags));
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
 
+    QVERIFY(!de.value_in_range("referenzen/voltage_color_ist"));
+    de.set_actual_number("referenzen/voltage_color_ist", 300);
+    QVERIFY(!de.value_in_range("referenzen/voltage_color_ist"));
 
-    QVERIFY(!de.value_in_range("referenzen/voltage_color_ist", tags));
-    de.set_actual_number("referenzen/voltage_color_ist", tags, 300);
-    QVERIFY(!de.value_in_range("referenzen/voltage_color_ist", tags));
+    de.set_actual_number("test_valuesB/voltage_green", 306);
+    QVERIFY(!de.value_in_range("referenzen/voltage_color_ist"));
 
-    de.set_actual_number("test_valuesB/voltage_green", tags, 306);
-    QVERIFY(!de.value_in_range("referenzen/voltage_color_ist", tags));
+    de.set_actual_number("test_valuesB/voltage_green", 305);
+    QVERIFY(de.value_in_range("referenzen/voltage_color_ist"));
 
-    de.set_actual_number("test_valuesB/voltage_green", tags, 305);
-    QVERIFY(de.value_in_range("referenzen/voltage_color_ist", tags));
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
 
-    QVERIFY(!de.is_complete(tags));
-    QVERIFY(!de.all_values_in_range(tags));
+    QVERIFY(!de.value_in_range("referenzen/voltage_color_soll"));
+    de.set_actual_number("referenzen/voltage_color_soll", 56);
+    QVERIFY(!de.value_in_range("referenzen/voltage_color_soll"));
 
+    de.set_actual_number("test_valuesB/voltage_green", 55);
+    QVERIFY(de.value_in_range("referenzen/voltage_color_soll"));
 
-    QVERIFY(!de.value_in_range("referenzen/voltage_color_soll", tags));
-    de.set_actual_number("referenzen/voltage_color_soll", tags, 56);
-    QVERIFY(!de.value_in_range("referenzen/voltage_color_soll", tags));
-
-    de.set_actual_number("test_valuesB/voltage_green", tags, 55);
-    QVERIFY(de.value_in_range("referenzen/voltage_color_soll", tags));
-
-
-    QVERIFY(de.is_complete(tags));
-    QVERIFY(de.all_values_in_range(tags));
+    QVERIFY(de.is_complete());
+    QVERIFY(de.all_values_in_range());
 #endif
 }
 void Test_Data_engine::test_preview() {
-#if !DISABLE_ALL || 0
+#if !DISABLE_ALL && 0
     std::stringstream input{R"(
 {
     "supply":{
@@ -767,16 +775,16 @@ void Test_Data_engine::test_preview() {
 
     QMap<QString, QVariant> tags;
 
-	int argc = 1;
-	char executable[] = "";
-	char *executable2 = executable;
-	char **argv = &executable2;
-	QApplication app(argc, argv);
+    int argc = 1;
+    char executable[] = "";
+    char *executable2 = executable;
+    char **argv = &executable2;
+    QApplication app(argc, argv);
 
-	Data_engine de{input};
-    de.set_actual_number("supply/voltage",tags, 5000);
-    de.set_actual_number("supply/current", tags, 150.);
-	de.generate_pdf("test.xml", "test.pdf");
+    Data_engine de{input,tags};
+    de.set_actual_number("supply/voltage",  5000);
+    de.set_actual_number("supply/current",  150.);
+    de.generate_pdf("test.xml", "test.pdf");
 
 #endif
 }

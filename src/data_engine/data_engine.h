@@ -13,11 +13,13 @@ class QJsonObject;
 class QWidget;
 class QVariant;
 class QtRPT;
+class DataEngineSections;
 
 using FormID = QString;
 enum class EntryType { Unspecified, Bool, String, Reference, Numeric };
 
 enum class DataEngineErrorNumber {
+    ok,
     invalid_version_dependency_string,
     no_data_section_found,
     invalid_data_entry_key,
@@ -29,6 +31,7 @@ enum class DataEngineErrorNumber {
     duplicate_field,
     duplicate_section,
     non_unique_desired_field_found,
+    no_variant_found,
     no_section_id_found,
     no_field_id_found,
     faulty_field_id,
@@ -132,28 +135,6 @@ struct TextDataEntry : DataEngineDataEntry {
     std::experimental::optional<QString> actual_value{};
 };
 
-struct ReferenceLink {
-    enum class ReferenceValue { ActualValue, DesiredValue };
-    QString link;
-    ReferenceValue value;
-};
-
-struct ReferenceDataEntry : DataEngineDataEntry {
-    ReferenceDataEntry(const FormID name, QString reference_string, NumericTolerance tolerance);
-
-    bool is_complete() const override;
-    bool is_in_range() const override;
-    QString get_value() const override;
-    QString get_description() const override;
-    QString get_desired_value_as_string() const override;
-    NumericTolerance tolerance;
-    QString description{};
-
-    private:
-    void parse_refence_string(QString reference_string);
-    std::vector<ReferenceLink> reference_links;
-};
-
 struct BoolDataEntry : DataEngineDataEntry {
     BoolDataEntry(const FormID name, std::experimental::optional<bool> desired_value);
 
@@ -167,6 +148,41 @@ struct BoolDataEntry : DataEngineDataEntry {
     QString description{};
     std::experimental::optional<bool> actual_value{};
 };
+
+struct ReferenceLink {
+    enum class ReferenceValue { ActualValue, DesiredValue };
+    QString link;
+    ReferenceValue value;
+};
+
+struct ReferenceDataEntry : DataEngineDataEntry {
+    ReferenceDataEntry(const FormID name, QString reference_string, NumericTolerance tolerance);
+
+    //referenz erbt typ vom target
+    //referenz erbt unit vom target
+    //referenz si-prefix unit vom target
+    //referenz erbt sollwert von target, dies kann jeweils enweder soll oder ist wert sein.
+    bool is_complete() const override;
+    bool is_in_range() const override;
+    QString get_value() const override;
+    QString get_description() const override;
+    QString get_desired_value_as_string() const override;
+    NumericTolerance tolerance;
+    QString description{};
+    void search_target(const DataEngineSections *sections, const QMap<QString, QVariant> &tags);
+
+    private:
+    void parse_refence_string(QString reference_string);
+    std::vector<ReferenceLink> reference_links;
+
+    DataEngineDataEntry *entry_target;
+
+    //BoolDataEntry entry_bool;
+    //TextDataEntry entry_text;
+    //NumericDataEntry entry_numeric;
+};
+
+
 
 struct DependencyValue {
     DependencyValue();
@@ -209,9 +225,10 @@ struct DataEngineSection {
     std::vector<VariantData> variants;
 
     public:
-    const VariantData *get_variant(const QMap<QString, QVariant> &tags) const;
-    bool is_complete(const QMap<QString, QVariant> &tags) const;
-    bool all_values_in_range(const QMap<QString, QVariant> &tags) const;
+    const VariantData *get_variant() const;
+    void delete_unmatched_variants(const QMap<QString, QVariant> &tags);
+    bool is_complete() const;
+    bool all_values_in_range() const;
 
     void from_json(const QJsonValue &object, const QString &key_name);
     QString get_section_name() const;
@@ -223,12 +240,13 @@ struct DataEngineSection {
 
 struct DataEngineSections {
     std::vector<DataEngineSection> sections;
-
+    void delete_unmatched_variants(const QMap<QString, QVariant> &tags);
     public:
-    const DataEngineDataEntry *get_entry(const FormID &id, const QMap<QString, QVariant> &tags) const;
-    DataEngineDataEntry *get_entry(const FormID &id, const QMap<QString, QVariant> &tags);
-    bool is_complete(const QMap<QString, QVariant> &tags) const;
-    bool all_values_in_range(const QMap<QString, QVariant> &tags) const;
+    const DataEngineDataEntry *get_entry(const FormID &id) const;
+    DataEngineDataEntry *get_entry(const FormID &id);
+    bool exists_uniquely(const FormID &id, const QMap<QString, QVariant> &tags) const;
+    bool is_complete() const;
+    bool all_values_in_range() const;
     void from_json(const QJsonObject &object);
     bool section_exists(QString section_name);
 };
@@ -244,27 +262,27 @@ class Data_engine {
 
     public:
     Data_engine() = default;
-    Data_engine(std::istream &source);
+    Data_engine(std::istream &source, const QMap<QString, QVariant> &tags);
 
-    void set_source(std::istream &source);
-    bool is_complete(const QMap<QString, QVariant> &tags) const;
-    bool all_values_in_range(const QMap<QString, QVariant> &tags) const;
-    bool value_in_range(const FormID &id, const QMap<QString, QVariant> &tags) const;
-    void set_actual_number(const FormID &id, const QMap<QString, QVariant> &tags, double number);
-    void set_actual_text(const FormID &id, const QMap<QString, QVariant> &tags, QString text);
-    void set_actual_bool(const FormID &id, const QMap<QString, QVariant> &tags, bool value);
+    void set_source(std::istream &source, const QMap<QString, QVariant> &tags);
+    bool is_complete() const;
+    bool all_values_in_range() const;
+    bool value_in_range(const FormID &id) const;
+    void set_actual_number(const FormID &id, double number);
+    void set_actual_text(const FormID &id, QString text);
+    void set_actual_bool(const FormID &id, bool value);
 
-    double get_desired_value(const FormID &id, const QMap<QString, QVariant> &tags) const;
+    double get_desired_value(const FormID &id) const;
 
     const QString &get_desired_text(const FormID &id, const QMap<QString, QVariant> &tags) const;
-    const QString &get_unit(const FormID &id, const QMap<QString, QVariant> &tags) const;
+    const QString &get_unit(const FormID &id) const;
     Statistics get_statistics() const;
 
     std::unique_ptr<QWidget> get_preview() const;
     void generate_pdf(const std::string &form, const std::__cxx11::string &destination) const;
     std::string get_json() const;
 
-    QString get_desired_value_as_text(const FormID &id, const QMap<QString, QVariant> &tags) const;
+    QString get_desired_value_as_text(const FormID &id) const;
 
     private:
     struct FormIdWrapper {

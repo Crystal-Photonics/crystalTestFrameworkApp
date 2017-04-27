@@ -744,31 +744,20 @@ void ScriptEngine::load_script(const QString &path) {
         {
             struct Data_engine_handle {
                 Data_engine *data_engine{nullptr};
-                QMap<QString, QVariant> dependency_tags;
                 Data_engine_handle() = delete;
             };
 
             lua->new_usertype<Data_engine_handle>(
                 "Data_engine", //
                 sol::meta_function::construct, [ data_engine = data_engine, pdf_filepath = pdf_filepath.get(),
-                                                 form_filepath = form_filepath.get() ](const std::string &xml_file, const std::string &json_file) {
+                                                 form_filepath = form_filepath.get() ](const std::string &xml_file, const std::string &json_file, const sol::table &dependency_tags) {
                     QString form_dir = QSettings{}.value(Globals::form_directory, QDir::currentPath()).toString();
                     auto file_path = QDir{form_dir}.absoluteFilePath(QString::fromStdString(json_file)).toStdString();
                     std::ifstream f(file_path);
                     if (!f) {
                         throw std::runtime_error("Failed opening file " + file_path);
                     }
-                    data_engine->set_source(f);
-                    *pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
-                    *form_filepath =
-                        QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath(QString::fromStdString(xml_file)).toStdString();
-                    QMap<QString, QVariant> dependency_tags;
-                    return Data_engine_handle{data_engine, dependency_tags};
-                }, //
-                "set_dependency_tags",
-                [](Data_engine_handle &handle, const sol::table &dependency_tags) {
-                    handle.dependency_tags.clear();
-
+                    QMap<QString, QVariant> tags;
                     for (auto &i : dependency_tags) {
                         std::string tag_name = i.first.as<std::string>();
                         QVariant value;
@@ -779,19 +768,25 @@ void ScriptEngine::load_script(const QString &path) {
                         } else if (i.second.get_type() == sol::type::boolean) {
                             value.setValue<bool>(i.second.as<bool>());
                         } else {
-                            throw std::runtime_error(QString("invalid type in field of dependency tags at index %1").arg(QString().fromStdString(tag_name)).toStdString());
+                            throw std::runtime_error(
+                                QString("invalid type in field of dependency tags at index %1").arg(QString().fromStdString(tag_name)).toStdString());
                         }
-                        handle.dependency_tags.insert(QString().fromStdString(tag_name), value);
+                        tags.insert(QString().fromStdString(tag_name), value);
                     }
+                    data_engine->set_source(f,tags);
+                    *pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
+                    *form_filepath =
+                        QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath(QString::fromStdString(xml_file)).toStdString();
 
-                },
+                    return Data_engine_handle{data_engine};
+                }, //
                 "set_bool", [](Data_engine_handle &handle, const std::string &field_id,
-                               bool value) { handle.data_engine->set_actual_bool(QString::fromStdString(field_id), handle.dependency_tags, value); },
+                               bool value) { handle.data_engine->set_actual_bool(QString::fromStdString(field_id), value); },
                 "set_number", [](Data_engine_handle &handle, const std::string &field_id,
-                                 double number) { handle.data_engine->set_actual_number(QString::fromStdString(field_id), handle.dependency_tags, number); },
+                                 double number) { handle.data_engine->set_actual_number(QString::fromStdString(field_id), number); },
                 "set_text",
                 [](Data_engine_handle &handle, const std::string &field_id, const std::string text) {
-                    handle.data_engine->set_actual_text(QString::fromStdString(field_id), handle.dependency_tags, QString::fromStdString(text));
+                    handle.data_engine->set_actual_text(QString::fromStdString(field_id), QString::fromStdString(text));
                 });
         }
 
@@ -888,8 +883,10 @@ void ScriptEngine::load_script(const QString &path) {
         {
             ui_table.new_usertype<Color>("Color", //
                                          sol::meta_function::construct, sol::no_constructor);
-            ui_table["Color"] = overloaded_function([](const std::string &name) { return Color::Color_from_name(name); },
-                                                    [](int r, int g, int b) { return Color::Color_from_r_g_b(r, g, b); }, //
+            ui_table["Color"] = overloaded_function([](const std::string &name) { return Color{name}; },
+                                                    [](int r, int g, int b) {
+                                                        return Color{r, g, b};
+                                                    }, //
                                                     [](int rgb) { return Color{rgb}; });
         }
         //bind ComboBoxFileSelector
