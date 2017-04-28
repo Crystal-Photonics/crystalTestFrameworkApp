@@ -525,25 +525,25 @@ void Test_Data_engine::single_numeric_property_test() {
     QCOMPARE(de.get_desired_value_as_string("supply/voltage"), QString("5000 (±200)"));
     QCOMPARE(de.get_unit("supply/voltage"), "mV"_qs);
 
-    de.set_actual_number("supply/voltage", 5201);
+    de.set_actual_number("supply/voltage", 5.201);
     QVERIFY(!de.value_in_range("supply/voltage"));
 
-    de.set_actual_number("supply/voltage", 5200);
+    de.set_actual_number("supply/voltage", 5.200);
     QVERIFY(de.value_in_range("supply/voltage"));
 
-    de.set_actual_number("supply/current", 106);
+    de.set_actual_number("supply/current", 0.106);
     QVERIFY(!de.value_in_range("supply/current"));
 
-    de.set_actual_number("supply/current", 105);
+    de.set_actual_number("supply/current", 0.105);
     QVERIFY(de.value_in_range("supply/current"));
 
-    de.set_actual_number("supply/power", 105);
+    de.set_actual_number("supply/power", 0.105);
     QVERIFY(!de.value_in_range("supply/power"));
 
-    de.set_actual_number("supply/power", 104);
+    de.set_actual_number("supply/power", 0.104);
     QVERIFY(de.value_in_range("supply/power"));
 
-    de.set_actual_number("supply/power", 50);
+    de.set_actual_number("supply/power", 0.05);
     QVERIFY(de.value_in_range("supply/power"));
 
     QVERIFY(de.all_values_in_range());
@@ -740,12 +740,12 @@ void Test_Data_engine::test_references() {
     QVERIFY(!de.all_values_in_range());
     QVERIFY(!de.value_in_range("referenzen/voltage_source"));
 
-    de.set_actual_number("test_valuesA/voltage_source", 500);
+    de.set_actual_number("test_valuesA/voltage_source", 0.5);
     QVERIFY(de.value_in_range("test_valuesA/voltage_source"));
     QVERIFY(!de.value_in_range("referenzen/voltage_source"));
-    de.set_actual_number("referenzen/voltage_source", 506);
+    de.set_actual_number("referenzen/voltage_source", 0.506);
     QVERIFY(!de.value_in_range("referenzen/voltage_source"));
-    de.set_actual_number("referenzen/voltage_source", 505);
+    de.set_actual_number("referenzen/voltage_source", 0.505);
 
     QVERIFY(de.value_in_range("referenzen/voltage_source"));
 
@@ -753,27 +753,27 @@ void Test_Data_engine::test_references() {
     QVERIFY(!de.all_values_in_range());
 
     QVERIFY(!de.value_in_range("referenzen/voltage_color_ist"));
-    de.set_actual_number("referenzen/voltage_color_ist", 300);
+    de.set_actual_number("referenzen/voltage_color_ist", 0.300);
     QVERIFY(!de.value_in_range("referenzen/voltage_color_ist"));
 
-    de.set_actual_number("test_valuesB/voltage_green", 306);
+    de.set_actual_number("test_valuesB/voltage_green", 0.306);
     QVERIFY(!de.value_in_range("referenzen/voltage_color_ist"));
 
-    de.set_actual_number("test_valuesB/voltage_green", 305);
+    de.set_actual_number("test_valuesB/voltage_green", 0.305);
     QVERIFY(de.value_in_range("referenzen/voltage_color_ist"));
 
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
 
     QVERIFY(!de.value_in_range("referenzen/voltage_color_soll"));
-    de.set_actual_number("referenzen/voltage_color_soll", 56);
+    de.set_actual_number("referenzen/voltage_color_soll", 0.056);
     QVERIFY(!de.value_in_range("referenzen/voltage_color_soll"));
 
-    de.set_actual_number("referenzen/voltage_color_soll", 55);
+    de.set_actual_number("referenzen/voltage_color_soll", 0.055);
     QVERIFY(de.value_in_range("referenzen/voltage_color_soll"));
 
-    de.set_actual_number("test_valuesB/voltage_green", 60);
-    de.set_actual_number("referenzen/voltage_color_ist", 65);
+    de.set_actual_number("test_valuesB/voltage_green", 0.060);
+    de.set_actual_number("referenzen/voltage_color_ist", 0.065);
 
     QVERIFY(de.is_complete());
     QVERIFY(de.all_values_in_range());
@@ -908,16 +908,16 @@ void Test_Data_engine::test_references_get_actual_value_description_desired_valu
     "referenzen":{
         "data":[
 
-            {	"name": "test_number_ref",          "value": "[test_valuesA/test_number.desired]",          "tolerance":2 ,                "nice_name": "Referenz zum numer soll"         },
-            {	"name": "test_bool_ref",            "value": "[test_valuesA/test_bool.desired]",                        "nice_name": "Referenz zum bool soll"           },
-            {	"name": "test_string_ref",          "value": "[test_valuesA/test_string.desired]",                      "nice_name": "Referenz zum string soll"        }
+            {	"name": "test_number_ref",          "value": "[test_valuesA/test_number.desired]",          "tolerance":2 ,         "nice_name": "Referenz zum numer soll"  },
+            {	"name": "test_bool_ref",            "value": "[test_valuesA/test_bool.desired]",                                    "nice_name": "Referenz zum bool soll"   },
+            {	"name": "test_string_ref",          "value": "[test_valuesA/test_string.desired]",                                  "nice_name": "Referenz zum string soll" }
         ]
     },
     "test_valuesA":{
         "data":[
-            {	"name": "test_number",                  "value": 100,     "tolerance":1 ,   "unit":"mA",           "nice_name": "Original number"        },
-            {	"name": "test_bool",                    "value": true,                                  "nice_name": "Original bool"	},
-            {	"name": "test_string",                  "value": "test_string",                         "nice_name": "Original string"	}
+            {	"name": "test_number",                  "value": 100,           "tolerance":1 ,   "unit":"mA",   "si_prefix":1e-3,          "nice_name": "Original number"  },
+            {	"name": "test_bool",                    "value": true,                                                                      "nice_name": "Original bool"    },
+            {	"name": "test_string",                  "value": "test_string",                                                             "nice_name": "Original string"  }
         ]
     }
 
@@ -926,11 +926,11 @@ void Test_Data_engine::test_references_get_actual_value_description_desired_valu
     QMap<QString, QVariant> tags;
     Data_engine de{input, tags};
 
-    de.set_actual_number("test_valuesA/test_number", 101);
+    de.set_actual_number("test_valuesA/test_number", 0.101);
     de.set_actual_bool("test_valuesA/test_bool", true);
     de.set_actual_text("test_valuesA/test_string", "TEST321");
 
-    de.set_actual_number("referenzen/test_number_ref", 102);
+    de.set_actual_number("referenzen/test_number_ref", 0.102);
     de.set_actual_bool("referenzen/test_bool_ref", true);
     de.set_actual_text("referenzen/test_string_ref", "TEST123");
 

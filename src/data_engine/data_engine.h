@@ -120,26 +120,29 @@ struct NumericTolerance {
 };
 
 struct NumericDataEntry : DataEngineDataEntry {
-    NumericDataEntry(FormID field_name, std::experimental::optional<double> desired_value, NumericTolerance tolerance, QString unit, QString description);
+    NumericDataEntry(FormID field_name, std::experimental::optional<double> desired_value, NumericTolerance tolerance, QString unit,
+                     std::experimental::optional<double> si_prefix, QString description);
     bool valid() const;
     bool is_complete() const override;
     bool is_in_range() const override;
     QString get_desired_value_as_string() const override;
-
     QString get_actual_value() const override;
     QString get_description() const override;
     QString get_unit() const override;
 
+    void set_actual_value(std::experimental::optional<double> actual_value);
     std::experimental::optional<double> desired_value{};
     QString unit{};
     QString description{};
-    std::experimental::optional<double> actual_value{};
+
+    double si_prefix = 1.0;
 
     private:
     NumericTolerance tolerance;
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
     bool is_desired_value_set() override;
+    std::experimental::optional<double> actual_value{};
 };
 
 struct TextDataEntry : DataEngineDataEntry {

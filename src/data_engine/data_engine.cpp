@@ -574,7 +574,7 @@ void Data_engine::set_actual_number(const FormID &id, double number) {
         }
         reference_entry->set_actual_value(number);
     } else {
-        number_entry->actual_value = number;
+        number_entry->set_actual_value(number);
     }
 }
 
@@ -903,7 +903,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
         case EntryType::Numeric: {
             std::experimental::optional<double> desired_value{};
             NumericTolerance tolerance{};
-            double si_prefix = 1;
+            std::experimental::optional<double> si_prefix = 1;
             QString unit{};
             QString nice_name{};
 
@@ -949,7 +949,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                                       "The number field with key \"" + field_name +
                                           "\" has no tolerance defined. Each number field must have a tolerance defined.");
             }
-            return std::make_unique<NumericDataEntry>(field_name, desired_value, tolerance, std::move(unit), std::move(nice_name));
+            return std::make_unique<NumericDataEntry>(field_name, desired_value, tolerance, std::move(unit), si_prefix, std::move(nice_name));
         }
         case EntryType::Bool: {
             std::experimental::optional<bool> desired_value{};
@@ -1031,12 +1031,14 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
 }
 
 NumericDataEntry::NumericDataEntry(FormID field_name, std::experimental::optional<double> desired_value, NumericTolerance tolerance, QString unit,
-                                   QString description)
+                                   std::experimental::optional<double> si_prefix, QString description)
     : DataEngineDataEntry(field_name)
     , desired_value(desired_value)
     , tolerance(tolerance)
     , unit(std::move(unit))
-    , description(std::move(description)) {}
+    , description(std::move(description)) {
+    this->si_prefix = si_prefix.value_or(1.0);
+}
 
 bool NumericDataEntry::is_complete() const {
     return bool(actual_value);
@@ -1068,6 +1070,15 @@ QString NumericDataEntry::get_description() const {
 
 QString NumericDataEntry::get_unit() const {
     return unit;
+}
+
+void NumericDataEntry::set_actual_value(std::experimental::optional<double> actual_value)
+{
+    if((bool)actual_value){
+        this->actual_value = actual_value.value() / si_prefix;
+    }else{
+        this->actual_value = actual_value;
+    }
 }
 
 void NumericDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
@@ -1254,7 +1265,7 @@ void ReferenceDataEntry::set_actual_value(double number) {
             QString("The referencing field \"%1\" is not a number as it must be if you set it with the number: \"%2\"").arg(field_name).arg(number));
     }
 
-    num_entry->actual_value = number;
+    num_entry->set_actual_value(number);
 }
 
 void ReferenceDataEntry::set_actual_value(QString val) {
@@ -1287,7 +1298,6 @@ QString ReferenceDataEntry::get_description() const {
 QString ReferenceDataEntry::get_desired_value_as_string() const {
     update_desired_value_from_reference();
     return entry->get_desired_value_as_string();
-
 }
 
 QString ReferenceDataEntry::get_unit() const {
@@ -1337,7 +1347,7 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
                     .arg(field_name)
                     .arg(reference_links[0].link));
         }
-        entry = std::make_unique<NumericDataEntry>("", temp_desired_value, tolerance, num_entry->unit, description);
+        entry = std::make_unique<NumericDataEntry>("", temp_desired_value, tolerance, num_entry->unit, num_entry->si_prefix, description);
     } else if (text_entry) {
         std::experimental::optional<QString> temp_desired_value; //will be set later, when beeing compared
         entry = std::make_unique<TextDataEntry>("", temp_desired_value, description);
