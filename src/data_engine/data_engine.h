@@ -45,8 +45,11 @@ enum class DataEngineErrorNumber {
     reference_is_a_number_and_needs_tolerance,
     illegal_reference_declaration,
     setting_reference_actual_value_with_wrong_type,
-    //  reference_has_unit_defined,
-    //  reference_has_unit_si_prefix_defined
+    instance_count_must_not_be_zero,
+    instance_count_does_not_exist,
+    instance_count_yet_undefined,
+    instance_count_already_defined,
+    instance_count_exceeding
 };
 class DataEngineError : public std::runtime_error {
     public:
@@ -266,6 +269,7 @@ struct VariantData {
 
 struct DataEngineSection {
     std::vector<VariantData> variants;
+    QVariant instance_count;
 
     public:
     const VariantData *get_variant() const;
@@ -319,6 +323,8 @@ class Data_engine {
     void set_actual_number(const FormID &id, double number);
     void set_actual_text(const FormID &id, QString text);
     void set_actual_bool(const FormID &id, bool value);
+    void use_instance(QString section_name, QString instance_caption, uint instance_index);
+    void set_instance_count(QString instance_count_name, uint instance_count);
 
     // double get_desired_value(const FormID &id) const;
 

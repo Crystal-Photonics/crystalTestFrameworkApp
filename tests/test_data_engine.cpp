@@ -6,7 +6,7 @@
 #include <QString>
 #include <sstream>
 
-#define DISABLE_ALL 0
+#define DISABLE_ALL 1
 //
 #define QVERIFY_EXCEPTION_THROWN_error_number(expression, error_number)                                                                                        \
     do {                                                                                                                                                       \
@@ -610,6 +610,126 @@ void Test_Data_engine::test_bool_entry() {
 #endif
 }
 
+void Test_Data_engine::test_instances() {
+#if !DISABLE_ALL || 1
+    //TODO: test if "instance_count": 0 throws exception
+    //TODO: test if reference pointing to desired value of multiinstance is ok
+    //TODO: test if reference pointing to actual value of multiinstance fails
+
+    std::stringstream input{R"(
+{
+    "supply_1":{
+        "data":[
+            {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "One Instance. Normal mode"	}
+        ]
+    },
+    "supply_2":{
+        "instance_count": 2,
+        "data":[
+            {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Two Instances. Fixed mode"	}
+        ]
+    },
+    "supply_probe_count":{
+        "instance_count": "probe_count",
+        "variants":[
+            {
+                "data":[
+                    {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. One Variant"	}
+                ]
+            }
+        ]
+    },
+    "supply_2_object":{
+        "instance_count": "2",
+        "variants":{
+                "data":[
+                    {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. One Variant"	}
+                ]
+            }
+    },
+    "supply_varants":{
+        "instance_count": "probe_count",
+        "variants":[
+            {
+                "apply_if": {
+                    "is_good_variant": true
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen"	}
+                ]
+            },
+            {
+                "apply_if": {
+                    "is_good_variant": false
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is not chosen"	}
+                ]
+            }
+        ]
+    }
+}
+                            )"};
+    QMap<QString, QVariant> tags;
+    tags.insert("is_good_variant",true);
+    Data_engine de{input, tags};
+
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+
+    de.set_actual_number("supply_1/voltage", 5.0);
+
+    de.set_actual_number("supply_2/voltage", 5.0);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("supply_probe_count/voltage", 5.0);, DataEngineErrorNumber::instance_count_yet_undefined);
+
+    QVERIFY(!de.is_complete());
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.use_instance("supply_probe_count", "probe 1", 1);, DataEngineErrorNumber::instance_count_yet_undefined);
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_instance_count("probe_count_fail", 3);, DataEngineErrorNumber::instance_count_does_not_exist);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_instance_count("probe_count", 0);, DataEngineErrorNumber::instance_count_must_not_be_zero);
+
+    de.set_instance_count("probe_count", 3);
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_instance_count("probe_count", 4);, DataEngineErrorNumber::instance_count_already_defined);
+
+    de.set_actual_number("supply_probe_count/voltage", 5.0);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.use_instance("supply_probe_count", "Probe abc", 4);, DataEngineErrorNumber::instance_count_exceeding);
+    de.use_instance("supply_probe_count", "Probe abc", 2);
+
+    de.set_actual_number("supply_probe_count/voltage", 5.0);
+    de.use_instance("supply_probe_count", "Probe xyz", 3);
+    //wait with filling for checking if not complete
+
+    de.use_instance("supply_2", "Instanz 2", 2);
+    de.set_actual_number("supply_2/voltage", 4.0); //should be ok, but fail since actual value is out of range
+    QVERIFY(!de.is_complete());
+    de.set_actual_number("supply_probe_count/voltage", 5.0);
+
+    de.set_actual_number("supply_varants/voltage", 5.0);
+
+    de.use_instance("supply_varants", "Probe B", 2);
+    de.set_actual_number("supply_varants/voltage", 5.0);
+
+    de.use_instance("supply_varants", "Probe C", 3);
+    de.set_actual_number("supply_varants/voltage", 5.0);
+
+
+    de.set_actual_number("supply_2_object/voltage", 5.0);
+
+    de.use_instance("supply_2_object", "Probe B", 2);
+    de.set_actual_number("supply_2_object/voltage", 5.0);
+
+    QVERIFY(de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+    de.set_actual_number("supply_2/voltage", 5.0);
+
+
+    QVERIFY(de.all_values_in_range());
+
+#endif
+}
+
 void Test_Data_engine::test_empty_entries() {
 #if !DISABLE_ALL
 
@@ -934,36 +1054,35 @@ void Test_Data_engine::test_references_get_actual_value_description_desired_valu
     de.set_actual_bool("referenzen/test_bool_ref", true);
     de.set_actual_text("referenzen/test_string_ref", "TEST123");
 
-    QCOMPARE(de.get_actual_value("test_valuesA/test_number"),QString("101"));
-    QCOMPARE(de.get_description("test_valuesA/test_number"),QString("Original number"));
-    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_number"),QString("100 (±1)"));
-    QCOMPARE(de.get_unit("test_valuesA/test_number"),QString("mA"));
+    QCOMPARE(de.get_actual_value("test_valuesA/test_number"), QString("101"));
+    QCOMPARE(de.get_description("test_valuesA/test_number"), QString("Original number"));
+    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_number"), QString("100 (±1)"));
+    QCOMPARE(de.get_unit("test_valuesA/test_number"), QString("mA"));
 
-    QCOMPARE(de.get_actual_value("test_valuesA/test_bool"),QString("true"));
-    QCOMPARE(de.get_description("test_valuesA/test_bool"),QString("Original bool"));
-    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_bool"),QString("true"));
-    QCOMPARE(de.get_unit("test_valuesA/test_bool"),QString(""));
+    QCOMPARE(de.get_actual_value("test_valuesA/test_bool"), QString("true"));
+    QCOMPARE(de.get_description("test_valuesA/test_bool"), QString("Original bool"));
+    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_bool"), QString("true"));
+    QCOMPARE(de.get_unit("test_valuesA/test_bool"), QString(""));
 
-    QCOMPARE(de.get_actual_value("test_valuesA/test_string"),QString("TEST321"));
-    QCOMPARE(de.get_description("test_valuesA/test_string"),QString("Original string"));
-    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_string"),QString("test_string"));
-    QCOMPARE(de.get_unit("test_valuesA/test_string"),QString(""));
+    QCOMPARE(de.get_actual_value("test_valuesA/test_string"), QString("TEST321"));
+    QCOMPARE(de.get_description("test_valuesA/test_string"), QString("Original string"));
+    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_string"), QString("test_string"));
+    QCOMPARE(de.get_unit("test_valuesA/test_string"), QString(""));
 
-    QCOMPARE(de.get_actual_value("referenzen/test_number_ref"),QString("102"));
-    QCOMPARE(de.get_description("referenzen/test_number_ref"),QString("Referenz zum numer soll"));
-    QCOMPARE(de.get_desired_value_as_string("referenzen/test_number_ref"),QString("100 (±2)"));
-    QCOMPARE(de.get_unit("referenzen/test_number_ref"),QString("mA"));
+    QCOMPARE(de.get_actual_value("referenzen/test_number_ref"), QString("102"));
+    QCOMPARE(de.get_description("referenzen/test_number_ref"), QString("Referenz zum numer soll"));
+    QCOMPARE(de.get_desired_value_as_string("referenzen/test_number_ref"), QString("100 (±2)"));
+    QCOMPARE(de.get_unit("referenzen/test_number_ref"), QString("mA"));
 
-    QCOMPARE(de.get_actual_value("referenzen/test_bool_ref"),QString("true"));
-    QCOMPARE(de.get_description("referenzen/test_bool_ref"),QString("Referenz zum bool soll"));
-    QCOMPARE(de.get_desired_value_as_string("referenzen/test_bool_ref"),QString("true"));
-    QCOMPARE(de.get_unit("referenzen/test_bool_ref"),QString(""));
+    QCOMPARE(de.get_actual_value("referenzen/test_bool_ref"), QString("true"));
+    QCOMPARE(de.get_description("referenzen/test_bool_ref"), QString("Referenz zum bool soll"));
+    QCOMPARE(de.get_desired_value_as_string("referenzen/test_bool_ref"), QString("true"));
+    QCOMPARE(de.get_unit("referenzen/test_bool_ref"), QString(""));
 
-    QCOMPARE(de.get_actual_value("referenzen/test_string_ref"),QString("TEST123"));
-    QCOMPARE(de.get_description("referenzen/test_string_ref"),QString("Referenz zum string soll"));
-    QCOMPARE(de.get_desired_value_as_string("referenzen/test_string_ref"),QString("test_string"));
-    QCOMPARE(de.get_unit("referenzen/test_string_ref"),QString(""));
-
+    QCOMPARE(de.get_actual_value("referenzen/test_string_ref"), QString("TEST123"));
+    QCOMPARE(de.get_description("referenzen/test_string_ref"), QString("Referenz zum string soll"));
+    QCOMPARE(de.get_desired_value_as_string("referenzen/test_string_ref"), QString("test_string"));
+    QCOMPARE(de.get_unit("referenzen/test_string_ref"), QString(""));
 
 #endif
 }
@@ -1073,7 +1192,6 @@ void Test_Data_engine::test_references_string_bool() {
 #endif
 }
 
-
 void Test_Data_engine::test_references_set_value_in_wrong_type() {
 #if !DISABLE_ALL
 
@@ -1165,7 +1283,6 @@ void Test_Data_engine::test_references_if_fails_when_setting_tolerance_in_string
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags);, DataEngineErrorNumber::reference_is_not_number_but_has_tolerance);
 #endif
 }
-
 
 void Test_Data_engine::test_references_when_number_reference_without_tolerance() {
 #if !DISABLE_ALL || 0
@@ -1264,11 +1381,10 @@ void Test_Data_engine::test_references_if_fails_when_mismatch_in_unit() {
     QMap<QString, QVariant> tags;
 
     Data_engine(input_ok, tags);
-    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_fail_unit, tags);,      DataEngineErrorNumber::invalid_data_entry_key);
-    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_fail_prefix, tags);,    DataEngineErrorNumber::invalid_data_entry_key);
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_fail_unit, tags);, DataEngineErrorNumber::invalid_data_entry_key);
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_fail_prefix, tags);, DataEngineErrorNumber::invalid_data_entry_key);
 #endif
 }
-
 
 void Test_Data_engine::test_preview() {
 #if !DISABLE_ALL && 0
@@ -1298,4 +1414,3 @@ void Test_Data_engine::test_preview() {
 
 #endif
 }
-

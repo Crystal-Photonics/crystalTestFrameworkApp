@@ -44,6 +44,7 @@ class Test_Data_engine : public QObject {
     void test_references_if_fails_when_mismatch_in_unit();
     void test_references_when_number_reference_without_tolerance();
     void test_references_get_actual_value_description_desired_value();
+    void test_instances();
 };
 
 DECLARE_TEST(Test_Data_engine)

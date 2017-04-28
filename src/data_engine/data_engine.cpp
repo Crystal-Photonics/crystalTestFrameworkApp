@@ -249,7 +249,38 @@ void DataEngineSection::from_json(const QJsonValue &object, const QString &key_n
             append_variant_from_json(variant.toObject());
         }
     } else if (object.isObject()) {
-        append_variant_from_json(object.toObject());
+        QJsonObject obj = object.toObject();
+        if (obj.contains("instance_count")) {
+            bool is_string = obj["instance_count"].isString();
+            instance_count = obj["instance_count"].toVariant();
+            bool ok = true;
+            double instance_count_dbl = instance_count.toDouble(&ok);
+            if (!ok) {
+                if (is_string) {
+                    //is string -> alles
+                }else{
+                    //TODO: fail here
+                }
+
+            } else {
+                //TODO: is fraction? if yes, fail
+            }
+        }
+        if (obj.contains("variants")) {
+            QJsonValue var_val = obj["variants"];
+            if (var_val.isArray()) {
+                for (auto variant : var_val.toArray()) {
+                    append_variant_from_json(variant.toObject());
+                }
+            } else if (var_val.isObject()) {
+                append_variant_from_json(var_val.toObject());
+            } else {
+                throw std::runtime_error(QString("invalid variant in json file").toStdString());
+            }
+        } else {
+            append_variant_from_json(object.toObject());
+        }
+
     } else {
         throw std::runtime_error(QString("invalid variant in json file").toStdString());
     }
@@ -611,6 +642,10 @@ void Data_engine::set_actual_bool(const FormID &id, bool value) {
         bool_entry->actual_value = value;
     }
 }
+
+void Data_engine::use_instance(QString section_name, QString instance_caption, uint instance_index) {}
+
+void Data_engine::set_instance_count(QString instance_count_name, uint instance_count) {}
 
 QString Data_engine::get_actual_value(const FormID &id) const {
     const DataEngineDataEntry *data_entry = sections.get_entry(id);
@@ -1072,11 +1107,10 @@ QString NumericDataEntry::get_unit() const {
     return unit;
 }
 
-void NumericDataEntry::set_actual_value(std::experimental::optional<double> actual_value)
-{
-    if((bool)actual_value){
+void NumericDataEntry::set_actual_value(std::experimental::optional<double> actual_value) {
+    if ((bool)actual_value) {
         this->actual_value = actual_value.value() / si_prefix;
-    }else{
+    } else {
         this->actual_value = actual_value;
     }
 }
