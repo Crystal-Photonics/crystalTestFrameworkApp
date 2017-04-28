@@ -41,6 +41,9 @@ class Test_Data_engine : public QObject {
     void test_references_if_fails_when_setting_tolerance_in_string();
     void test_if_fails_when_desired_number_misses_tolerance();
     void test_if_success_when_actuel_number_misses_tolerance();
+    void test_references_if_fails_when_mismatch_in_unit();
+    void test_references_when_number_reference_without_tolerance();
+    void test_references_get_actual_value_description_desired_value();
 };
 
 DECLARE_TEST(Test_Data_engine)

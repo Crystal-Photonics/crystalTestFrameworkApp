@@ -612,22 +612,34 @@ void Data_engine::set_actual_bool(const FormID &id, bool value) {
     }
 }
 
-double Data_engine::get_desired_value(const FormID &id) const {
+QString Data_engine::get_actual_value(const FormID &id) const {
     const DataEngineDataEntry *data_entry = sections.get_entry(id);
     assert(data_entry);
-    return data_entry->as<NumericDataEntry>()->desired_value.value_or(std::numeric_limits<double>::quiet_NaN());
+    return data_entry->get_actual_value();
 }
 
-QString Data_engine::get_desired_value_as_text(const FormID &id) const {
+QString Data_engine::get_description(const FormID &id) const {
     const DataEngineDataEntry *data_entry = sections.get_entry(id);
     assert(data_entry);
-    return data_entry->as<NumericDataEntry>()->get_desired_value_as_string();
+    return data_entry->get_description();
 }
 
-const QString &Data_engine::get_unit(const FormID &id) const {
+//double Data_engine::get_desired_value(const FormID &id) const {
+//    const DataEngineDataEntry *data_entry = sections.get_entry(id);
+//    assert(data_entry);
+//    return data_entry->as<NumericDataEntry>()->desired_value.value_or(std::numeric_limits<double>::quiet_NaN());
+//}
+
+QString Data_engine::get_desired_value_as_string(const FormID &id) const {
     const DataEngineDataEntry *data_entry = sections.get_entry(id);
     assert(data_entry);
-    return data_entry->as<NumericDataEntry>()->unit;
+    return data_entry->get_desired_value_as_string();
+}
+
+QString Data_engine::get_unit(const FormID &id) const {
+    const DataEngineDataEntry *data_entry = sections.get_entry(id);
+    assert(data_entry);
+    return data_entry->get_unit();
 }
 
 std::unique_ptr<QWidget> Data_engine::get_preview() const {
@@ -692,7 +704,8 @@ bool NumericTolerance::test_in_range(const double desired, const std::experiment
     double max_value_absolute = 0;
 
     if (is_undefined) {
-        throw DataEngineError(DataEngineErrorNumber::tolerance_must_be_defined_for_range_checks_on_numbers, "no tolerance defined even though a range check should be done.");
+        throw DataEngineError(DataEngineErrorNumber::tolerance_must_be_defined_for_range_checks_on_numbers,
+                              "no tolerance defined even though a range check should be done.");
     }
 
     switch (tolerance_type) {
@@ -931,9 +944,10 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                                           "Invalid key \"" + key + "\" in numeric JSON object without desired value");
                 }
             }
-            if ((tolerance.is_defined() == false)  && (entry_without_value == false) ){
+            if ((tolerance.is_defined() == false) && (entry_without_value == false)) {
                 throw DataEngineError(DataEngineErrorNumber::tolerance_must_be_defined_for_numbers,
-                                      "The number field with key \"" + field_name + "\" has no tolerance defined. Each number field must have a tolerance defined.");
+                                      "The number field with key \"" + field_name +
+                                          "\" has no tolerance defined. Each number field must have a tolerance defined.");
             }
             return std::make_unique<NumericDataEntry>(field_name, desired_value, tolerance, std::move(unit), std::move(nice_name));
         }
@@ -1052,6 +1066,10 @@ QString NumericDataEntry::get_description() const {
     return description;
 }
 
+QString NumericDataEntry::get_unit() const {
+    return unit;
+}
+
 void NumericDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
     NumericDataEntry *num_from = from->as<NumericDataEntry>();
     assert(num_from);
@@ -1099,6 +1117,10 @@ QString TextDataEntry::get_desired_value_as_string() const {
     } else {
         return "";
     }
+}
+
+QString TextDataEntry::get_unit() const {
+    return "";
 }
 
 void TextDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
@@ -1172,6 +1194,10 @@ QString BoolDataEntry::get_desired_value_as_string() const {
     }
 }
 
+QString BoolDataEntry::get_unit() const {
+    return "";
+}
+
 void BoolDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
     BoolDataEntry *num_from = from->as<BoolDataEntry>();
     assert(num_from);
@@ -1196,29 +1222,28 @@ ReferenceDataEntry::ReferenceDataEntry(const FormID name, QString reference_stri
 }
 
 bool ReferenceDataEntry::is_complete() const {
-    if (reference_links[0].value == ReferenceLink::ReferenceValue::DesiredValue) {
-        assert(entry_target->is_desired_value_set());
-        entry->set_desired_value_from_desired(entry_target);
-    } else {
-        entry->set_desired_value_from_actual(entry_target);
-        if (!entry->is_desired_value_set()) {
-            return false;
-        }
+    update_desired_value_from_reference();
+    if (!entry->is_desired_value_set()) {
+        return false;
     }
     return entry->is_complete();
 }
 
 bool ReferenceDataEntry::is_in_range() const {
+    update_desired_value_from_reference();
+    if (!entry->is_desired_value_set()) {
+        return false;
+    }
+    return entry->is_in_range();
+}
+
+void ReferenceDataEntry::update_desired_value_from_reference() const {
     if (reference_links[0].value == ReferenceLink::ReferenceValue::DesiredValue) {
         assert(entry_target->is_desired_value_set());
         entry->set_desired_value_from_desired(entry_target);
     } else {
         entry->set_desired_value_from_actual(entry_target);
-        if (!entry->is_desired_value_set()) {
-            return false;
-        }
     }
-    return entry->is_in_range();
 }
 
 void ReferenceDataEntry::set_actual_value(double number) {
@@ -1252,7 +1277,7 @@ void ReferenceDataEntry::set_actual_value(bool val) {
 }
 
 QString ReferenceDataEntry::get_actual_value() const {
-    return "";
+    return entry->get_actual_value();
 }
 
 QString ReferenceDataEntry::get_description() const {
@@ -1260,7 +1285,13 @@ QString ReferenceDataEntry::get_description() const {
 }
 
 QString ReferenceDataEntry::get_desired_value_as_string() const {
-    return "";
+    update_desired_value_from_reference();
+    return entry->get_desired_value_as_string();
+
+}
+
+QString ReferenceDataEntry::get_unit() const {
+    return entry_target->get_unit();
 }
 
 void ReferenceDataEntry::dereference(DataEngineSections *sections) {
@@ -1299,6 +1330,13 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
     BoolDataEntry *bool_entry = entry_target->as<BoolDataEntry>();
     if (num_entry) {
         std::experimental::optional<double> temp_desired_value; //will be set later, when beeing compared
+        if (!tolerance.is_defined()) {
+            throw DataEngineError(
+                DataEngineErrorNumber::reference_is_a_number_and_needs_tolerance,
+                QString("reference \"%1\" pointing to \"%2\", is a number but has no tolerance defined. A tolerance must be defined on numbers.")
+                    .arg(field_name)
+                    .arg(reference_links[0].link));
+        }
         entry = std::make_unique<NumericDataEntry>("", temp_desired_value, tolerance, num_entry->unit, description);
     } else if (text_entry) {
         std::experimental::optional<QString> temp_desired_value; //will be set later, when beeing compared

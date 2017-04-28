@@ -276,7 +276,7 @@ void Test_Data_engine::check_non_faulty_field_id() {
     QMap<QString, QVariant> tags;
     Data_engine de{input, tags};
 
-    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage"), DataEngineErrorNumber::faulty_field_id);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage"), DataEngineErrorNumber::faulty_field_id);
 
 #endif
 }
@@ -296,7 +296,7 @@ void Test_Data_engine::check_non_existing_desired_value() {
     QMap<QString, QVariant> tags;
     Data_engine de{input, tags};
 
-    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage"), DataEngineErrorNumber::no_field_id_found);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage/voltage"), DataEngineErrorNumber::no_field_id_found);
 
 #endif
 }
@@ -365,11 +365,11 @@ void Test_Data_engine::check_dependency_handling() {
         // qDebug() << printer;
         if (data.expected_error == DataEngineErrorNumber::no_variant_found) {
             Data_engine de(input, tags);
-            QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage"), data.expected_error);
+            QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage/voltage"), data.expected_error);
 
         } else {
             Data_engine de(input, tags);
-            de.get_desired_value("supply-voltage/voltage");
+            de.get_desired_value_as_string("supply-voltage/voltage");
         }
     }
 #endif
@@ -437,11 +437,11 @@ void Test_Data_engine::check_dependency_ambiguity_handling() {
             QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags), data.expected_error);
         } else if (data.expected_error == DataEngineErrorNumber::no_variant_found) {
             Data_engine de(input, tags);
-            QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage"), data.expected_error);
+            QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage/voltage"), data.expected_error);
 
         } else {
             Data_engine de(input, tags);
-            de.get_desired_value("supply-voltage/voltage");
+            de.get_desired_value_as_string("supply-voltage/voltage");
         }
     }
 #endif
@@ -462,7 +462,7 @@ void Test_Data_engine::check_non_existing_section_name() {
     QMap<QString, QVariant> tags;
     Data_engine de{input, tags};
 
-    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value("supply-voltage/voltage"), DataEngineErrorNumber::no_section_id_found);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage/voltage"), DataEngineErrorNumber::no_section_id_found);
 
 #endif
 }
@@ -479,7 +479,7 @@ void Test_Data_engine::check_data_by_object() {
                             )"};
     QMap<QString, QVariant> tags;
     Data_engine de{input, tags};
-    de.get_desired_value("supply-voltage/voltage");
+    de.get_desired_value_as_string("supply-voltage/voltage");
 
 #endif
 }
@@ -496,8 +496,7 @@ void Test_Data_engine::check_value_matching_by_name() {
                             )"};
     QMap<QString, QVariant> tags;
     const Data_engine de{input, tags};
-    QCOMPARE(de.get_desired_value("supply-voltage/voltage"), 5000.0);
-    QCOMPARE(de.get_desired_value_as_text("supply-voltage/voltage"), QString("5000 (±200)"));
+    QCOMPARE(de.get_desired_value_as_string("supply-voltage/voltage"), QString("5000 (±200)"));
 #endif
 }
 
@@ -523,7 +522,7 @@ void Test_Data_engine::single_numeric_property_test() {
     QVERIFY(!de.all_values_in_range());
     QVERIFY(!de.value_in_range("supply/voltage"));
 
-    QCOMPARE(de.get_desired_value("supply/voltage"), 5000.);
+    QCOMPARE(de.get_desired_value_as_string("supply/voltage"), QString("5000 (±200)"));
     QCOMPARE(de.get_unit("supply/voltage"), "mV"_qs);
 
     de.set_actual_number("supply/voltage", 5201);
@@ -901,6 +900,74 @@ void Test_Data_engine::test_references_from_non_actual_only_field() {
 #endif
 }
 
+void Test_Data_engine::test_references_get_actual_value_description_desired_value() {
+#if !DISABLE_ALL
+
+    std::stringstream input{R"(
+{
+    "referenzen":{
+        "data":[
+
+            {	"name": "test_number_ref",          "value": "[test_valuesA/test_number.desired]",          "tolerance":2 ,                "nice_name": "Referenz zum numer soll"         },
+            {	"name": "test_bool_ref",            "value": "[test_valuesA/test_bool.desired]",                        "nice_name": "Referenz zum bool soll"           },
+            {	"name": "test_string_ref",          "value": "[test_valuesA/test_string.desired]",                      "nice_name": "Referenz zum string soll"        }
+        ]
+    },
+    "test_valuesA":{
+        "data":[
+            {	"name": "test_number",                  "value": 100,     "tolerance":1 ,   "unit":"mA",           "nice_name": "Original number"        },
+            {	"name": "test_bool",                    "value": true,                                  "nice_name": "Original bool"	},
+            {	"name": "test_string",                  "value": "test_string",                         "nice_name": "Original string"	}
+        ]
+    }
+
+}
+                            )"};
+    QMap<QString, QVariant> tags;
+    Data_engine de{input, tags};
+
+    de.set_actual_number("test_valuesA/test_number", 101);
+    de.set_actual_bool("test_valuesA/test_bool", true);
+    de.set_actual_text("test_valuesA/test_string", "TEST321");
+
+    de.set_actual_number("referenzen/test_number_ref", 102);
+    de.set_actual_bool("referenzen/test_bool_ref", true);
+    de.set_actual_text("referenzen/test_string_ref", "TEST123");
+
+    QCOMPARE(de.get_actual_value("test_valuesA/test_number"),QString("101"));
+    QCOMPARE(de.get_description("test_valuesA/test_number"),QString("Original number"));
+    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_number"),QString("100 (±1)"));
+    QCOMPARE(de.get_unit("test_valuesA/test_number"),QString("mA"));
+
+    QCOMPARE(de.get_actual_value("test_valuesA/test_bool"),QString("true"));
+    QCOMPARE(de.get_description("test_valuesA/test_bool"),QString("Original bool"));
+    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_bool"),QString("true"));
+    QCOMPARE(de.get_unit("test_valuesA/test_bool"),QString(""));
+
+    QCOMPARE(de.get_actual_value("test_valuesA/test_string"),QString("TEST321"));
+    QCOMPARE(de.get_description("test_valuesA/test_string"),QString("Original string"));
+    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_string"),QString("test_string"));
+    QCOMPARE(de.get_unit("test_valuesA/test_string"),QString(""));
+
+    QCOMPARE(de.get_actual_value("referenzen/test_number_ref"),QString("102"));
+    QCOMPARE(de.get_description("referenzen/test_number_ref"),QString("Referenz zum numer soll"));
+    QCOMPARE(de.get_desired_value_as_string("referenzen/test_number_ref"),QString("100 (±2)"));
+    QCOMPARE(de.get_unit("referenzen/test_number_ref"),QString("mA"));
+
+    QCOMPARE(de.get_actual_value("referenzen/test_bool_ref"),QString("true"));
+    QCOMPARE(de.get_description("referenzen/test_bool_ref"),QString("Referenz zum bool soll"));
+    QCOMPARE(de.get_desired_value_as_string("referenzen/test_bool_ref"),QString("true"));
+    QCOMPARE(de.get_unit("referenzen/test_bool_ref"),QString(""));
+
+    QCOMPARE(de.get_actual_value("referenzen/test_string_ref"),QString("TEST123"));
+    QCOMPARE(de.get_description("referenzen/test_string_ref"),QString("Referenz zum string soll"));
+    QCOMPARE(de.get_desired_value_as_string("referenzen/test_string_ref"),QString("test_string"));
+    QCOMPARE(de.get_unit("referenzen/test_string_ref"),QString(""));
+
+
+#endif
+}
+
 void Test_Data_engine::test_references_string_bool() {
 #if !DISABLE_ALL || 0
 
@@ -1014,7 +1081,7 @@ void Test_Data_engine::test_references_set_value_in_wrong_type() {
 {
     "referenzen":{
         "data":[
-            {	"name": "test_number_ref",          "value": "[test_valuesA/test_number.desired]",           	"nice_name": "Referenz zum bool AO ist"         },
+            {	"name": "test_number_ref",          "value": "[test_valuesA/test_number.desired]",    "tolerance": 20,        	"nice_name": "Referenz zum bool AO ist"         },
             {	"name": "test_bool_ref",            "value": "[test_valuesA/test_bool.desired]",                 "nice_name": "Referenz zum string AO ist"       },
             {	"name": "test_string_ref",          "value": "[test_valuesA/test_string.desired]",               "nice_name": "Referenz zum bool ist"            }
 
@@ -1098,7 +1165,111 @@ void Test_Data_engine::test_references_if_fails_when_setting_tolerance_in_string
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags);, DataEngineErrorNumber::reference_is_not_number_but_has_tolerance);
 #endif
 }
-//TODO: Test if fail when unit or si_prefix is defined twice(in source and reference)
+
+
+void Test_Data_engine::test_references_when_number_reference_without_tolerance() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input_ok{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "test_bool_ref",            "value": "[test_valuesA/test_bool.desired]",             "tolerance": 30,	   "nice_name": "Referenz ist ok"       }
+
+        ]
+    },
+    "test_valuesA":{
+        "data":[
+            {	"name": "test_bool",                   "value": 123,      "tolerance": 25,                  "nice_name": "nummer"	}
+        ]
+    }
+
+}
+                            )"};
+
+    std::stringstream input_fail{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "test_bool_ref",            "value": "[test_valuesA/test_bool.desired]",           	   "nice_name": "Referenz ist ok"       }
+
+        ]
+    },
+    "test_valuesA":{
+        "data":[
+            {	"name": "test_bool",                   "value": 123,      "tolerance": 25,                  "nice_name": "nummer"	}
+        ]
+    }
+
+}
+                            )"};
+    QMap<QString, QVariant> tags;
+    Data_engine(input_ok, tags);
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_fail, tags);, DataEngineErrorNumber::reference_is_a_number_and_needs_tolerance);
+#endif
+}
+
+void Test_Data_engine::test_references_if_fails_when_mismatch_in_unit() {
+#if !DISABLE_ALL || 0
+    std::stringstream input_ok{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "test_string_ref",          "value": "[test_valuesA/test_number_unit_prefix.desired]",           "tolerance": 25,	    "nice_name": "Referenz zum bool ist"            }
+
+        ]
+    },
+    "test_valuesA":{
+        "data":[
+            {	"name": "test_number_unit_prefix",                 "value": 123,       "tolerance": 25, "unit":"mA",   "si_prefix": 1e-3, "nice_name": "Actual and Desired Value field in strign"	}
+        ]
+    }
+
+}
+                            )"};
+
+    std::stringstream input_fail_unit{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "test_string_ref",          "value": "[test_valuesA/test_number_unit_prefix.desired]",      "unit":"mA",     "tolerance": 25,	    "nice_name": "Referenz zum bool ist"            }
+
+        ]
+    },
+    "test_valuesA":{
+        "data":[
+            {	"name": "test_number_unit_prefix",                 "value": 123,       "tolerance": 25, "unit":"mA",   "si_prefix": 1e-3, "nice_name": "Actual and Desired Value field in strign"	}
+        ]
+    }
+
+}
+                            )"};
+
+    std::stringstream input_fail_prefix{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "test_string_ref",          "value": "[test_valuesA/test_number_unit_prefix.desired]",      "si_prefix": 1e-3,     "tolerance": 25,	    "nice_name": "Referenz zum bool ist"            }
+
+        ]
+    },
+    "test_valuesA":{
+        "data":[
+            {	"name": "test_number_unit_prefix",                 "value": 123,       "tolerance": 25, "unit":"mA",   "si_prefix": 1e-3, "nice_name": "Actual and Desired Value field in strign"	}
+        ]
+    }
+
+}
+                            )"};
+    QMap<QString, QVariant> tags;
+
+    Data_engine(input_ok, tags);
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_fail_unit, tags);,      DataEngineErrorNumber::invalid_data_entry_key);
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_fail_prefix, tags);,    DataEngineErrorNumber::invalid_data_entry_key);
+#endif
+}
+
+
 void Test_Data_engine::test_preview() {
 #if !DISABLE_ALL && 0
     std::stringstream input{R"(
@@ -1127,3 +1298,4 @@ void Test_Data_engine::test_preview() {
 
 #endif
 }
+

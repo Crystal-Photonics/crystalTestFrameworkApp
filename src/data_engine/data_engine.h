@@ -42,8 +42,11 @@ enum class DataEngineErrorNumber {
     reference_not_found,
     reference_target_has_no_desired_value,
     reference_is_not_number_but_has_tolerance,
+    reference_is_a_number_and_needs_tolerance,
     illegal_reference_declaration,
-    setting_reference_actual_value_with_wrong_type
+    setting_reference_actual_value_with_wrong_type,
+    //  reference_has_unit_defined,
+    //  reference_has_unit_si_prefix_defined
 };
 class DataEngineError : public std::runtime_error {
     public:
@@ -69,6 +72,7 @@ struct DataEngineDataEntry {
     virtual QString get_actual_value() const = 0;
     virtual QString get_description() const = 0;
     virtual QString get_desired_value_as_string() const = 0;
+    virtual QString get_unit() const = 0;
 
     virtual void set_desired_value_from_desired(DataEngineDataEntry *from) = 0;
     virtual void set_desired_value_from_actual(DataEngineDataEntry *from) = 0;
@@ -124,6 +128,7 @@ struct NumericDataEntry : DataEngineDataEntry {
 
     QString get_actual_value() const override;
     QString get_description() const override;
+    QString get_unit() const override;
 
     std::experimental::optional<double> desired_value{};
     QString unit{};
@@ -145,6 +150,7 @@ struct TextDataEntry : DataEngineDataEntry {
     QString get_actual_value() const override;
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
+    QString get_unit() const override;
 
     std::experimental::optional<QString> desired_value{};
     QString description{};
@@ -164,6 +170,7 @@ struct BoolDataEntry : DataEngineDataEntry {
     QString get_actual_value() const override;
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
+    QString get_unit() const override;
 
     std::experimental::optional<bool> desired_value{};
     QString description{};
@@ -193,6 +200,7 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     QString get_actual_value() const override;
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
+    QString get_unit() const override;
     NumericTolerance tolerance;
     QString description{};
     void dereference(DataEngineSections *sections);
@@ -213,6 +221,7 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
     bool is_desired_value_set() override;
+    void update_desired_value_from_reference() const;
 };
 
 struct DependencyValue {
@@ -308,17 +317,18 @@ class Data_engine {
     void set_actual_text(const FormID &id, QString text);
     void set_actual_bool(const FormID &id, bool value);
 
-    double get_desired_value(const FormID &id) const;
+    // double get_desired_value(const FormID &id) const;
 
-    const QString &get_desired_text(const FormID &id, const QMap<QString, QVariant> &tags) const;
-    const QString &get_unit(const FormID &id) const;
+    QString get_actual_value(const FormID &id) const;
+    QString get_description(const FormID &id) const;
+    QString get_desired_value_as_string(const FormID &id) const;
+    QString get_unit(const FormID &id) const;
+
     Statistics get_statistics() const;
 
     std::unique_ptr<QWidget> get_preview() const;
     void generate_pdf(const std::string &form, const std::__cxx11::string &destination) const;
     std::string get_json() const;
-
-    QString get_desired_value_as_text(const FormID &id) const;
 
     private:
     struct FormIdWrapper {
