@@ -64,7 +64,7 @@ void DataEngineSections::delete_unmatched_variants(const QMap<QString, QVariant>
 
 void DataEngineSections::deref_references() {
     for (auto &section : sections) {
-        if (section.variants.size() == 0){
+        if (section.variants.size() == 0) {
             continue;
         }
         const VariantData *variant_to_test = section.get_variant();
@@ -583,12 +583,16 @@ void Data_engine::set_actual_text(const FormID &id, QString text) {
     assert(data_entry); //if field is not found an exception was already thrown above. Something bad must happen to assert here
 
     auto text_entry = data_entry->as<TextDataEntry>();
+    ReferenceDataEntry *reference_entry = data_entry->as<ReferenceDataEntry>();
     if (!text_entry) {
-        throw DataEngineError(DataEngineErrorNumber::setting_desired_value_with_wrong_type,
-                              QString("The field \"%1\" is not a string as it must be if you set it with the string \"%2\"").arg(id).arg(text));
+        if (!reference_entry) {
+            throw DataEngineError(DataEngineErrorNumber::setting_desired_value_with_wrong_type,
+                                  QString("The field \"%1\" is not a string as it must be if you set it with the string \"%2\"").arg(id).arg(text));
+        }
+        reference_entry->set_actual_value(text);
+    } else {
+        text_entry->actual_value = text;
     }
-
-    text_entry->actual_value = text;
 }
 
 void Data_engine::set_actual_bool(const FormID &id, bool value) {
@@ -596,12 +600,16 @@ void Data_engine::set_actual_bool(const FormID &id, bool value) {
     assert(data_entry); //if field is not found an exception was already thrown above. Something bad must happen to assert here
 
     auto bool_entry = data_entry->as<BoolDataEntry>();
+    ReferenceDataEntry *reference_entry = data_entry->as<ReferenceDataEntry>();
     if (!bool_entry) {
-        throw DataEngineError(DataEngineErrorNumber::setting_desired_value_with_wrong_type,
-                              QString("The field \"%1\" is not boolean as it must be if you set it with a bool type").arg(id));
+        if (!reference_entry) {
+            throw DataEngineError(DataEngineErrorNumber::setting_desired_value_with_wrong_type,
+                                  QString("The field \"%1\" is not boolean as it must be if you set it with a bool type").arg(id));
+        }
+        reference_entry->set_actual_value(value);
+    } else {
+        bool_entry->actual_value = value;
     }
-
-    bool_entry->actual_value = value;
 }
 
 double Data_engine::get_desired_value(const FormID &id) const {
@@ -682,6 +690,10 @@ void Data_engine::fill_report(QtRPT &report, const QString &form) const {
 bool NumericTolerance::test_in_range(const double desired, const std::experimental::optional<double> &measured) const {
     double min_value_absolute = 0;
     double max_value_absolute = 0;
+
+    if (is_undefined) {
+        throw DataEngineError(DataEngineErrorNumber::tolerance_must_be_defined_for_range_checks_on_numbers, "no tolerance defined even though a range check should be done.");
+    }
 
     switch (tolerance_type) {
         case ToleranceType::Absolute: {
@@ -772,6 +784,10 @@ QString NumericTolerance::to_string(const double desired_value) const {
         }
     }
     return result;
+}
+
+bool NumericTolerance::is_defined() const {
+    return !is_undefined;
 }
 
 void NumericTolerance::str_to_num(QString str_in, double &number, ToleranceType &tol_type, bool &open, const QStringList expected_sign_strings) {
@@ -914,6 +930,10 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                     throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key,
                                           "Invalid key \"" + key + "\" in numeric JSON object without desired value");
                 }
+            }
+            if ((tolerance.is_defined() == false)  && (entry_without_value == false) ){
+                throw DataEngineError(DataEngineErrorNumber::tolerance_must_be_defined_for_numbers,
+                                      "The number field with key \"" + field_name + "\" has no tolerance defined. Each number field must have a tolerance defined.");
             }
             return std::make_unique<NumericDataEntry>(field_name, desired_value, tolerance, std::move(unit), std::move(nice_name));
         }
@@ -1181,7 +1201,7 @@ bool ReferenceDataEntry::is_complete() const {
         entry->set_desired_value_from_desired(entry_target);
     } else {
         entry->set_desired_value_from_actual(entry_target);
-        if (!entry->is_desired_value_set()){
+        if (!entry->is_desired_value_set()) {
             return false;
         }
     }
@@ -1194,7 +1214,7 @@ bool ReferenceDataEntry::is_in_range() const {
         entry->set_desired_value_from_desired(entry_target);
     } else {
         entry->set_desired_value_from_actual(entry_target);
-        if (!entry->is_desired_value_set()){
+        if (!entry->is_desired_value_set()) {
             return false;
         }
     }
@@ -1203,23 +1223,32 @@ bool ReferenceDataEntry::is_in_range() const {
 
 void ReferenceDataEntry::set_actual_value(double number) {
     NumericDataEntry *num_entry = entry->as<NumericDataEntry>();
-    if (num_entry) {
-        num_entry->actual_value = number;
+    if (!num_entry) {
+        throw DataEngineError(
+            DataEngineErrorNumber::setting_reference_actual_value_with_wrong_type,
+            QString("The referencing field \"%1\" is not a number as it must be if you set it with the number: \"%2\"").arg(field_name).arg(number));
     }
+
+    num_entry->actual_value = number;
 }
 
 void ReferenceDataEntry::set_actual_value(QString val) {
-    TextDataEntry *num_entry = entry->as<TextDataEntry>();
-    if (num_entry) {
-        num_entry->actual_value = val;
+    TextDataEntry *text_entry = entry->as<TextDataEntry>();
+    if (!text_entry) {
+        throw DataEngineError(
+            DataEngineErrorNumber::setting_reference_actual_value_with_wrong_type,
+            QString("The referencing field \"%1\" is not a string as it must be if you set it with the string: \"%2\"").arg(field_name).arg(val));
     }
+    text_entry->actual_value = val;
 }
 
 void ReferenceDataEntry::set_actual_value(bool val) {
-    BoolDataEntry *num_entry = entry->as<BoolDataEntry>();
-    if (num_entry) {
-        num_entry->actual_value = val;
+    BoolDataEntry *bool_entry = entry->as<BoolDataEntry>();
+    if (!bool_entry) {
+        throw DataEngineError(DataEngineErrorNumber::setting_reference_actual_value_with_wrong_type,
+                              QString("The referencing field \"%1\" is not a bool as it must be if you set it with the bool: \"%2\"").arg(field_name).arg(val));
     }
+    bool_entry->actual_value = val;
 }
 
 QString ReferenceDataEntry::get_actual_value() const {
@@ -1248,23 +1277,47 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
 
     } else if (reference_links.size() > 1) {
         QString t;
-        for (auto &ref : reference_links){
+        for (auto &ref : reference_links) {
             t += ref.link + " ";
         }
-        throw DataEngineError(DataEngineErrorNumber::reference_ambiguous, QString("reference ambiguous  with links: \"%1\", fieldname: \"%2\"").arg(t).arg(field_name));
+        throw DataEngineError(DataEngineErrorNumber::reference_ambiguous,
+                              QString("reference ambiguous  with links: \"%1\", fieldname: \"%2\"").arg(t).arg(field_name));
     }
     entry_target = sections->get_entry(reference_links[0].link);
 
     if (reference_links[0].value == ReferenceLink::ReferenceValue::DesiredValue) {
         if (!entry_target->is_desired_value_set()) {
-            assert(0); //TODO: exception that desired vlaue must exist
+            throw DataEngineError(DataEngineErrorNumber::reference_target_has_no_desired_value,
+                                  QString("reference \"%1\" points to desired value \"%2\", even though no desired value is defined in \"%2\".")
+                                      .arg(field_name)
+                                      .arg(reference_links[0].link));
         }
     }
 
     NumericDataEntry *num_entry = entry_target->as<NumericDataEntry>();
+    TextDataEntry *text_entry = entry_target->as<TextDataEntry>();
+    BoolDataEntry *bool_entry = entry_target->as<BoolDataEntry>();
     if (num_entry) {
         std::experimental::optional<double> temp_desired_value; //will be set later, when beeing compared
         entry = std::make_unique<NumericDataEntry>("", temp_desired_value, tolerance, num_entry->unit, description);
+    } else if (text_entry) {
+        std::experimental::optional<QString> temp_desired_value; //will be set later, when beeing compared
+        entry = std::make_unique<TextDataEntry>("", temp_desired_value, description);
+    } else if (bool_entry) {
+        std::experimental::optional<bool> temp_desired_value; //will be set later, when beeing compared
+        entry = std::make_unique<BoolDataEntry>("", temp_desired_value, description);
+    } else {
+        assert(0); //TODO:throw illegal type
+    }
+    if (!num_entry) {
+        if (tolerance.is_defined()) {
+            throw DataEngineError(
+                DataEngineErrorNumber::reference_is_not_number_but_has_tolerance,
+                QString(
+                    "reference \"%1\" pointing to \"%2\", is not a number but has a tolerance defined. A tolerance is only allowed to be applied on numbers.")
+                    .arg(field_name)
+                    .arg(reference_links[0].link));
+        }
     }
 }
 
@@ -1291,7 +1344,8 @@ void ReferenceDataEntry::parse_refence_string(QString reference_string) {
             ref_link.value = ReferenceLink::ReferenceValue::DesiredValue;
             ref_link.link = ref;
         } else {
-            assert(0); //TODO: wo should throw exception here
+            throw DataEngineError(DataEngineErrorNumber::illegal_reference_declaration,
+                                  QString("reference \"%1\" target declaration must end with \".desired\" or \".desired\" but does not.").arg(field_name));
         }
         reference_links.push_back(ref_link);
     }

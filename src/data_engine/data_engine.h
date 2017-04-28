@@ -28,6 +28,8 @@ enum class DataEngineErrorNumber {
     data_entry_contains_no_name,
     data_entry_contains_neither_type_nor_value,
     tolerance_parsing_error,
+    tolerance_must_be_defined_for_range_checks_on_numbers,
+    tolerance_must_be_defined_for_numbers,
     duplicate_field,
     duplicate_section,
     non_unique_desired_field_found,
@@ -38,6 +40,10 @@ enum class DataEngineErrorNumber {
     setting_desired_value_with_wrong_type,
     reference_ambiguous,
     reference_not_found,
+    reference_target_has_no_desired_value,
+    reference_is_not_number_but_has_tolerance,
+    illegal_reference_declaration,
+    setting_reference_actual_value_with_wrong_type
 };
 class DataEngineError : public std::runtime_error {
     public:
@@ -94,6 +100,7 @@ struct NumericTolerance {
     public:
     void from_string(const QString &str);
     QString to_string(const double desired_value) const;
+    bool is_defined() const;
 
     private:
     bool is_undefined = true;

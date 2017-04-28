@@ -34,6 +34,13 @@ class Test_Data_engine : public QObject {
     void test_references();
     void test_references_ambiguous();
     void test_references_non_existing();
+    void test_references_from_non_actual_only_field();
+    void test_references_string_bool();
+    void test_references_set_value_in_wrong_type();
+    void test_references_if_fails_when_setting_tolerance_in_bool();
+    void test_references_if_fails_when_setting_tolerance_in_string();
+    void test_if_fails_when_desired_number_misses_tolerance();
+    void test_if_success_when_actuel_number_misses_tolerance();
 };
 
 DECLARE_TEST(Test_Data_engine)
