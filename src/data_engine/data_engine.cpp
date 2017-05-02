@@ -54,6 +54,7 @@ void Data_engine::set_source(std::istream &source, const QMap<QString, QVariant>
     sections.from_json(document.object());
     sections.delete_unmatched_variants(tags);
     sections.deref_references();
+    sections.create_already_defined_instances();
 }
 
 void DataEngineSections::delete_unmatched_variants(const QMap<QString, QVariant> &tags) {
@@ -77,6 +78,54 @@ void DataEngineSections::deref_references() {
     }
 }
 
+void DataEngineSections::set_instance_count(QString instance_count_name, uint instance_count) {
+    bool instance_count_name_found = false;
+    for (auto &section : sections) {
+        if (section.set_instance_count_if_name_matches(instance_count_name, instance_count)) {
+            instance_count_name_found = true;
+        }
+    }
+    if (instance_count_name_found == false) {
+        throw DataEngineError(DataEngineErrorNumber::instance_count_does_not_exist,
+                              QString("Could not find instance count name:\"%1\"").arg(instance_count_name));
+    }
+}
+
+void DataEngineSections::use_instance(QString section_name, QString instance_caption, uint instance_index) {
+    DataEngineErrorNumber error_num = DataEngineErrorNumber::ok;
+    DataEngineSection *section_to_use = get_section_raw(section_name, &error_num);
+
+    if (error_num == DataEngineErrorNumber::no_section_id_found) {
+        throw DataEngineError(DataEngineErrorNumber::no_section_id_found, QString("Could not find section with name = \"%1\"").arg(section_name));
+    }
+    assert(section_to_use);
+    section_to_use->use_instance(instance_caption, instance_index);
+}
+
+void DataEngineSections::create_already_defined_instances() {
+    for (auto &section : sections) {
+        section.create_instances_if_defined();
+        if (section.is_section_instance_defined()) {
+            section.use_instance("", 1);
+        }
+    }
+}
+
+DataEngineSection *DataEngineSections::get_section_raw(const QString &section_name, DataEngineErrorNumber *error_num) const {
+    const DataEngineSection *result = nullptr;
+    *error_num = DataEngineErrorNumber::ok;
+    for (auto &section : sections) {
+        if (section.get_section_name() == section_name) {
+            assert(result == nullptr); //there should only be one section with this name
+            result = &section;
+        }
+    }
+    if (result == nullptr) {
+        *error_num = DataEngineErrorNumber::no_section_id_found;
+    }
+    return const_cast<DataEngineSection *>(result);
+}
+
 const DataEngineDataEntry *DataEngineSections::get_entry_raw(const FormID &id, DataEngineErrorNumber *error_num, QString &section_name,
                                                              QString &field_name) const {
     auto names = id.split("/");
@@ -87,22 +136,28 @@ const DataEngineDataEntry *DataEngineSections::get_entry_raw(const FormID &id, D
     bool section_found = false;
     section_name = names[0];
     field_name = names[1];
-    for (auto &section : sections) {
-        if (section.get_section_name() == section_name) {
-            const VariantData *variant = section.get_variant();
-            assert(variant);
+    DataEngineSection *section = get_section_raw(section_name, error_num);
 
-            section_found = true;
-            const DataEngineDataEntry *result = variant->get_value(field_name);
-            if (result == nullptr) {
-                *error_num = DataEngineErrorNumber::no_field_id_found;
-            }
-            return result;
+    if (section) {
+        const VariantData *variant = section->get_variant();
+        assert(variant);
+        section_found = true;
+
+        if (section->is_section_instance_defined() == false) {
+            section_found = false;
+            throw DataEngineError(DataEngineErrorNumber::instance_count_yet_undefined,
+                                  QString("Instance count of section \"%1\" yet undefined. Instance count value is: \"%2\".")
+                                      .arg(section->get_section_name())
+                                      .arg(section->get_instance_count_name()));
         }
+
+        const DataEngineDataEntry *result = variant->get_value(field_name);
+        if (result == nullptr) {
+            *error_num = DataEngineErrorNumber::no_field_id_found;
+        }
+        return result;
     }
-    if (!section_found) {
-        *error_num = DataEngineErrorNumber::no_section_id_found;
-    }
+
     return nullptr;
 }
 
@@ -185,14 +240,9 @@ void DataEngineSections::from_json(const QJsonObject &object) {
 }
 
 bool DataEngineSections::section_exists(QString section_name) {
-    bool result = false;
-    for (const auto &section : sections) {
-        if (section.get_section_name() == section_name) {
-            result = true;
-            break;
-        }
-    }
-    return result;
+    DataEngineErrorNumber error_num;
+    get_section_raw(section_name, &error_num);
+    return error_num == DataEngineErrorNumber::ok;
 }
 
 void DataEngineSection::delete_unmatched_variants(const QMap<QString, QVariant> &tags) {
@@ -223,6 +273,7 @@ const VariantData *DataEngineSection::get_variant() const {
 bool DataEngineSection::is_complete() const {
     bool result = true;
     const VariantData *variant_to_test = get_variant();
+    assert(variant_to_test);
     for (const auto &entry : variant_to_test->data_entries) {
         if (!entry.get()->is_complete()) {
             result = false;
@@ -246,25 +297,51 @@ void DataEngineSection::from_json(const QJsonValue &object, const QString &key_n
     section_name = key_name;
     if (object.isArray()) {
         for (auto variant : object.toArray()) {
-            append_variant_from_json(variant.toObject());
+            const QJsonObject &obj = variant.toObject();
+            if (obj.contains("instance_count")) {
+                assert(0); //TODO: exception here
+            }
+            append_variant_from_json(obj);
         }
+        instance_count = 1;
+        instance_count_name = "";
     } else if (object.isObject()) {
         QJsonObject obj = object.toObject();
         if (obj.contains("instance_count")) {
             bool is_string = obj["instance_count"].isString();
-            instance_count = obj["instance_count"].toVariant();
-            bool ok = true;
-            double instance_count_dbl = instance_count.toDouble(&ok);
-            if (!ok) {
-                if (is_string) {
-                    //is string -> alles
-                }else{
-                    //TODO: fail here
-                }
+            bool is_number = obj["instance_count"].isDouble();
+            double instance_count_dbl_json = 0;
+            if (is_string) {
+                QString instance_count_name_lcl = obj["instance_count"].toString();
+                bool ok = true;
+                double instance_count_dbl = instance_count_name_lcl.toDouble(&ok);
 
+                if (!ok) {
+                    if (is_string) {
+                        //is string -> alles ok
+                        instance_count_name = instance_count_name_lcl;
+                    } else {
+                        //TODO: fail here
+                    }
+
+                } else {
+                    is_string = false;
+                    is_number = true;
+                    instance_count_dbl_json = instance_count_dbl;
+                }
             } else {
-                //TODO: is fraction? if yes, fail
+                instance_count_dbl_json = obj["instance_count"].toDouble();
             }
+            if (is_number) {
+                instance_count_name = "";
+                instance_count = instance_count_dbl_json;
+
+                //TODO: is fraction? if yes, fail
+                //TODO: is negative? if yes, fail
+            }
+        } else {
+            instance_count = 1;
+            instance_count_name = "";
         }
         if (obj.contains("variants")) {
             QJsonValue var_val = obj["variants"];
@@ -288,6 +365,70 @@ void DataEngineSection::from_json(const QJsonValue &object, const QString &key_n
 
 QString DataEngineSection::get_section_name() const {
     return section_name;
+}
+
+QString DataEngineSection::get_instance_count_name() const {
+    return instance_count_name;
+}
+
+bool DataEngineSection::is_section_instance_defined() const {
+    return (bool)instance_count;
+}
+
+bool DataEngineSection::set_instance_count_if_name_matches(QString instance_count_name, uint instance_count) {
+    bool result = false;
+    if (instance_count == 0) {
+        throw DataEngineError(
+            DataEngineErrorNumber::instance_count_must_not_be_zero,
+            QString("Instance count of section \"%1\" must not be zero. Instance count name is: \"%2\".").arg(get_section_name()).arg(instance_count_name));
+    }
+
+    if (this->instance_count_name == instance_count_name) {
+        if (is_section_instance_defined()) {
+            throw DataEngineError(
+                DataEngineErrorNumber::instance_count_already_defined,
+                QString("Instance count of section \"%1\" is already defined. Instance count name is: \"%2\", actual value of instance count is: %3.")
+                    .arg(get_section_name())
+                    .arg(instance_count_name)
+                    .arg(this->instance_count.value()));
+        } else {
+            result = true;
+            this->instance_count = instance_count;
+            create_instances_if_defined();
+        }
+    }
+    return result;
+}
+
+void DataEngineSection::create_instances_if_defined() {
+    if (is_section_instance_defined()) {
+        assert(instance_captions.count() == 0);
+        for (uint i = 0; i < instance_count.value(); i++) {
+            instance_captions.append("");
+        }
+        VariantData *variant = const_cast<VariantData *>(get_variant());
+        assert(variant);
+        variant->set_instance_count(instance_count.value());
+    }
+}
+
+void DataEngineSection::use_instance(QString instance_caption, uint instance_index) {
+    if (is_section_instance_defined() == false) {
+        throw DataEngineError(
+            DataEngineErrorNumber::instance_count_yet_undefined,
+            QString("Instance count of section \"%1\" yet undefined. Instance count value is: \"%2\".").arg(get_section_name()).arg(get_instance_count_name()));
+    }
+    instance_index--;
+    if (instance_index >= instance_count.value()) {
+        throw DataEngineError(DataEngineErrorNumber::instance_count_exceeding, QString("Instance index (%1) of section \"%2\" exceeds instance count(%3).")
+                                                                                   .arg(instance_index)
+                                                                                   .arg(get_section_name())
+                                                                                   .arg(instance_count.value()));
+    }
+    assert(instance_captions.count() > instance_index);
+    instance_captions[instance_index] = instance_caption;
+    VariantData *variant = const_cast<VariantData *>(get_variant());
+    variant->set_actual_instance_index(instance_index);
 }
 
 void DataEngineSection::append_variant_from_json(const QJsonObject &object) {
@@ -354,6 +495,18 @@ void VariantData::from_json(const QJsonObject &object) {
 
 bool VariantData::value_exists(QString field_name) {
     return get_value(field_name) != nullptr;
+}
+
+void VariantData::set_instance_count(uint instance_count) {
+    for (auto &data_entry : data_entries) {
+        data_entry.get()->set_instance_count(instance_count);
+    }
+}
+
+void VariantData::set_actual_instance_index(uint instance_index) {
+    for (auto &data_entry : data_entries) {
+        data_entry.get()->set_actual_instance_index(instance_index);
+    }
 }
 
 DataEngineDataEntry *VariantData::get_value(QString field_name) const {
@@ -622,7 +775,7 @@ void Data_engine::set_actual_text(const FormID &id, QString text) {
         }
         reference_entry->set_actual_value(text);
     } else {
-        text_entry->actual_value = text;
+        text_entry->set_actual_value(text);
     }
 }
 
@@ -639,18 +792,22 @@ void Data_engine::set_actual_bool(const FormID &id, bool value) {
         }
         reference_entry->set_actual_value(value);
     } else {
-        bool_entry->actual_value = value;
+        bool_entry->set_actual_value(value);
     }
 }
 
-void Data_engine::use_instance(QString section_name, QString instance_caption, uint instance_index) {}
+void Data_engine::use_instance(const QString &section_name, const QString &instance_caption, const uint instance_index) {
+    sections.use_instance(section_name, instance_caption, instance_index);
+}
 
-void Data_engine::set_instance_count(QString instance_count_name, uint instance_count) {}
+void Data_engine::set_instance_count(QString instance_count_name, uint instance_count) {
+    sections.set_instance_count(instance_count_name, instance_count);
+}
 
-QString Data_engine::get_actual_value(const FormID &id) const {
+QStringList Data_engine::get_actual_values(const FormID &id) const {
     const DataEngineDataEntry *data_entry = sections.get_entry(id);
     assert(data_entry);
-    return data_entry->get_actual_value();
+    return data_entry->get_actual_values();
 }
 
 QString Data_engine::get_description(const FormID &id) const {
@@ -742,6 +899,9 @@ bool NumericTolerance::test_in_range(const double desired, const std::experiment
         throw DataEngineError(DataEngineErrorNumber::tolerance_must_be_defined_for_range_checks_on_numbers,
                               "no tolerance defined even though a range check should be done.");
     }
+    if ((bool)measured == false) {
+        return false;
+    }
 
     switch (tolerance_type) {
         case ToleranceType::Absolute: {
@@ -762,6 +922,7 @@ bool NumericTolerance::test_in_range(const double desired, const std::experiment
     if (open_range_beneath) {
         min_value_absolute = std::numeric_limits<double>::lowest();
     }
+
     return (min_value_absolute <= measured) && (measured <= max_value_absolute);
 }
 
@@ -1076,27 +1237,46 @@ NumericDataEntry::NumericDataEntry(FormID field_name, std::experimental::optiona
 }
 
 bool NumericDataEntry::is_complete() const {
-    return bool(actual_value);
+    for (const auto &actual_v : actual_values) {
+        if ((bool)actual_v == false) {
+            return false;
+        }
+    }
+    return actual_values.size() > 0;
 }
 
 bool NumericDataEntry::is_in_range() const {
-    if (bool(desired_value)) {
-        return is_complete() && tolerance.test_in_range(desired_value.value(), actual_value);
-    } else {
-        return is_complete();
+    if (is_complete() == false) {
+        return false;
     }
+    if ((bool)desired_value) {
+        for (const auto &actual_v : actual_values) {
+            if (tolerance.test_in_range(desired_value.value(), actual_v) == false) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 QString NumericDataEntry::get_desired_value_as_string() const {
-    if (bool(desired_value)) {
+    if ((bool)desired_value) {
         return tolerance.to_string(desired_value.value());
     } else {
         return "";
     }
 }
 
-QString NumericDataEntry::get_actual_value() const {
-    return is_complete() ? QString::number(actual_value.value()) : unavailable_value;
+QStringList NumericDataEntry::get_actual_values() const {
+    QStringList result;
+    for (const auto &actual_v : actual_values) {
+        if ((bool)actual_v) {
+            result.append(QString::number(actual_v.value()));
+        } else {
+            result.append(unavailable_value);
+        }
+    }
+    return result;
 }
 
 QString NumericDataEntry::get_description() const {
@@ -1107,12 +1287,26 @@ QString NumericDataEntry::get_unit() const {
     return unit;
 }
 
-void NumericDataEntry::set_actual_value(std::experimental::optional<double> actual_value) {
+void NumericDataEntry::set_actual_value(std::experimental::optional<double> actual_value) { //TODO we need optional here? why?
+    assert(actual_instance_index < actual_values.size());                                   //TODO: put exception here
     if ((bool)actual_value) {
-        this->actual_value = actual_value.value() / si_prefix;
+        this->actual_values[actual_instance_index] = actual_value.value() / si_prefix;
     } else {
-        this->actual_value = actual_value;
+        this->actual_values[actual_instance_index] = actual_value;
     }
+}
+
+void NumericDataEntry::set_instance_count(uint instance_count) {
+    assert(actual_values.size() == 0);
+    for (uint i = 0; i < instance_count; i++) {
+        std::experimental::optional<double> empty_value{};
+        actual_values.push_back(empty_value);
+    }
+}
+
+void NumericDataEntry::set_actual_instance_index(uint instance_index) {
+    assert(instance_index < actual_values.size());
+    actual_instance_index = instance_index;
 }
 
 void NumericDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
@@ -1124,7 +1318,8 @@ void NumericDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from)
 void NumericDataEntry::set_desired_value_from_actual(DataEngineDataEntry *from) {
     NumericDataEntry *num_from = from->as<NumericDataEntry>();
     assert(num_from);
-    desired_value = num_from->actual_value;
+    assert(num_from->actual_values.size() == 1);
+    desired_value = num_from->actual_values[0];
 }
 
 bool NumericDataEntry::is_desired_value_set() {
@@ -1137,19 +1332,38 @@ TextDataEntry::TextDataEntry(const FormID name, std::experimental::optional<QStr
     , description(description) {}
 
 bool TextDataEntry::is_complete() const {
-    return bool(actual_value);
+    for (const auto &actual_v : actual_values) {
+        if ((bool)actual_v == false) {
+            return false;
+        }
+    }
+    return actual_values.size() > 0;
 }
 
 bool TextDataEntry::is_in_range() const {
-    if (bool(desired_value)) {
-        return is_complete() && actual_value.value() == desired_value;
-    } else {
-        return is_complete();
+    if (is_complete() == false) {
+        return false;
     }
+    if ((bool)desired_value) {
+        for (const auto &actual_v : actual_values) {
+            if (actual_v.value() != desired_value) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
-QString TextDataEntry::get_actual_value() const {
-    return is_complete() ? actual_value.value() : unavailable_value;
+QStringList TextDataEntry::get_actual_values() const {
+    QStringList result;
+    for (const auto &actual_v : actual_values) {
+        if ((bool)actual_v) {
+            result.append(actual_v.value());
+        } else {
+            result.append(unavailable_value);
+        }
+    }
+    return result;
 }
 
 QString TextDataEntry::get_description() const {
@@ -1157,7 +1371,7 @@ QString TextDataEntry::get_description() const {
 }
 
 QString TextDataEntry::get_desired_value_as_string() const {
-    if (bool(desired_value)) {
+    if ((bool)desired_value) {
         return desired_value.value();
     } else {
         return "";
@@ -1166,6 +1380,24 @@ QString TextDataEntry::get_desired_value_as_string() const {
 
 QString TextDataEntry::get_unit() const {
     return "";
+}
+
+void TextDataEntry::set_actual_value(QString actual_value) {
+    assert(actual_instance_index < actual_values.size()); //TODO: put exception here
+    this->actual_values[actual_instance_index] = actual_value;
+}
+
+void TextDataEntry::set_instance_count(uint instance_count) {
+    assert(actual_values.size() == 0);
+    for (uint i = 0; i < instance_count; i++) {
+        std::experimental::optional<QString> empty_value{};
+        actual_values.push_back(empty_value);
+    }
+}
+
+void TextDataEntry::set_actual_instance_index(uint instance_index) {
+    assert(instance_index < actual_values.size());
+    actual_instance_index = instance_index;
 }
 
 void TextDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
@@ -1177,7 +1409,8 @@ void TextDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
 void TextDataEntry::set_desired_value_from_actual(DataEngineDataEntry *from) {
     TextDataEntry *num_from = from->as<TextDataEntry>();
     assert(num_from);
-    desired_value = num_from->actual_value;
+    assert(num_from->actual_values.size() == 1);
+    desired_value = num_from->actual_values[0];
 }
 
 bool TextDataEntry::is_desired_value_set() {
@@ -1200,27 +1433,40 @@ BoolDataEntry::BoolDataEntry(const FormID name, std::experimental::optional<bool
     , description(description) {}
 
 bool BoolDataEntry::is_complete() const {
-    return bool(actual_value);
+    for (const auto &actual_v : actual_values) {
+        if ((bool)actual_v == false) {
+            return false;
+        }
+    }
+    return actual_values.size() > 0;
 }
 
 bool BoolDataEntry::is_in_range() const {
-    if (bool(desired_value)) {
-        return is_complete() && actual_value.value() == desired_value;
-    } else {
-        return is_complete();
+    if (is_complete() == false) {
+        return false;
     }
+    if ((bool)desired_value) {
+        for (const auto &actual_v : actual_values) {
+            if (actual_v.value() != desired_value) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
-QString BoolDataEntry::get_actual_value() const {
-    if (is_complete()) {
-        if (actual_value.value()) {
-            return "true";
+QStringList BoolDataEntry::get_actual_values() const {
+    QStringList result;
+    for (const auto &actual_v : actual_values) {
+        if ((bool)actual_v == false) {
+            result.append(unavailable_value);
+        } else if (actual_v.value()) {
+            result.append("true");
         } else {
-            return "false";
+            result.append("false");
         }
-    } else {
-        return unavailable_value;
     }
+    return result;
 }
 
 QString BoolDataEntry::get_description() const {
@@ -1228,7 +1474,7 @@ QString BoolDataEntry::get_description() const {
 }
 
 QString BoolDataEntry::get_desired_value_as_string() const {
-    if (bool(desired_value)) {
+    if ((bool)desired_value) {
         if (desired_value.value()) {
             return "true";
         } else {
@@ -1243,6 +1489,25 @@ QString BoolDataEntry::get_unit() const {
     return "";
 }
 
+void BoolDataEntry::set_actual_value(bool value) {
+    //instance_index--; //from index 1 as first element to index 0 as first element
+    assert(actual_instance_index < actual_values.size()); //TODO: put exception here
+    actual_values[actual_instance_index] = value;
+}
+
+void BoolDataEntry::set_instance_count(uint instance_count) {
+    assert(actual_values.size() == 0);
+    for (uint i = 0; i < instance_count; i++) {
+        std::experimental::optional<bool> empty_value{};
+        actual_values.push_back(empty_value);
+    }
+}
+
+void BoolDataEntry::set_actual_instance_index(uint instance_index) {
+    assert(instance_index < actual_values.size());
+    actual_instance_index = instance_index;
+}
+
 void BoolDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
     BoolDataEntry *num_from = from->as<BoolDataEntry>();
     assert(num_from);
@@ -1250,9 +1515,10 @@ void BoolDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
 }
 
 void BoolDataEntry::set_desired_value_from_actual(DataEngineDataEntry *from) {
-    BoolDataEntry *num_from = from->as<BoolDataEntry>();
-    assert(num_from);
-    desired_value = num_from->actual_value;
+    BoolDataEntry *bool_from = from->as<BoolDataEntry>();
+    assert(bool_from);
+    assert(bool_from->actual_values.size() == 1);
+    desired_value = bool_from->actual_values[0];
 }
 
 bool BoolDataEntry::is_desired_value_set() {
@@ -1309,7 +1575,7 @@ void ReferenceDataEntry::set_actual_value(QString val) {
             DataEngineErrorNumber::setting_reference_actual_value_with_wrong_type,
             QString("The referencing field \"%1\" is not a string as it must be if you set it with the string: \"%2\"").arg(field_name).arg(val));
     }
-    text_entry->actual_value = val;
+    text_entry->set_actual_value(val);
 }
 
 void ReferenceDataEntry::set_actual_value(bool val) {
@@ -1318,11 +1584,19 @@ void ReferenceDataEntry::set_actual_value(bool val) {
         throw DataEngineError(DataEngineErrorNumber::setting_reference_actual_value_with_wrong_type,
                               QString("The referencing field \"%1\" is not a bool as it must be if you set it with the bool: \"%2\"").arg(field_name).arg(val));
     }
-    bool_entry->actual_value = val;
+    bool_entry->set_actual_value(val);
 }
 
-QString ReferenceDataEntry::get_actual_value() const {
-    return entry->get_actual_value();
+void ReferenceDataEntry::set_instance_count(uint instance_count) {
+    entry->set_instance_count(instance_count);
+}
+
+void ReferenceDataEntry::set_actual_instance_index(uint instance_index) {
+    entry->set_actual_instance_index(instance_index);
+}
+
+QStringList ReferenceDataEntry::get_actual_values() const {
+    return entry->get_actual_values();
 }
 
 QString ReferenceDataEntry::get_description() const {
