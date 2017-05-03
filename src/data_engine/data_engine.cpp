@@ -334,7 +334,7 @@ void DataEngineSection::from_json(const QJsonValue &object, const QString &key_n
             }
             if (obj.contains("allow_empty_section")) {
                 throw DataEngineError(DataEngineErrorNumber::allow_empty_section_must_not_be_defined_in_variant_scope,
-                                      QString("Instance count of section \"%1\" must not be a defined within variant scope.").arg(get_section_name()));
+                                      QString("allow_empty_section of section \"%1\" must not be a defined within variant scope.").arg(get_section_name()));
             }
             append_variant_from_json(obj);
         }
