@@ -6,7 +6,8 @@
 
 class Test_Data_engine : public QObject {
     Q_OBJECT
-    public:
+
+public:
     private slots:
 
     void check_tolerance_parsing_A();
@@ -46,6 +47,11 @@ class Test_Data_engine : public QObject {
     void test_references_get_actual_value_description_desired_value();
     void test_instances();
     void test_instances_bool_string();
+    void test_faulty_instancecount();
+    void test_if_exception_when_instance_count_defined_within_variant();
+    void test_instances_with_references();
+    void test_instances_with_references_to_multiinstance_actual_value();
+    void test_instances_with_strange_types();
 };
 
 DECLARE_TEST(Test_Data_engine)

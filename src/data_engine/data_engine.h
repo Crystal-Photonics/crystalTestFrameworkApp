@@ -43,13 +43,16 @@ enum class DataEngineErrorNumber {
     reference_target_has_no_desired_value,
     reference_is_not_number_but_has_tolerance,
     reference_is_a_number_and_needs_tolerance,
+    reference_must_not_point_to_multiinstance_actual_value,
     illegal_reference_declaration,
     setting_reference_actual_value_with_wrong_type,
-    instance_count_must_not_be_zero,
+    wrong_type_for_instance_count,
+    instance_count_must_not_be_zero_nor_fraction_nor_negative,
     instance_count_does_not_exist,
     instance_count_yet_undefined,
     instance_count_already_defined,
-    instance_count_exceeding
+    instance_count_exceeding,
+    instance_count_must_not_be_defined_in_variant_scope
 };
 class DataEngineError : public std::runtime_error {
     public:
@@ -82,6 +85,7 @@ struct DataEngineDataEntry {
     virtual bool is_desired_value_set() = 0;
 
     virtual void set_instance_count(uint instance_count) = 0;
+    virtual uint get_instance_count() = 0;
     virtual void set_actual_instance_index(uint instance_index) = 0;
 
     template <class T>
@@ -136,13 +140,14 @@ struct NumericDataEntry : DataEngineDataEntry {
     QString get_description() const override;
     QString get_unit() const override;
 
-    void set_actual_value(std::experimental::optional<double> actual_value);
+    void set_actual_value(double actual_value);
     std::experimental::optional<double> desired_value{};
     QString unit{};
     QString description{};
 
     double si_prefix = 1.0;
     void set_instance_count(uint instance_count) override;
+    uint get_instance_count() override;
     void set_actual_instance_index(uint instance_index) override;
 
     private:
@@ -169,6 +174,7 @@ struct TextDataEntry : DataEngineDataEntry {
 
     void set_actual_value(QString actual_value);
     void set_instance_count(uint instance_count) override;
+    uint get_instance_count() override;
     void set_actual_instance_index(uint instance_index) override;
 
     private:
@@ -194,6 +200,7 @@ struct BoolDataEntry : DataEngineDataEntry {
 
     void set_actual_value(bool value);
     void set_instance_count(uint instance_count) override;
+    uint get_instance_count() override;
     void set_actual_instance_index(uint instance_index) override;
 
     private:
@@ -232,6 +239,7 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     void set_actual_value(bool val);
 
     void set_instance_count(uint instance_count) override;
+    uint get_instance_count() override;
     void set_actual_instance_index(uint instance_index) override;
 
     private:

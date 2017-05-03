@@ -683,7 +683,8 @@ void Test_Data_engine::test_instances() {
     QVERIFY_EXCEPTION_THROWN_error_number(de.use_instance("supply_probe_count", "probe 1", 1);, DataEngineErrorNumber::instance_count_yet_undefined);
 
     QVERIFY_EXCEPTION_THROWN_error_number(de.set_instance_count("probe_count_fail", 3);, DataEngineErrorNumber::instance_count_does_not_exist);
-    QVERIFY_EXCEPTION_THROWN_error_number(de.set_instance_count("probe_count", 0);, DataEngineErrorNumber::instance_count_must_not_be_zero);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_instance_count("probe_count", 0);
+                                          , DataEngineErrorNumber::instance_count_must_not_be_zero_nor_fraction_nor_negative);
 
     de.set_instance_count("probe_count", 3);
 
@@ -730,11 +731,6 @@ void Test_Data_engine::test_instances() {
 
 void Test_Data_engine::test_instances_bool_string() {
 #if !DISABLE_ALL || 0
-    //TODO: test if "instance_count": <=0 throws exception
-    //TODO: test if "instance_count": fraction e.g 1.5 throws exception
-    //TODO: test if reference pointing to desired value of multiinstance is ok
-    //TODO: test if reference pointing to actual value of multiinstance fails
-    //TODO fail if instance_count in einer variante definiert wird
 
     std::stringstream input{R"(
 {
@@ -790,6 +786,295 @@ void Test_Data_engine::test_instances_bool_string() {
 
     QVERIFY(de.all_values_in_range());
     QVERIFY(de.is_complete());
+
+#endif
+}
+
+void Test_Data_engine::test_faulty_instancecount() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input_zero{R"(
+{
+
+    "supply_0":{
+        "instance_count": 0,
+        "data":[
+            {	"name": "voltage_bool",	 	"value": true,      "nice_name": "Two Instances. bool"	},
+            {	"name": "voltage_string",	 	"value": "test123",	"nice_name": "Two Instances. string"	}
+        ]
+    }
+
+}
+                            )"};
+
+    std::stringstream input_fraction{R"(
+{
+
+    "supply_0":{
+        "instance_count": 1.5,
+        "data":[
+            {	"name": "voltage_bool",	 	"value": true,      "nice_name": "Two Instances. bool"	},
+            {	"name": "voltage_string",	 	"value": "test123",	"nice_name": "Two Instances. string"	}
+        ]
+    }
+
+}
+                            )"};
+
+    std::stringstream input_negative{R"(
+{
+
+    "supply_0":{
+        "instance_count": -1,
+        "data":[
+            {	"name": "voltage_bool",	 	"value": true,      "nice_name": "Two Instances. bool"	},
+            {	"name": "voltage_string",	 	"value": "test123",	"nice_name": "Two Instances. string"	}
+        ]
+    }
+
+}
+                            )"};
+    QMap<QString, QVariant> tags;
+
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_zero, tags);, DataEngineErrorNumber::instance_count_must_not_be_zero_nor_fraction_nor_negative);
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_fraction, tags);, DataEngineErrorNumber::instance_count_must_not_be_zero_nor_fraction_nor_negative);
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_negative, tags);, DataEngineErrorNumber::instance_count_must_not_be_zero_nor_fraction_nor_negative);
+
+#endif
+}
+
+void Test_Data_engine::test_if_exception_when_instance_count_defined_within_variant() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "supply-voltage":[
+        {
+            "apply_if":{
+                "sound":"[1.42-1.442]"
+            },
+            "data":[
+                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+            ]
+        },
+        {
+            "instance_count":2,
+            "apply_if":{
+                "sound":"[1.43-*]"
+            },
+            "data":[
+                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+            ]
+        }
+    ]
+}
+                            )"};
+
+    QMap<QString, QVariant> tags;
+    tags.insert("sound", 1.42);
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags);, DataEngineErrorNumber::instance_count_must_not_be_defined_in_variant_scope);
+
+#endif
+}
+
+void Test_Data_engine::test_instances_with_references() {
+#if !DISABLE_ALL || 0
+    std::stringstream input{R"(
+{
+
+    "references":{
+        "instance_count": 2,
+        "data":[
+            {	"name": "voltage_ref_bool",	 	"value": "[values/voltage_bool.desired]",                       "nice_name": "Two Instances. reference -> bool"     },
+            {	"name": "voltage_ref_string",   "value": "[values/voltage_string.desired]",                     "nice_name": "Two Instances. reference -> string"	},
+            {	"name": "voltage_ref_number",   "value": "[values/voltage_number.desired]",    "tolerance":20,  "nice_name": "Two Instances. reference -> number"	}
+        ]
+    },
+    "values":{
+        "instance_count": 2,
+        "data":[
+            {	"name": "voltage_bool",	 	"value": true,                      "nice_name": "Two Instances. bool"      },
+            {	"name": "voltage_string",	"value": "test123",                 "nice_name": "Two Instances. string"	},
+            {	"name": "voltage_number",	"value": 500,       "tolerance":10,	"nice_name": "Two Instances. number"	}
+        ]
+    }
+
+}
+                            )"};
+
+    QMap<QString, QVariant> tags;
+    Data_engine de{input, tags};
+
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+
+    de.set_actual_bool("references/voltage_ref_bool", true);
+    de.set_actual_text("references/voltage_ref_string", "test123");
+    de.set_actual_number("references/voltage_ref_number", 520);
+
+    QVERIFY(!de.is_complete());
+
+    QVERIFY(!de.value_in_range("references/voltage_ref_bool"));
+    QVERIFY(!de.value_in_range("references/voltage_ref_string"));
+    QVERIFY(!de.value_in_range("references/voltage_ref_number"));
+
+    de.use_instance("references", "Probe C", 2);
+
+    de.set_actual_bool("references/voltage_ref_bool", true);
+    de.set_actual_text("references/voltage_ref_string", "test123");
+    de.set_actual_number("references/voltage_ref_number", 530);
+
+    QVERIFY(de.value_in_range("references/voltage_ref_bool"));
+    QVERIFY(de.value_in_range("references/voltage_ref_string"));
+    QVERIFY(!de.value_in_range("references/voltage_ref_number"));
+
+    de.set_actual_number("references/voltage_ref_number", 510);
+
+    QVERIFY(de.value_in_range("references/voltage_ref_number"));
+
+    auto actual_values_bool = de.get_actual_values("references/voltage_ref_bool");
+    auto actual_values_string = de.get_actual_values("references/voltage_ref_string");
+    auto actual_values_number = de.get_actual_values("references/voltage_ref_number");
+    QCOMPARE(actual_values_bool[0], QString("true"));
+    QCOMPARE(actual_values_bool[1], QString("true"));
+
+    QCOMPARE(actual_values_string[0], QString("test123"));
+    QCOMPARE(actual_values_string[1], QString("test123"));
+
+    QCOMPARE(actual_values_number[0], QString("520"));
+    QCOMPARE(actual_values_number[1], QString("510"));
+
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+
+    de.set_actual_bool("values/voltage_bool", true);
+    de.set_actual_text("values/voltage_string", "test123");
+    de.set_actual_number("values/voltage_number", 510);
+
+    QVERIFY(!de.is_complete());
+
+    QVERIFY(!de.value_in_range("values/voltage_bool"));
+    QVERIFY(!de.value_in_range("values/voltage_string"));
+    QVERIFY(!de.value_in_range("values/voltage_number"));
+
+    de.use_instance("values", "Probe C", 2);
+
+    de.set_actual_bool("values/voltage_bool", true);
+    de.set_actual_text("values/voltage_string", "test123");
+    de.set_actual_number("values/voltage_number", 505);
+
+    QVERIFY(de.value_in_range("values/voltage_bool"));
+    QVERIFY(de.value_in_range("values/voltage_string"));
+    QVERIFY(de.value_in_range("values/voltage_number"));
+
+    QVERIFY(de.all_values_in_range());
+    QVERIFY(de.is_complete());
+
+#endif
+}
+
+void Test_Data_engine::test_instances_with_references_to_multiinstance_actual_value() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input_bool{R"(
+{
+
+    "references":{
+        "data":[
+            {	"name": "voltage_ref_bool",	 	"value": "[values/voltage_bool.actual]",                       "nice_name": "Two Instances. reference -> bool"     }
+        ]
+    },
+    "values":{
+        "instance_count": 2,
+        "data":[
+            {	"name": "voltage_bool",	 	"value": true,                      "nice_name": "Two Instances. bool"      }
+        ]
+    }
+
+}
+                            )"};
+
+    std::stringstream input_string{R"(
+{
+
+    "references":{
+        "data":[
+            {	"name": "voltage_ref_string",   "value": "[values/voltage_string.actual]",                     "nice_name": "Two Instances. reference -> string"	}
+        ]
+    },
+    "values":{
+        "instance_count": 2,
+        "data":[
+            {	"name": "voltage_string",	"value": "test123",                 "nice_name": "Two Instances. string"	}
+        ]
+    }
+
+}
+                            )"};
+
+    std::stringstream input_number{R"(
+{
+
+    "references":{
+        "data":[
+            {	"name": "voltage_ref_number",   "value": "[values/voltage_number.actual]",    "tolerance":20,  "nice_name": "Two Instances. reference -> number"	}
+        ]
+    },
+    "values":{
+        "instance_count": 2,
+        "data":[
+            {	"name": "voltage_number",	"value": 500,       "tolerance":10,	"nice_name": "Two Instances. number"	}
+        ]
+    }
+
+}
+                            )"};
+
+    QMap<QString, QVariant> tags;
+    Data_engine de_bool(input_bool, tags);
+    Data_engine de_str(input_string, tags);
+    Data_engine de_num(input_number, tags);
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de_bool.value_in_range("references/voltage_ref_bool"),
+                                          DataEngineErrorNumber::reference_must_not_point_to_multiinstance_actual_value);
+    QVERIFY_EXCEPTION_THROWN_error_number(de_str.value_in_range("references/voltage_ref_string"),
+                                          DataEngineErrorNumber::reference_must_not_point_to_multiinstance_actual_value);
+    QVERIFY_EXCEPTION_THROWN_error_number(de_num.value_in_range("references/voltage_ref_number"),
+                                          DataEngineErrorNumber::reference_must_not_point_to_multiinstance_actual_value);
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de_bool.get_desired_value_as_string("references/voltage_ref_bool"),
+                                          DataEngineErrorNumber::reference_must_not_point_to_multiinstance_actual_value);
+    QVERIFY_EXCEPTION_THROWN_error_number(de_str.get_desired_value_as_string("references/voltage_ref_string"),
+                                          DataEngineErrorNumber::reference_must_not_point_to_multiinstance_actual_value);
+    QVERIFY_EXCEPTION_THROWN_error_number(de_num.get_desired_value_as_string("references/voltage_ref_number"),
+                                          DataEngineErrorNumber::reference_must_not_point_to_multiinstance_actual_value);
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de_bool.all_values_in_range(), DataEngineErrorNumber::reference_must_not_point_to_multiinstance_actual_value);
+    QVERIFY_EXCEPTION_THROWN_error_number(de_str.all_values_in_range(), DataEngineErrorNumber::reference_must_not_point_to_multiinstance_actual_value);
+    QVERIFY_EXCEPTION_THROWN_error_number(de_num.all_values_in_range(), DataEngineErrorNumber::reference_must_not_point_to_multiinstance_actual_value);
+
+#endif
+}
+
+void Test_Data_engine::test_instances_with_strange_types() {
+#if !DISABLE_ALL
+
+    std::stringstream input{R"(
+{
+
+    "values":{
+        "instance_count": {},
+        "data":[
+            {	"name": "voltage_bool",	 	"value": true,                      "nice_name": "Two Instances. bool"      }
+        ]
+    }
+
+}
+                            )"};
+
+    QMap<QString, QVariant> tags;
+
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine de_bool(input, tags);, DataEngineErrorNumber::wrong_type_for_instance_count);
 
 #endif
 }
