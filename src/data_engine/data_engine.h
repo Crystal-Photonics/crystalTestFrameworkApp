@@ -52,7 +52,9 @@ enum class DataEngineErrorNumber {
     instance_count_yet_undefined,
     instance_count_already_defined,
     instance_count_exceeding,
-    instance_count_must_not_be_defined_in_variant_scope
+    instance_count_must_not_be_defined_in_variant_scope,
+    allow_empty_section_must_not_be_defined_in_variant_scope,
+    allow_empty_section_with_wrong_type,
 };
 class DataEngineError : public std::runtime_error {
     public:
@@ -317,11 +319,13 @@ struct DataEngineSection {
     void set_actual_instance_caption(QString instance_caption);
     void create_instances_if_defined();
     QStringList instance_captions;
+    bool is_allow_empty_section() const;
     private:
     std::experimental::optional<uint> instance_count;
     QString instance_count_name;
     QString section_name;
     void append_variant_from_json(const QJsonObject &object);
+    bool allow_empty_section = false;
 };
 
 struct DataEngineSections {

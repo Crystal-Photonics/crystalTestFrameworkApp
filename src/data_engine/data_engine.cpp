@@ -60,6 +60,11 @@ void Data_engine::set_source(std::istream &source, const QMap<QString, QVariant>
 void DataEngineSections::delete_unmatched_variants(const QMap<QString, QVariant> &tags) {
     for (auto &section : sections) {
         section.delete_unmatched_variants(tags);
+        if ((section.is_allow_empty_section()) && (section.variants.size() == 0)){
+            VariantData variant_data{};
+            section.variants.push_back(std::move(variant_data));
+
+        }
     }
 }
 
@@ -327,6 +332,10 @@ void DataEngineSection::from_json(const QJsonValue &object, const QString &key_n
                 throw DataEngineError(DataEngineErrorNumber::instance_count_must_not_be_defined_in_variant_scope,
                                       QString("Instance count of section \"%1\" must not be a defined within variant scope.").arg(get_section_name()));
             }
+            if (obj.contains("allow_empty_section")) {
+                throw DataEngineError(DataEngineErrorNumber::allow_empty_section_must_not_be_defined_in_variant_scope,
+                                      QString("Instance count of section \"%1\" must not be a defined within variant scope.").arg(get_section_name()));
+            }
             append_variant_from_json(obj);
         }
         instance_count = 1;
@@ -374,9 +383,19 @@ void DataEngineSection::from_json(const QJsonValue &object, const QString &key_n
                                           QString("Instance count of section \"%1\" must not be negative.").arg(get_section_name()));
                 }
             }
+
         } else {
             instance_count = 1;
             instance_count_name = "";
+        }
+        if (obj.contains("allow_empty_section")) {
+            if (obj["allow_empty_section"].isBool()) {
+                allow_empty_section = obj["allow_empty_section"].toBool();
+            } else {
+                throw DataEngineError(DataEngineErrorNumber::allow_empty_section_with_wrong_type,
+                                      QString("\"Allow_empty_section\" -tag of section \"%1\" must be boolean. But is not.").arg(get_section_name()));
+
+            }
         }
         if (obj.contains("variants")) {
             QJsonValue var_val = obj["variants"];
@@ -449,6 +468,11 @@ void DataEngineSection::create_instances_if_defined() {
         assert(variant);
         variant->set_instance_count(instance_count.value());
     }
+}
+
+bool DataEngineSection::is_allow_empty_section() const
+{
+    return allow_empty_section;
 }
 
 void DataEngineSection::use_instance(QString instance_caption, uint instance_index) {
@@ -1758,7 +1782,7 @@ void ReferenceDataEntry::parse_refence_string(QString reference_string) {
             ref_link.link = ref;
         } else {
             throw DataEngineError(DataEngineErrorNumber::illegal_reference_declaration,
-                                  QString("reference \"%1\" target declaration must end with \".desired\" or \".desired\" but does not.").arg(field_name));
+                                  QString("reference \"%1\" target declaration must end with \".desired\" or \".actual\" but does not.").arg(field_name));
         }
         reference_links.push_back(ref_link);
     }

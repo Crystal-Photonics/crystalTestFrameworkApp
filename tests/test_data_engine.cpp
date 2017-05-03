@@ -446,6 +446,88 @@ void Test_Data_engine::check_dependency_ambiguity_handling() {
 #endif
 }
 
+void Test_Data_engine::check_emtpy_section_tag() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+    {
+        "supply-voltage":{
+            "allow_empty_section": true,
+            "apply_if":{
+                "sound":true
+            },
+            "data":[
+                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+            ]
+        }
+    }
+                                )"};
+
+    QMap<QString, QVariant> tags;
+    Data_engine de(input, tags);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage/voltage");,DataEngineErrorNumber::no_field_id_found);
+#endif
+}
+
+void Test_Data_engine::check_emtpy_section_tag_wrong_type() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+    {
+        "supply-voltage":{
+            "allow_empty_section": 56,
+            "apply_if":{
+                "sound":true
+            },
+            "data":[
+                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+            ]
+        }
+    }
+                                )"};
+
+    QMap<QString, QVariant> tags;
+
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine de(input, tags);,DataEngineErrorNumber::allow_empty_section_with_wrong_type);
+#endif
+}
+
+void Test_Data_engine::check_emtpy_section_tag_wrong_scope() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "supply-voltage":[
+        {
+            "apply_if":{
+                "sound":"[1.42-1.442]"
+            },
+            "data":[
+                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+            ]
+        },
+        {
+            "allow_empty_section":true,
+            "apply_if":{
+                "sound":"[1.43-*]"
+            },
+            "data":[
+                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+            ]
+        }
+    ]
+}
+                            )"};
+
+
+    QMap<QString, QVariant> tags;
+
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags);, DataEngineErrorNumber::allow_empty_section_must_not_be_defined_in_variant_scope);
+
+
+#endif
+}
+
 void Test_Data_engine::check_non_existing_section_name() {
 #if !DISABLE_ALL || 0
     std::stringstream input{R"(

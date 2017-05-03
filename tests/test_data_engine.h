@@ -52,6 +52,9 @@ public:
     void test_instances_with_references();
     void test_instances_with_references_to_multiinstance_actual_value();
     void test_instances_with_strange_types();
+    void check_emtpy_section_tag();
+    void check_emtpy_section_tag_wrong_type();
+    void check_emtpy_section_tag_wrong_scope();
 };
 
 DECLARE_TEST(Test_Data_engine)
