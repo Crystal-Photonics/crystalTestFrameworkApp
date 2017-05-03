@@ -29,17 +29,17 @@ struct SCPI_Device_Data {
     QString get_summary() ;
     void get_lua_data(sol::table &t) ;
 
-    SCPIApprovedState get_approved_state();
+    DeviceMetaDataApprovedState get_approved_state();
     QString get_approved_state_str();
 
-    void set_approved_state(SCPIApprovedState as, QString sr);
+    void set_approved_state(DeviceMetaDataApprovedState as, QString sr);
     private:
     struct Description_source {
         QString name;
         QString description;
         const QString source;
     };
-    SCPIApprovedState approved_state;
+    DeviceMetaDataApprovedState approved_state;
     QString approved_str;
     std::vector<Description_source> get_description_source() ;
 };
@@ -57,11 +57,11 @@ class SCPIProtocol : public Protocol {
     void set_ui_description(QTreeWidgetItem *ui_entry);
 
     void get_lua_device_descriptor(sol::table &t) ;
-    SCPIApprovedState get_approved_state();
+    DeviceMetaDataApprovedState get_approved_state();
     QString get_approved_state_str() ;
     QString get_device_summary() ;
     void clear();
-    void set_scpi_meta_data(SCPIDeviceType scpi_meta_data);
+    void set_scpi_meta_data(DeviceMetaDataGroup scpi_meta_data);
 
     sol::table get_str(sol::state &lua, std::string request);
     sol::table get_str_param(sol::state &lua, std::string request, std::string argument);

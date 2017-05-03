@@ -8,6 +8,7 @@
 #include <memory>
 
 class QByteArray;
+const QString HOST_NAME_TAG = "host-name";
 
 class EXPORT CommunicationDevice : public QObject {
 	Q_OBJECT
@@ -31,6 +32,7 @@ class EXPORT CommunicationDevice : public QObject {
 	virtual QString getName() = 0;
 	void set_is_in_use(bool in_use);
 	bool get_is_in_use() const;
+    virtual bool connect(const QMap<QString,QVariant> &portinfo) = 0;
 
 	signals:
 	void connected();

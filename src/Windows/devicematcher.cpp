@@ -20,7 +20,7 @@ DeviceMatcher::~DeviceMatcher() {
     delete ui;
 }
 
-std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::vector<ComportDescription *> candidates, TestRunner &runner) {
+std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::vector<PortDescription *> candidates, TestRunner &runner) {
     std::vector<std::pair<CommunicationDevice *, Protocol *>> devices;
     for (auto device : candidates) {
         if (device->get_is_in_use()) {
@@ -50,7 +50,7 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
                 devices.emplace_back(device->device.get(), device->protocol.get());
             }
         } else if (scpi_protocol) {
-            if (scpi_protocol->get_approved_state() != SCPIApprovedState::Approved) {
+            if (scpi_protocol->get_approved_state() != DeviceMetaDataApprovedState::Approved) {
                 const auto &message = QObject::tr("SCPI device %1 with serial number =\"%2\" is lacking approval.\nIts approval state: %3")
                                           .arg(QString::fromStdString(scpi_protocol->get_name()))
                                           .arg(QString::fromStdString(scpi_protocol->get_serial_number()))
@@ -107,7 +107,7 @@ void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runne
         std::vector<std::pair<CommunicationDevice *, Protocol *>> accepted_candidates;
         //TODO: do not only loop over comport_devices, but other devices as well
         {
-            std::vector<ComportDescription *> candidates =
+            std::vector<PortDescription *> candidates =
                 device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
 
             accepted_candidates = test_acceptances(candidates, runner);
@@ -369,11 +369,11 @@ void DeviceMatcher::on_btn_uncheck_all_clicked() {
     }
 }
 
-void ComportDescription::set_is_in_use(bool in_use) {
+void PortDescription::set_is_in_use(bool in_use) {
     device.get()->set_is_in_use(in_use);
 }
 
-bool ComportDescription::get_is_in_use() {
+bool PortDescription::get_is_in_use() {
     return device.get()->get_is_in_use();
 }
 

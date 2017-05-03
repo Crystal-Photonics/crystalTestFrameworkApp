@@ -11,14 +11,14 @@ SCPIMetaDataDeviceSelector::~SCPIMetaDataDeviceSelector() {
     delete ui;
 }
 
-void SCPIMetaDataDeviceSelector::load_devices(QString port_name, SCPIDeviceType scpi_meta_data) {
+void SCPIMetaDataDeviceSelector::load_devices(QString port_name, DeviceMetaDataGroup scpi_meta_data) {
     this->port_name = port_name;
     this->scpi_meta_data = scpi_meta_data;
     make_gui();
 }
 
-SCPIDeviceType SCPIMetaDataDeviceSelector::get_device() {
-    SCPIDeviceType result = scpi_meta_data;
+DeviceMetaDataGroup SCPIMetaDataDeviceSelector::get_device() {
+    DeviceMetaDataGroup result = scpi_meta_data;
     result.devices.clear();
     if ((-1 < selected_device_detail_index) && (selected_device_detail_index < scpi_meta_data.devices.count())) {
         result.devices.append(scpi_meta_data.devices[selected_device_detail_index]);

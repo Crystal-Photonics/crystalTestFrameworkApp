@@ -17,8 +17,8 @@ public:
     explicit SCPIMetaDataDeviceSelector(QWidget *parent = 0);
 
     ~SCPIMetaDataDeviceSelector();
-    void load_devices(QString port_name, SCPIDeviceType scpi_meta_data);
-    SCPIDeviceType get_device();
+    void load_devices(QString port_name, DeviceMetaDataGroup scpi_meta_data);
+    DeviceMetaDataGroup get_device();
 
 private slots:
     void on_treeWidget_itemChanged(QTreeWidgetItem *item, int column);
@@ -26,7 +26,7 @@ private slots:
     void on_btn_ok_clicked();
 
 private:
-    SCPIDeviceType scpi_meta_data;
+    DeviceMetaDataGroup scpi_meta_data;
     QString port_name;
     Ui::SCPIMetaDataDeviceSelector *ui;
     void make_gui();

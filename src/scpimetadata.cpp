@@ -10,48 +10,48 @@
 #include <QStringList>
 #include <string.h>
 
-SCPIMetaData::SCPIMetaData() {}
+DeviceMetaData::DeviceMetaData() {}
 
-SCPIApprovedState SCPIDeviceDetail::get_approved_state() {
+DeviceMetaDataApprovedState DeviceMetaDataDetail::get_approved_state() {
     if (valid == false) {
-        return SCPIApprovedState::Unknown;
+        return DeviceMetaDataApprovedState::Unknown;
     }
     if (locked) {
-        return SCPIApprovedState::Locked;
+        return DeviceMetaDataApprovedState::Locked;
     }
     if ((QDateTime().currentDateTime() > QDateTime(expery_date)) && (expery_date.isValid())) {
-        return SCPIApprovedState::Expired;
+        return DeviceMetaDataApprovedState::Expired;
     }
 
-    return SCPIApprovedState::Approved;
+    return DeviceMetaDataApprovedState::Approved;
 }
 
-QString SCPIDeviceDetail::get_approved_state_str() {
+QString DeviceMetaDataDetail::get_approved_state_str() {
     switch (get_approved_state()) {
-        case SCPIApprovedState::Approved:
+        case DeviceMetaDataApprovedState::Approved:
             if (expery_date.isValid()) {
                 return "calibrated until " + expery_date.toString("yyyy.MM.dd");
             } else {
                 return "calibration approved";
             }
-        case SCPIApprovedState::Unknown:
+        case DeviceMetaDataApprovedState::Unknown:
             return "unknown";
 
-        case SCPIApprovedState::Locked:
+        case DeviceMetaDataApprovedState::Locked:
             return "locked";
 
-        case SCPIApprovedState::Expired:
+        case DeviceMetaDataApprovedState::Expired:
             return "calibration expired";
     }
 }
 
-void SCPIMetaData::reload(QString file_name) {
+void DeviceMetaData::reload(QString file_name) {
     parse_meta_data_file(file_name);
 }
 
-SCPIDeviceType SCPIMetaData::query(QString serial_number, QString device_name) {
+DeviceMetaDataGroup DeviceMetaData::query(QString serial_number, QString device_name) {
     bool look_for_serial;
-    SCPIDeviceType result{};
+    DeviceMetaDataGroup result{};
 
     if (serial_number.count()) {
         look_for_serial = true;
@@ -80,7 +80,7 @@ SCPIDeviceType SCPIMetaData::query(QString serial_number, QString device_name) {
     return result;
 }
 
-void SCPIMetaData::parse_meta_data_file(QString file_name) {
+void DeviceMetaData::parse_meta_data_file(QString file_name) {
     device_types.clear();
 
     QFile file;
@@ -106,16 +106,28 @@ void SCPIMetaData::parse_meta_data_file(QString file_name) {
     QJsonObject j_obj = j_doc.object();
     QJsonArray js_device_types = j_obj["device_types"].toArray();
     for (QJsonValue js_device_type : js_device_types) {
-        SCPIDeviceType device_type{};
+        DeviceMetaDataGroup device_type{};
 
         QJsonObject obj = js_device_type.toObject();
         // device_type.isEmpty = false;
         device_type.device_name = obj["device_name"].toString();
+        device_type.manufacturer = obj["manufacturer"].toString();
+        device_type.description = obj["description"].toString();
         device_type.manual_path = obj["manual_path"].toString();
+        QString proto_type = obj["protocol"].toString();
+        if (proto_type.toLower() == "scpi"){
+            device_type.protocol_type = ProtocolType::SCPI;
+        }else if (proto_type.toLower() == "manual"){
+            device_type.protocol_type = ProtocolType::Manual;
+        }else{
+            //TODO: put error here
+            assert(0);
+        }
+
         QJsonArray js_devices = obj["devices"].toArray();
 
         for (QJsonValue js_device : js_devices) {
-            SCPIDeviceDetail device{};
+            DeviceMetaDataDetail device{};
             const QString DATE_FORMAT = "yyyy.M.d"; // 1985.5.25
             QJsonObject obj = js_device.toObject();
             device.serial_number = obj["serial_number"].toString();
@@ -126,6 +138,7 @@ void SCPIMetaData::parse_meta_data_file(QString file_name) {
             device.purchase_date = QDate::fromString(tmp, DATE_FORMAT);
             device.valid = true;
             device.locked = false;
+
 
             QString locked_str = obj["locked"].toString();
             if (locked_str == "yes"){
@@ -146,7 +159,7 @@ void SCPIMetaData::parse_meta_data_file(QString file_name) {
     }
 }
 
-void SCPIDeviceType::clear() {
+void DeviceMetaDataGroup::clear() {
     device_name = "";
     manual_path = "";
     devices.clear();

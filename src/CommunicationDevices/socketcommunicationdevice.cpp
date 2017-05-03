@@ -27,7 +27,7 @@ SocketCommunicationDevice::SocketCommunicationDevice()
    receiveSlot = connect(socket, QTcpSocket::readyRead, [this]() { this->receiveData(this->socket->readAll()); });
                                              ^
                                              */
-        receiveSlot = connect(socket, &QTcpSocket::readyRead, [this]() { this->receiveData(this->socket->readAll()); });
+        receiveSlot = QObject::connect(socket, &QTcpSocket::readyRead, [this]() { this->receiveData(this->socket->readAll()); });
         assert(receiveSlot);
     } else if (type == "server") {
         isServer = true;
@@ -47,27 +47,27 @@ SocketCommunicationDevice::SocketCommunicationDevice()
 }
 
 void SocketCommunicationDevice::send(const QByteArray &data, const QByteArray &displayed_data) {
-	(void)displayed_data;
-	socket->write(data);
-	socket->waitForBytesWritten(1000);
+    (void)displayed_data;
+    socket->write(data);
+    socket->waitForBytesWritten(1000);
 }
 
 SocketCommunicationDevice::~SocketCommunicationDevice() {
-	QObject::disconnect(connectedSlot);
-	QObject::disconnect(receiveSlot);
+    QObject::disconnect(connectedSlot);
+    QObject::disconnect(receiveSlot);
 }
 
 bool SocketCommunicationDevice::awaitConnection(Duration timeout) {
-	if (isServer) {
-		return server.waitForNewConnection(timeout.count());
-	}
-	return socket->waitForConnected(timeout.count());
+    if (isServer) {
+        return server.waitForNewConnection(timeout.count());
+    }
+    return socket->waitForConnected(timeout.count());
 }
 
 bool SocketCommunicationDevice::waitReceived(Duration timeout, int bytes, bool isPolling) {
-	(void)bytes; //TODO: fix it so it waits for [bytes] until [timeout]
+    (void)bytes; //TODO: fix it so it waits for [bytes] until [timeout]
     (void)isPolling;
-	return socket->waitForReadyRead(std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count());
+    return socket->waitForReadyRead(std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count());
 }
 
 bool SocketCommunicationDevice::waitReceived(Duration timeout, std::string escape_characters, std::string leading_pattern_indicating_skip_line) {
@@ -77,29 +77,32 @@ bool SocketCommunicationDevice::waitReceived(Duration timeout, std::string escap
 }
 
 void SocketCommunicationDevice::close() {
-	socket->close();
+    socket->close();
+}
+
+bool SocketCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo) {
+    (void)portinfo;
+    return true;
 }
 
 void SocketCommunicationDevice::setSocket() {
-	socket = server.nextPendingConnection();
-	if (receiveSlot)
-		QObject::disconnect(receiveSlot);
-	receiveSlot = connect(socket, &QTcpSocket::readyRead, [this]() { this->receiveData(this->socket->readAll()); });
-	assert(receiveSlot);
+    socket = server.nextPendingConnection();
+    if (receiveSlot)
+        QObject::disconnect(receiveSlot);
+    receiveSlot = QObject::connect(socket, &QTcpSocket::readyRead, [this]() { this->receiveData(this->socket->readAll()); });
+    assert(receiveSlot);
 }
 
 bool SocketCommunicationDevice::isConnected() {
-	if (!socket)
-		return false;
-	return socket->state() == QAbstractSocket::ConnectedState;
+    if (!socket)
+        return false;
+    return socket->state() == QAbstractSocket::ConnectedState;
 }
 
 void SocketCommunicationDevice::receiveData(QByteArray data) {
     emit received(std::move(data));
 }
 
-QString SocketCommunicationDevice::getName()
-{
-
+QString SocketCommunicationDevice::getName() {
     return "TCP/IP";
 }

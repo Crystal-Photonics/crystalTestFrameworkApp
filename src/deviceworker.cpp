@@ -5,10 +5,10 @@
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
 #include "Protocols/sg04countprotocol.h"
-#include "config.h"
-#include "console.h"
 #include "Windows/devicematcher.h"
 #include "Windows/mainwindow.h"
+#include "config.h"
+#include "console.h"
 #include "util.h"
 
 #include <QSettings>
@@ -35,7 +35,7 @@ static bool is_valid_baudrate(QSerialPort::BaudRate baudrate) {
     return false;
 }
 
-void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_device_list) {
+void DeviceWorker::detect_devices(std::vector<PortDescription *> comport_device_list) {
     auto device_protocol_settings_file = QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString();
     if (device_protocol_settings_file.isEmpty()) {
         MainWindow::mw->show_message_box(tr("Missing File"), tr("Auto-Detecting devices requires a file that defines which protocols can use which device "
@@ -49,9 +49,9 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
     auto &rpc_devices = device_protocol_settings.protocols_rpc;
     auto &scpi_devices = device_protocol_settings.protocols_scpi;
     auto &sg04_count_devices = device_protocol_settings.protocols_sg04_count;
-    auto check_rpc_protocols = [&rpc_devices, &device_protocol_settings_file](ComportDescription &device) {
+    auto check_rpc_protocols = [&rpc_devices, &device_protocol_settings_file](PortDescription &device) {
         for (auto &rpc_device : rpc_devices) {
-            if (rpc_device.match(device.info.portName()) == false) {
+            if (rpc_device.match(device.port_info[HOST_NAME_TAG].toString()) == false) {
                 continue;
             }
 
@@ -63,7 +63,8 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
                     QMessageBox::Critical);
                 continue;
             }
-            if (device.device->connect(device.info, baudrate) == false) {
+            device.port_info.insert("baudrate", baudrate);
+            if (device.device->connect(device.port_info) == false) {
                 Console::warning() << tr("Failed opening") << device.device->getTarget();
                 return;
             }
@@ -76,9 +77,9 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
             }
         }
     };
-    auto check_scpi_protocols = [&scpi_devices, &device_protocol_settings_file, &scpi_meta_data = scpi_meta_data ](ComportDescription & device) {
+    auto check_scpi_protocols = [&scpi_devices, &device_protocol_settings_file, &scpi_meta_data = scpi_meta_data ](PortDescription & device) {
         for (auto &scpi_device : scpi_devices) {
-            if (scpi_device.match(device.info.portName()) == false) {
+            if (scpi_device.match(device.port_info[HOST_NAME_TAG].toString()) == false) {
                 continue;
             }
 
@@ -90,7 +91,8 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
                     QMessageBox::Critical);
                 continue;
             }
-            if (device.device->connect(device.info, baudrate) == false) {
+            device.port_info.insert("baudrate", baudrate);
+            if (device.device->connect(device.port_info) == false) {
                 Console::warning() << tr("Failed opening") << device.device->getTarget();
                 return;
             }
@@ -109,9 +111,9 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
             }
         }
     };
-    auto check_sg04_count_protocols = [&sg04_count_devices, &device_protocol_settings_file](ComportDescription &device) {
+    auto check_sg04_count_protocols = [&sg04_count_devices, &device_protocol_settings_file](PortDescription &device) {
         for (auto &sg04_count_device : sg04_count_devices) {
-            if (sg04_count_device.match(device.info.portName()) == false) {
+            if (sg04_count_device.match(device.port_info[HOST_NAME_TAG].toString()) == false) {
                 continue;
             }
 
@@ -123,14 +125,14 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
                     QMessageBox::Critical);
                 continue;
             }
-            if (device.device->connect(device.info, baudrate) == false) {
+            device.port_info.insert("baudrate", baudrate);
+            if (device.device->connect(device.port_info) == false) {
                 Console::warning() << tr("Failed opening") << device.device->getTarget();
                 return;
             }
             auto protocol = std::make_unique<SG04CountProtocol>(*device.device, sg04_count_device);
             if (protocol) {
                 if (protocol->is_correct_protocol()) {
-
                     MainWindow::mw->execute_in_gui_thread(
                         [ protocol = protocol.get(), ui_entry = device.ui_entry ] { protocol->set_ui_description(ui_entry); });
                     device.protocol = std::move(protocol);
@@ -145,7 +147,7 @@ void DeviceWorker::detect_devices(std::vector<ComportDescription *> comport_devi
     //TODO: Add non-rpc device discovery here
 
     for (auto &device : comport_device_list) {
-        std::function<void(ComportDescription &)> protocol_functions[] = {check_rpc_protocols, check_scpi_protocols, check_sg04_count_protocols};
+        std::function<void(PortDescription &)> protocol_functions[] = {check_rpc_protocols, check_scpi_protocols, check_sg04_count_protocols};
         for (auto &protocol_check_function : protocol_functions) {
             if (device->device->isConnected()) {
                 break;
@@ -178,14 +180,23 @@ void DeviceWorker::update_devices() {
         auto portlist = QSerialPortInfo::availablePorts();
         for (auto &port : portlist) {
             auto pos = std::lower_bound(std::begin(comport_devices), std::end(comport_devices), port.systemLocation(),
-                                        [](const ComportDescription &lhs, const QString &rhs) { return lhs.device->getTarget() < rhs; });
+                                        [](const PortDescription &lhs, const QString &rhs) { return lhs.device->getTarget() < rhs; });
             if (pos != std::end(comport_devices) && pos->device->getTarget() == port.systemLocation()) {
                 continue;
             }
             auto item = std::make_unique<QTreeWidgetItem>(QStringList{} << port.portName() + " " + port.description());
 
+            QMap<QString, QVariant> port_info;
+            port_info.insert(HOST_NAME_TAG, QString(port.portName()));
+
             auto &device =
-                *comport_devices.insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port, item.get(), nullptr})->device;
+                *comport_devices.insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()),
+                                              port_info,
+                                              item.get(),
+                                              nullptr})->device;
+
+
+
             MainWindow::mw->add_device_item(item.release(), port.portName() + " " + port.description(), &device);
         }
     });
@@ -194,7 +205,7 @@ void DeviceWorker::update_devices() {
 void DeviceWorker::detect_devices() {
     Utility::thread_call(this, [this] {
         assert(currently_in_gui_thread() == false);
-        std::vector<ComportDescription *> descriptions;
+        std::vector<PortDescription *> descriptions;
         descriptions.reserve(comport_devices.size());
         for (auto &comport : comport_devices) {
             descriptions.push_back(&comport);
@@ -244,10 +255,10 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
     });
 }
 
-std::vector<ComportDescription *> DeviceWorker::get_devices_with_protocol(const QString &protocol, const QStringList device_names) {
+std::vector<PortDescription *> DeviceWorker::get_devices_with_protocol(const QString &protocol, const QStringList device_names) {
     return Utility::promised_thread_call(this, [this, protocol, device_names]() mutable {
         assert(currently_in_gui_thread() == false);
-        std::vector<ComportDescription *> candidates;
+        std::vector<PortDescription *> candidates;
         for (auto &device : comport_devices) { //TODO: do not only loop over comport_devices, but other devices as well
             if (device.protocol == nullptr) {
                 continue;

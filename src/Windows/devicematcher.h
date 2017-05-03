@@ -13,9 +13,9 @@
 #include <QList>
 #include <vector>
 
-struct ComportDescription {
-    std::unique_ptr<ComportCommunicationDevice> device;
-    QSerialPortInfo info;
+struct PortDescription {
+    std::unique_ptr<CommunicationDevice> device;
+    QMap<QString,QVariant> port_info;
     QTreeWidgetItem *ui_entry;
     std::unique_ptr<Protocol> protocol;
     void set_is_in_use(bool in_use);

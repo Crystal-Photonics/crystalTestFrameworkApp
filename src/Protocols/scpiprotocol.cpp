@@ -44,7 +44,7 @@ void SCPI_Device_Data::get_lua_data(sol::table &t) {
     }
 }
 
-SCPIApprovedState SCPI_Device_Data::get_approved_state() {
+DeviceMetaDataApprovedState SCPI_Device_Data::get_approved_state() {
     return approved_state;
 }
 
@@ -52,7 +52,7 @@ QString SCPI_Device_Data::get_approved_state_str() {
     return approved_str;
 }
 
-void SCPI_Device_Data::set_approved_state(SCPIApprovedState as, QString sr) {
+void SCPI_Device_Data::set_approved_state(DeviceMetaDataApprovedState as, QString sr) {
     approved_str = sr;
     approved_state = as;
 }
@@ -61,7 +61,7 @@ std::vector<SCPI_Device_Data::Description_source> SCPI_Device_Data::get_descript
     QString expery_date_str = expery_date.toString("yyyy.MM.dd");
     QString blocked_str = "";
     QString valid_str = "";
-    if (approved_state == SCPIApprovedState::Unknown) {
+    if (approved_state == DeviceMetaDataApprovedState::Unknown) {
         valid_str = "failed";
         expery_date_str = "";
     } else {
@@ -147,8 +147,8 @@ QString SCPIProtocol::get_device_summary() {
 
 void SCPIProtocol::clear() {}
 
-void SCPIProtocol::set_scpi_meta_data(SCPIDeviceType scpi_meta_data) {
-    SCPIDeviceDetail scpi_device_detail{};
+void SCPIProtocol::set_scpi_meta_data(DeviceMetaDataGroup scpi_meta_data) {
+    DeviceMetaDataDetail scpi_device_detail{};
 
     if (scpi_meta_data.devices.count() == 1) {
         if (device_data.serial_number == "") {
@@ -409,7 +409,7 @@ std::string SCPIProtocol::get_serial_number() {
     return device_data.serial_number.toStdString();
 }
 
-SCPIApprovedState SCPIProtocol::get_approved_state() {
+DeviceMetaDataApprovedState SCPIProtocol::get_approved_state() {
     return device_data.get_approved_state();
 }
 

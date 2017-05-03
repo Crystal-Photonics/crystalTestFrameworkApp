@@ -9,6 +9,7 @@
 #include <regex>
 #include <string>
 
+
 ComportCommunicationDevice::ComportCommunicationDevice(QString target) {
     this->target = target;
 	QObject::connect(&port, &QSerialPort::readyRead, [this]() {
@@ -22,10 +23,17 @@ bool ComportCommunicationDevice::isConnected() {
     return Utility::promised_thread_call(this, [this] { return port.isOpen(); });
 }
 
-bool ComportCommunicationDevice::connect(const QSerialPortInfo &portinfo, QSerialPort::BaudRate baudrate) {
-    return Utility::promised_thread_call(this, [this, portinfo, baudrate] {
-        port.setPort(portinfo);
-        port.setBaudRate(baudrate);
+//bool ComportCommunicationDevice::connect(const QSerialPortInfo &portinfo, QSerialPort::BaudRate baudrate) {
+bool ComportCommunicationDevice::connect(const QMap<QString,QVariant> &portinfo) {
+    return Utility::promised_thread_call(this, [this, portinfo] {
+        assert(portinfo.contains(HOST_NAME_TAG));
+        assert(portinfo.contains("baudrate"));
+        assert(portinfo[HOST_NAME_TAG].type() == QVariant::String);
+        assert(portinfo["baudrate"].type() == QVariant::Int);
+
+        port.setPortName(portinfo[HOST_NAME_TAG].toString());
+        port.setBaudRate(portinfo["baudrate"].toInt());
+
         return port.open(QIODevice::ReadWrite);
     });
 }
