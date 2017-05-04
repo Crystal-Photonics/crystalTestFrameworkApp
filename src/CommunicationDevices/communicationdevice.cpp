@@ -6,22 +6,7 @@
 #include <QDebug>
 #include <regex>
 
-std::unique_ptr<CommunicationDevice> CommunicationDevice::createConnection(const QString &target) {
-	const auto targetstring = target.toStdString();
-	if (targetstring == "echo") {
-		return std::make_unique<EchoCommunicationDevice>();
-	}
-	std::regex ipPort(R"(((server:)|(client:))([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}:[[:digit:]]{1,5})");
-	if (regex_match(targetstring, ipPort)) {
-		return std::make_unique<SocketCommunicationDevice>();
-	}
-	std::regex comport(R"(\\\\.\\COM[[:digit:]]+)");
-	if (regex_match(targetstring, comport)) {
-		return std::make_unique<ComportCommunicationDevice>(target);
-	}
-	qDebug() << "unknown target device" << target;
-	return nullptr;
-}
+
 
 void CommunicationDevice::send(const std::vector<unsigned char> &data, const std::vector<unsigned char> &displayed_data) {
     size_t datasize = data.size();
@@ -55,6 +40,11 @@ void CommunicationDevice::set_is_in_use(bool in_use)
 bool CommunicationDevice::get_is_in_use() const
 {
     return in_use;
+}
+
+const QMap<QString, QVariant> &CommunicationDevice::get_port_info()
+{
+    return portinfo;
 }
 
 

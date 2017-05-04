@@ -56,7 +56,7 @@ class EXPORT MainWindow : public QMainWindow {
 	public slots:
 	void align_columns();
 	void remove_device_entry(QTreeWidgetItem *item);
-	void add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *comport);
+	void add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *cummincation_device);
 	void append_html_to_console(QString text, QPlainTextEdit *console);
 
 	private slots:

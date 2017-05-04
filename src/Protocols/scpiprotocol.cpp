@@ -152,7 +152,7 @@ void SCPIProtocol::set_scpi_meta_data(DeviceMetaDataGroup scpi_meta_data) {
 
     if (scpi_meta_data.devices.count() == 1) {
         if (device_data.serial_number == "") {
-            assert(device_data.name == scpi_meta_data.device_name);
+            assert(device_data.name == scpi_meta_data.commondata.device_name);
         } else {
             assert(device_data.serial_number == scpi_meta_data.devices[0].serial_number);
         }
@@ -187,7 +187,7 @@ void SCPIProtocol::set_scpi_meta_data(DeviceMetaDataGroup scpi_meta_data) {
         device_data.serial_number = scpi_meta_data.devices[0].serial_number;
         device_data.expery_date = scpi_meta_data.devices[0].expery_date;
         device_data.purchase_date = scpi_meta_data.devices[0].purchase_date;
-        device_data.manual_path = scpi_meta_data.manual_path;
+        device_data.manual_path = scpi_meta_data.commondata.manual_path;
         device_data.calibration_certificate_path = scpi_meta_data.devices[0].calibration_certificate_path;
         device_data.note = scpi_meta_data.devices[0].note;
         device_data.locked = scpi_meta_data.devices[0].locked;

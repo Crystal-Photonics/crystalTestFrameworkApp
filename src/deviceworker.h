@@ -31,9 +31,9 @@ class DeviceWorker : public QObject {
 	QStringList get_string_list(ScriptEngine &script, const QString &name);
 
 	private:
-    std::list<PortDescription> comport_devices;
-    void detect_devices(std::vector<PortDescription *> comport_device_list);
-    DeviceMetaData scpi_meta_data;
+    std::list<PortDescription> communication_devices;
+    void detect_devices(std::vector<PortDescription *> device_list);
+    DeviceMetaData device_meta_data;
 };
 
 #endif // DEVICEWORKER_H

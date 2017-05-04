@@ -7,7 +7,6 @@
 
 struct Protocol {
     QString type;
-   // QString device_name;
     Protocol(QString type)
         : type(type) {}
     bool operator==(const QString &&type) const {

@@ -36,7 +36,7 @@ void SCPIMetaDataDeviceSelector::align_columns() {
 
 void SCPIMetaDataDeviceSelector::make_gui() {
     QTreeWidgetItem *wi = new QTreeWidgetItem(ui->treeWidget);
-    wi->setText(0, scpi_meta_data.device_name + "@" + port_name);
+    wi->setText(0, scpi_meta_data.commondata.device_name + "@" + port_name);
     for (auto &d : scpi_meta_data.devices) {
         QTreeWidgetItem *di = new QTreeWidgetItem(wi);
         di->setText(0, d.serial_number);

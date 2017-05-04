@@ -77,7 +77,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     device_worker->moveToThread(&devices_thread);
     devices_thread.start();
-	QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
+    QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
     Console::console = ui->console_edit;
     Console::mw = this;
     ui->update_devices_list_button->click();
@@ -140,17 +140,18 @@ void MainWindow::load_scripts() {
     });
 }
 
-void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *comport) {
-    Utility::thread_call(this, [this, item, tab_name, comport] {
+void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *cummincation_device) {
+    Utility::thread_call(this, [this, item, tab_name, cummincation_device] {
         ui->devices_list->addTopLevelItem(item);
         align_columns();
-
-        auto console = new QPlainTextEdit(ui->console_tabs);
-        console->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
-        console->setReadOnly(true);
-        console->setMaximumBlockCount(1000);
-        ui->console_tabs->addTab(console, tab_name);
-        device_worker->connect_to_device_console(console, comport);
+        if (cummincation_device) {
+            auto console = new QPlainTextEdit(ui->console_tabs);
+            console->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
+            console->setReadOnly(true);
+            console->setMaximumBlockCount(1000);
+            ui->console_tabs->addTab(console, tab_name);
+            device_worker->connect_to_device_console(console, cummincation_device);
+        }
     });
 }
 
@@ -248,9 +249,9 @@ void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
     (void)column;
     Utility::thread_call(this, [this, item] {
         auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
-		if (test == nullptr) {
-			return;
-		}
+        if (test == nullptr) {
+            return;
+        }
         Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
         ui->test_tabs->setCurrentIndex(0);
     });
@@ -259,7 +260,7 @@ void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
 void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
     Utility::thread_call(this, [this, pos] {
         auto item = ui->tests_list->itemAt(pos);
-		if (item && get_test_from_ui()) {
+        if (item && get_test_from_ui()) {
             while (ui->tests_list->indexOfTopLevelItem(item) == -1) {
                 item = item->parent();
             }
@@ -356,21 +357,21 @@ TestRunner *MainWindow::get_runner_from_tab_index(int index) {
             return r.get();
         }
     }
-	return nullptr;
+    return nullptr;
 }
 
 void MainWindow::close_finished_tests() {
-	auto &test_runners = MainWindow::mw->test_runners;
-	test_runners.erase(std::remove_if(std::begin(test_runners), std::end(test_runners),
-									  [](const auto &test) {
-										  if (test->is_running()) {
-											  return false;
-										  }
-										  auto container = test->get_lua_ui_container();
-										  MainWindow::mw->ui->test_tabs->removeTab(MainWindow::mw->ui->test_tabs->indexOf(container));
-										  return true;
-									  }),
-					   std::end(test_runners));
+    auto &test_runners = MainWindow::mw->test_runners;
+    test_runners.erase(std::remove_if(std::begin(test_runners), std::end(test_runners),
+                                      [](const auto &test) {
+                                          if (test->is_running()) {
+                                              return false;
+                                          }
+                                          auto container = test->get_lua_ui_container();
+                                          MainWindow::mw->ui->test_tabs->removeTab(MainWindow::mw->ui->test_tabs->indexOf(container));
+                                          return true;
+                                      }),
+                       std::end(test_runners));
 }
 
 void MainWindow::on_test_tabs_tabCloseRequested(int index) {
@@ -429,7 +430,7 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
         QMenu menu(this);
 
         QAction action_close_finished(tr("Close finished Tests"), nullptr);
-		connect(&action_close_finished, &QAction::triggered, &close_finished_tests);
+        connect(&action_close_finished, &QAction::triggered, &close_finished_tests);
         menu.addAction(&action_close_finished);
 
         menu.exec(ui->test_tabs->mapToGlobal(pos));
@@ -473,15 +474,15 @@ void MainWindow::poll_sg04_counts() {
     QString sg04_prot_string = "SG04Count";
     auto sg04_count_devices = device_worker.get()->get_devices_with_protocol(sg04_prot_string, QStringList{""});
     for (auto &sg04_count_device : sg04_count_devices) {
-		auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(sg04_count_device->protocol.get());
+        auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(sg04_count_device->protocol.get());
         if (sg04_count_protocol) {
-			unsigned int cps = sg04_count_protocol->get_actual_count_rate_cps();
-			sg04_count_device->ui_entry->setText(2, "cps: " + QString::number(cps));
+            unsigned int cps = sg04_count_protocol->get_actual_count_rate_cps();
+            sg04_count_device->ui_entry->setText(2, "cps: " + QString::number(cps));
         }
     }
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
 }
 
 void MainWindow::on_close_finished_tests_button_clicked() {
-	close_finished_tests();
+    close_finished_tests();
 }

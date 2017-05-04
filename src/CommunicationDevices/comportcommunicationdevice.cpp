@@ -36,6 +36,7 @@ bool ComportCommunicationDevice::connect(const QMap<QString,QVariant> &portinfo)
 
         return port.open(QIODevice::ReadWrite);
     });
+    this->portinfo = portinfo;
 }
 
 bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes, bool isPolling) {

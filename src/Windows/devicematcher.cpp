@@ -1,5 +1,6 @@
 #include "devicematcher.h"
 #include "CommunicationDevices/comportcommunicationdevice.h"
+#include "Protocols/manualprotocol.h"
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
 #include "Protocols/sg04countprotocol.h"
@@ -30,6 +31,7 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
         auto rpc_protocol = dynamic_cast<RPCProtocol *>(device->protocol.get());
         auto scpi_protocol = dynamic_cast<SCPIProtocol *>(device->protocol.get());
         auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device->protocol.get());
+        auto manual_protocol = dynamic_cast<ManualProtocol *>(device->protocol.get());
         if (rpc_protocol) { //we have an RPC protocol, so we have to ask the script if this RPC device is acceptable
             sol::optional<std::string> message;
             try {
@@ -86,6 +88,19 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
 
         } else if (sg04_count_protocol) {
             {
+                //acceptable device found
+                devices.emplace_back(device->device.get(), device->protocol.get());
+            }
+        } else if (manual_protocol) {
+            {
+                if (manual_protocol->get_approved_state() != DeviceMetaDataApprovedState::Approved) {
+                    const auto &message = QObject::tr("Manual device %1 with serial number =\"%2\" is lacking approval.\nIts approval state: %3")
+                                              .arg(QString::fromStdString(manual_protocol->get_name()))
+                                              .arg(QString::fromStdString(manual_protocol->get_serial_number()))
+                                              .arg(manual_protocol->get_approved_state_str());
+                    Console::note(runner.console) << message;
+                    continue;
+                }
                 //acceptable device found
                 devices.emplace_back(device->device.get(), device->protocol.get());
             }
@@ -243,27 +258,32 @@ void DeviceMatcher::load_available_devices(int required_index) {
 
     for (auto &d : requirement.accepted_candidates) {
         QTreeWidgetItem *tv = new QTreeWidgetItem(ui->tree_available);
-        auto com_port = dynamic_cast<ComportCommunicationDevice *>(d.communication_device);
+        //auto com_port = dynamic_cast<ComportCommunicationDevice *>(d.communication_device);
         auto scpi_protocol = dynamic_cast<SCPIProtocol *>(d.protocol);
         auto rpc_protocol = dynamic_cast<RPCProtocol *>(d.protocol);
         auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(d.protocol);
+        auto manual_protocol = dynamic_cast<ManualProtocol *>(d.protocol);
 
-        if (com_port) {
-            tv->setText(0, com_port->port.portName());
-            if (scpi_protocol) {
-                QTreeWidgetItem *tv_child = new QTreeWidgetItem(tv);
-                tv_child->setText(0, scpi_protocol->get_device_summary());
-                tv->setText(1, QString::fromStdString(scpi_protocol->get_serial_number()));
-                tv->setText(2, scpi_protocol->get_approved_state_str());
-            } else if (rpc_protocol) {
-                QTreeWidgetItem *tv_child = new QTreeWidgetItem(tv);
-                tv_child->setText(0, rpc_protocol->get_device_summary());
-                //TODO shall we put more information here?
-            } else if (sg04_count_protocol) {
-                is_sg04_count_protocol = true;
-                tv->setText(1, "SG04");
-            }
+        tv->setText(0, d.communication_device->get_port_info()[HOST_NAME_TAG].toString());
+        if (scpi_protocol) {
+            QTreeWidgetItem *tv_child = new QTreeWidgetItem(tv);
+            tv_child->setText(0, scpi_protocol->get_device_summary());
+            tv->setText(1, QString::fromStdString(scpi_protocol->get_serial_number()));
+            tv->setText(2, scpi_protocol->get_approved_state_str());
+        } else if (rpc_protocol) {
+            QTreeWidgetItem *tv_child = new QTreeWidgetItem(tv);
+            tv_child->setText(0, rpc_protocol->get_device_summary());
+            //TODO shall we put more information here?
+        } else if (sg04_count_protocol) {
+            is_sg04_count_protocol = true;
+            tv->setText(1, "SG04");
+        } else if (manual_protocol) {
+            is_sg04_count_protocol = false;
+            tv->setText(0, d.communication_device->get_port_info()[DEVICE_MANUAL_NAME_TAG].toString());
+            tv->setText(1, QString::fromStdString(manual_protocol->get_serial_number()));
+            tv->setText(2, manual_protocol->get_approved_state_str());
         }
+
 
         if (d.selected) {
             tv->setCheckState(0, Qt::Checked);
@@ -274,9 +294,9 @@ void DeviceMatcher::load_available_devices(int required_index) {
         items.append(tv);
     }
     if (is_sg04_count_protocol) {
-        ui->tree_available->setHeaderLabels(QStringList{"Port","","Actual count-rate"});
+        ui->tree_available->setHeaderLabels(QStringList{"Port", "", "Actual count-rate"});
     } else {
-        ui->tree_available->setHeaderLabels(QStringList{"Port","Serialnumber","Calibration"});
+        ui->tree_available->setHeaderLabels(QStringList{"Port", "Serialnumber", "Calibration"});
     }
     ui->tree_available->insertTopLevelItems(0, items);
     selected_requirement = &requirement;
@@ -394,4 +414,21 @@ void DeviceMatcher::poll_sg04_counts() {
     }
 
     QTimer::singleShot(500, this, &DeviceMatcher::poll_sg04_counts);
+}
+
+QString ComDeviceTypeToString(CommunicationDeviceType t) {
+    switch (t) {
+        case CommunicationDeviceType::COM:
+            return "COM";
+        case CommunicationDeviceType::TMC:
+            return "TMC";
+        case CommunicationDeviceType::Manual:
+            return "Manual";
+        case CommunicationDeviceType::TCP:
+            return "TCP";
+        case CommunicationDeviceType::UDP:
+            return "UDP";
+        case CommunicationDeviceType::IP:
+            return "IP";
+    }
 }

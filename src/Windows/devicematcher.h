@@ -13,11 +13,17 @@
 #include <QList>
 #include <vector>
 
+enum class CommunicationDeviceType {COM, TMC, Manual, TCP, UDP, IP} ;
+
+QString ComDeviceTypeToString(CommunicationDeviceType t);
+
 struct PortDescription {
     std::unique_ptr<CommunicationDevice> device;
     QMap<QString,QVariant> port_info;
     QTreeWidgetItem *ui_entry;
     std::unique_ptr<Protocol> protocol;
+    CommunicationDeviceType communication_type; //COM, TMC, Manual, TCP, UDP, IP
+
     void set_is_in_use(bool in_use);
     bool get_is_in_use(void);
 

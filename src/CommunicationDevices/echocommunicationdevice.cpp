@@ -7,7 +7,7 @@ EchoCommunicationDevice::EchoCommunicationDevice() {
 
 bool EchoCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo)
 {
-    (void)portinfo;
+    this->portinfo = portinfo;
     return true;
 }
 

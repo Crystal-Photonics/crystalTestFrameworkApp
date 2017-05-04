@@ -9,6 +9,7 @@
 #include "LuaUI/label.h"
 #include "LuaUI/lineedit.h"
 #include "LuaUI/plot.h"
+#include "Protocols/manualprotocol.h"
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
 #include "Protocols/sg04countprotocol.h"
@@ -442,6 +443,41 @@ struct SG04CountDevice {
     ScriptEngine *engine = nullptr;
 };
 
+struct ManualDevice {
+    std::string get_protocol_name() {
+        return protocol->type.toStdString();
+    }
+
+    std::string get_name() {
+        return protocol->get_name();
+    }
+
+    std::string get_manufacturer() {
+        return protocol->get_manufacturer();
+    }
+
+    std::string get_description() {
+        return protocol->get_description();
+    }
+
+    std::string get_serial_number() {
+        return protocol->get_serial_number();
+    }
+
+    std::string get_notes() {
+        return protocol->get_notes();
+    }
+
+    std::string get_summary() {
+        return protocol->get_summary();
+    }
+
+    sol::state *lua = nullptr;
+    ManualProtocol *protocol = nullptr;
+    CommunicationDevice *device = nullptr;
+    ScriptEngine *engine = nullptr;
+};
+
 struct SCPIDevice {
     void send_command(std::string request) {
         protocol->send_command(request);
@@ -749,8 +785,8 @@ void ScriptEngine::load_script(const QString &path) {
 
             lua->new_usertype<Data_engine_handle>(
                 "Data_engine", //
-                sol::meta_function::construct, [ data_engine = data_engine, pdf_filepath = pdf_filepath.get(),
-                                                 form_filepath = form_filepath.get() ](const std::string &xml_file, const std::string &json_file, const sol::table &dependency_tags) {
+                sol::meta_function::construct, [ data_engine = data_engine, pdf_filepath = pdf_filepath.get(), form_filepath = form_filepath.get() ](
+                                                   const std::string &xml_file, const std::string &json_file, const sol::table &dependency_tags) {
                     QString form_dir = QSettings{}.value(Globals::form_directory, QDir::currentPath()).toString();
                     auto file_path = QDir{form_dir}.absoluteFilePath(QString::fromStdString(json_file)).toStdString();
                     std::ifstream f(file_path);
@@ -773,15 +809,17 @@ void ScriptEngine::load_script(const QString &path) {
                         }
                         tags.insert(QString().fromStdString(tag_name), value);
                     }
-                    data_engine->set_source(f,tags);
+                    data_engine->set_source(f, tags);
                     *pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
                     *form_filepath =
                         QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath(QString::fromStdString(xml_file)).toStdString();
 
                     return Data_engine_handle{data_engine};
                 }, //
-                "set_bool", [](Data_engine_handle &handle, const std::string &field_id,
-                               bool value) { handle.data_engine->set_actual_bool(QString::fromStdString(field_id), value); },
+                "set_bool",
+                [](Data_engine_handle &handle, const std::string &field_id, bool value) {
+                    handle.data_engine->set_actual_bool(QString::fromStdString(field_id), value);
+                },
                 "set_number", [](Data_engine_handle &handle, const std::string &field_id,
                                  double number) { handle.data_engine->set_actual_number(QString::fromStdString(field_id), number); },
                 "set_text",
@@ -1030,15 +1068,27 @@ void ScriptEngine::load_script(const QString &path) {
         }
 
         {
-            lua->new_usertype<SG04CountDevice>("SG04CountDevice",                                                                      //
-                                               sol::meta_function::construct, sol::no_constructor,                                     //
-                                               "get_protocol_name", [](SCPIDevice &protocol) { return protocol.get_protocol_name(); }, //
+            lua->new_usertype<SG04CountDevice>("SG04CountDevice",                                                                           //
+                                               sol::meta_function::construct, sol::no_constructor,                                          //
+                                               "get_protocol_name", [](SG04CountDevice &protocol) { return protocol.get_protocol_name(); }, //
                                                "get_sg04_counts",
                                                [](SG04CountDevice &protocol, bool clear_on_read) { return protocol.get_sg04_counts(clear_on_read); } //
 
                                                );
         }
+        {
+            lua->new_usertype<ManualDevice>("ManualDevice",                                                                           //
+                                            sol::meta_function::construct, sol::no_constructor,                                       //
+                                            "get_protocol_name", [](ManualDevice &protocol) { return protocol.get_protocol_name(); }, //
+                                            "get_name", [](ManualDevice &protocol) { return protocol.get_name(); },                   //
+                                            "get_manufacturer", [](ManualDevice &protocol) { return protocol.get_manufacturer(); },   //
+                                            "get_description", [](ManualDevice &protocol) { return protocol.get_description(); },     //
+                                            "get_serial_number", [](ManualDevice &protocol) { return protocol.get_serial_number(); }, //
+                                            "get_notes", [](ManualDevice &protocol) { return protocol.get_notes(); },                 //
+                                            "get_summary", [](ManualDevice &protocol) { return protocol.get_summary(); }              //
 
+                                            );
+        }
         lua->script_file(path.toStdString());
     } catch (const sol::error &error) {
         set_error(error);
@@ -1201,7 +1251,8 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
                     scpip->clear();
                 } else if (auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device_protocol.second)) {
                     device_list.add(SG04CountDevice{&*lua, sg04_count_protocol, device_protocol.first, this});
-                    scpip->clear();
+                } else if (auto manual_protocol = dynamic_cast<ManualProtocol *>(device_protocol.second)) {
+                    device_list.add(ManualDevice{&*lua, manual_protocol, device_protocol.first, this});
                 } else {
                     //TODO: other protocols
                     throw std::runtime_error("invalid protocol: " + device_protocol.second->type.toStdString());

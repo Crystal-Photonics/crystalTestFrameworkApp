@@ -62,7 +62,7 @@ DeviceMetaDataGroup DeviceMetaData::query(QString serial_number, QString device_
         if (look_for_serial) {
             for (auto d : t.devices) {
                 if (d.serial_number == serial_number) {
-                    if (device_name == t.device_name) {
+                    if (device_name == t.commondata.device_name) {
                         result = t;
                         result.devices.clear();
                         result.devices.append(d);
@@ -71,10 +71,26 @@ DeviceMetaDataGroup DeviceMetaData::query(QString serial_number, QString device_
                 }
             }
         } else {
-            if (t.device_name == device_name) {
+            if (t.commondata.device_name == device_name) {
                 result = t;
                 break;
             }
+        }
+    }
+    return result;
+}
+
+QList<DeviceEntry> DeviceMetaData::get_manual_devices() const {
+    QList<DeviceEntry> result;
+    for (auto &devgroup : device_types) {
+        if (devgroup.commondata.protocol_type != ProtocolType::Manual) {
+            continue;
+        }
+        for (auto &detail : devgroup.devices) {
+            DeviceEntry entry;
+            entry.detail = detail;
+            entry.commondata = devgroup.commondata;
+            result.append(entry);
         }
     }
     return result;
@@ -110,16 +126,16 @@ void DeviceMetaData::parse_meta_data_file(QString file_name) {
 
         QJsonObject obj = js_device_type.toObject();
         // device_type.isEmpty = false;
-        device_type.device_name = obj["device_name"].toString();
-        device_type.manufacturer = obj["manufacturer"].toString();
-        device_type.description = obj["description"].toString();
-        device_type.manual_path = obj["manual_path"].toString();
+        device_type.commondata.device_name = obj["device_name"].toString();
+        device_type.commondata.manufacturer = obj["manufacturer"].toString();
+        device_type.commondata.description = obj["description"].toString();
+        device_type.commondata.manual_path = obj["manual_path"].toString();
         QString proto_type = obj["protocol"].toString();
-        if (proto_type.toLower() == "scpi"){
-            device_type.protocol_type = ProtocolType::SCPI;
-        }else if (proto_type.toLower() == "manual"){
-            device_type.protocol_type = ProtocolType::Manual;
-        }else{
+        if (proto_type.toLower() == "scpi") {
+            device_type.commondata.protocol_type = ProtocolType::SCPI;
+        } else if (proto_type.toLower() == "manual") {
+            device_type.commondata.protocol_type = ProtocolType::Manual;
+        } else {
             //TODO: put error here
             assert(0);
         }
@@ -139,16 +155,15 @@ void DeviceMetaData::parse_meta_data_file(QString file_name) {
             device.valid = true;
             device.locked = false;
 
-
             QString locked_str = obj["locked"].toString();
-            if (locked_str == "yes"){
+            if (locked_str == "yes") {
                 device.locked = true;
             }
-            if (locked_str == "true"){
+            if (locked_str == "true") {
                 device.locked = true;
             }
             int locked_num = obj["locked"].toInt();
-            if (locked_num){
+            if (locked_num) {
                 device.locked = true;
             }
             device.note = obj["note"].toString();
@@ -160,7 +175,13 @@ void DeviceMetaData::parse_meta_data_file(QString file_name) {
 }
 
 void DeviceMetaDataGroup::clear() {
+    commondata.clear();
+    devices.clear();
+}
+
+void DeviceMetaDataCommon::clear() {
     device_name = "";
     manual_path = "";
-    devices.clear();
+    manufacturer = "";
+    description = "";
 }
