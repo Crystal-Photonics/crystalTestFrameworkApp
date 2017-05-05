@@ -121,16 +121,27 @@ void DeviceMetaData::parse_meta_data_file(QString file_name) {
     }
     QJsonObject j_obj = j_doc.object();
     QJsonArray js_device_types = j_obj["device_types"].toArray();
+    QStringList device_names;
     for (QJsonValue js_device_type : js_device_types) {
         DeviceMetaDataGroup device_type{};
 
         QJsonObject obj = js_device_type.toObject();
+        QString proto_type = obj["protocol"].toString().trimmed();
         // device_type.isEmpty = false;
         device_type.commondata.device_name = obj["device_name"].toString();
+        if (device_names.contains(device_type.commondata.device_name.toLower() + proto_type.toLower())) {
+            QMessageBox::critical(nullptr, "Device meta data error",
+                                  QString("The device meta data table contains more than one device-group with the equal name \"%1\". This is not allowed. " \
+                                          "You can use the \"devices\" array to insert more devices of the same type.")
+                                      .arg(device_type.commondata.device_name));
+            throw; //
+            //should not contain more than one device with the same name
+        }
+        device_names.append(device_type.commondata.device_name.toLower() + proto_type.toLower());
         device_type.commondata.manufacturer = obj["manufacturer"].toString();
         device_type.commondata.description = obj["description"].toString();
         device_type.commondata.manual_path = obj["manual_path"].toString();
-        QString proto_type = obj["protocol"].toString();
+
         if (proto_type.toLower() == "scpi") {
             device_type.commondata.protocol_type = ProtocolType::SCPI;
         } else if (proto_type.toLower() == "manual") {
@@ -141,12 +152,23 @@ void DeviceMetaData::parse_meta_data_file(QString file_name) {
         }
 
         QJsonArray js_devices = obj["devices"].toArray();
-
+        QStringList serial_numbers;
         for (QJsonValue js_device : js_devices) {
             DeviceMetaDataDetail device{};
             const QString DATE_FORMAT = "yyyy.M.d"; // 1985.5.25
             QJsonObject obj = js_device.toObject();
             device.serial_number = obj["serial_number"].toString();
+            if (serial_numbers.contains(device.serial_number.toLower())) {
+                QMessageBox::critical(
+                    nullptr, "Device meta data error",
+                    QString(
+                        "The device meta data table contains more than one device with the equal name \"%1\" and the equal serialnumber \"%2\". This is not allowed.")
+                        .arg(device_type.commondata.device_name)
+                        .arg(device.serial_number));
+                throw; //
+                //should not contain more than one device with the same name
+            }
+            serial_numbers.append((device.serial_number.toLower()));
             QString tmp = obj["expery_date"].toString();
 
             device.expery_date = QDate::fromString(tmp, DATE_FORMAT);

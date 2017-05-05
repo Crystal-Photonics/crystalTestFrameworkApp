@@ -32,6 +32,7 @@ class DeviceWorker : public QObject {
 
 	private:
     std::list<PortDescription> communication_devices;
+    bool contains_port(QMap<QString, QVariant> port_info);
     void detect_devices(std::vector<PortDescription *> device_list);
     DeviceMetaData device_meta_data;
 };

@@ -254,7 +254,7 @@ void DeviceMatcher::load_available_devices(int required_index) {
     ui->tree_available->setColumnCount(3);
     QList<QTreeWidgetItem *> items;
 
-    bool is_sg04_count_protocol = false;
+    QStringList table_captions;
 
     for (auto &d : requirement.accepted_candidates) {
         QTreeWidgetItem *tv = new QTreeWidgetItem(ui->tree_available);
@@ -270,20 +270,22 @@ void DeviceMatcher::load_available_devices(int required_index) {
             tv_child->setText(0, scpi_protocol->get_device_summary());
             tv->setText(1, QString::fromStdString(scpi_protocol->get_serial_number()));
             tv->setText(2, scpi_protocol->get_approved_state_str());
+            table_captions = QStringList{"Port", "Serialnumber", "Calibration"};
         } else if (rpc_protocol) {
             QTreeWidgetItem *tv_child = new QTreeWidgetItem(tv);
             tv_child->setText(0, rpc_protocol->get_device_summary());
+            table_captions = QStringList{"Port", "Serialnumber", "Calibration"};
             //TODO shall we put more information here?
         } else if (sg04_count_protocol) {
-            is_sg04_count_protocol = true;
             tv->setText(1, "SG04");
+            table_captions = QStringList{"Port", "", "Actual count-rate"};
         } else if (manual_protocol) {
-            is_sg04_count_protocol = false;
-            tv->setText(0, d.communication_device->get_port_info()[DEVICE_MANUAL_NAME_TAG].toString());
-            tv->setText(1, QString::fromStdString(manual_protocol->get_serial_number()));
+            tv->setText(0, d.communication_device->get_port_info()[DEVICE_MANUAL_NAME_TAG].toString() + "(" +
+                               QString::fromStdString(manual_protocol->get_serial_number()) + ")");
+            tv->setText(1, QString::fromStdString(manual_protocol->get_notes()));
             tv->setText(2, manual_protocol->get_approved_state_str());
+            table_captions = QStringList{"Name(sn)", "Notes", "Calibration"};
         }
-
 
         if (d.selected) {
             tv->setCheckState(0, Qt::Checked);
@@ -293,11 +295,8 @@ void DeviceMatcher::load_available_devices(int required_index) {
 
         items.append(tv);
     }
-    if (is_sg04_count_protocol) {
-        ui->tree_available->setHeaderLabels(QStringList{"Port", "", "Actual count-rate"});
-    } else {
-        ui->tree_available->setHeaderLabels(QStringList{"Port", "Serialnumber", "Calibration"});
-    }
+
+    ui->tree_available->setHeaderLabels(table_captions);
     ui->tree_available->insertTopLevelItems(0, items);
     selected_requirement = &requirement;
     align_columns();

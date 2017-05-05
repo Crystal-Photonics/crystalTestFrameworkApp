@@ -205,47 +205,56 @@ void DeviceWorker::update_devices() {
         assert(currently_in_gui_thread() == false);
         auto portlist = QSerialPortInfo::availablePorts();
         for (auto &port : portlist) {
+
+#if 0
             //TODO: lower_bound brauchen wir nicht mehr
             auto pos = std::lower_bound(std::begin(communication_devices), std::end(communication_devices), port.systemLocation(),
                                         [](const PortDescription &lhs, const QString &rhs) { return lhs.device->getTarget() < rhs; });
             if (pos != std::end(communication_devices) && pos->device->getTarget() == port.systemLocation()) {
                 continue;
             }
-            auto item = std::make_unique<QTreeWidgetItem>(QStringList{} << port.portName() + " " + port.description());
-
+#endif
             QMap<QString, QVariant> port_info;
             port_info.insert(HOST_NAME_TAG, QString(port.portName()));
 
-            auto &device = *communication_devices
-                                .insert(pos, {std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port_info, item.get(), nullptr,
-                                              CommunicationDeviceType::COM})
-                                ->device;
+            if (contains_port(port_info)) {
+                continue;
+            }
 
-            MainWindow::mw->add_device_item(item.release(), port.portName() + " " + port.description(), &device);
+            auto item = std::make_unique<QTreeWidgetItem>(QStringList{} << port.portName() + " " + port.description());
+
+            communication_devices.push_back(PortDescription{std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port_info, item.get(), nullptr,
+                                                            CommunicationDeviceType::COM});
+            PortDescription *port_desc = &communication_devices.back();
+            CommunicationDevice *device = port_desc->device.get();
+            MainWindow::mw->add_device_item(item.release(), port.portName() + " " + port.description(), device);
         }
         std::unique_ptr<QTreeWidgetItem> manual_parent_item;
-        if (device_meta_data.get_manual_devices().count()) {
-            manual_parent_item = std::make_unique<QTreeWidgetItem>(QStringList{} << "Manual Devices");
-        }
-        for (auto manual_device : device_meta_data.get_manual_devices()) {
-            auto item = std::make_unique<QTreeWidgetItem>(manual_parent_item.get(), QStringList{} << manual_device.commondata.device_name + " (" +
-                                                                                                         manual_device.detail.serial_number + ")");
 
+        for (auto manual_device : device_meta_data.get_manual_devices()) {
             QMap<QString, QVariant> port_info;
             port_info.insert(HOST_NAME_TAG, QString("manual"));
             port_info.insert(DEVICE_MANUAL_NAME_TAG, manual_device.commondata.device_name);
             port_info.insert(DEVICE_MANUAL_SN_TAG, manual_device.detail.serial_number);
 
+            if (contains_port(port_info)) {
+                continue;
+            }
+
+            if (manual_parent_item.get() == nullptr) {
+                if (device_meta_data.get_manual_devices().count()) {
+                    manual_parent_item = std::make_unique<QTreeWidgetItem>(QStringList{} << "Manual Devices");
+                }
+            }
+            auto item = std::make_unique<QTreeWidgetItem>(manual_parent_item.get(), QStringList{} << manual_device.commondata.device_name + " (" +
+                                                                                                         manual_device.detail.serial_number + ")");
+
             communication_devices.push_back(
                 PortDescription{std::make_unique<DummyCommunicationDevice>(), port_info, item.release(), nullptr, CommunicationDeviceType::Manual});
-
-            //PortDescription *port_desc = &communication_devices.back();
-            //CommunicationDevice *device = port_desc->device.get();
         }
 
         if (manual_parent_item.get()) {
-            MainWindow::mw->add_device_item(manual_parent_item.release(),
-                                            "test", nullptr);
+            MainWindow::mw->add_device_item(manual_parent_item.release(), "test", nullptr);
         }
     });
 }
@@ -364,4 +373,20 @@ void DeviceWorker::set_currently_running_test(CommunicationDevice *com_device, c
 
 QStringList DeviceWorker::get_string_list(ScriptEngine &script, const QString &name) {
     return Utility::promised_thread_call(this, [&script, &name] { return script.get_string_list(name); });
+}
+
+bool DeviceWorker::contains_port(QMap<QString, QVariant> port_info) {
+    for (const auto &item : communication_devices) {
+        if (port_info[HOST_NAME_TAG].toString() == "manual") {
+            if ((port_info[DEVICE_MANUAL_NAME_TAG].toString() == item.port_info[DEVICE_MANUAL_NAME_TAG].toString()) &&
+                (port_info[DEVICE_MANUAL_SN_TAG].toString() == item.port_info[DEVICE_MANUAL_SN_TAG].toString())) {
+                return true;
+            }
+        } else {
+            if (port_info[HOST_NAME_TAG].toString() == item.port_info[HOST_NAME_TAG].toString()) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
