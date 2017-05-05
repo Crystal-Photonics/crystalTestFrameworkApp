@@ -9,6 +9,9 @@ TEMPLATE = lib
 
 DEFINES += EXPORT_LIBRARY
 
+
+
+
 FORMS += \
 	Windows/mainwindow.ui \
 	Windows/pathsettingswindow.ui \
@@ -68,7 +71,8 @@ HEADERS += \
     LuaUI/image.h \
     ui_container.h \
     Protocols/manualprotocol.h \
-    CommunicationDevices/dummycommunicationdevice.h
+    CommunicationDevices/dummycommunicationdevice.h \
+    CommunicationDevices/usbtmccommunicationdevice.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -111,4 +115,5 @@ SOURCES += \
     LuaUI/image.cpp \
     ui_container.cpp \
     Protocols/manualprotocol.cpp \
-    CommunicationDevices/dummycommunicationdevice.cpp
+    CommunicationDevices/dummycommunicationdevice.cpp \
+    CommunicationDevices/usbtmccommunicationdevice.cpp
