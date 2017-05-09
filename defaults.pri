@@ -27,7 +27,7 @@ win32 {
 win32 {
     INCLUDEPATH += $$PWD/libs/libusb-1.0.21/include/
     #message($$INCLUDEPATH)
-    LIBS += -L$$PWD/libs/libusb-1.0.21/MinGW64/static/
+    LIBS += -L$$PWD/libs/libusb-1.0.21/MinGW32/static/
     LIBS += -llibusb-1.0
 }else{
     LIBS += -llibusb-1.0

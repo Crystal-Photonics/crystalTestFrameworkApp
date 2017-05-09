@@ -9,14 +9,15 @@
 SocketCommunicationDevice::SocketCommunicationDevice()
     : socket(nullptr) {
 #if 1
-    std::regex ipPort(R"(((server:)|(client:))([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}:[[:digit:]]{1,5})");
-    auto success = std::regex_match(target.toStdString(), ipPort);
+    //std::regex ipPort(R"(((server:)|(client:))([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}:[[:digit:]]{1,5})");
+    //auto success = std::regex_match(target.toStdString(), ipPort);
+    bool success = true;
     assert(success);
-    auto typeIpPort = target.split(':');
-    auto &type = typeIpPort[0];
-    auto &ip = typeIpPort[1];
+    //auto typeIpPort = target.split(':');
+    auto type = QString{"client"};
+    auto ip = QString{"localhost"};
     int port;
-    success = Utility::convert(typeIpPort[2], port);
+    success = Utility::convert(QString{"111"}, port);
     assert(success);
     server.setMaxPendingConnections(1);
     if (type == "client") {

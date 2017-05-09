@@ -1,6 +1,7 @@
 #include "deviceworker.h"
 #include "CommunicationDevices/comportcommunicationdevice.h"
 #include "CommunicationDevices/dummycommunicationdevice.h"
+#include "CommunicationDevices/usbtmccommunicationdevice.h"
 #include "device_protocols_settings.h"
 
 #include "Protocols/manualprotocol.h"
@@ -67,7 +68,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             }
             device.port_info.insert("baudrate", baudrate);
             if (device.device->connect(device.port_info) == false) {
-                Console::warning() << tr("Failed opening") << device.device->getTarget();
+                Console::warning() << tr("Failed opening") << device.device->get_identifier_display_string();
                 return;
             }
             auto protocol = std::make_unique<RPCProtocol>(*device.device, rpc_device);
@@ -95,7 +96,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             }
             device.port_info.insert("baudrate", baudrate);
             if (device.device->connect(device.port_info) == false) {
-                Console::warning() << tr("Failed opening") << device.device->getTarget();
+                Console::warning() << tr("Failed opening") << device.device->get_identifier_display_string();
                 return;
             }
             auto protocol = std::make_unique<SCPIProtocol>(*device.device, scpi_device);
@@ -129,7 +130,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             }
             device.port_info.insert("baudrate", baudrate);
             if (device.device->connect(device.port_info) == false) {
-                Console::warning() << tr("Failed opening") << device.device->getTarget();
+                Console::warning() << tr("Failed opening") << device.device->get_identifier_display_string();
                 return;
             }
             auto protocol = std::make_unique<SG04CountProtocol>(*device.device, sg04_count_device);
@@ -151,7 +152,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             return;
         }
         if (device.device->connect(device.port_info) == false) {
-            Console::warning() << tr("Failed opening") << device.device->getTarget();
+            Console::warning() << tr("Failed opening") << device.device->get_identifier_display_string();
             return;
         }
         auto protocol = std::make_unique<ManualProtocol>();
@@ -180,10 +181,12 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             protocol_check_function(*device);
         }
         if (device->device->isConnected() == false) { //out of protocols and still not connected
-            Console::note() << tr("No protocol found for %1").arg(device->device->getTarget());
+            Console::note() << tr("No protocol found for %1").arg(device->device->get_identifier_display_string());
         }
     }
 }
+
+DeviceWorker::DeviceWorker() {}
 
 DeviceWorker::~DeviceWorker() {}
 
@@ -205,15 +208,6 @@ void DeviceWorker::update_devices() {
         assert(currently_in_gui_thread() == false);
         auto portlist = QSerialPortInfo::availablePorts();
         for (auto &port : portlist) {
-
-#if 0
-            //TODO: lower_bound brauchen wir nicht mehr
-            auto pos = std::lower_bound(std::begin(communication_devices), std::end(communication_devices), port.systemLocation(),
-                                        [](const PortDescription &lhs, const QString &rhs) { return lhs.device->getTarget() < rhs; });
-            if (pos != std::end(communication_devices) && pos->device->getTarget() == port.systemLocation()) {
-                continue;
-            }
-#endif
             QMap<QString, QVariant> port_info;
             port_info.insert(HOST_NAME_TAG, QString(port.portName()));
 
@@ -223,8 +217,8 @@ void DeviceWorker::update_devices() {
 
             auto item = std::make_unique<QTreeWidgetItem>(QStringList{} << port.portName() + " " + port.description());
 
-            communication_devices.push_back(PortDescription{std::make_unique<ComportCommunicationDevice>(port.systemLocation()), port_info, item.get(), nullptr,
-                                                            CommunicationDeviceType::COM});
+            communication_devices.push_back(
+                PortDescription{std::make_unique<ComportCommunicationDevice>(), port_info, item.get(), nullptr, CommunicationDeviceType::COM});
             PortDescription *port_desc = &communication_devices.back();
             CommunicationDevice *device = port_desc->device.get();
             MainWindow::mw->add_device_item(item.release(), port.portName() + " " + port.description(), device);
@@ -256,7 +250,26 @@ void DeviceWorker::update_devices() {
         if (manual_parent_item.get()) {
             MainWindow::mw->add_device_item(manual_parent_item.release(), "test", nullptr);
         }
+
     });
+
+    auto tmc_devices = LIBUSBScan::scan();
+
+    USBTMC usbtmc1, usbtmc2;
+
+#if 1
+
+    if (tmc_devices.count()) {
+        usbtmc1.open(tmc_devices[0]);
+        usbtmc2.open(tmc_devices[1]);
+        usbtmc1.send_buffer("*IDN?\n");
+        usbtmc2.send_buffer("*IDN?\n");
+        qDebug() << usbtmc1.read_answer();
+        qDebug() << usbtmc2.read_answer();
+        usbtmc1.close();
+        usbtmc2.close();
+    }
+#endif
 }
 
 void DeviceWorker::detect_devices() {

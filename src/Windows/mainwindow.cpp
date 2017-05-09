@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "CommunicationDevices/comportcommunicationdevice.h"
+#include "CommunicationDevices/usbtmccommunicationdevice.h"
 #include "LuaUI/plot.h"
 #include "LuaUI/window.h"
 #include "Protocols/sg04countprotocol.h"
@@ -76,10 +77,10 @@ MainWindow::MainWindow(QWidget *parent)
     mw = this;
     ui->setupUi(this);
     device_worker->moveToThread(&devices_thread);
-    devices_thread.start();
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
     Console::console = ui->console_edit;
     Console::mw = this;
+    devices_thread.start();
     ui->update_devices_list_button->click();
     load_scripts();
 }

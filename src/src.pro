@@ -72,7 +72,11 @@ HEADERS += \
     ui_container.h \
     Protocols/manualprotocol.h \
     CommunicationDevices/dummycommunicationdevice.h \
-    CommunicationDevices/usbtmccommunicationdevice.h
+    CommunicationDevices/usbtmccommunicationdevice.h \
+    CommunicationDevices/usbtmc_libusb.h \
+    CommunicationDevices/libusb_base.h \
+    CommunicationDevices/usbtmc.h \
+    CommunicationDevices/libusbscan.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -116,4 +120,8 @@ SOURCES += \
     ui_container.cpp \
     Protocols/manualprotocol.cpp \
     CommunicationDevices/dummycommunicationdevice.cpp \
-    CommunicationDevices/usbtmccommunicationdevice.cpp
+    CommunicationDevices/usbtmccommunicationdevice.cpp \
+    CommunicationDevices/usbtmc_libusb.cpp  \
+    CommunicationDevices/libusb_base.cpp \
+    CommunicationDevices/usbtmc.cpp \
+    CommunicationDevices/libusbscan.cpp

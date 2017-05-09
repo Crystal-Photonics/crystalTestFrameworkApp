@@ -29,8 +29,8 @@ class EXPORT CommunicationDevice : public QObject {
     virtual void send(const QByteArray &data, const QByteArray &displayed_data = {}) = 0;
     void send(const std::vector<unsigned char> &data, const std::vector<unsigned char> &displayed_data = {});
     virtual void close() = 0;
-    bool operator==(const QString &target) const;
-    const QString &getTarget() const;
+    //bool operator==(const QString &target) const;
+    QString get_identifier_display_string() const;
     bool is_waiting_for_message() const;
     void set_currently_in_wait_received(bool in_wait_received);
     virtual QString getName() = 0;
@@ -50,7 +50,6 @@ class EXPORT CommunicationDevice : public QObject {
     void read_ready();
     public slots:
     protected:
-    QString target;
     bool currently_in_waitReceived;
 
     private:

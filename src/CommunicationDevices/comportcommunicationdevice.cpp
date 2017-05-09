@@ -10,8 +10,7 @@
 #include <string>
 
 
-ComportCommunicationDevice::ComportCommunicationDevice(QString target) {
-    this->target = target;
+ComportCommunicationDevice::ComportCommunicationDevice() {
 	QObject::connect(&port, &QSerialPort::readyRead, [this]() {
 		if (!currently_in_waitReceived) {
 			emit waitReceived(std::chrono::seconds{0}, 0);
@@ -23,7 +22,6 @@ bool ComportCommunicationDevice::isConnected() {
     return Utility::promised_thread_call(this, [this] { return port.isOpen(); });
 }
 
-//bool ComportCommunicationDevice::connect(const QSerialPortInfo &portinfo, QSerialPort::BaudRate baudrate) {
 bool ComportCommunicationDevice::connect(const QMap<QString,QVariant> &portinfo) {
     return Utility::promised_thread_call(this, [this, portinfo] {
         assert(portinfo.contains(HOST_NAME_TAG));

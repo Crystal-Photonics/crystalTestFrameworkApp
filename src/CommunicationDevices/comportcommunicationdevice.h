@@ -9,7 +9,7 @@
 
 class ComportCommunicationDevice : public CommunicationDevice {
 	public:
-	ComportCommunicationDevice(QString target);
+    ComportCommunicationDevice();
 	bool isConnected() override;
     bool connect(const QMap<QString,QVariant> &portinfo) override;
 	bool waitReceived(Duration timeout = std::chrono::seconds(1), int bytes = 1, bool isPolling = false) override;
