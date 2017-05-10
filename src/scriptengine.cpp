@@ -9,6 +9,7 @@
 #include "LuaUI/label.h"
 #include "LuaUI/lineedit.h"
 #include "LuaUI/plot.h"
+#include "LuaUI/spinbox.h"
 #include "Protocols/manualprotocol.h"
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
@@ -970,7 +971,25 @@ void ScriptEngine::load_script(const QString &path) {
                                                             thread_call_wrapper(&ComboBox::get_caption) //
                                                             );
         }
-
+        //bind SpinBox
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<SpinBox>>("SpinBox", //
+                                                            sol::meta_function::construct,
+                                                            [parent = this->parent]() { return Lua_UI_Wrapper<SpinBox>{parent}; }, //
+                                                            "get_value",
+                                                            thread_call_wrapper(&SpinBox::get_value), //
+                                                            "set_max_value",
+                                                            thread_call_wrapper(&SpinBox::set_max_value), //
+                                                            "set_min_value",
+                                                            thread_call_wrapper(&SpinBox::set_min_value), //
+                                                            "set_value",
+                                                            thread_call_wrapper(&SpinBox::set_value), //
+                                                            "set_caption",
+                                                            thread_call_wrapper(&SpinBox::set_caption), //
+                                                            "get_caption",
+                                                            thread_call_wrapper(&SpinBox::get_caption) //
+                                                            );
+        }
         //bind Label
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Label>>("Label", //
@@ -986,7 +1005,7 @@ void ScriptEngine::load_script(const QString &path) {
         {
             ui_table.new_usertype<Lua_UI_Wrapper<CheckBox>>("CheckBox", //
                                                             sol::meta_function::construct,
-                                                            [parent = this->parent]() { return Lua_UI_Wrapper<CheckBox>{parent}; }, //
+                                                            [parent = this->parent](const std::string &text) { return Lua_UI_Wrapper<CheckBox>{parent,text}; }, //
                                                             "set_checked",
                                                             thread_call_wrapper(&CheckBox::set_checked), //
                                                             "get_checked",

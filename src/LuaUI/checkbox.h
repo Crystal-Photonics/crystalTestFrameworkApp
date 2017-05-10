@@ -8,7 +8,7 @@ class UI_container;
 class CheckBox {
     public:
     ///\cond HIDDEN_SYMBOLS
-	CheckBox(UI_container *parent);
+    CheckBox(UI_container *parent, const std::string text);
     ~CheckBox();
     ///\endcond
     void set_checked(const bool checked);

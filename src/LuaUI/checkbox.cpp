@@ -5,10 +5,11 @@
 #include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-CheckBox::CheckBox(UI_container *parent)
+CheckBox::CheckBox(UI_container *parent, const std::string text)
 	: checkbox(new QCheckBox(parent)) {
 	checkbox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 	parent->add(checkbox);
+    set_text(text);
 }
 
 CheckBox::~CheckBox() {
