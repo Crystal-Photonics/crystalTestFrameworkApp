@@ -190,8 +190,10 @@ class Curve {
 	void set_onetime_click_callback(std::function<void(double, double)> click_callback);
     ///\endcond
 
+
     private:
     ///\cond HIDDEN_SYMBOLS
+
     void update();
     void detach();
 	Curve_data &curve_data();
@@ -251,6 +253,7 @@ class Plot {
                                                                                   //! plot:set_x_marker(10, Ui.Color_from_name("blue"))
 																				  //! \endcode
 
+        void set_visible(bool visible);
     private:
     void update();
     void set_rightclick_action();

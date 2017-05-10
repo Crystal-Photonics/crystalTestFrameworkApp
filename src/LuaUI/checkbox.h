@@ -16,7 +16,8 @@ class CheckBox {
     void set_text(const std::string text);
     std::string get_text() const;
 
-    private:
+    void set_visible(bool visible);
+private:
     QCheckBox *checkbox = nullptr;
 };
 

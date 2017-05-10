@@ -32,3 +32,8 @@ std::string CheckBox::get_text() const {
 void CheckBox::set_text(std::string const text) {
     return checkbox->setText(QString::fromStdString(text));
 }
+
+void CheckBox::set_visible(bool visible)
+{
+    checkbox->setVisible(visible);
+}

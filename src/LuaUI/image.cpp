@@ -43,6 +43,12 @@ void Image::load_image_file(const std::string path_to_image) {
     load_image(path_to_image);
 }
 
+void Image::set_visible(bool visible)
+{
+    label->setVisible(visible);
+}
+
+
 void Image::load_image(const std::string path_to_image) {
     if (QFile::exists(QString::fromStdString(path_to_image))) {
         image.load(QString::fromStdString(path_to_image));

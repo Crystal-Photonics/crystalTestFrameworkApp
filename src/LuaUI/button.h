@@ -31,7 +31,10 @@ struct Button {
 
     void set_single_shot_return_pressed_callback(std::function<void()> callback);
 
-    private:
+
+public:
+    void set_visible(bool visible);
+private:
     QPushButton *button = nullptr;
     QMetaObject::Connection pressed_connection;
     bool pressed = false;

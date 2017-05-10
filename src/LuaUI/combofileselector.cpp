@@ -114,6 +114,12 @@ void ComboBoxFileSelector::set_order_by(const std::string &field, const bool asc
     fill_combobox();
 }
 
+void ComboBoxFileSelector::set_visible(bool visible)
+{
+    combobox->setVisible(visible);
+    button->setVisible(visible);
+}
+
 void ComboBoxFileSelector::scan_directory() {
     file_entries.clear();
     QString dirname = current_directory;

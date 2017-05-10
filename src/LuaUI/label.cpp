@@ -26,3 +26,8 @@ std::string Label::get_text() const {
 void Label::set_text(std::string const text) {
     return label->setText(QString::fromStdString(text));
 }
+
+void Label::set_visible(bool visible)
+{
+    label->setVisible(visible);
+}

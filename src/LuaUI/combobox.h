@@ -21,7 +21,8 @@ class ComboBox {
     void set_caption(const std::string caption);
     std::string get_caption() const;
 
-    private:
+    void set_visible(bool visible);
+private:
     QComboBox *combobox = nullptr;
     QLabel *label = nullptr;
 };

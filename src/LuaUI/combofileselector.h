@@ -25,6 +25,7 @@ class ComboBoxFileSelector {
 
     std::string get_selected_file();
     void set_order_by(const std::string &field, const bool ascending);
+    void set_visible(bool visible);
 
     private:
 	void scan_directory();

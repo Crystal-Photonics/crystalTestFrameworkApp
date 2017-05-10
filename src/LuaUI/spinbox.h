@@ -80,6 +80,7 @@ class SpinBox {
                                   //!< \return the caption of the spin box object set by set_caption() as a string value.
                                   //! \sa set_caption()
 
+    void set_visible(bool visible);
 
     private:
     QLabel *label = nullptr;

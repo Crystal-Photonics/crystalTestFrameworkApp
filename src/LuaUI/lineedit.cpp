@@ -52,6 +52,12 @@ void LineEdit::set_caption(const std::string &caption) {
     label->setVisible(label->text().size());
 }
 
+void LineEdit::set_visible(bool visible)
+{
+    label->setVisible(visible);
+    edit->setVisible(visible);
+}
+
 std::string LineEdit::get_caption() const {
    return label->text().toStdString();
 }

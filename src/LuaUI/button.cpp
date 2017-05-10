@@ -25,6 +25,11 @@ bool Button::has_been_clicked() const {
     return pressed;
 }
 
+void Button::set_visible(bool visible)
+{
+    button->setVisible(visible);
+}
+
 ///\cond HIDDEN_SYMBOLS
 void Button::set_single_shot_return_pressed_callback(std::function<void()> callback) {
     callback_connection = QObject::connect(button, &QPushButton::clicked, [&callback_connection = this->callback_connection, callback = std::move(callback) ] {

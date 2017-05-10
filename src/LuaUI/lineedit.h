@@ -116,7 +116,8 @@ class LineEdit {
     ///\cond HIDDEN_SYMBOLS
     void set_single_shot_return_pressed_callback(std::function<void()> callback);
     ///\endcond
-    private:
+    void set_visible(bool visible);
+private:
 	QLabel *label = nullptr;
     QLineEdit *edit = nullptr;
 

@@ -273,6 +273,8 @@ void Curve::set_onetime_click_callback(std::function<void(double, double)> click
     });
 }
 
+
+
 void Curve::update() {
     curve_data().update();
     plot->update();
@@ -316,6 +318,7 @@ void Plot::clear() {
     curves.clear();
 }
 
+
 void Plot::set_x_marker(const std::string &title, double xpos, const Color &color) {
     //
     auto marker = new QwtPlotMarker{title.c_str()};
@@ -350,6 +353,11 @@ void Plot::set_x_marker(const std::string &title, double xpos, const Color &colo
     }
 #endif
     update();
+}
+
+void Plot::set_visible(bool visible)
+{
+    plot->setVisible(visible);
 }
 
 void Plot::update() {

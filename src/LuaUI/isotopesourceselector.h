@@ -31,7 +31,8 @@ class IsotopeSourceSelector {
     double get_selected_activity_Bq();
     std::string get_selected_serial_number();
 
-    private:
+    void set_visible(bool visible);
+private:
     void load_isotope_database();
     QComboBox *combobox = nullptr;
     QMetaObject::Connection callback_connection = {};

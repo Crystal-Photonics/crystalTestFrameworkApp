@@ -60,6 +60,12 @@ void SpinBox::set_caption(const std::string &caption) {
 }
 
 std::string SpinBox::get_caption() const {
-   return label->text().toStdString();
+    return label->text().toStdString();
+}
+
+void SpinBox::set_visible(bool visible)
+{
+    spinbox->setVisible(visible);
+    label->setVisible(visible);
 }
 

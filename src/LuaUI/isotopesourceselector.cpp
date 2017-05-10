@@ -32,6 +32,12 @@ double IsotopeSourceSelector::get_selected_activity_Bq() {
     return get_source_by_serial_number(combobox->currentText()).get_activtiy_becquerel(QDate::currentDate());
 }
 
+void IsotopeSourceSelector::set_visible(bool visible)
+{
+    combobox->setVisible(visible);
+}
+
+
 std::string IsotopeSourceSelector::get_selected_serial_number() {
     return combobox->currentText().toStdString();
 }

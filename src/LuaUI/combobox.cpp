@@ -48,6 +48,12 @@ unsigned int ComboBox::get_index() {
     return combobox->currentIndex();
 }
 
+void ComboBox::set_visible(bool visible)
+{
+    combobox->setVisible(visible);
+    label->setVisible(visible);
+}
+
 void ComboBox::set_caption(const std::string caption) {
     label->setText(QString::fromStdString(caption));
     label->setVisible(label->text().size());

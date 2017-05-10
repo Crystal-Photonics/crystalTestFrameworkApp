@@ -18,7 +18,8 @@ class Image {
     void load_image_file(const std::string path_to_image);
 
 
-    private:
+    void set_visible(bool visible);
+private:
 	Aspect_ratio_label *label = nullptr;
     QImage image;
     void load_image(const std::string path_to_image);
