@@ -8,7 +8,7 @@
 class DeviceProtocolSetting {
     public:
     using Duration = std::chrono::steady_clock::duration;
-    enum type { comport, udp_connection, tcp_connection } type;
+    enum type { comport, tmcport, udp_connection, tcp_connection } type;
 
     void set_exclusive_port(QStringList *exclusive_ports);
     int internet_port;

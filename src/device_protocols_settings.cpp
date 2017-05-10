@@ -22,7 +22,7 @@ void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
     protocols_sg04_count.clear();
     exclusive_ports.clear();
 
-    QStringList protocol_identifiers{"SCPI", "RPC","SG04Count"};
+    QStringList protocol_identifiers{"SCPI", "RPC", "SG04Count"};
 
     QFile file;
 
@@ -56,10 +56,12 @@ void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
             QString portType = obj["type"].toString().toUpper();
             if (portType == "COM") {
                 setting.type = DeviceProtocolSetting::comport;
+            } else if (portType == "TMC") {
+                setting.type = DeviceProtocolSetting::tmcport;
             } else if (portType == "TCP") {
                 setting.type = DeviceProtocolSetting::tcp_connection;
             } else {
-                Utility::thread_call(MainWindow::mw, [file_name,portType] {
+                Utility::thread_call(MainWindow::mw, [file_name, portType] {
                     QMessageBox::warning(MainWindow::mw, "unknown protocol in port settings",
                                          "unknown protocol \"" + portType + "\" in port settings device settings file: " + file_name);
                 });

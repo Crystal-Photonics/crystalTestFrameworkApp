@@ -13,7 +13,7 @@ class USBTMC {
     void close();
     void send_buffer(const QByteArray &data);
     QByteArray read_answer();
-
+    void set_timeout(Duration timeout);
 
     private:
     struct scpi_usbtmc_libusb uscpi;

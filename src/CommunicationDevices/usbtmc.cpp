@@ -14,7 +14,6 @@ USBTMC::~USBTMC() {
     libusb_exit(uscpi.ctx);
 }
 
-
 void USBTMC::open(QString id) {
     scpi_usbtmc_libusb_dev_inst_new(&uscpi, id);
     scpi_usbtmc_libusb_open(&uscpi);
@@ -63,7 +62,6 @@ int USBTMC::sr_scpi_read_response(QByteArray &response, std::chrono::high_resolu
 }
 
 QByteArray USBTMC::read_answer() {
-
     int ret;
     QByteArray response;
 
@@ -87,5 +85,8 @@ QByteArray USBTMC::read_answer() {
     }
 
     return response;
+}
 
+void USBTMC::set_timeout(USBTMC::Duration timeout) {
+    this->timeout = timeout;
 }

@@ -86,15 +86,17 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
                 continue;
             }
 
-            const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(scpi_device.baud);
-            if (is_valid_baudrate(baudrate) == false) {
-                MainWindow::mw->show_message_box(
-                    tr("Input Error"),
-                    tr(R"(Invalid baudrate %1 specified in settings file "%2".)").arg(QString::number(baudrate), device_protocol_settings_file),
-                    QMessageBox::Critical);
-                continue;
+            if (scpi_device.type == DeviceProtocolSetting::comport) {
+                const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(scpi_device.baud);
+                if (is_valid_baudrate(baudrate) == false) {
+                    MainWindow::mw->show_message_box(
+                        tr("Input Error"),
+                        tr(R"(Invalid baudrate %1 specified in settings file "%2".)").arg(QString::number(baudrate), device_protocol_settings_file),
+                        QMessageBox::Critical);
+                    continue;
+                }
+                device.port_info.insert("baudrate", baudrate);
             }
-            device.port_info.insert("baudrate", baudrate);
             if (device.device->connect(device.port_info) == false) {
                 Console::warning() << tr("Failed opening") << device.device->get_identifier_display_string();
                 return;
@@ -251,25 +253,38 @@ void DeviceWorker::update_devices() {
             MainWindow::mw->add_device_item(manual_parent_item.release(), "test", nullptr);
         }
 
-    });
+        auto tmc_devices = LIBUSBScan::scan();
+        for (auto &port : tmc_devices) {
+            QMap<QString, QVariant> port_info;
+            port_info.insert(HOST_NAME_TAG, QString(port));
 
-    auto tmc_devices = LIBUSBScan::scan();
+            if (contains_port(port_info)) {
+                continue;
+            }
 
+            auto item = std::make_unique<QTreeWidgetItem>(QStringList{} << port);
+
+            communication_devices.push_back(
+                PortDescription{std::make_unique<USBTMCCommunicationDevice>(), port_info, item.get(), nullptr, CommunicationDeviceType::TMC});
+            PortDescription *port_desc = &communication_devices.back();
+            CommunicationDevice *device = port_desc->device.get();
+            MainWindow::mw->add_device_item(item.release(), port, device);
+        }
+#if 0
     USBTMC usbtmc1, usbtmc2;
-
-#if 1
-
-    if (tmc_devices.count()) {
-        usbtmc1.open(tmc_devices[0]);
-        usbtmc2.open(tmc_devices[1]);
-        usbtmc1.send_buffer("*IDN?\n");
-        usbtmc2.send_buffer("*IDN?\n");
-        qDebug() << usbtmc1.read_answer();
-        qDebug() << usbtmc2.read_answer();
-        usbtmc1.close();
-        usbtmc2.close();
-    }
+        if (tmc_devices.count()) {
+            usbtmc1.open(tmc_devices[0]);
+            usbtmc2.open(tmc_devices[1]);
+            usbtmc1.send_buffer("*IDN?\n");
+            usbtmc2.send_buffer("*IDN?\n");
+            qDebug() << usbtmc1.read_answer();
+            qDebug() << usbtmc2.read_answer();
+            usbtmc1.close();
+            usbtmc2.close();
+        }
 #endif
+
+    });
 }
 
 void DeviceWorker::detect_devices() {

@@ -32,7 +32,7 @@
 
 #define LOG_PREFIX "scpi_usbtmc"
 
-#define TRANSFER_TIMEOUT 1000
+#define TRANSFER_TIMEOUT 10000
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
@@ -503,8 +503,10 @@ static int scpi_usbtmc_bulkin_continue(struct scpi_usbtmc_libusb *uscpi, unsigne
 
 int scpi_usbtmc_libusb_send(struct scpi_usbtmc_libusb *uscpi, const QByteArray &command) {
 
-    if (scpi_usbtmc_bulkout(uscpi, DEV_DEP_MSG_OUT, command.data(), command.length(), EOM) <= 0)
+    if (scpi_usbtmc_bulkout(uscpi, DEV_DEP_MSG_OUT, command.data(), command.length(), EOM) <= 0){
+        qDebug() << "scpi_usbtmc_bulkout@scpi_usbtmc_libusb_send failed." ;
         return SR_ERR;
+    }
 
     sr_spew("Successfully sent SCPI command: '%s'.", command.data());
 
@@ -515,10 +517,14 @@ int scpi_usbtmc_libusb_read_begin(struct scpi_usbtmc_libusb *uscpi) {
 
     uscpi->remaining_length = 0;
 
-    if (scpi_usbtmc_bulkout(uscpi, REQUEST_DEV_DEP_MSG_IN, NULL, INT32_MAX, 0) < 0)
+    if (scpi_usbtmc_bulkout(uscpi, REQUEST_DEV_DEP_MSG_IN, NULL, INT32_MAX, 0) < 0){
+        qDebug() << "scpi_usbtmc_bulkout@scpi_usbtmc_libusb_read_begin failed." ;
         return SR_ERR;
-    if (scpi_usbtmc_bulkin_start(uscpi, DEV_DEP_MSG_IN, uscpi->buffer, sizeof(uscpi->buffer), &uscpi->bulkin_attributes) < 0)
+    }
+    if (scpi_usbtmc_bulkin_start(uscpi, DEV_DEP_MSG_IN, uscpi->buffer, sizeof(uscpi->buffer), &uscpi->bulkin_attributes) < 0){
+        qDebug() << "scpi_usbtmc_bulkin_start@scpi_usbtmc_libusb_read_begin failed." ;
         return SR_ERR;
+    }
 
     return SR_OK;
 }

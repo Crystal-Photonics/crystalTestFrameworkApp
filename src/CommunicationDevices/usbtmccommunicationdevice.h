@@ -16,7 +16,11 @@ class USBTMCCommunicationDevice : public CommunicationDevice {
     void send(const QByteArray &data, const QByteArray &displayed_data = {}) override;
     void close() override;
     QString getName() override;
+
 private:
+    USBTMC usbtmc;
+    bool is_connected;
+    QByteArray response{};
 
 };
 

@@ -18,6 +18,7 @@
 #include <QTreeWidgetItem>
 #include <cassert>
 #include <fstream>
+#include "CommunicationDevices/usbtmccommunicationdevice.h"
 
 using namespace std::chrono_literals;
 
@@ -89,8 +90,8 @@ SCPIProtocol::SCPIProtocol(CommunicationDevice &device, DeviceProtocolSetting &s
     , device_protocol_setting(setting) {
 #if 1
     connection = QObject::connect(&device, &CommunicationDevice::received, [incoming_data = &incoming_data](const QByteArray &data) {
-        //qDebug() << "SCPI-Protocol received" << data.size() << "bytes from device";
-        //qDebug() << "SCPI-Protocol received" << data << "bytes from device";
+        qDebug() << "SCPI-Protocol received" << data.size() << "bytes from device";
+        qDebug() << "SCPI-Protocol received" << data << "bytes from device";
         incoming_data->append(data);
     });
 #endif
@@ -199,8 +200,12 @@ bool SCPIProtocol::is_correct_protocol() {
     const CommunicationDevice::Duration TIMEOUT = device_protocol_setting.timeout;
 
     escape_characters = device_protocol_setting.escape.toStdString();
-
-    if (send_scpi_request(TIMEOUT, "*IDN?", true, true)) {
+    bool use_leading_escape = true;
+    USBTMCCommunicationDevice *usbtmctest = dynamic_cast<USBTMCCommunicationDevice*>(device);
+    if (usbtmctest){
+        use_leading_escape = false; //tmc devices not need leading escape
+    }
+    if (send_scpi_request(TIMEOUT, "*IDN?", use_leading_escape, true)) {
         result = true;
         QString answer = parse_last_scpi_answer();
         //qDebug() << answer;
@@ -239,6 +244,7 @@ bool SCPIProtocol::send_scpi_request(Duration timeout, std::string request, bool
     event = clean_up_regex_with_escape_characters(event);
     QString request_regex = clean_up_regex_with_escape_characters(QString().fromStdString(request));
     event = "^(" + request_regex + "|" + event + ")";
+
 
     if (use_leading_escape) {
         send_string(escape_characters);
