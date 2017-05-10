@@ -36,6 +36,7 @@ bool USBTMCCommunicationDevice::waitReceived(CommunicationDevice::Duration timeo
 bool USBTMCCommunicationDevice::waitReceived(CommunicationDevice::Duration timeout, std::string escape_characters,
                                              std::string leading_pattern_indicating_skip_line) {
     usbtmc.set_timeout(timeout);
+
     QByteArray response = usbtmc.read_answer();
     if (response.size()) {
         emit received(response);
@@ -47,13 +48,6 @@ bool USBTMCCommunicationDevice::waitReceived(CommunicationDevice::Duration timeo
 }
 
 void USBTMCCommunicationDevice::send(const QByteArray &data, const QByteArray &displayed_data) {
-#if 0
-    return Utility::promised_thread_call(this, [this, data, displayed_data] {
-
-
-        emit sent(data);
-    });
-#endif
 
     usbtmc.send_buffer(data);
     emit decoded_sent(displayed_data.isEmpty() ? data : displayed_data);

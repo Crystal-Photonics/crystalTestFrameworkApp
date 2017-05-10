@@ -90,8 +90,8 @@ SCPIProtocol::SCPIProtocol(CommunicationDevice &device, DeviceProtocolSetting &s
     , device_protocol_setting(setting) {
 #if 1
     connection = QObject::connect(&device, &CommunicationDevice::received, [incoming_data = &incoming_data](const QByteArray &data) {
-        qDebug() << "SCPI-Protocol received" << data.size() << "bytes from device";
-        qDebug() << "SCPI-Protocol received" << data << "bytes from device";
+        //qDebug() << "SCPI-Protocol received" << data.size() << "bytes from device";
+        //qDebug() << "SCPI-Protocol received" << data << "bytes from device";
         incoming_data->append(data);
     });
 #endif
@@ -217,7 +217,7 @@ bool SCPIProtocol::is_correct_protocol() {
 }
 
 void SCPIProtocol::send_string(std::string data) {
-    Utility::thread_call(device, [ device = this->device, data = data ] {
+    Utility::promised_thread_call(device, [ device = this->device, data = data ] {
         std::string display_data = QString::fromStdString(data).trimmed().toStdString();
         std::vector<unsigned char> data_vec{data.begin(), data.end()};
         std::vector<unsigned char> disp_vec{display_data.begin(), display_data.end()};

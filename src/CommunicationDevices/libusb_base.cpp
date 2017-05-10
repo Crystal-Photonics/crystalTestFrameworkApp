@@ -36,7 +36,8 @@
 #if !HAVE_LIBUSB_OS_HANDLE
 typedef int libusb_os_handle;
 #endif
-static int cur_loglevel = SR_LOG_SPEW; /* Show errors+warnings per default. */
+
+static int cur_loglevel = SR_LOG_WARN; /* Show errors+warnings per default. */
 
 #define LOGLEVEL_TIMESTAMP SR_LOG_DBG
 

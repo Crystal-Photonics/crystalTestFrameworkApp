@@ -175,12 +175,13 @@ QStringList list_usb_tmc_devices() {
                     intfdes->bInterfaceProtocol != USBTMC_USB488) {
                     continue;
                 }
+#if 0
                 qDebug() << QString("Found USBTMC device (VID:PID = %1:%2, bus.address = %3.%4).")
                                 .arg(QString::number(des.idVendor, 16))
                                 .arg(QString::number(des.idProduct, 16))
                                 .arg(libusb_get_bus_number(devlist[i]))
                                 .arg(libusb_get_device_address(devlist[i]));
-
+#endif
                 QString res = QString("usbtmc/%1.%2").arg(libusb_get_bus_number(devlist[i])).arg(libusb_get_device_address(devlist[i]));
                 result.append(res);
             }
