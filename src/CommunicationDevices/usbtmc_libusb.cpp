@@ -84,11 +84,12 @@
     (((unsigned)((const uint8_t *)(x))[3] << 24) | ((unsigned)((const uint8_t *)(x))[2] << 16) | ((unsigned)((const uint8_t *)(x))[1] << 8) |                  \
      (unsigned)((const uint8_t *)(x))[0])
 
-/* Static definitions of structs ending with an all-zero entry are a
+
 #define SUBCLASS_USBTMC 0x03
 #define USBTMC_USB488 0x01
 
 enum {
+
     /* USBTMC control requests */
     INITIATE_ABORT_BULK_OUT = 1,
     CHECK_ABORT_BULK_OUT_STATUS = 2,
