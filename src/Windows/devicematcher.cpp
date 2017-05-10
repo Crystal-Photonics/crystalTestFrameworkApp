@@ -430,4 +430,5 @@ QString ComDeviceTypeToString(CommunicationDeviceType t) {
         case CommunicationDeviceType::IP:
             return "IP";
     }
+	return "Unknown";
 }

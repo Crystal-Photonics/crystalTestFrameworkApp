@@ -54,5 +54,5 @@ void ComboBox::set_caption(const std::string caption) {
 }
 
 std::string ComboBox::get_caption() const {
-    label->text().toStdString();
+	return label->text().toStdString();
 }

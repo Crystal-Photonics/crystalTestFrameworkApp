@@ -12,7 +12,6 @@
 class QJsonObject;
 class QWidget;
 class QVariant;
-class QtRPT;
 class DataEngineSections;
 
 using FormID = QString;
@@ -400,9 +399,6 @@ class Data_engine {
     static bool entry_compare(const FormIdWrapper &lhs, const FormIdWrapper &rhs);
 
     DataEngineSections sections;
-
-    void setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) const;
-    void fill_report(QtRPT &report, const QString &form) const;
 };
 
 #endif // DATA_ENGINE_H

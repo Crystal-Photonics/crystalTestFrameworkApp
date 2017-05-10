@@ -20,7 +20,6 @@ class SG04CountProtocol : public Protocol {
 
     void sg04_counts_clear();
     sol::table get_sg04_counts(sol::state &lua, bool clear);
-    int await_count_package();
 
     uint16_t get_actual_count_rate();
     unsigned int get_actual_count_rate_cps();

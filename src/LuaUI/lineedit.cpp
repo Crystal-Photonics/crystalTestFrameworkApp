@@ -53,7 +53,7 @@ void LineEdit::set_caption(const std::string &caption) {
 }
 
 std::string LineEdit::get_caption() const {
-    label->text().toStdString();
+   return label->text().toStdString();
 }
 
 double LineEdit::get_number() const {

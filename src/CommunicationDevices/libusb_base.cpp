@@ -33,8 +33,6 @@
 #include <QString>
 #include <QStringList>
 
-
-
 #if !HAVE_LIBUSB_OS_HANDLE
 typedef int libusb_os_handle;
 #endif

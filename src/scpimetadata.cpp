@@ -43,6 +43,7 @@ QString DeviceMetaDataDetail::get_approved_state_str() {
         case DeviceMetaDataApprovedState::Expired:
             return "calibration expired";
     }
+	return "Error";
 }
 
 void DeviceMetaData::reload(QString file_name) {

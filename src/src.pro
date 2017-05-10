@@ -1,8 +1,6 @@
 include(../defaults.pri)
 DESTDIR = $$BINDIR
 
-include (../libs/QtRPT/QtRPT.pri)
-
 TARGET = crystalTestFrameworkApp
 
 TEMPLATE = lib

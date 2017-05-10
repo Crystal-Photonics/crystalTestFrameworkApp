@@ -117,8 +117,8 @@ class LineEdit {
     void set_single_shot_return_pressed_callback(std::function<void()> callback);
     ///\endcond
     private:
+	QLabel *label = nullptr;
     QLineEdit *edit = nullptr;
-    QLabel *label = nullptr;
 
     std::string name;
     QMetaObject::Connection callback_connection = {};
