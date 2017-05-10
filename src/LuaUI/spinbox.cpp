@@ -20,6 +20,7 @@ SpinBox::SpinBox(UI_container *parent)
     parent->add(layout);
     label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     spinbox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+    spinbox->setMaximum(100);
 }
 
 SpinBox::~SpinBox() {
@@ -34,11 +35,17 @@ int SpinBox::get_value() const {
 void SpinBox::set_max_value(const int value)
 {
     spinbox->setMaximum(value);
+    if (spinbox->value() > value){
+        spinbox->setValue(value);
+    }
 }
 
 void SpinBox::set_min_value(const int value)
 {
-    spinbox->setMaximum(value);
+    spinbox->setMinimum(value);
+    if (spinbox->value() < value){
+        spinbox->setValue(value);
+    }
 }
 
 void SpinBox::set_value(const int value) {

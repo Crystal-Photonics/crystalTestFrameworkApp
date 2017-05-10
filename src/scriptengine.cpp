@@ -974,21 +974,21 @@ void ScriptEngine::load_script(const QString &path) {
         //bind SpinBox
         {
             ui_table.new_usertype<Lua_UI_Wrapper<SpinBox>>("SpinBox", //
-                                                            sol::meta_function::construct,
-                                                            [parent = this->parent]() { return Lua_UI_Wrapper<SpinBox>{parent}; }, //
-                                                            "get_value",
-                                                            thread_call_wrapper(&SpinBox::get_value), //
-                                                            "set_max_value",
-                                                            thread_call_wrapper(&SpinBox::set_max_value), //
-                                                            "set_min_value",
-                                                            thread_call_wrapper(&SpinBox::set_min_value), //
-                                                            "set_value",
-                                                            thread_call_wrapper(&SpinBox::set_value), //
-                                                            "set_caption",
-                                                            thread_call_wrapper(&SpinBox::set_caption), //
-                                                            "get_caption",
-                                                            thread_call_wrapper(&SpinBox::get_caption) //
-                                                            );
+                                                           sol::meta_function::construct,
+                                                           [parent = this->parent]() { return Lua_UI_Wrapper<SpinBox>{parent}; }, //
+                                                           "get_value",
+                                                           thread_call_wrapper(&SpinBox::get_value), //
+                                                           "set_max_value",
+                                                           thread_call_wrapper(&SpinBox::set_max_value), //
+                                                           "set_min_value",
+                                                           thread_call_wrapper(&SpinBox::set_min_value), //
+                                                           "set_value",
+                                                           thread_call_wrapper(&SpinBox::set_value), //
+                                                           "set_caption",
+                                                           thread_call_wrapper(&SpinBox::set_caption), //
+                                                           "get_caption",
+                                                           thread_call_wrapper(&SpinBox::get_caption) //
+                                                           );
         }
         //bind Label
         {
