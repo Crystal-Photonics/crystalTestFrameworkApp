@@ -8,7 +8,6 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 INCLUDEPATH += $$PWD/src
 INCLUDEPATH += ../libs/luasol/include
-INCLUDEPATH += ../libs/QtRPT/include
 
 win32 {
     QWT_DIR = $$PWD/libs/qwt
@@ -37,7 +36,7 @@ DEFINES += SOL_CHECK_ARGUMENTS
 
 QMAKE_CXXFLAGS += -Werror
 
-QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable
+QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare
 QMAKE_CXXFLAGS_RELEASE += -Wunused-function -Wunused-parameter -Wunused-variable
 
 QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer

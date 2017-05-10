@@ -30,8 +30,6 @@
 #include <QDebug>
 #include <inttypes.h>
 
-#define LOG_PREFIX "scpi_usbtmc"
-
 #define TRANSFER_TIMEOUT 1000
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -87,17 +85,6 @@
      (unsigned)((const uint8_t *)(x))[0])
 
 /* Static definitions of structs ending with an all-zero entry are a
- * problem when compiling with -Wmissing-field-initializers: GCC
- * suppresses the warning only with { 0 }, clang wants { } */
-#ifdef __clang__
-#define ALL_ZERO                                                                                                                                               \
-    {}
-#else
-#define ALL_ZERO                                                                                                                                               \
-    { 0 }
-#endif
-
-/* Some USBTMC-specific enums, as defined in the USBTMC standard. */
 #define SUBCLASS_USBTMC 0x03
 #define USBTMC_USB488 0x01
 
@@ -156,7 +143,7 @@ static struct usbtmc_blacklist blacklist_remote[] = {{0x1ab1, 0x0588}, /* Rigol 
                                                      {0x1ab1, 0x04b0}, /* Rigol DS2000 series */
                                                      {0x0957, 0x0588}, /* Agilent DSO1000 series (rebadged Rigol DS1000) */
                                                      {0x0b21, 0xffff}, /* All Yokogawa devices */
-                                                     ALL_ZERO};
+													 {0, 0}};
 
 QStringList list_usb_tmc_devices() {
     QStringList result;
@@ -205,7 +192,6 @@ QStringList list_usb_tmc_devices() {
 }
 
 int scpi_usbtmc_libusb_dev_inst_new(struct scpi_usbtmc_libusb *uscpi, QString params) {
-
     //uscpi->ctx = drvc;
     //can be of the form "<bus>.<address>", or "<vendorid>:<productid>".
 
@@ -307,7 +293,7 @@ int scpi_usbtmc_libusb_open(struct scpi_usbtmc_libusb *uscpi) {
     struct sr_usb_dev_inst *usb = &uscpi->usb;
     struct libusb_device_descriptor des;
 
-    int  config = 0;
+	int config = 0;
     uint8_t capabilities[24];
     int ret, found = 0;
 
@@ -404,7 +390,7 @@ int scpi_usbtmc_libusb_open(struct scpi_usbtmc_libusb *uscpi) {
     return SR_OK;
 }
 
-static void usbtmc_bulk_out_header_write(void *header, uint8_t MsgID, uint8_t bTag, uint32_t TransferSize, uint8_t bmTransferAttributes, char TermChar) {
+static void usbtmc_bulk_out_header_write(uint8_t *header, uint8_t MsgID, uint8_t bTag, uint32_t TransferSize, uint8_t bmTransferAttributes, char TermChar) {
     W8(header + 0, MsgID);
     W8(header + 1, bTag);
     W8(header + 2, ~bTag);
@@ -415,7 +401,7 @@ static void usbtmc_bulk_out_header_write(void *header, uint8_t MsgID, uint8_t bT
     WL16(header + 10, 0);
 }
 
-static int usbtmc_bulk_in_header_read(void *header, uint8_t MsgID, unsigned char bTag, int32_t *TransferSize, uint8_t *bmTransferAttributes) {
+static int usbtmc_bulk_in_header_read(uint8_t *header, uint8_t MsgID, unsigned char bTag, int32_t *TransferSize, uint8_t *bmTransferAttributes) {
     if (R8(header + 0) != MsgID || R8(header + 1) != bTag || R8(header + 2) != (unsigned char)~bTag)
         return SR_ERR;
     if (TransferSize)
@@ -502,9 +488,8 @@ static int scpi_usbtmc_bulkin_continue(struct scpi_usbtmc_libusb *uscpi, unsigne
 }
 
 int scpi_usbtmc_libusb_send(struct scpi_usbtmc_libusb *uscpi, const QByteArray &command) {
-
-    if (scpi_usbtmc_bulkout(uscpi, DEV_DEP_MSG_OUT, command.data(), command.length(), EOM) <= 0){
-        qDebug() << "scpi_usbtmc_bulkout@scpi_usbtmc_libusb_send failed." ;
+	if (scpi_usbtmc_bulkout(uscpi, DEV_DEP_MSG_OUT, command.data(), command.length(), EOM) <= 0) {
+		qDebug() << "scpi_usbtmc_bulkout@scpi_usbtmc_libusb_send failed.";
         return SR_ERR;
     }
 
@@ -514,15 +499,14 @@ int scpi_usbtmc_libusb_send(struct scpi_usbtmc_libusb *uscpi, const QByteArray &
 }
 
 int scpi_usbtmc_libusb_read_begin(struct scpi_usbtmc_libusb *uscpi) {
-
     uscpi->remaining_length = 0;
 
-    if (scpi_usbtmc_bulkout(uscpi, REQUEST_DEV_DEP_MSG_IN, NULL, INT32_MAX, 0) < 0){
-        qDebug() << "scpi_usbtmc_bulkout@scpi_usbtmc_libusb_read_begin failed." ;
+	if (scpi_usbtmc_bulkout(uscpi, REQUEST_DEV_DEP_MSG_IN, NULL, INT32_MAX, 0) < 0) {
+		qDebug() << "scpi_usbtmc_bulkout@scpi_usbtmc_libusb_read_begin failed.";
         return SR_ERR;
     }
-    if (scpi_usbtmc_bulkin_start(uscpi, DEV_DEP_MSG_IN, uscpi->buffer, sizeof(uscpi->buffer), &uscpi->bulkin_attributes) < 0){
-        qDebug() << "scpi_usbtmc_bulkin_start@scpi_usbtmc_libusb_read_begin failed." ;
+	if (scpi_usbtmc_bulkin_start(uscpi, DEV_DEP_MSG_IN, uscpi->buffer, sizeof(uscpi->buffer), &uscpi->bulkin_attributes) < 0) {
+		qDebug() << "scpi_usbtmc_bulkin_start@scpi_usbtmc_libusb_read_begin failed.";
         return SR_ERR;
     }
 
@@ -579,8 +563,5 @@ int scpi_usbtmc_libusb_close(struct scpi_usbtmc_libusb *uscpi) {
 
     return SR_OK;
 }
-
-
-
 
 #endif

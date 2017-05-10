@@ -74,7 +74,7 @@ enum sr_error_code {
 /** Type definition for callback function for data reception. */
 typedef int (*sr_receive_data_callback)(int fd, int revents, void *cb_data);
 
-#define LOG_PREFIX "usb"
+#define LOG_PREFIX "scpi_usbtmc"
 
 int sr_log(int loglevel, const char *format, ...);
 

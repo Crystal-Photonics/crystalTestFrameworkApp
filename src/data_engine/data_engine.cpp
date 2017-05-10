@@ -9,11 +9,11 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStringList>
+#include <QWidget>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <limits>
-#include <qtrpt.h>
 #include <type_traits>
 
 template <class T>
@@ -60,10 +60,9 @@ void Data_engine::set_source(std::istream &source, const QMap<QString, QVariant>
 void DataEngineSections::delete_unmatched_variants(const QMap<QString, QVariant> &tags) {
     for (auto &section : sections) {
         section.delete_unmatched_variants(tags);
-        if ((section.is_allow_empty_section()) && (section.variants.size() == 0)){
+		if ((section.is_allow_empty_section()) && (section.variants.size() == 0)) {
             VariantData variant_data{};
             section.variants.push_back(std::move(variant_data));
-
         }
     }
 }
@@ -138,7 +137,6 @@ const DataEngineDataEntry *DataEngineSections::get_entry_raw(const FormID &id, D
         throw DataEngineError(DataEngineErrorNumber::faulty_field_id, QString("field id needs to be in format \"section-name/field-name\" but is %1").arg(id));
     }
     *error_num = DataEngineErrorNumber::ok;
-    bool section_found = false;
     section_name = names[0];
     field_name = names[1];
     DataEngineSection *section = get_section_raw(section_name, error_num);
@@ -146,10 +144,8 @@ const DataEngineDataEntry *DataEngineSections::get_entry_raw(const FormID &id, D
     if (section) {
         const VariantData *variant = section->get_variant();
         assert(variant);
-        section_found = true;
 
         if (section->is_section_instance_defined() == false) {
-            section_found = false;
             throw DataEngineError(DataEngineErrorNumber::instance_count_yet_undefined,
                                   QString("Instance count of section \"%1\" yet undefined. Instance count value is: \"%2\".")
                                       .arg(section->get_section_name())
@@ -321,6 +317,7 @@ QString jsonTypeToString(const QJsonValue &val) {
             return "Undefined";
             break;
     }
+	return "Unknown";
 }
 
 void DataEngineSection::from_json(const QJsonValue &object, const QString &key_name) {
@@ -394,7 +391,6 @@ void DataEngineSection::from_json(const QJsonValue &object, const QString &key_n
             } else {
                 throw DataEngineError(DataEngineErrorNumber::allow_empty_section_with_wrong_type,
                                       QString("\"Allow_empty_section\" -tag of section \"%1\" must be boolean. But is not.").arg(get_section_name()));
-
             }
         }
         if (obj.contains("variants")) {
@@ -470,8 +466,7 @@ void DataEngineSection::create_instances_if_defined() {
     }
 }
 
-bool DataEngineSection::is_allow_empty_section() const
-{
+bool DataEngineSection::is_allow_empty_section() const {
     return allow_empty_section;
 }
 
@@ -712,6 +707,7 @@ bool DependencyValue::is_matching(const QVariant &test_value) const {
         case MatchNone:
             return false;
     }
+	return false;
 }
 
 void DependencyValue::parse_number(const QString &str, float &vnumber, bool &matcheverything) {
@@ -898,60 +894,16 @@ QString Data_engine::get_unit(const FormID &id) const {
 }
 
 std::unique_ptr<QWidget> Data_engine::get_preview() const {
-    QtRPT report;
-    fill_report(report, "test.xml");
-    report.printExec();
+	//TODO
     return nullptr;
 }
 
 void Data_engine::generate_pdf(const std::string &form, const std::string &destination) const {
-    QtRPT report;
-    fill_report(report, QString::fromStdString(form));
-    report.printPDF(QString::fromStdString(destination));
+	//TODO
 }
 
 bool Data_engine::entry_compare(const FormIdWrapper &lhs, const FormIdWrapper &rhs) {
     return lhs.value < rhs.value;
-}
-
-void Data_engine::setValue(const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) const {
-#if 0
-    const auto &entry = data_entries[recNo];
-    if (paramName == "DataDescription") {
-        paramValue = entry->get_description();
-    } else if (paramName == "DataMinimum") {
-        paramValue = entry->get_minimum();
-    } else if (paramName == "DataMaximum") {
-        paramValue = entry->get_maximum();
-    } else if (paramName == "DataValue") {
-        paramValue = entry->get_value();
-    } else if (paramName == "DataSuccess") {
-        paramValue = entry->is_in_range() ? "Ok" : "Fail";
-    } else if (paramName == "DateTime") {
-        paramValue = QDateTime::currentDateTime().toString(Qt::SystemLocaleLongDate);
-    } else if (paramName == "ReportSummary") {
-        paramValue = get_statistics().to_qstring();
-    } else if (paramName == "TestSuccess") {
-        paramValue = all_values_in_range() ? 1 : 0;
-    } else {
-        auto entry = get_entry(paramName);
-        if (entry != nullptr) {
-            paramValue = entry->get_value();
-        }
-    }
-#endif
-}
-
-void Data_engine::fill_report(QtRPT &report, const QString &form) const {
-    if (report.loadReport(form) == false) {
-        throw std::runtime_error("Failed opening form file " + form.toStdString());
-    }
-#if 0
-    report.recordCount << data_entries.size();
-#endif
-    QObject::connect(
-        &report, Utility::pick_overload<const int, const QString, QVariant &, const int>(&QtRPT::setValue),
-        [this](const int recNo, const QString paramName, QVariant &paramValue, const int reportPage) { setValue(recNo, paramName, paramValue, reportPage); });
 }
 
 bool NumericTolerance::test_in_range(const double desired, const std::experimental::optional<double> &measured) const {
@@ -962,7 +914,7 @@ bool NumericTolerance::test_in_range(const double desired, const std::experiment
         throw DataEngineError(DataEngineErrorNumber::tolerance_must_be_defined_for_range_checks_on_numbers,
                               "no tolerance defined even though a range check should be done.");
     }
-    if ((bool)measured == false) {
+	if (!measured) {
         return false;
     }
 
@@ -1293,9 +1245,9 @@ NumericDataEntry::NumericDataEntry(FormID field_name, std::experimental::optiona
                                    std::experimental::optional<double> si_prefix, QString description)
     : DataEngineDataEntry(field_name)
     , desired_value(desired_value)
-    , tolerance(tolerance)
     , unit(std::move(unit))
-    , description(std::move(description)) {
+	, description(std::move(description))
+	, tolerance(tolerance) {
     this->si_prefix = si_prefix.value_or(1.0);
 }
 
@@ -1800,4 +1752,5 @@ void ReferenceDataEntry::set_desired_value_from_actual(DataEngineDataEntry *from
 
 bool ReferenceDataEntry::is_desired_value_set() {
     assert(0);
+	return false;
 }

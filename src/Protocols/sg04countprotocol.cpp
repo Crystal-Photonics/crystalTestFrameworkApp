@@ -100,8 +100,6 @@ sol::table SG04CountProtocol::get_sg04_counts(sol::state &lua, bool clear) {
     return result;
 }
 
-int SG04CountProtocol::await_count_package() {}
-
 uint16_t SG04CountProtocol::get_actual_count_rate()
 {
     return actual_count_rate;
