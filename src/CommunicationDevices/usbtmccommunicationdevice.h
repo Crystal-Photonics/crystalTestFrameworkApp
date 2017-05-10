@@ -20,7 +20,7 @@ class USBTMCCommunicationDevice : public CommunicationDevice {
 private:
     USBTMC usbtmc;
     bool is_connected;
-    QByteArray response{};
+    //QByteArray response{};
 
 };
 

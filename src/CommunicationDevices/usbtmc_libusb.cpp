@@ -32,7 +32,7 @@
 
 #define LOG_PREFIX "scpi_usbtmc"
 
-#define TRANSFER_TIMEOUT 10000
+#define TRANSFER_TIMEOUT 1000
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
