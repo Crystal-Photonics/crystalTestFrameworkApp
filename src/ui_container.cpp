@@ -55,6 +55,7 @@ void UI_container::add(QLayout *layout) {
 }
 
 void UI_container::set_column_count(int columns) {
+    paragraphs.emplace_back(this->layout);
 	column_count = columns;
 }
 
