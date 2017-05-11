@@ -10,6 +10,7 @@
 #include "LuaUI/lineedit.h"
 #include "LuaUI/plot.h"
 #include "LuaUI/spinbox.h"
+#include "LuaUI/progressbar.h"
 #include "Protocols/manualprotocol.h"
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
@@ -996,6 +997,25 @@ void ScriptEngine::load_script(const QString &path) {
                                                            thread_call_wrapper(&SpinBox::set_caption), //
                                                            "get_caption",
                                                            thread_call_wrapper(&SpinBox::get_caption) //
+                                                           );
+        }
+        //bind ProgressBar
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<ProgressBar>>("ProgressBar", //
+                                                           sol::meta_function::construct,
+                                                           [parent = this->parent]() { return Lua_UI_Wrapper<ProgressBar>{parent}; }, //
+                                                           "set_max_value",
+                                                           thread_call_wrapper(&ProgressBar::set_max_value), //
+                                                           "set_min_value",
+                                                           thread_call_wrapper(&ProgressBar::set_min_value), //
+                                                           "set_value",
+                                                           thread_call_wrapper(&ProgressBar::set_value), //
+                                                           "set_visible",
+                                                           thread_call_wrapper(&ProgressBar::set_visible), //
+                                                           "set_caption",
+                                                           thread_call_wrapper(&ProgressBar::set_caption), //
+                                                           "get_caption",
+                                                           thread_call_wrapper(&ProgressBar::get_caption) //
                                                            );
         }
         //bind Label

@@ -75,7 +75,8 @@ HEADERS += \
     CommunicationDevices/libusb_base.h \
     CommunicationDevices/usbtmc.h \
     CommunicationDevices/libusbscan.h \
-    LuaUI/spinbox.h
+    LuaUI/spinbox.h \
+    LuaUI/progressbar.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -124,4 +125,5 @@ SOURCES += \
     CommunicationDevices/libusb_base.cpp \
     CommunicationDevices/usbtmc.cpp \
     CommunicationDevices/libusbscan.cpp \
-    LuaUI/spinbox.cpp
+    LuaUI/spinbox.cpp \
+    LuaUI/progressbar.cpp
