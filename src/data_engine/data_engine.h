@@ -76,7 +76,7 @@ struct DataEngineDataEntry {
 
     virtual bool is_complete() const = 0;
     virtual bool is_in_range() const = 0;
-    virtual QStringList get_actual_values() const = 0;
+    virtual QString get_actual_values() const = 0;
     virtual QString get_description() const = 0;
     virtual QString get_desired_value_as_string() const = 0;
     virtual QString get_unit() const = 0;
@@ -84,10 +84,7 @@ struct DataEngineDataEntry {
     virtual void set_desired_value_from_desired(DataEngineDataEntry *from) = 0;
     virtual void set_desired_value_from_actual(DataEngineDataEntry *from) = 0;
     virtual bool is_desired_value_set() = 0;
-
-    virtual void set_instance_count(uint instance_count) = 0;
-    virtual uint get_instance_count() = 0;
-    virtual void set_actual_instance_index(uint instance_index) = 0;
+    virtual bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const = 0;
 
     template <class T>
     T *as();
@@ -137,9 +134,10 @@ struct NumericDataEntry : DataEngineDataEntry {
     bool is_complete() const override;
     bool is_in_range() const override;
     QString get_desired_value_as_string() const override;
-    QStringList get_actual_values() const override;
+    QString get_actual_values() const override;
     QString get_description() const override;
     QString get_unit() const override;
+    bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
 
     void set_actual_value(double actual_value);
     std::experimental::optional<double> desired_value{};
@@ -147,16 +145,13 @@ struct NumericDataEntry : DataEngineDataEntry {
     QString description{};
 
     double si_prefix = 1.0;
-    void set_instance_count(uint instance_count) override;
-    uint get_instance_count() override;
-    void set_actual_instance_index(uint instance_index) override;
 
     private:
     NumericTolerance tolerance;
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
     bool is_desired_value_set() override;
-    std::vector<std::experimental::optional<double>> actual_values{};
+    std::experimental::optional<double> actual_value;
     uint actual_instance_index = 0;
 };
 
@@ -165,24 +160,22 @@ struct TextDataEntry : DataEngineDataEntry {
 
     bool is_complete() const override;
     bool is_in_range() const override;
-    QStringList get_actual_values() const override;
+    QString get_actual_values() const override;
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
+    bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
 
     std::experimental::optional<QString> desired_value{};
     QString description{};
 
     void set_actual_value(QString actual_value);
-    void set_instance_count(uint instance_count) override;
-    uint get_instance_count() override;
-    void set_actual_instance_index(uint instance_index) override;
 
     private:
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
     bool is_desired_value_set() override;
-    std::vector<std::experimental::optional<QString>> actual_values{};
+    std::experimental::optional<QString> actual_value{};
     uint actual_instance_index;
 };
 
@@ -191,24 +184,24 @@ struct BoolDataEntry : DataEngineDataEntry {
 
     bool is_complete() const override;
     bool is_in_range() const override;
-    QStringList get_actual_values() const override;
+    QString get_actual_values() const override;
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
+    bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
+
+
 
     std::experimental::optional<bool> desired_value{};
     QString description{};
 
     void set_actual_value(bool value);
-    void set_instance_count(uint instance_count) override;
-    uint get_instance_count() override;
-    void set_actual_instance_index(uint instance_index) override;
 
     private:
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
     bool is_desired_value_set() override;
-    std::vector<std::experimental::optional<bool>> actual_values{};
+    std::experimental::optional<bool> actual_value{};
     uint actual_instance_index = 0;
 };
 
@@ -227,10 +220,11 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     //referenz erbt sollwert von target, dies kann jeweils enweder soll oder ist wert sein.
     bool is_complete() const override;
     bool is_in_range() const override;
-    QStringList get_actual_values() const override;
+    QString get_actual_values() const override;
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
+    bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
     NumericTolerance tolerance;
     QString description{};
     void dereference(DataEngineSections *sections);
@@ -238,10 +232,6 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     void set_actual_value(double number);
     void set_actual_value(QString val);
     void set_actual_value(bool val);
-
-    void set_instance_count(uint instance_count) override;
-    uint get_instance_count() override;
-    void set_actual_instance_index(uint instance_index) override;
 
     private:
     void parse_refence_string(QString reference_string);
@@ -289,20 +279,34 @@ struct VariantData {
     std::vector<std::unique_ptr<DataEngineDataEntry>> data_entries;
 
     public:
-    bool is_dependency_matching(const QMap<QString, QVariant> &tags) const;
+    bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags) const;
     void from_json(const QJsonObject &object);
     bool value_exists(QString field_name);
-    void set_instance_count(uint instance_count);
-    void set_actual_instance_index(uint instance_index);
     DataEngineDataEntry *get_value(QString field_name) const;
 };
 
-struct DataEngineSection {
+struct DataEngineInstance {
+    DataEngineInstance();
+    DataEngineInstance(const DataEngineInstance &other);
+
     std::vector<VariantData> variants;
+    const VariantData *get_variant() const;
+    QString instance_caption;
+
+    void delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags, int instance_index);
+    void set_section_name(QString section_name);
+    void set_allow_empty_section(bool allow_empty_section);
+
+    private:
+    QString section_name;
+    bool allow_empty_section = false;
+};
+
+struct DataEngineSection {
+    std::vector<DataEngineInstance> instances;
 
     public:
-    const VariantData *get_variant() const;
-    void delete_unmatched_variants(const QMap<QString, QVariant> &tags);
+    void delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags);
     bool is_complete() const;
     bool all_values_in_range() const;
 
@@ -317,23 +321,36 @@ struct DataEngineSection {
     void set_instance_index(uint instance_index);
     void set_actual_instance_caption(QString instance_caption);
     void create_instances_if_defined();
-    QStringList instance_captions;
-    bool is_allow_empty_section() const;
+
+    void set_actual_number(const FormID &id, double number);
+    void set_actual_text(const FormID &id, QString text);
+    void set_actual_bool(const FormID &id, bool value);
+
+    DataEngineInstance prototype_instance;
+
     private:
     std::experimental::optional<uint> instance_count;
+
     QString instance_count_name;
     QString section_name;
     void append_variant_from_json(const QJsonObject &object);
-    bool allow_empty_section = false;
+
+    uint actual_instance_index;
+    DataEngineDataEntry *get_entry(QString id) const;
+};
+
+struct DecodecFieldID {
+    QString section_name;
+    QString field_name;
 };
 
 struct DataEngineSections {
     std::vector<DataEngineSection> sections;
-    void delete_unmatched_variants(const QMap<QString, QVariant> &tags);
+    void delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags);
 
     public:
-    const DataEngineDataEntry *get_entry(const FormID &id) const;
-    DataEngineDataEntry *get_entry(const FormID &id);
+    QList<const DataEngineDataEntry *> get_entry_const(const FormID &id) const;
+    QList<DataEngineDataEntry *> get_entry(const FormID &id);
     bool exists_uniquely(const FormID &id) const;
     bool is_complete() const;
     bool all_values_in_range() const;
@@ -343,9 +360,12 @@ struct DataEngineSections {
     void set_instance_count(QString instance_count_name, uint instance_count);
     void use_instance(QString section_name, QString instance_caption, uint instance_index);
     void create_already_defined_instances();
+    DataEngineSection *get_section(const FormID &id) const;
+
+    static DecodecFieldID decode_field_id(const FormID &id);
 
     private:
-    const DataEngineDataEntry *get_entry_raw(const FormID &id, DataEngineErrorNumber *error_num, QString &section_name, QString &field_name) const;
+    QList<const DataEngineDataEntry *> get_entry_raw(const FormID &id, DataEngineErrorNumber *error_num, QString &section_name, QString &field_name) const;
     DataEngineSection *get_section_raw(const QString &section_name, DataEngineErrorNumber *error_num) const;
 };
 
@@ -360,9 +380,9 @@ class Data_engine {
 
     public:
     Data_engine() = default;
-    Data_engine(std::istream &source, const QMap<QString, QVariant> &tags);
+    Data_engine(std::istream &source, const QMap<QString, QList<QVariant>> &tags);
 
-    void set_source(std::istream &source, const QMap<QString, QVariant> &tags);
+    void set_source(std::istream &source, const QMap<QString, QList<QVariant>> &tags);
     bool is_complete() const;
     bool all_values_in_range() const;
     bool value_in_range(const FormID &id) const;
@@ -375,9 +395,9 @@ class Data_engine {
     // double get_desired_value(const FormID &id) const;
 
     QStringList get_actual_values(const FormID &id) const;
-    QString get_description(const FormID &id) const;
-    QString get_desired_value_as_string(const FormID &id) const;
-    QString get_unit(const FormID &id) const;
+    QStringList get_description(const FormID &id) const;
+    QStringList get_desired_value_as_string(const FormID &id) const;
+    QStringList get_unit(const FormID &id) const;
 
     Statistics get_statistics() const;
 

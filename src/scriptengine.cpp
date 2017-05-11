@@ -9,8 +9,8 @@
 #include "LuaUI/label.h"
 #include "LuaUI/lineedit.h"
 #include "LuaUI/plot.h"
-#include "LuaUI/spinbox.h"
 #include "LuaUI/progressbar.h"
+#include "LuaUI/spinbox.h"
 #include "Protocols/manualprotocol.h"
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
@@ -795,21 +795,30 @@ void ScriptEngine::load_script(const QString &path) {
                     if (!f) {
                         throw std::runtime_error("Failed opening file " + file_path);
                     }
-                    QMap<QString, QVariant> tags;
+                    QMap<QString, QList<QVariant>> tags;
+
                     for (auto &i : dependency_tags) {
                         std::string tag_name = i.first.as<std::string>();
-                        QVariant value;
+                        QList<QVariant> values;
                         if (i.second.get_type() == sol::type::string) {
-                            value = QString().fromStdString(i.second.as<std::string>());
+                            values.append(QString().fromStdString(i.second.as<std::string>()));
                         } else if (i.second.get_type() == sol::type::number) {
-                            value.setValue<double>(i.second.as<double>());
+                            QVariant v;
+                            v.setValue<double>(i.second.as<double>());
+                             values.append(v);
                         } else if (i.second.get_type() == sol::type::boolean) {
-                            value.setValue<bool>(i.second.as<bool>());
+                            QVariant v;
+                            v.setValue<bool>(i.second.as<bool>());
+                            values.append(v);
+                        } else if (i.second.get_type() == sol::type::table) {
+                            assert(0); //TODO: must be implemented
+
                         } else {
                             throw std::runtime_error(
                                 QString("invalid type in field of dependency tags at index %1").arg(QString().fromStdString(tag_name)).toStdString());
                         }
-                        tags.insert(QString().fromStdString(tag_name), value);
+
+                        tags.insert(QString().fromStdString(tag_name), values);
                     }
                     data_engine->set_source(f, tags);
                     *pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
@@ -961,7 +970,9 @@ void ScriptEngine::load_script(const QString &path) {
         {
             ui_table.new_usertype<Lua_UI_Wrapper<ComboBox>>("ComboBox", //
                                                             sol::meta_function::construct,
-                                                            [parent = this->parent](sol::table items) { return Lua_UI_Wrapper<ComboBox>{parent, items}; }, //
+                                                            [parent = this->parent](sol::table items) {
+                                                                return Lua_UI_Wrapper<ComboBox>{parent, items};
+                                                            }, //
                                                             "set_items",
                                                             thread_call_wrapper(&ComboBox::set_items), //
                                                             "get_text",
@@ -1002,21 +1013,21 @@ void ScriptEngine::load_script(const QString &path) {
         //bind ProgressBar
         {
             ui_table.new_usertype<Lua_UI_Wrapper<ProgressBar>>("ProgressBar", //
-                                                           sol::meta_function::construct,
-                                                           [parent = this->parent]() { return Lua_UI_Wrapper<ProgressBar>{parent}; }, //
-                                                           "set_max_value",
-                                                           thread_call_wrapper(&ProgressBar::set_max_value), //
-                                                           "set_min_value",
-                                                           thread_call_wrapper(&ProgressBar::set_min_value), //
-                                                           "set_value",
-                                                           thread_call_wrapper(&ProgressBar::set_value), //
-                                                           "set_visible",
-                                                           thread_call_wrapper(&ProgressBar::set_visible), //
-                                                           "set_caption",
-                                                           thread_call_wrapper(&ProgressBar::set_caption), //
-                                                           "get_caption",
-                                                           thread_call_wrapper(&ProgressBar::get_caption) //
-                                                           );
+                                                               sol::meta_function::construct,
+                                                               [parent = this->parent]() { return Lua_UI_Wrapper<ProgressBar>{parent}; }, //
+                                                               "set_max_value",
+                                                               thread_call_wrapper(&ProgressBar::set_max_value), //
+                                                               "set_min_value",
+                                                               thread_call_wrapper(&ProgressBar::set_min_value), //
+                                                               "set_value",
+                                                               thread_call_wrapper(&ProgressBar::set_value), //
+                                                               "set_visible",
+                                                               thread_call_wrapper(&ProgressBar::set_visible), //
+                                                               "set_caption",
+                                                               thread_call_wrapper(&ProgressBar::set_caption), //
+                                                               "get_caption",
+                                                               thread_call_wrapper(&ProgressBar::get_caption) //
+                                                               );
         }
         //bind Label
         {

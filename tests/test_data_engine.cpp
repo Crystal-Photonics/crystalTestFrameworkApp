@@ -151,7 +151,7 @@ void Test_Data_engine::check_tolerance_parsing_A() {
 void Test_Data_engine::basic_load_from_config() {
 #if !DISABLE_ALL
     std::stringstream input{R"({})"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
 #endif
 }
@@ -159,7 +159,7 @@ void Test_Data_engine::basic_load_from_config() {
 void Test_Data_engine::check_properties_of_empty_set() {
 #if !DISABLE_ALL
     std::stringstream input{R"({})"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     const Data_engine de{input, tags};
     QVERIFY(de.is_complete());
     QVERIFY(de.all_values_in_range());
@@ -178,7 +178,7 @@ void Test_Data_engine::check_no_data_error_A() {
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     QVERIFY_EXCEPTION_THROWN_error_number(
 
         Data_engine(input, tags), DataEngineErrorNumber::no_data_section_found);
@@ -194,7 +194,7 @@ void Test_Data_engine::check_no_data_error_B() {
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     QVERIFY_EXCEPTION_THROWN_error_number(
 
         Data_engine(input, tags), DataEngineErrorNumber::no_data_section_found);
@@ -212,7 +212,7 @@ void Test_Data_engine::check_wrong_tolerance_type_A() {
     }
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     QVERIFY_EXCEPTION_THROWN_error_number(
 
         Data_engine(input, tags), DataEngineErrorNumber::tolerance_parsing_error);
@@ -231,7 +231,7 @@ void Test_Data_engine::check_duplicate_name_error_A() {
     }
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     QVERIFY_EXCEPTION_THROWN_error_number(
 
         Data_engine(input, tags), DataEngineErrorNumber::duplicate_field);
@@ -273,7 +273,7 @@ void Test_Data_engine::check_non_faulty_field_id() {
 }
                             )"};
 
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
 
     QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage"), DataEngineErrorNumber::faulty_field_id);
@@ -293,7 +293,7 @@ void Test_Data_engine::check_non_existing_desired_value() {
 }
                             )"};
 
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
 
     QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage/voltage"), DataEngineErrorNumber::no_field_id_found);
@@ -355,7 +355,7 @@ void Test_Data_engine::check_dependency_handling() {
     }
                                 )"};
 
-        QMap<QString, QVariant> tags;
+        QMap<QString, QList<QVariant>> tags;
         QString printer;
         for (const auto &value : data.values) {
             tags.insert(value.first, value.second);
@@ -425,7 +425,7 @@ void Test_Data_engine::check_dependency_ambiguity_handling() {
     }
                                 )"};
 
-        QMap<QString, QVariant> tags;
+        QMap<QString, QList<QVariant>> tags;
         QString printer;
         for (const auto &value : data.values) {
             tags.insert(value.first, value.second);
@@ -463,7 +463,7 @@ void Test_Data_engine::check_emtpy_section_tag() {
     }
                                 )"};
 
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de(input, tags);
     QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage/voltage");,DataEngineErrorNumber::no_field_id_found);
 #endif
@@ -486,7 +486,7 @@ void Test_Data_engine::check_emtpy_section_tag_wrong_type() {
     }
                                 )"};
 
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
 
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine de(input, tags);,DataEngineErrorNumber::allow_empty_section_with_wrong_type);
 #endif
@@ -520,7 +520,7 @@ void Test_Data_engine::check_emtpy_section_tag_wrong_scope() {
                             )"};
 
 
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
 
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags);, DataEngineErrorNumber::allow_empty_section_must_not_be_defined_in_variant_scope);
 
@@ -540,7 +540,7 @@ void Test_Data_engine::check_non_existing_section_name() {
 }
                             )"};
 
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
 
     QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage/voltage"), DataEngineErrorNumber::no_section_id_found);
@@ -558,7 +558,7 @@ void Test_Data_engine::check_data_by_object() {
     }
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
     de.get_desired_value_as_string("supply-voltage/voltage");
 
@@ -575,7 +575,7 @@ void Test_Data_engine::check_value_matching_by_name() {
     }
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     const Data_engine de{input, tags};
     QCOMPARE(de.get_desired_value_as_string("supply-voltage/voltage"), QString("5000 (±200)"));
 #endif
@@ -596,7 +596,7 @@ void Test_Data_engine::single_numeric_property_test() {
 }
                             )"};
 
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
 
     QVERIFY(!de.is_complete());
@@ -645,7 +645,7 @@ void Test_Data_engine::test_text_entry() {
     }
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
@@ -674,7 +674,7 @@ void Test_Data_engine::test_bool_entry() {
     }
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
@@ -748,7 +748,7 @@ void Test_Data_engine::test_instances() {
     }
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     tags.insert("is_good_variant", true);
     Data_engine de{input, tags};
 
@@ -827,7 +827,7 @@ void Test_Data_engine::test_instances_bool_string() {
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
 
     QVERIFY(!de.is_complete());
@@ -916,7 +916,7 @@ void Test_Data_engine::test_faulty_instancecount() {
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
 
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_zero, tags);, DataEngineErrorNumber::instance_count_must_not_be_zero_nor_fraction_nor_negative);
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_fraction, tags);, DataEngineErrorNumber::instance_count_must_not_be_zero_nor_fraction_nor_negative);
@@ -952,7 +952,7 @@ void Test_Data_engine::test_if_exception_when_instance_count_defined_within_vari
 }
                             )"};
 
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     tags.insert("sound", 1.42);
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags);, DataEngineErrorNumber::instance_count_must_not_be_defined_in_variant_scope);
 
@@ -984,7 +984,7 @@ void Test_Data_engine::test_instances_with_references() {
 }
                             )"};
 
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
 
     QVERIFY(!de.is_complete());
@@ -1112,7 +1112,7 @@ void Test_Data_engine::test_instances_with_references_to_multiinstance_actual_va
 }
                             )"};
 
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de_bool(input_bool, tags);
     Data_engine de_str(input_string, tags);
     Data_engine de_num(input_number, tags);
@@ -1154,7 +1154,7 @@ void Test_Data_engine::test_instances_with_strange_types() {
 }
                             )"};
 
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
 
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine de_bool(input, tags);, DataEngineErrorNumber::wrong_type_for_instance_count);
 
@@ -1174,7 +1174,7 @@ void Test_Data_engine::test_empty_entries() {
     }
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
 
     QVERIFY(!de.is_complete());
@@ -1221,7 +1221,7 @@ void Test_Data_engine::test_if_fails_when_desired_number_misses_tolerance() {
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
 
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags);, DataEngineErrorNumber::tolerance_must_be_defined_for_numbers);
 #endif
@@ -1240,7 +1240,7 @@ void Test_Data_engine::test_if_success_when_actuel_number_misses_tolerance() {
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine(input, tags);
 #endif
 }
@@ -1283,7 +1283,7 @@ void Test_Data_engine::test_references() {
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     tags.insert("color", "green");
     Data_engine de{input, tags};
     QVERIFY(!de.is_complete());
@@ -1367,7 +1367,7 @@ void Test_Data_engine::test_references_ambiguous() {
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     tags.insert("color", "green");
 
     QVERIFY_EXCEPTION_THROWN_error_number(
@@ -1413,7 +1413,7 @@ void Test_Data_engine::test_references_non_existing() {
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     tags.insert("color", "green");
     QVERIFY_EXCEPTION_THROWN_error_number(
 
@@ -1442,7 +1442,7 @@ void Test_Data_engine::test_references_from_non_actual_only_field() {
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     QVERIFY_EXCEPTION_THROWN_error_number(
 
         Data_engine(input, tags), DataEngineErrorNumber::reference_target_has_no_desired_value);
@@ -1473,7 +1473,7 @@ void Test_Data_engine::test_references_get_actual_value_description_desired_valu
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
 
     de.set_actual_number("test_valuesA/test_number", 0.101);
@@ -1544,7 +1544,7 @@ void Test_Data_engine::test_references_string_bool() {
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
@@ -1645,7 +1645,7 @@ void Test_Data_engine::test_references_set_value_in_wrong_type() {
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
 
     QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_bool("referenzen/test_number_ref", true),
@@ -1684,7 +1684,7 @@ void Test_Data_engine::test_references_if_fails_when_setting_tolerance_in_bool()
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags);, DataEngineErrorNumber::reference_is_not_number_but_has_tolerance);
 #endif
 }
@@ -1708,7 +1708,7 @@ void Test_Data_engine::test_references_if_fails_when_setting_tolerance_in_string
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
 
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags);, DataEngineErrorNumber::reference_is_not_number_but_has_tolerance);
 #endif
@@ -1750,7 +1750,7 @@ void Test_Data_engine::test_references_when_number_reference_without_tolerance()
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
     Data_engine(input_ok, tags);
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_fail, tags);, DataEngineErrorNumber::reference_is_a_number_and_needs_tolerance);
 #endif
@@ -1808,7 +1808,7 @@ void Test_Data_engine::test_references_if_fails_when_mismatch_in_unit() {
 
 }
                             )"};
-    QMap<QString, QVariant> tags;
+    QMap<QString, QList<QVariant>> tags;
 
     Data_engine(input_ok, tags);
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input_fail_unit, tags);, DataEngineErrorNumber::invalid_data_entry_key);
