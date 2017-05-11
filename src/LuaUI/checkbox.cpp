@@ -3,12 +3,22 @@
 
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QLabel>
 
 ///\cond HIDDEN_SYMBOLS
 CheckBox::CheckBox(UI_container *parent, const std::string text)
 	: checkbox(new QCheckBox(parent)) {
+    QVBoxLayout *layout = new QVBoxLayout;
+    QLabel *label = new QLabel(parent);
+    label->setText(" ");
+    layout->addWidget(label);
+
+    layout->addWidget(checkbox, 0, Qt::AlignBottom);
+    layout->addStretch(1);
+    parent->add(layout);
+
 	checkbox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-	parent->add(checkbox);
+
     set_text(text);
 }
 

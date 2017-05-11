@@ -14,9 +14,10 @@ SpinBox::SpinBox(UI_container *parent)
     : label{new QLabel(parent)}
     , spinbox{new QSpinBox(parent)} {
     QVBoxLayout *layout = new QVBoxLayout;
-    label->setVisible(false);
+    label->setText(" ");
     layout->addWidget(label);
-    layout->addWidget(spinbox, 1, Qt::AlignBottom);
+    layout->addWidget(spinbox, 0, Qt::AlignBottom);
+    layout->addStretch(1);
     parent->add(layout);
     label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     spinbox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
@@ -32,18 +33,16 @@ int SpinBox::get_value() const {
     return spinbox->value();
 }
 
-void SpinBox::set_max_value(const int value)
-{
+void SpinBox::set_max_value(const int value) {
     spinbox->setMaximum(value);
-    if (spinbox->value() > value){
+    if (spinbox->value() > value) {
         spinbox->setValue(value);
     }
 }
 
-void SpinBox::set_min_value(const int value)
-{
+void SpinBox::set_min_value(const int value) {
     spinbox->setMinimum(value);
-    if (spinbox->value() < value){
+    if (spinbox->value() < value) {
         spinbox->setValue(value);
     }
 }
@@ -52,20 +51,19 @@ void SpinBox::set_value(const int value) {
     spinbox->setValue(value);
 }
 
-
-
 void SpinBox::set_caption(const std::string &caption) {
     label->setText(QString::fromStdString(caption));
-    label->setVisible(label->text().size());
+    if (caption == "") {
+        label->setText(" ");
+    }
+    //label->setVisible(label->text().size());
 }
 
 std::string SpinBox::get_caption() const {
     return label->text().toStdString();
 }
 
-void SpinBox::set_visible(bool visible)
-{
+void SpinBox::set_visible(bool visible) {
     spinbox->setVisible(visible);
     label->setVisible(visible);
 }
-

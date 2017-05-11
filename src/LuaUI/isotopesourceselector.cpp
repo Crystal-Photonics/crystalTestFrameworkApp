@@ -16,7 +16,13 @@
 IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
 	: combobox{new QComboBox(parent)} {
 	combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-	parent->add(combobox);
+    QVBoxLayout *layout = new QVBoxLayout;
+    QLabel *label = new QLabel(parent);
+    label->setText(" ");
+    layout->addWidget(label);
+    layout->addWidget(combobox, 0, Qt::AlignBottom);
+    layout->addStretch(1);
+    parent->add(layout);
     load_isotope_database();
     fill_combobox_with_isotopes();
 }

@@ -10,7 +10,7 @@ class UI_container;
 class ComboBox {
     public:
     ///\cond HIDDEN_SYMBOLS
-	ComboBox(UI_container *parent);
+    ComboBox(UI_container *parent, sol::table items);
     ~ComboBox();
     ///\endcond
     void set_items(sol::table items);

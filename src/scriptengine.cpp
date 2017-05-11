@@ -960,7 +960,7 @@ void ScriptEngine::load_script(const QString &path) {
         {
             ui_table.new_usertype<Lua_UI_Wrapper<ComboBox>>("ComboBox", //
                                                             sol::meta_function::construct,
-                                                            [parent = this->parent]() { return Lua_UI_Wrapper<ComboBox>{parent}; }, //
+                                                            [parent = this->parent](sol::table items) { return Lua_UI_Wrapper<ComboBox>{parent, items}; }, //
                                                             "set_items",
                                                             thread_call_wrapper(&ComboBox::set_items), //
                                                             "get_text",

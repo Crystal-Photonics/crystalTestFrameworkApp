@@ -9,7 +9,11 @@
 ///\cond HIDDEN_SYMBOLS
 Label::Label(UI_container *parent, const std::string text)
 	: label{new QLabel(parent)} {
-	parent->add(label);
+    QVBoxLayout *layout = new QVBoxLayout;
+    layout->addWidget(label, 0, Qt::AlignBottom);
+    layout->addStretch(1);
+    parent->add(layout);
+
 	label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Minimum);
     set_text(text);
 }

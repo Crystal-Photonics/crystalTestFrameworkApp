@@ -14,9 +14,10 @@ LineEdit::LineEdit(UI_container *parent)
 	: label{new QLabel(parent)}
 	, edit{new QLineEdit(parent)} {
 	QVBoxLayout *layout = new QVBoxLayout;
-    label->setVisible(false);
+    //label->setVisible(false);
     layout->addWidget(label);
-	layout->addWidget(edit, 1, Qt::AlignBottom);
+    layout->addWidget(edit, 0, Qt::AlignBottom);
+    layout->addStretch(1);
 	parent->add(layout);
 	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
 	edit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
@@ -49,7 +50,10 @@ std::string LineEdit::get_name() const {
 
 void LineEdit::set_caption(const std::string &caption) {
     label->setText(QString::fromStdString(caption));
-    label->setVisible(label->text().size());
+    //label->setVisible(label->text().size());
+    if (caption == "") {
+        label->setText(" ");
+    }
 }
 
 void LineEdit::set_visible(bool visible)

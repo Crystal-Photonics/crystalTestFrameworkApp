@@ -9,16 +9,18 @@
 #include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-ComboBox::ComboBox(UI_container *parent)
+ComboBox::ComboBox(UI_container *parent, sol::table items)
 	: combobox(new QComboBox(parent))
 	, label(new QLabel(parent)) {
 	QVBoxLayout *layout = new QVBoxLayout;
-    label->setVisible(false);
+    label->setText(" ");
     layout->addWidget(label);
     layout->addWidget(combobox);
+    layout->addStretch(1);
 	combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
 	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
 	parent->add(layout);
+    set_items(items);
 }
 
 ComboBox::~ComboBox() {
@@ -56,7 +58,10 @@ void ComboBox::set_visible(bool visible)
 
 void ComboBox::set_caption(const std::string caption) {
     label->setText(QString::fromStdString(caption));
-    label->setVisible(label->text().size());
+    if (caption == "") {
+        label->setText(" ");
+    }
+  //  label->setVisible(label->text().size());
 }
 
 std::string ComboBox::get_caption() const {
