@@ -157,7 +157,7 @@ void Test_Data_engine::basic_load_from_config() {
 }
 
 void Test_Data_engine::check_properties_of_empty_set() {
-#if !DISABLE_ALL
+#if !DISABLE_ALL || 0
     std::stringstream input{R"({})"};
     QMap<QString, QList<QVariant>> tags;
     const Data_engine de{input, tags};
@@ -364,7 +364,6 @@ void Test_Data_engine::check_dependency_handling() {
 
         //qDebug() << printer;
         if (data.expected_error == DataEngineErrorNumber::no_variant_found) {
-            ;
             QVERIFY_EXCEPTION_THROWN_error_number(Data_engine de(input, tags);, data.expected_error);
 
         } else {
@@ -465,7 +464,7 @@ void Test_Data_engine::check_emtpy_section_tag() {
 
     QMap<QString, QList<QVariant>> tags;
     Data_engine de(input, tags);
-    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage/voltage");,DataEngineErrorNumber::no_field_id_found);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage/voltage");, DataEngineErrorNumber::no_field_id_found);
 #endif
 }
 
@@ -488,7 +487,7 @@ void Test_Data_engine::check_emtpy_section_tag_wrong_type() {
 
     QMap<QString, QList<QVariant>> tags;
 
-    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine de(input, tags);,DataEngineErrorNumber::allow_empty_section_with_wrong_type);
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine de(input, tags);, DataEngineErrorNumber::allow_empty_section_with_wrong_type);
 #endif
 }
 
@@ -519,11 +518,9 @@ void Test_Data_engine::check_emtpy_section_tag_wrong_scope() {
 }
                             )"};
 
-
     QMap<QString, QList<QVariant>> tags;
 
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags);, DataEngineErrorNumber::allow_empty_section_must_not_be_defined_in_variant_scope);
-
 
 #endif
 }
@@ -582,7 +579,7 @@ void Test_Data_engine::check_value_matching_by_name() {
 }
 
 void Test_Data_engine::single_numeric_property_test() {
-#if !DISABLE_ALL
+#if !DISABLE_ALL || 0
 
     std::stringstream input{R"(
 {
@@ -773,7 +770,9 @@ void Test_Data_engine::test_instances() {
     QVERIFY_EXCEPTION_THROWN_error_number(de.set_instance_count("probe_count", 4);, DataEngineErrorNumber::instance_count_already_defined);
 
     de.set_actual_number("supply_probe_count/voltage", 4.9);
+
     QVERIFY_EXCEPTION_THROWN_error_number(de.use_instance("supply_probe_count", "Probe abc", 4);, DataEngineErrorNumber::instance_count_exceeding);
+
     de.use_instance("supply_probe_count", "Probe abc", 2);
 
     de.set_actual_number("supply_probe_count/voltage", 5.1);
@@ -1246,7 +1245,7 @@ void Test_Data_engine::test_if_success_when_actuel_number_misses_tolerance() {
 }
 
 void Test_Data_engine::test_references() {
-#if !DISABLE_ALL
+#if !DISABLE_ALL || 0
 
     std::stringstream input{R"(
 {

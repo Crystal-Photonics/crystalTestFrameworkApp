@@ -42,7 +42,7 @@ class TestRunner : QObject {
 	private:
 	QThread thread{};
 	UI_container *lua_ui_container{nullptr};
-	std::unique_ptr<Data_engine> data_engine{std::make_unique<Data_engine>()};
+    std::unique_ptr<Data_engine> data_engine{std::make_unique<Data_engine>()};
 	ScriptEngine script;
 	QString name{};
 };

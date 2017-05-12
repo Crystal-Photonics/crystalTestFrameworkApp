@@ -128,8 +128,11 @@ struct NumericTolerance {
 };
 
 struct NumericDataEntry : DataEngineDataEntry {
+    NumericDataEntry(const NumericDataEntry &other);
+
     NumericDataEntry(FormID field_name, std::experimental::optional<double> desired_value, NumericTolerance tolerance, QString unit,
                      std::experimental::optional<double> si_prefix, QString description);
+
     bool valid() const;
     bool is_complete() const override;
     bool is_in_range() const override;
@@ -138,24 +141,25 @@ struct NumericDataEntry : DataEngineDataEntry {
     QString get_description() const override;
     QString get_unit() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
-
     void set_actual_value(double actual_value);
+
     std::experimental::optional<double> desired_value{};
     QString unit{};
     QString description{};
-
     double si_prefix = 1.0;
 
     private:
-    NumericTolerance tolerance;
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
     bool is_desired_value_set() override;
+
+    NumericTolerance tolerance;
     std::experimental::optional<double> actual_value;
-    uint actual_instance_index = 0;
 };
 
 struct TextDataEntry : DataEngineDataEntry {
+    TextDataEntry(const TextDataEntry &other);
+
     TextDataEntry(const FormID name, std::experimental::optional<QString> desired_value, QString description);
 
     bool is_complete() const override;
@@ -165,21 +169,21 @@ struct TextDataEntry : DataEngineDataEntry {
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
+    void set_actual_value(QString actual_value);
 
     std::experimental::optional<QString> desired_value{};
     QString description{};
-
-    void set_actual_value(QString actual_value);
 
     private:
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
     bool is_desired_value_set() override;
+
     std::experimental::optional<QString> actual_value{};
-    uint actual_instance_index;
 };
 
 struct BoolDataEntry : DataEngineDataEntry {
+    BoolDataEntry(const BoolDataEntry &other);
     BoolDataEntry(const FormID name, std::experimental::optional<bool> desired_value, QString description);
 
     bool is_complete() const override;
@@ -189,20 +193,17 @@ struct BoolDataEntry : DataEngineDataEntry {
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
-
-
+    void set_actual_value(bool value);
 
     std::experimental::optional<bool> desired_value{};
     QString description{};
-
-    void set_actual_value(bool value);
 
     private:
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
     bool is_desired_value_set() override;
+
     std::experimental::optional<bool> actual_value{};
-    uint actual_instance_index = 0;
 };
 
 struct ReferenceLink {
@@ -212,6 +213,7 @@ struct ReferenceLink {
 };
 
 struct ReferenceDataEntry : DataEngineDataEntry {
+    ReferenceDataEntry(const ReferenceDataEntry &other);
     ReferenceDataEntry(const FormID name, QString reference_string, NumericTolerance tolerance, QString description);
 
     //referenz erbt typ vom target
@@ -225,27 +227,26 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
-    NumericTolerance tolerance;
-    QString description{};
-    void dereference(DataEngineSections *sections);
-
     void set_actual_value(double number);
     void set_actual_value(QString val);
     void set_actual_value(bool val);
+    void dereference(DataEngineSections *sections);
+
+    NumericTolerance tolerance;
+    QString description{};
 
     private:
-    void parse_refence_string(QString reference_string);
-    std::vector<ReferenceLink> reference_links;
 
-    DataEngineDataEntry *entry_target;
-
-    std::unique_ptr<DataEngineDataEntry> entry;
-
-    private:
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
     bool is_desired_value_set() override;
     void update_desired_value_from_reference() const;
+    void parse_refence_string(QString reference_string);
+
+    std::vector<ReferenceLink> reference_links;
+    DataEngineDataEntry *entry_target;
+    std::experimental::optional<uint> target_instance_count;
+    std::unique_ptr<DataEngineDataEntry> entry;
 };
 
 struct DependencyValue {
@@ -275,27 +276,35 @@ struct DependencyTags {
 };
 
 struct VariantData {
+    VariantData();
+    VariantData(const VariantData &other);
+
+    //VariantData(const VariantData &) = delete;
+    VariantData &operator=(const VariantData &) = delete;
+    ~VariantData() = default;
+
     DependencyTags dependency_tags;
     std::vector<std::unique_ptr<DataEngineDataEntry>> data_entries;
 
     public:
     bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags) const;
     void from_json(const QJsonObject &object);
-    bool value_exists(QString field_name);
-    DataEngineDataEntry *get_value(QString field_name) const;
+    bool entry_exists(QString field_name);
+    DataEngineDataEntry *get_entry(QString field_name) const;
 };
 
 struct DataEngineInstance {
     DataEngineInstance();
     DataEngineInstance(const DataEngineInstance &other);
-
-    std::vector<VariantData> variants;
-    const VariantData *get_variant() const;
-    QString instance_caption;
+    DataEngineInstance(DataEngineInstance &&other); //move constructor
 
     void delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags, int instance_index);
     void set_section_name(QString section_name);
     void set_allow_empty_section(bool allow_empty_section);
+    const VariantData *get_variant() const;
+
+    std::vector<VariantData> variants;
+    QString instance_caption;
 
     private:
     QString section_name;
@@ -318,7 +327,6 @@ struct DataEngineSection {
 
     bool set_instance_count_if_name_matches(QString instance_count_name, uint instance_count);
     void use_instance(QString instance_caption, uint instance_index);
-    void set_instance_index(uint instance_index);
     void set_actual_instance_caption(QString instance_caption);
     void create_instances_if_defined();
 
@@ -335,7 +343,7 @@ struct DataEngineSection {
     QString section_name;
     void append_variant_from_json(const QJsonObject &object);
 
-    uint actual_instance_index;
+    uint actual_instance_index = 0;
     DataEngineDataEntry *get_entry(QString id) const;
 };
 
@@ -345,8 +353,10 @@ struct DecodecFieldID {
 };
 
 struct DataEngineSections {
+    DataEngineSections();
+
     std::vector<DataEngineSection> sections;
-    void delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags);
+    void delete_unmatched_variants();
 
     public:
     QList<const DataEngineDataEntry *> get_entry_const(const FormID &id) const;
@@ -363,10 +373,13 @@ struct DataEngineSections {
     DataEngineSection *get_section(const FormID &id) const;
 
     static DecodecFieldID decode_field_id(const FormID &id);
+    void set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags);
+    const QMap<QString, QList<QVariant>> & get_dependancy_tags();
 
     private:
-    QList<const DataEngineDataEntry *> get_entry_raw(const FormID &id, DataEngineErrorNumber *error_num, QString &section_name, QString &field_name) const;
+    QList<const DataEngineDataEntry *> get_entry_raw(const FormID &id, DataEngineErrorNumber *error_num, DecodecFieldID &decoded_field_name) const;
     DataEngineSection *get_section_raw(const QString &section_name, DataEngineErrorNumber *error_num) const;
+    QMap<QString, QList<QVariant>> dependency_tags;
 };
 
 class Data_engine {
