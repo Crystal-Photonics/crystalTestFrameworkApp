@@ -810,6 +810,300 @@ void Test_Data_engine::test_instances() {
 #endif
 }
 
+void Test_Data_engine::test_instances_with_different_variants_and_wrong_instance_size() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+
+    "supply_variants":{
+        "instance_count": "probe_count",
+        "variants":[
+            {
+                "apply_if": {
+                    "is_good_variant": true
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 4000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen"	}
+                ]
+            },
+            {
+                "apply_if": {
+                    "is_good_variant": false
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen aswell"	}
+                ]
+            }
+        ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    tags.insert("is_good_variant", {true, false});
+    Data_engine de{input, tags};
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_instance_count("probe_count", 3);, DataEngineErrorNumber::instance_count_must_match_list_of_dependency_values);
+
+#endif
+}
+void Test_Data_engine::test_instances_with_different_variants_and_wrong_instance_size2() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+
+    "supply_variants":{
+        "instance_count": "probe_count",
+        "variants":[
+            {
+                "apply_if": {
+                    "is_good_variant": true,
+                     "other_tag": 0
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 4000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen"	}
+                ]
+            },
+            {
+                "apply_if": {
+                    "is_good_variant": false,
+                    "other_tag": 0
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen aswell"	}
+                ]
+            }
+        ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    tags.insert("is_good_variant", {true, false});
+    tags.insert("other_tag", {0, 1, 2});
+    Data_engine de{input, tags};
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_instance_count("probe_count", 2);, DataEngineErrorNumber::list_of_dependency_values_must_be_of_equal_length);
+
+#endif
+}
+
+void Test_Data_engine::test_instances_with_different_variants() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+
+    "supply_variants":{
+        "instance_count": "probe_count",
+        "variants":[
+            {
+                "apply_if": {
+                    "is_good_variant": true
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 4000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen"	}
+                ]
+            },
+            {
+                "apply_if": {
+                    "is_good_variant": false
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen aswell"	}
+                ]
+            }
+        ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    tags.insert("is_good_variant", {true, false});
+    tags.insert("dummy", {true});
+    Data_engine de{input, tags};
+
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+
+    de.set_instance_count("probe_count", 2);
+
+    de.set_actual_number("supply_variants/voltage", 4.0);
+
+    de.use_instance("supply_variants", "Probe B", 2);
+    de.set_actual_number("supply_variants/voltage", 3.0);
+
+    auto actual_values = de.get_actual_values("supply_variants/voltage");
+    QCOMPARE(actual_values[0], QString("4000"));
+    QCOMPARE(actual_values[1], QString("3000"));
+
+    QVERIFY(de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+    de.set_actual_number("supply_variants/voltage", 5.0);
+    QVERIFY(de.all_values_in_range());
+#endif
+}
+
+void Test_Data_engine::test_instances_with_different_variants_and_references_fail1() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "test_number_ref",          "value": "[supply_variants/voltage.desired]",    "tolerance": 20,        	"nice_name": "Referenz zum bool AO ist"         }
+
+        ]
+    },
+    "supply_variants":{
+        "instance_count": "probe_count",
+        "variants":[
+            {
+                "apply_if": {
+                    "is_good_variant": true
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 4000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen"	}
+                ]
+            },
+            {
+                "apply_if": {
+                    "is_good_variant": false
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen aswell"	}
+                ]
+            }
+        ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    tags.insert("is_good_variant", {true, false});
+    Data_engine de{input, tags};
+
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("referenzen/test_number_ref", 2);, DataEngineErrorNumber::reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance);
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_instance_count("probe_count", 2);, DataEngineErrorNumber::reference_pointing_to_multiinstance_with_different_values);
+
+
+
+#endif
+}
+
+void Test_Data_engine::test_instances_with_different_variants_and_references_equal_targets() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "test_number_ref",          "value": "[supply_variants/voltage.desired]",    "tolerance": 20,        	"nice_name": "Referenz zum bool AO ist"         }
+
+        ]
+    },
+    "supply_variants":{
+        "instance_count": "probe_count",
+        "variants":[
+            {
+                "apply_if": {
+                    "is_good_variant": true
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen"	}
+                ]
+            },
+            {
+                "apply_if": {
+                    "is_good_variant": false
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen aswell"	}
+                ]
+            }
+        ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    tags.insert("is_good_variant", {true, false});
+    Data_engine de{input, tags};
+
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("referenzen/test_number_ref", 5000);, DataEngineErrorNumber::reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance);
+
+    de.set_instance_count("probe_count", 2);
+    de.set_actual_number("referenzen/test_number_ref", 5);
+
+    de.set_actual_number("supply_variants/voltage", 5);
+    de.use_instance("supply_variants", "Probe B", 2);
+    de.set_actual_number("supply_variants/voltage", 5);
+
+    QVERIFY(de.all_values_in_range());
+
+
+#endif
+}
+
+void Test_Data_engine::test_instances_with_different_variants_and_references_readily_initialized() {
+#if !DISABLE_ALL || 1
+
+    std::stringstream input{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "test_number_ref",          "value": "[supply_variants/voltage.desired]",    "tolerance": 20,        	"nice_name": "Referenz zum bool AO ist"         }
+
+        ]
+    },
+    "supply_variants":{
+        "instance_count": "2",
+        "variants":[
+            {
+                "apply_if": {
+                    "is_good_variant": true
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen"	}
+                ]
+            },
+            {
+                "apply_if": {
+                    "is_good_variant": false
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen aswell"	}
+                ]
+            }
+        ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    tags.insert("is_good_variant", {true, false});
+    Data_engine de{input, tags};
+
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+
+    de.set_actual_number("referenzen/test_number_ref", 5);
+
+    de.set_actual_number("supply_variants/voltage", 5);
+    de.use_instance("supply_variants", "Probe B", 2);
+    de.set_actual_number("supply_variants/voltage", 5);
+
+    QVERIFY(de.all_values_in_range());
+
+
+
+
+#endif
+}
+
 void Test_Data_engine::test_instances_bool_string() {
 #if !DISABLE_ALL || 0
 

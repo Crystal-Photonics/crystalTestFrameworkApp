@@ -55,6 +55,12 @@ public:
     void check_emtpy_section_tag();
     void check_emtpy_section_tag_wrong_type();
     void check_emtpy_section_tag_wrong_scope();
+    void test_instances_with_different_variants();
+    void test_instances_with_different_variants_and_wrong_instance_size();
+    void test_instances_with_different_variants_and_wrong_instance_size2();
+    void test_instances_with_different_variants_and_references_fail1();
+    void test_instances_with_different_variants_and_references_readily_initialized();
+    void test_instances_with_different_variants_and_references_equal_targets();
 };
 
 DECLARE_TEST(Test_Data_engine)

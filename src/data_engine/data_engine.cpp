@@ -304,7 +304,8 @@ bool DataEngineSections::section_exists(QString section_name) {
 void DataEngineSection::delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags) {
     int instance_index = 0;
     for (auto &instance : instances) {
-        instance.delete_unmatched_variants(tags, instance_index);
+        assert((bool)instance_count);
+        instance.delete_unmatched_variants(tags, instance_index, instance_count.value());
         instance_index++;
     }
 }
@@ -315,19 +316,13 @@ DataEngineInstance::DataEngineInstance(const DataEngineInstance &other)
     : variants{other.variants}
     , instance_caption{other.instance_caption}
     , section_name{other.section_name}
-    , allow_empty_section{other.allow_empty_section} {
-    //TODO: still needs to be implented
-    //assert(0);
-}
+    , allow_empty_section{other.allow_empty_section} {}
 
 DataEngineInstance::DataEngineInstance(DataEngineInstance &&other)
     : variants(std::move(other.variants))
     , instance_caption{std::move(other.instance_caption)}
     , section_name{std::move(other.section_name)}
-    , allow_empty_section{other.allow_empty_section} {
-    //TODO: still needs to be implented
-    //assert(0);
-}
+    , allow_empty_section{other.allow_empty_section} {}
 
 const VariantData *DataEngineInstance::get_variant() const {
     if (variants.size() == 1) {
@@ -338,12 +333,12 @@ const VariantData *DataEngineInstance::get_variant() const {
     return nullptr;
 }
 
-void DataEngineInstance::delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags, int instance_index) {
+void DataEngineInstance::delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count) {
     uint i = 0;
     std::vector<VariantData> variants_new;
 
     for (auto &variant : variants) {
-        if (variant.is_dependency_matching(tags)) {
+        if (variant.is_dependency_matching(tags, instance_index, instance_count, section_name)) {
             variants_new.push_back(std::move(variant));
             //i++;
         }
@@ -383,6 +378,9 @@ void DataEngineInstance::set_allow_empty_section(bool allow_empty_section) {
 
 bool DataEngineSection::is_complete() const {
     bool result = true;
+    if (is_section_instance_defined() == false) {
+        result = false;
+    }
     for (auto &instance : instances) {
         const VariantData *variant_to_test = instance.get_variant();
         assert(variant_to_test);
@@ -396,7 +394,7 @@ bool DataEngineSection::is_complete() const {
 }
 
 bool DataEngineSection::all_values_in_range() const {
-    bool result = true;
+    bool result = is_complete();
     for (auto &instance : instances) {
         const VariantData *variant_to_test = instance.get_variant();
         for (const auto &entry : variant_to_test->data_entries) {
@@ -574,6 +572,7 @@ void DataEngineSection::create_instances_if_defined() {
         }
         assert(instances.size() == 0);
         for (uint i = 0; i < instance_count.value(); i++) {
+            //
             DataEngineInstance instance(prototype_instance);
             instances.push_back(instance);
         }
@@ -630,16 +629,56 @@ VariantData::VariantData(const VariantData &other) {
     }
 }
 
-bool VariantData::is_dependency_matching(const QMap<QString, QList<QVariant>> &tags) const {
+bool VariantData::is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count,
+                                         const QString &section_name) const {
     bool dependency_matches = true;
-    const uint instance_index_to_test = 0;
     const auto &keys_to_test = dependency_tags.tags.uniqueKeys();
+    std::experimental::optional<uint> length_of_first_tag_value_list;
+    if (keys_to_test.count()) {
+        for (const auto &tag_key : keys_to_test) {
+            if (tags.contains(tag_key)) {
+                const auto value_count = tags[tag_key].count();
+                if ((bool)length_of_first_tag_value_list == false) {
+                    length_of_first_tag_value_list = value_count;
+                } else {
+                    if (value_count != length_of_first_tag_value_list.value()) {
+                        throw DataEngineError(
+                            DataEngineErrorNumber::list_of_dependency_values_must_be_of_equal_length,
+                            QString(
+                                "In section \"%1\": The length of the tables of corresponding dependency tag values must be equal. But is %2 instead of %3.")
+                                .arg(section_name)
+                                .arg(value_count)
+                                .arg(length_of_first_tag_value_list.value()));
+                    }
+                }
+            }
+        }
+        if ((bool)length_of_first_tag_value_list == false) {
+            return false; // if there were no tags matching, it is quite obvious that the result is false
+        }
+
+        if ((instance_count != length_of_first_tag_value_list.value()) && (length_of_first_tag_value_list.value() != 1)) {
+            throw DataEngineError(DataEngineErrorNumber::instance_count_must_match_list_of_dependency_values,
+                                  QString("Instance count of section \"%1\" must have the same value as the length of the tables of corresponding dependency "
+                                          "tag values (%2). But is %3")
+                                      .arg(section_name)
+                                      .arg(length_of_first_tag_value_list.value())
+                                      .arg(instance_count));
+        }
+
+        if (length_of_first_tag_value_list.value() == 1) {
+            instance_index = 0;
+        }
+
+        assert(instance_index < instance_count);
+    }
+
     for (const auto &tag_key : keys_to_test) {
         if (tags.contains(tag_key)) {
             bool at_least_value_matches = false;
             const auto &value_list = dependency_tags.tags.values(tag_key);
             for (const auto &test_matching : value_list) {
-                if (test_matching.is_matching(tags[tag_key][instance_index_to_test])) {
+                if (test_matching.is_matching(tags[tag_key][instance_index])) {
                     at_least_value_matches = true;
                 }
             }
@@ -1728,6 +1767,9 @@ ReferenceDataEntry::ReferenceDataEntry(const FormID name, QString reference_stri
 }
 
 bool ReferenceDataEntry::is_complete() const {
+    if (not_defined_yet_due_to_undefined_instance_count) {
+        return false;
+    }
     update_desired_value_from_reference();
     if (!entry->is_desired_value_set()) {
         return false;
@@ -1736,6 +1778,9 @@ bool ReferenceDataEntry::is_complete() const {
 }
 
 bool ReferenceDataEntry::is_in_range() const {
+    if (not_defined_yet_due_to_undefined_instance_count) {
+        return false;
+    }
     update_desired_value_from_reference();
     if (!entry->is_desired_value_set()) {
         return false;
@@ -1744,6 +1789,7 @@ bool ReferenceDataEntry::is_in_range() const {
 }
 
 void ReferenceDataEntry::update_desired_value_from_reference() const {
+    assert_that_instance_count_is_defined();
     if (reference_links[0].value == ReferenceLink::ReferenceValue::DesiredValue) {
         assert(entry_target->is_desired_value_set());
         entry->set_desired_value_from_desired(entry_target);
@@ -1763,6 +1809,7 @@ void ReferenceDataEntry::update_desired_value_from_reference() const {
 }
 
 void ReferenceDataEntry::set_actual_value(double number) {
+    assert_that_instance_count_is_defined();
     NumericDataEntry *num_entry = entry->as<NumericDataEntry>();
     if (!num_entry) {
         throw DataEngineError(
@@ -1774,6 +1821,7 @@ void ReferenceDataEntry::set_actual_value(double number) {
 }
 
 void ReferenceDataEntry::set_actual_value(QString val) {
+    assert_that_instance_count_is_defined();
     TextDataEntry *text_entry = entry->as<TextDataEntry>();
     if (!text_entry) {
         throw DataEngineError(
@@ -1784,6 +1832,7 @@ void ReferenceDataEntry::set_actual_value(QString val) {
 }
 
 void ReferenceDataEntry::set_actual_value(bool val) {
+    assert_that_instance_count_is_defined();
     BoolDataEntry *bool_entry = entry->as<BoolDataEntry>();
     if (!bool_entry) {
         throw DataEngineError(DataEngineErrorNumber::setting_reference_actual_value_with_wrong_type,
@@ -1793,19 +1842,23 @@ void ReferenceDataEntry::set_actual_value(bool val) {
 }
 
 QString ReferenceDataEntry::get_actual_values() const {
+    assert_that_instance_count_is_defined();
     return entry->get_actual_values();
 }
 
 QString ReferenceDataEntry::get_description() const {
+    assert_that_instance_count_is_defined();
     return description;
 }
 
 QString ReferenceDataEntry::get_desired_value_as_string() const {
+    assert_that_instance_count_is_defined();
     update_desired_value_from_reference();
     return entry->get_desired_value_as_string();
 }
 
 QString ReferenceDataEntry::get_unit() const {
+    assert_that_instance_count_is_defined();
     return entry_target->get_unit();
 }
 
@@ -1817,13 +1870,24 @@ bool ReferenceDataEntry::compare_unit_desired_siprefix(const DataEngineDataEntry
 
 void ReferenceDataEntry::dereference(DataEngineSections *sections) {
     uint i = 0;
+    not_defined_yet_due_to_undefined_instance_count = false;
     while (i < reference_links.size()) {
+        auto section = sections->get_section(reference_links[i].link);
+        if (!section->is_section_instance_defined()) {
+            not_defined_yet_due_to_undefined_instance_count = true;
+            break;
+        }
+
         if (sections->exists_uniquely(reference_links[i].link)) {
             i++;
         } else {
             reference_links.erase(reference_links.begin() + i);
         }
     }
+    if (not_defined_yet_due_to_undefined_instance_count) {
+        return;
+    }
+
     if (reference_links.size() == 0) {
         throw DataEngineError(DataEngineErrorNumber::reference_not_found, QString("reference non existing. Fieldname: \"%1\"").arg(field_name));
 
@@ -1841,8 +1905,8 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
     if (have_entries_equal_desired_values(targets)) {
         entry_target = const_cast<DataEngineDataEntry *>(targets[0]);
     } else {
-        assert(0);
-        //TODO: put error here
+        throw DataEngineError(DataEngineErrorNumber::reference_pointing_to_multiinstance_with_different_values,
+                              QString("Reference \"%1\" points to multiinstance with different values. This is not allowed.").arg(field_name));
     }
 
     if (reference_links[0].value == ReferenceLink::ReferenceValue::DesiredValue) {
@@ -1915,6 +1979,13 @@ void ReferenceDataEntry::parse_refence_string(QString reference_string) {
                                   QString("reference \"%1\" target declaration must end with \".desired\" or \".actual\" but does not.").arg(field_name));
         }
         reference_links.push_back(ref_link);
+    }
+}
+
+void ReferenceDataEntry::assert_that_instance_count_is_defined() const {
+    if (not_defined_yet_due_to_undefined_instance_count) {
+        throw DataEngineError(DataEngineErrorNumber::reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance,
+                              QString("reference \"%1\" can not be used since it is pointing to an instance which is undefinded").arg(field_name));
     }
 }
 

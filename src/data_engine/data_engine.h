@@ -43,6 +43,7 @@ enum class DataEngineErrorNumber {
     reference_is_not_number_but_has_tolerance,
     reference_is_a_number_and_needs_tolerance,
     reference_must_not_point_to_multiinstance_actual_value,
+    reference_pointing_to_multiinstance_with_different_values,
     illegal_reference_declaration,
     setting_reference_actual_value_with_wrong_type,
     wrong_type_for_instance_count,
@@ -54,6 +55,9 @@ enum class DataEngineErrorNumber {
     instance_count_must_not_be_defined_in_variant_scope,
     allow_empty_section_must_not_be_defined_in_variant_scope,
     allow_empty_section_with_wrong_type,
+    instance_count_must_match_list_of_dependency_values,
+    list_of_dependency_values_must_be_of_equal_length,
+    reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance,
 };
 class DataEngineError : public std::runtime_error {
     public:
@@ -235,6 +239,7 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     NumericTolerance tolerance;
     QString description{};
 
+
     private:
 
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
@@ -242,6 +247,10 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     bool is_desired_value_set() override;
     void update_desired_value_from_reference() const;
     void parse_refence_string(QString reference_string);
+
+    bool not_defined_yet_due_to_undefined_instance_count = false;
+
+    void assert_that_instance_count_is_defined() const;
 
     std::vector<ReferenceLink> reference_links;
     DataEngineDataEntry *entry_target;
@@ -287,7 +296,7 @@ struct VariantData {
     std::vector<std::unique_ptr<DataEngineDataEntry>> data_entries;
 
     public:
-    bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags) const;
+    bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count, const QString &section_name) const;
     void from_json(const QJsonObject &object);
     bool entry_exists(QString field_name);
     DataEngineDataEntry *get_entry(QString field_name) const;
@@ -298,7 +307,7 @@ struct DataEngineInstance {
     DataEngineInstance(const DataEngineInstance &other);
     DataEngineInstance(DataEngineInstance &&other); //move constructor
 
-    void delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags, int instance_index);
+    void delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count);
     void set_section_name(QString section_name);
     void set_allow_empty_section(bool allow_empty_section);
     const VariantData *get_variant() const;
