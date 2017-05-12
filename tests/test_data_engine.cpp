@@ -358,7 +358,7 @@ void Test_Data_engine::check_dependency_handling() {
         QMap<QString, QList<QVariant>> tags;
         QString printer;
         for (const auto &value : data.values) {
-            tags.insert(value.first, value.second);
+            tags.insert(value.first, {value.second});
             printer += value.first + ": " + value.second.toString() + ", ";
         }
 
@@ -428,7 +428,7 @@ void Test_Data_engine::check_dependency_ambiguity_handling() {
         QMap<QString, QList<QVariant>> tags;
         QString printer;
         for (const auto &value : data.values) {
-            tags.insert(value.first, value.second);
+            tags.insert(value.first, {value.second});
             printer += value.first + ": " + value.second.toString() + ", ";
         }
         // qDebug() << printer;
@@ -577,7 +577,7 @@ void Test_Data_engine::check_value_matching_by_name() {
                             )"};
     QMap<QString, QList<QVariant>> tags;
     const Data_engine de{input, tags};
-    QCOMPARE(de.get_desired_value_as_string("supply-voltage/voltage"), QString("5000 (±200)"));
+    QCOMPARE(de.get_desired_value_as_string("supply-voltage/voltage"), QStringList({"5000 (±200)"}));
 #endif
 }
 
@@ -603,8 +603,8 @@ void Test_Data_engine::single_numeric_property_test() {
     QVERIFY(!de.all_values_in_range());
     QVERIFY(!de.value_in_range("supply/voltage"));
 
-    QCOMPARE(de.get_desired_value_as_string("supply/voltage"), QString("5000 (±200)"));
-    QCOMPARE(de.get_unit("supply/voltage"), "mV"_qs);
+    QCOMPARE(de.get_desired_value_as_string("supply/voltage"), QStringList("5000 (±200)"));
+    QCOMPARE(de.get_unit("supply/voltage"), QStringList{"mV"});
 
     de.set_actual_number("supply/voltage", 5.201);
     QVERIFY(!de.value_in_range("supply/voltage"));
@@ -749,7 +749,7 @@ void Test_Data_engine::test_instances() {
 }
                             )"};
     QMap<QString, QList<QVariant>> tags;
-    tags.insert("is_good_variant", true);
+    tags.insert("is_good_variant", {true});
     Data_engine de{input, tags};
 
     QVERIFY(!de.is_complete());
@@ -953,7 +953,7 @@ void Test_Data_engine::test_if_exception_when_instance_count_defined_within_vari
                             )"};
 
     QMap<QString, QList<QVariant>> tags;
-    tags.insert("sound", 1.42);
+    tags.insert("sound", {1.42});
     QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags);, DataEngineErrorNumber::instance_count_must_not_be_defined_in_variant_scope);
 
 #endif
@@ -1284,7 +1284,7 @@ void Test_Data_engine::test_references() {
 }
                             )"};
     QMap<QString, QList<QVariant>> tags;
-    tags.insert("color", "green");
+    tags.insert("color", {"green"});
     Data_engine de{input, tags};
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
@@ -1368,7 +1368,7 @@ void Test_Data_engine::test_references_ambiguous() {
 }
                             )"};
     QMap<QString, QList<QVariant>> tags;
-    tags.insert("color", "green");
+    tags.insert("color", {"green"});
 
     QVERIFY_EXCEPTION_THROWN_error_number(
 
@@ -1414,7 +1414,7 @@ void Test_Data_engine::test_references_non_existing() {
 }
                             )"};
     QMap<QString, QList<QVariant>> tags;
-    tags.insert("color", "green");
+    tags.insert("color", {"green"});
     QVERIFY_EXCEPTION_THROWN_error_number(
 
         Data_engine(input, tags), DataEngineErrorNumber::reference_not_found);
@@ -1485,34 +1485,34 @@ void Test_Data_engine::test_references_get_actual_value_description_desired_valu
     de.set_actual_text("referenzen/test_string_ref", "TEST123");
 
     QCOMPARE(de.get_actual_values("test_valuesA/test_number")[0], QString("101"));
-    QCOMPARE(de.get_description("test_valuesA/test_number"), QString("Original number"));
-    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_number"), QString("100 (±1)"));
-    QCOMPARE(de.get_unit("test_valuesA/test_number"), QString("mA"));
+    QCOMPARE(de.get_description("test_valuesA/test_number"), QStringList("Original number"));
+    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_number"), QStringList("100 (±1)"));
+    QCOMPARE(de.get_unit("test_valuesA/test_number"), QStringList("mA"));
 
     QCOMPARE(de.get_actual_values("test_valuesA/test_bool")[0], QString("true"));
-    QCOMPARE(de.get_description("test_valuesA/test_bool"), QString("Original bool"));
-    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_bool"), QString("true"));
-    QCOMPARE(de.get_unit("test_valuesA/test_bool"), QString(""));
+    QCOMPARE(de.get_description("test_valuesA/test_bool"), QStringList("Original bool"));
+    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_bool"), QStringList("true"));
+    QCOMPARE(de.get_unit("test_valuesA/test_bool"), QStringList(""));
 
     QCOMPARE(de.get_actual_values("test_valuesA/test_string")[0], QString("TEST321"));
-    QCOMPARE(de.get_description("test_valuesA/test_string"), QString("Original string"));
-    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_string"), QString("test_string"));
-    QCOMPARE(de.get_unit("test_valuesA/test_string"), QString(""));
+    QCOMPARE(de.get_description("test_valuesA/test_string"), QStringList("Original string"));
+    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_string"), QStringList("test_string"));
+    QCOMPARE(de.get_unit("test_valuesA/test_string"), QStringList(""));
 
     QCOMPARE(de.get_actual_values("referenzen/test_number_ref")[0], QString("102"));
-    QCOMPARE(de.get_description("referenzen/test_number_ref"), QString("Referenz zum numer soll"));
-    QCOMPARE(de.get_desired_value_as_string("referenzen/test_number_ref"), QString("100 (±2)"));
-    QCOMPARE(de.get_unit("referenzen/test_number_ref"), QString("mA"));
+    QCOMPARE(de.get_description("referenzen/test_number_ref"), QStringList("Referenz zum numer soll"));
+    QCOMPARE(de.get_desired_value_as_string("referenzen/test_number_ref"), QStringList("100 (±2)"));
+    QCOMPARE(de.get_unit("referenzen/test_number_ref"), QStringList("mA"));
 
     QCOMPARE(de.get_actual_values("referenzen/test_bool_ref")[0], QString("true"));
-    QCOMPARE(de.get_description("referenzen/test_bool_ref"), QString("Referenz zum bool soll"));
-    QCOMPARE(de.get_desired_value_as_string("referenzen/test_bool_ref"), QString("true"));
-    QCOMPARE(de.get_unit("referenzen/test_bool_ref"), QString(""));
+    QCOMPARE(de.get_description("referenzen/test_bool_ref"), QStringList("Referenz zum bool soll"));
+    QCOMPARE(de.get_desired_value_as_string("referenzen/test_bool_ref"), QStringList("true"));
+    QCOMPARE(de.get_unit("referenzen/test_bool_ref"), QStringList(""));
 
     QCOMPARE(de.get_actual_values("referenzen/test_string_ref")[0], QString("TEST123"));
-    QCOMPARE(de.get_description("referenzen/test_string_ref"), QString("Referenz zum string soll"));
-    QCOMPARE(de.get_desired_value_as_string("referenzen/test_string_ref"), QString("test_string"));
-    QCOMPARE(de.get_unit("referenzen/test_string_ref"), QString(""));
+    QCOMPARE(de.get_description("referenzen/test_string_ref"), QStringList("Referenz zum string soll"));
+    QCOMPARE(de.get_desired_value_as_string("referenzen/test_string_ref"), QStringList("test_string"));
+    QCOMPARE(de.get_unit("referenzen/test_string_ref"), QStringList(""));
 
 #endif
 }
