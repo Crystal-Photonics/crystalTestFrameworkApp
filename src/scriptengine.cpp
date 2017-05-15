@@ -837,12 +837,17 @@ void ScriptEngine::load_script(const QString &path) {
 
                     return Data_engine_handle{data_engine};
                 }, //
-                "set_bool",
-                [](Data_engine_handle &handle, const std::string &field_id, bool value) {
-                    handle.data_engine->set_actual_bool(QString::fromStdString(field_id), value);
+                "use_instance",
+                [](Data_engine_handle &handle, const std::string &section_name, const std::string &instance_caption, const uint instance_index) {
+                    handle.data_engine->use_instance(QString::fromStdString(section_name), QString::fromStdString(instance_caption), instance_index);
                 },
-                "set_number", [](Data_engine_handle &handle, const std::string &field_id,
-                                 double number) { handle.data_engine->set_actual_number(QString::fromStdString(field_id), number); },
+                "set_instance_count",
+                [](Data_engine_handle &handle, const std::string &instance_count_name, const uint instance_count) {
+                    handle.data_engine->set_instance_count(QString::fromStdString(instance_count_name), instance_count);
+                },
+                "set_bool", [](Data_engine_handle &handle, const std::string &field_id,
+                               bool value) { handle.data_engine->set_actual_bool(QString::fromStdString(field_id), value); },
+
                 "set_text",
                 [](Data_engine_handle &handle, const std::string &field_id, const std::string text) {
                     handle.data_engine->set_actual_text(QString::fromStdString(field_id), QString::fromStdString(text));
@@ -1050,6 +1055,8 @@ void ScriptEngine::load_script(const QString &path) {
                                                          thread_call_wrapper(&Label::set_text), //
                                                          "set_visible",
                                                          thread_call_wrapper(&Label::set_visible), //
+                                                         "set_font_size",
+                                                         thread_call_wrapper(&Label::set_font_size), //
                                                          "get_text", thread_call_wrapper(&Label::get_text));
         }
         //bind CheckBox

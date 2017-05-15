@@ -17,8 +17,10 @@ class Label {
     std::string get_text() const;
 
     void set_visible(bool visible);
+    void set_font_size(bool big_font);
 private:
     QLabel *label = nullptr;
+    int normal_font_size;
 };
 
 #endif // LABEL_H
