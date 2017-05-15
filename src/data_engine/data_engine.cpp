@@ -196,8 +196,8 @@ QList<const DataEngineDataEntry *> DataEngineSections::get_entry_raw(const FormI
         for (auto &instance : section->instances) {
             const VariantData *variant = instance.get_variant();
             assert(variant);
-
-            const DataEngineDataEntry *item = variant->get_entry(decoded_field_name.field_name);
+            DataEngineErrorNumber error_num_dummy;
+            const DataEngineDataEntry *item = variant->get_entry_raw(decoded_field_name.field_name, &error_num_dummy);
             if (item == nullptr) {
             } else {
                 result.append(item);
@@ -726,15 +726,32 @@ void VariantData::from_json(const QJsonObject &object) {
 }
 
 bool VariantData::entry_exists(QString field_name) {
-    return get_entry(field_name) != nullptr;
+    DataEngineErrorNumber errornum;
+    return get_entry_raw(field_name, &errornum) != nullptr;
 }
 
 DataEngineDataEntry *VariantData::get_entry(QString field_name) const {
+    DataEngineErrorNumber errornum;
+    auto result = get_entry_raw(field_name, &errornum);
+    if (errornum == DataEngineErrorNumber::no_field_id_found) {
+        throw DataEngineError(DataEngineErrorNumber::no_field_id_found, QString("Could not find field with name = \"%1\"").arg(field_name));
+    } else if (errornum == DataEngineErrorNumber::ok) {
+    } else {
+        assert(0);
+        throw DataEngineError(errornum, QString("UnkownError at \"%1\"").arg(field_name));
+    }
+
+    return result;
+}
+
+DataEngineDataEntry *VariantData::get_entry_raw(QString field_name, DataEngineErrorNumber *errornum) const {
+    *errornum = DataEngineErrorNumber::ok;
     for (const auto &entry : data_entries) {
         if (entry.get()->field_name == field_name) {
             return entry.get();
         }
     }
+    *errornum = DataEngineErrorNumber::no_field_id_found;
     return nullptr;
 }
 

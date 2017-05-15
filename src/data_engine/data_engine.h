@@ -300,6 +300,7 @@ struct VariantData {
     void from_json(const QJsonObject &object);
     bool entry_exists(QString field_name);
     DataEngineDataEntry *get_entry(QString field_name) const;
+    DataEngineDataEntry *get_entry_raw(QString field_name, DataEngineErrorNumber *errornum) const;
 };
 
 struct DataEngineInstance {

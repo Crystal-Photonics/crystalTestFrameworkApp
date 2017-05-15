@@ -984,11 +984,147 @@ void Test_Data_engine::test_instances_with_different_variants_and_references_fai
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
 
-    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("referenzen/test_number_ref", 2);, DataEngineErrorNumber::reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("referenzen/test_number_ref", 2);
+                                          , DataEngineErrorNumber::reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance);
 
-    QVERIFY_EXCEPTION_THROWN_error_number(de.set_instance_count("probe_count", 2);, DataEngineErrorNumber::reference_pointing_to_multiinstance_with_different_values);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_instance_count("probe_count", 2);
+                                          , DataEngineErrorNumber::reference_pointing_to_multiinstance_with_different_values);
+
+#endif
+}
+
+void Test_Data_engine::test_instances_with_different_variants_and_references_and_different_signatures() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "test_number_ref",          "value": "[supply_variants/voltageB.desired]",    "tolerance": 20,        	"nice_name": "Referenz zum bool AO ist"         }
+
+        ]
+    },
+    "supply_variants":{
+        "instance_count": "probe_count",
+        "variants":[
+            {
+                "apply_if": {
+                    "is_good_variant": true
+                },
+                "data":[
+                    {	"name": "voltageA",	 	"value": 4000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen"	}
+                ]
+            },
+            {
+                "apply_if": {
+                    "is_good_variant": false
+                },
+                "data":[
+                    {	"name": "voltageB",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen aswell"	}
+                ]
+            }
+        ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    tags.insert("is_good_variant", {true, false});
+    Data_engine de{input, tags};
+
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("referenzen/test_number_ref", 5000);
+                                          , DataEngineErrorNumber::reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance);
+
+    de.set_instance_count("probe_count", 2);
+
+    de.set_actual_number("referenzen/test_number_ref", 5);
+
+    de.set_actual_number("supply_variants/voltageA", 4);
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("supply_variants/voltageB", 4);, DataEngineErrorNumber::no_field_id_found);
+
+    de.use_instance("supply_variants", "Probe B", 2);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("supply_variants/voltageA", 4);, DataEngineErrorNumber::no_field_id_found);
+
+    de.set_actual_number("supply_variants/voltageB", 5);
+
+    auto actual_values_string = de.get_actual_values("supply_variants/voltageA");
+    QCOMPARE(actual_values_string.count(), 1);
+    QCOMPARE(actual_values_string[0], QString("4000"));
+
+    actual_values_string = de.get_actual_values("supply_variants/voltageB");
+    QCOMPARE(actual_values_string.count(), 1);
+    QCOMPARE(actual_values_string[0], QString("5000"));
+
+    QVERIFY(de.all_values_in_range());
+
+#endif
+}
+
+void Test_Data_engine::test_instances_with_different_variants_and_references_and_different_signatures_and_already_defined_instance_counts() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "test_number_ref",          "value": "[supply_variants/voltageB.desired]",    "tolerance": 20,        	"nice_name": "Referenz zum bool AO ist"         }
+
+        ]
+    },
+    "supply_variants":{
+        "instance_count": "2",
+        "variants":[
+            {
+                "apply_if": {
+                    "is_good_variant": true
+                },
+                "data":[
+                    {	"name": "voltageA",	 	"value": 4000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen"	}
+                ]
+            },
+            {
+                "apply_if": {
+                    "is_good_variant": false
+                },
+                "data":[
+                    {	"name": "voltageB",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen aswell"	}
+                ]
+            }
+        ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    tags.insert("is_good_variant", {true, false});
+    Data_engine de{input, tags};
+
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
 
 
+    de.set_actual_number("referenzen/test_number_ref", 5);
+
+    de.set_actual_number("supply_variants/voltageA", 4);
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("supply_variants/voltageB", 4);, DataEngineErrorNumber::no_field_id_found);
+
+    de.use_instance("supply_variants", "Probe B", 2);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("supply_variants/voltageA", 4);, DataEngineErrorNumber::no_field_id_found);
+
+    de.set_actual_number("supply_variants/voltageB", 5);
+
+    auto actual_values_string = de.get_actual_values("supply_variants/voltageA");
+    QCOMPARE(actual_values_string.count(), 1);
+    QCOMPARE(actual_values_string[0], QString("4000"));
+
+    actual_values_string = de.get_actual_values("supply_variants/voltageB");
+    QCOMPARE(actual_values_string.count(), 1);
+    QCOMPARE(actual_values_string[0], QString("5000"));
+
+    QVERIFY(de.all_values_in_range());
 
 #endif
 }
@@ -1034,7 +1170,8 @@ void Test_Data_engine::test_instances_with_different_variants_and_references_equ
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
 
-    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("referenzen/test_number_ref", 5000);, DataEngineErrorNumber::reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("referenzen/test_number_ref", 5000);
+                                          , DataEngineErrorNumber::reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance);
 
     de.set_instance_count("probe_count", 2);
     de.set_actual_number("referenzen/test_number_ref", 5);
@@ -1045,12 +1182,11 @@ void Test_Data_engine::test_instances_with_different_variants_and_references_equ
 
     QVERIFY(de.all_values_in_range());
 
-
 #endif
 }
 
 void Test_Data_engine::test_instances_with_different_variants_and_references_readily_initialized() {
-#if !DISABLE_ALL || 1
+#if !DISABLE_ALL || 0
 
     std::stringstream input{R"(
 {
@@ -1097,9 +1233,6 @@ void Test_Data_engine::test_instances_with_different_variants_and_references_rea
     de.set_actual_number("supply_variants/voltage", 5);
 
     QVERIFY(de.all_values_in_range());
-
-
-
 
 #endif
 }
