@@ -254,6 +254,7 @@ void DeviceWorker::update_devices() {
         }
 
         auto tmc_devices = LIBUSBScan::scan();
+
         for (auto &port : tmc_devices) {
             QMap<QString, QVariant> port_info;
             port_info.insert(HOST_NAME_TAG, QString(port));
@@ -270,19 +271,7 @@ void DeviceWorker::update_devices() {
             CommunicationDevice *device = port_desc->device.get();
             MainWindow::mw->add_device_item(item.release(), port, device);
         }
-#if 0
-    USBTMC usbtmc1, usbtmc2;
-        if (tmc_devices.count()) {
-            usbtmc1.open(tmc_devices[0]);
-            usbtmc2.open(tmc_devices[1]);
-            usbtmc1.send_buffer("*IDN?\n");
-            usbtmc2.send_buffer("*IDN?\n");
-            qDebug() << usbtmc1.read_answer();
-            qDebug() << usbtmc2.read_answer();
-            usbtmc1.close();
-            usbtmc2.close();
-        }
-#endif
+
 
     });
 }

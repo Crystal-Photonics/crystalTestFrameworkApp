@@ -795,27 +795,37 @@ void ScriptEngine::load_script(const QString &path) {
                     if (!f) {
                         throw std::runtime_error("Failed opening file " + file_path);
                     }
-                    QMap<QString, QList<QVariant>> tags;
 
-                    for (auto &i : dependency_tags) {
-                        std::string tag_name = i.first.as<std::string>();
-                        QList<QVariant> values;
-                        if (i.second.get_type() == sol::type::string) {
-                            values.append(QString().fromStdString(i.second.as<std::string>()));
-                        } else if (i.second.get_type() == sol::type::number) {
+                    auto add_value_to_tag_list = [](QList<QVariant> &values, const sol::object &obj, const std::string &tag_name) {
+                        if (obj.get_type() == sol::type::string) {
+                            values.append(QString().fromStdString(obj.as<std::string>()));
+                        } else if (obj.get_type() == sol::type::number) {
                             QVariant v;
-                            v.setValue<double>(i.second.as<double>());
-                             values.append(v);
-                        } else if (i.second.get_type() == sol::type::boolean) {
-                            QVariant v;
-                            v.setValue<bool>(i.second.as<bool>());
+                            v.setValue<double>(obj.as<double>());
                             values.append(v);
-                        } else if (i.second.get_type() == sol::type::table) {
-                            assert(0); //TODO: must be implemented
-
+                        } else if (obj.get_type() == sol::type::boolean) {
+                            QVariant v;
+                            v.setValue<bool>(obj.as<bool>());
+                            values.append(v);
                         } else {
                             throw std::runtime_error(
                                 QString("invalid type in field of dependency tags at index %1").arg(QString().fromStdString(tag_name)).toStdString());
+                        }
+                    };
+
+                    QMap<QString, QList<QVariant>> tags;
+                    for (auto &tag : dependency_tags) {
+                        std::string tag_name = tag.first.as<std::string>();
+                        QList<QVariant> values;
+
+                        if (tag.second.get_type() == sol::type::table) {
+                            const auto &value_list = tag.second.as<sol::table>();
+                            for (int i = 1; i <= value_list.size(); i++) {
+                                const sol::object &obj = value_list[i].get<sol::object>();
+                                add_value_to_tag_list(values, obj, tag_name);
+                            }
+                        } else {
+                            add_value_to_tag_list(values, tag.second, tag_name);
                         }
 
                         tags.insert(QString().fromStdString(tag_name), values);
