@@ -1036,6 +1036,18 @@ bool Data_engine::value_in_range(const FormID &id) const {
     return true;
 }
 
+bool Data_engine::value_complete(const FormID &id) const
+{
+    QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id);
+    for (auto entry : data_entry) {
+        assert(entry);
+        if (!entry->is_complete()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 DataEngineDataEntry *DataEngineSection::get_entry(QString id) const {
     const auto instance = get_actual_instance();
     assert(instance);

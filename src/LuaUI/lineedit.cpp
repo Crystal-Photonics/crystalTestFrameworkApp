@@ -14,7 +14,6 @@ LineEdit::LineEdit(UI_container *parent)
 	: label{new QLabel(parent)}
 	, edit{new QLineEdit(parent)} {
 	QVBoxLayout *layout = new QVBoxLayout;
-    //label->setVisible(false);
     layout->addWidget(label);
     layout->addWidget(edit, 0, Qt::AlignBottom);
     layout->addStretch(1);

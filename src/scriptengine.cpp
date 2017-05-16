@@ -4,6 +4,7 @@
 #include "LuaUI/color.h"
 #include "LuaUI/combobox.h"
 #include "LuaUI/combofileselector.h"
+#include "LuaUI/dataengineinput.h"
 #include "LuaUI/image.h"
 #include "LuaUI/isotopesourceselector.h"
 #include "LuaUI/label.h"
@@ -610,6 +611,11 @@ std::string ScriptEngine::to_string(const sol::stack_proxy &object) {
     return to_string(sol::object{object});
 }
 
+struct Data_engine_handle {
+    Data_engine *data_engine{nullptr};
+    Data_engine_handle() = delete;
+};
+
 void ScriptEngine::load_script(const QString &path) {
     //NOTE: When using lambdas do not capture `this` or by reference, because it breaks when the ScriptEngine is moved
     this->path = path;
@@ -780,11 +786,6 @@ void ScriptEngine::load_script(const QString &path) {
         }
         //bind data engine
         {
-            struct Data_engine_handle {
-                Data_engine *data_engine{nullptr};
-                Data_engine_handle() = delete;
-            };
-
             lua->new_usertype<Data_engine_handle>(
                 "Data_engine", //
                 sol::meta_function::construct, [ data_engine = data_engine, pdf_filepath = pdf_filepath.get(), form_filepath = form_filepath.get() ](
@@ -861,7 +862,7 @@ void ScriptEngine::load_script(const QString &path) {
                     handle.data_engine->set_instance_count(QString::fromStdString(instance_count_name), instance_count);
                 },
                 "value_in_range",
-                [](Data_engine_handle &handle, const std::string &field_id) {return handle.data_engine->value_in_range(QString::fromStdString(field_id)); },
+                [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->value_in_range(QString::fromStdString(field_id)); },
                 "set_actual_number", [](Data_engine_handle &handle, const std::string &field_id,
                                         double value) { handle.data_engine->set_actual_number(QString::fromStdString(field_id), value); },
                 "set_actual_bool", [](Data_engine_handle &handle, const std::string &field_id,
@@ -971,6 +972,21 @@ void ScriptEngine::load_script(const QString &path) {
                                                         return Color{r, g, b};
                                                     }, //
                                                     [](int rgb) { return Color{rgb}; });
+        }
+        //bind DataEngineInput
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<DataEngineInput>>(
+                "DataEngineInput", //
+                sol::meta_function::construct,
+                [parent = this->parent](Data_engine_handle & handle, const std::string &field_id, const std::string &extra_explanation,
+                                        const std::string &empty_value_placeholder,const std::string &actual_prefix,const std::string &desired_prefix) {
+                    return Lua_UI_Wrapper<DataEngineInput>{parent, handle.data_engine, field_id, extra_explanation, empty_value_placeholder,actual_prefix,desired_prefix};
+                }, //
+                "load_actual_value",
+                thread_call_wrapper(&DataEngineInput::load_actual_value), //
+                "set_visible", thread_call_wrapper(&DataEngineInput::set_visible)
+
+                    );
         }
         //bind ComboBoxFileSelector
         {

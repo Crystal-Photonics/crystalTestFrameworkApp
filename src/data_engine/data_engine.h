@@ -414,6 +414,7 @@ class Data_engine {
     bool is_complete() const;
     bool all_values_in_range() const;
     bool value_in_range(const FormID &id) const;
+    bool value_complete(const FormID &id) const;
     void set_actual_number(const FormID &id, double number);
     void set_actual_text(const FormID &id, QString text);
     void set_actual_bool(const FormID &id, bool value);
