@@ -979,12 +979,14 @@ void ScriptEngine::load_script(const QString &path) {
                 "DataEngineInput", //
                 sol::meta_function::construct,
                 [parent = this->parent](Data_engine_handle & handle, const std::string &field_id, const std::string &extra_explanation,
-                                        const std::string &empty_value_placeholder,const std::string &actual_prefix,const std::string &desired_prefix) {
-                    return Lua_UI_Wrapper<DataEngineInput>{parent, handle.data_engine, field_id, extra_explanation, empty_value_placeholder,actual_prefix,desired_prefix};
+                                        const std::string &empty_value_placeholder, const std::string &actual_prefix, const std::string &desired_prefix) {
+                    return Lua_UI_Wrapper<DataEngineInput>{parent,        handle.data_engine, field_id, extra_explanation, empty_value_placeholder,
+                                                           actual_prefix, desired_prefix};
                 }, //
                 "load_actual_value",
-                thread_call_wrapper(&DataEngineInput::load_actual_value), //
-                "set_visible", thread_call_wrapper(&DataEngineInput::set_visible)
+                thread_call_wrapper(&DataEngineInput::load_actual_value),          //
+                "set_visible", thread_call_wrapper(&DataEngineInput::set_visible), //
+                "set_enabled", thread_call_wrapper(&DataEngineInput::set_enabled)
 
                     );
         }

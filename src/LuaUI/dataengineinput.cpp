@@ -105,8 +105,10 @@ void DataEngineInput::start_timer() {
 #if 1
         if (blink_state) {
             label_de_actual_value->setText(" ");
+            label_extra_explanation->setText(" ");
         } else {
             label_de_actual_value->setText(actual_prefix+" " +empty_value_placeholder);
+            label_extra_explanation->setText(extra_explanation);
         }
         blink_state = !blink_state;
 #endif
