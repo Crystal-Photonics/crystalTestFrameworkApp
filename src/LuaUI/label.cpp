@@ -17,6 +17,7 @@ Label::Label(UI_container *parent, const std::string text)
     label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Minimum);
     set_text(text);
     normal_font_size = label->font().pointSize();
+    label->setWordWrap(true);
 }
 
 Label::~Label() {
@@ -39,7 +40,7 @@ void Label::set_visible(bool visible) {
 void Label::set_font_size(bool big_font) {
     auto font = label->font();
     if (big_font) {
-        font.setPointSize(normal_font_size*4);
+        font.setPointSize(normal_font_size * 4);
     } else {
         font.setPointSize(normal_font_size);
     }

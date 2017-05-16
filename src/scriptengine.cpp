@@ -841,18 +841,33 @@ void ScriptEngine::load_script(const QString &path) {
                 [](Data_engine_handle &handle, const std::string &section_name, const std::string &instance_caption, const uint instance_index) {
                     handle.data_engine->use_instance(QString::fromStdString(section_name), QString::fromStdString(instance_caption), instance_index);
                 },
-                "get_instance_count", [](Data_engine_handle &handle, const std::string &section_name) { return handle.data_engine->get_instance_count(section_name); },
+                "get_instance_count",
+                [](Data_engine_handle &handle, const std::string &section_name) { return handle.data_engine->get_instance_count(section_name); },
+                "get_description",
+                [](Data_engine_handle &handle, const std::string &id) { return handle.data_engine->get_description(QString::fromStdString(id)).toStdString(); },
+                "get_actual_value", [](Data_engine_handle &handle,
+                                       const std::string &id) { return handle.data_engine->get_actual_value(QString::fromStdString(id)).toStdString(); },
+                "get_unit",
+                [](Data_engine_handle &handle, const std::string &id) { return handle.data_engine->get_unit(QString::fromStdString(id)).toStdString(); },
+                "get_desired_value",
+                [](Data_engine_handle &handle, const std::string &id) {
+                    return handle.data_engine->get_desired_value_as_string(QString::fromStdString(id)).toStdString();
+                },
                 "get_section_names", [&lua = *lua](Data_engine_handle & handle) { return handle.data_engine->get_section_names(&lua); }, //
-                "get_ids_of_section",
-                [&lua = *lua](Data_engine_handle & handle, const std::string &section_name) { return handle.data_engine->get_ids_of_section(&lua, section_name); },
+                "get_ids_of_section", [&lua = *lua](Data_engine_handle & handle,
+                                                    const std::string &section_name) { return handle.data_engine->get_ids_of_section(&lua, section_name); },
                 "set_instance_count",
                 [](Data_engine_handle &handle, const std::string &instance_count_name, const uint instance_count) {
                     handle.data_engine->set_instance_count(QString::fromStdString(instance_count_name), instance_count);
                 },
-                "set_bool", [](Data_engine_handle &handle, const std::string &field_id,
-                               bool value) { handle.data_engine->set_actual_bool(QString::fromStdString(field_id), value); },
+                "value_in_range",
+                [](Data_engine_handle &handle, const std::string &field_id) {return handle.data_engine->value_in_range(QString::fromStdString(field_id)); },
+                "set_actual_number", [](Data_engine_handle &handle, const std::string &field_id,
+                                        double value) { handle.data_engine->set_actual_number(QString::fromStdString(field_id), value); },
+                "set_actual_bool", [](Data_engine_handle &handle, const std::string &field_id,
+                                      bool value) { handle.data_engine->set_actual_bool(QString::fromStdString(field_id), value); },
 
-                "set_text",
+                "set_actual_text",
                 [](Data_engine_handle &handle, const std::string &field_id, const std::string text) {
                     handle.data_engine->set_actual_text(QString::fromStdString(field_id), QString::fromStdString(text));
                 });

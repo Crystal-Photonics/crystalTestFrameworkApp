@@ -420,26 +420,26 @@ class Data_engine {
     void use_instance(const QString &section_name, const QString &instance_caption, const uint instance_index);
     void set_instance_count(QString instance_count_name, uint instance_count);
 
-    QStringList get_ids_of_section(const QString &section_name);
-    QStringList get_section_names();
-    sol::table get_ids_of_section(sol::state *lua, const std::string &section_name);
-
     QString get_actual_value(const FormID &id) const;
     QString get_description(const FormID &id) const;
     QString get_desired_value_as_string(const FormID &id) const;
     QString get_unit(const FormID &id) const;
 
+
+    QStringList get_section_names();
+    sol::table get_section_names(sol::state *lua);
+    QStringList get_instance_captions(const QString &section_name) const;
+    uint get_instance_count(const std::string &section_name);
+    sol::table get_ids_of_section(sol::state *lua, const std::string &section_name);
+    QStringList get_ids_of_section(const QString &section_name);
+
+
     Statistics get_statistics() const;
 
     std::unique_ptr<QWidget> get_preview() const;
-    void generate_pdf(const std::string &form, const std::__cxx11::string &destination) const;
-    std::string get_json() const;
+    void generate_pdf(const std::string &form, const std::string &destination) const;
 
-    QStringList get_instance_captions(const QString &section_name) const;
-
-    sol::table get_section_names(sol::state *lua);
-    uint get_instance_count(const std::string &section_name);
-private:
+    private:
     struct FormIdWrapper {
         FormIdWrapper(const FormID &id)
             : value(id) {}
