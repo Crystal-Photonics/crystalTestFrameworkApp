@@ -1,5 +1,6 @@
 #ifndef DATA_ENGINE_H
 #define DATA_ENGINE_H
+#include "sol.hpp"
 
 #include <QList>
 #include <QString>
@@ -239,9 +240,7 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     NumericTolerance tolerance;
     QString description{};
 
-
     private:
-
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
     bool is_desired_value_set() override;
@@ -332,7 +331,8 @@ struct DataEngineSection {
     void from_json(const QJsonValue &object, const QString &key_name);
     QString get_section_name() const;
     QString get_instance_count_name() const;
-
+    QStringList get_all_ids_of_selected_instance(const QString &prefix) const;
+    QStringList get_instance_captions() const;
     bool is_section_instance_defined() const;
 
     bool set_instance_count_if_name_matches(QString instance_count_name, uint instance_count);
@@ -346,15 +346,18 @@ struct DataEngineSection {
 
     DataEngineInstance prototype_instance;
 
+    uint get_actual_instance_index();
+
     private:
     std::experimental::optional<uint> instance_count;
 
     QString instance_count_name;
     QString section_name;
     void append_variant_from_json(const QJsonObject &object);
-
+    void assert_instance_is_defined() const;
     uint actual_instance_index = 0;
     DataEngineDataEntry *get_entry(QString id) const;
+    const DataEngineInstance *get_actual_instance() const;
 };
 
 struct DecodecFieldID {
@@ -369,8 +372,9 @@ struct DataEngineSections {
     void delete_unmatched_variants();
 
     public:
-    QList<const DataEngineDataEntry *> get_entry_const(const FormID &id) const;
-    QList<DataEngineDataEntry *> get_entry(const FormID &id);
+    QList<const DataEngineDataEntry *> get_entries_const(const FormID &id) const;
+    const DataEngineDataEntry *get_actual_instance_entry_const(const FormID &id) const;
+    QList<DataEngineDataEntry *> get_entries(const FormID &id);
     bool exists_uniquely(const FormID &id) const;
     bool is_complete() const;
     bool all_values_in_range() const;
@@ -384,10 +388,11 @@ struct DataEngineSections {
 
     static DecodecFieldID decode_field_id(const FormID &id);
     void set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags);
-    const QMap<QString, QList<QVariant>> & get_dependancy_tags();
+    const QMap<QString, QList<QVariant>> &get_dependancy_tags();
 
     private:
-    QList<const DataEngineDataEntry *> get_entry_raw(const FormID &id, DataEngineErrorNumber *error_num, DecodecFieldID &decoded_field_name) const;
+    QList<const DataEngineDataEntry *> get_entries_raw(const FormID &id, DataEngineErrorNumber *error_num, DecodecFieldID &decoded_field_name,
+                                                       bool using_instance_index) const;
     DataEngineSection *get_section_raw(const QString &section_name, DataEngineErrorNumber *error_num) const;
     QMap<QString, QList<QVariant>> dependency_tags;
 };
@@ -415,12 +420,14 @@ class Data_engine {
     void use_instance(const QString &section_name, const QString &instance_caption, const uint instance_index);
     void set_instance_count(QString instance_count_name, uint instance_count);
 
-    // double get_desired_value(const FormID &id) const;
+    QStringList get_ids_of_section(const QString &section_name);
+    QStringList get_section_names();
+    sol::table get_ids_of_section(sol::state *lua, const std::string &section_name);
 
-    QStringList get_actual_values(const FormID &id) const;
-    QStringList get_description(const FormID &id) const;
-    QStringList get_desired_value_as_string(const FormID &id) const;
-    QStringList get_unit(const FormID &id) const;
+    QString get_actual_value(const FormID &id) const;
+    QString get_description(const FormID &id) const;
+    QString get_desired_value_as_string(const FormID &id) const;
+    QString get_unit(const FormID &id) const;
 
     Statistics get_statistics() const;
 
@@ -428,7 +435,11 @@ class Data_engine {
     void generate_pdf(const std::string &form, const std::__cxx11::string &destination) const;
     std::string get_json() const;
 
-    private:
+    QStringList get_instance_captions(const QString &section_name) const;
+
+    sol::table get_section_names(sol::state *lua);
+    uint get_instance_count(const std::string &section_name);
+private:
     struct FormIdWrapper {
         FormIdWrapper(const FormID &id)
             : value(id) {}

@@ -841,6 +841,10 @@ void ScriptEngine::load_script(const QString &path) {
                 [](Data_engine_handle &handle, const std::string &section_name, const std::string &instance_caption, const uint instance_index) {
                     handle.data_engine->use_instance(QString::fromStdString(section_name), QString::fromStdString(instance_caption), instance_index);
                 },
+                "get_instance_count", [](Data_engine_handle &handle, const std::string &section_name) { return handle.data_engine->get_instance_count(section_name); },
+                "get_section_names", [&lua = *lua](Data_engine_handle & handle) { return handle.data_engine->get_section_names(&lua); }, //
+                "get_ids_of_section",
+                [&lua = *lua](Data_engine_handle & handle, const std::string &section_name) { return handle.data_engine->get_ids_of_section(&lua, section_name); },
                 "set_instance_count",
                 [](Data_engine_handle &handle, const std::string &instance_count_name, const uint instance_count) {
                     handle.data_engine->set_instance_count(QString::fromStdString(instance_count_name), instance_count);

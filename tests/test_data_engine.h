@@ -63,6 +63,8 @@ public:
     void test_instances_with_different_variants_and_references_equal_targets();
     void test_instances_with_different_variants_and_references_and_different_signatures();
     void test_instances_with_different_variants_and_references_and_different_signatures_and_already_defined_instance_counts();
+    void test_iterate_entries();
+    void test_iterate_entries_instance();
 };
 
 DECLARE_TEST(Test_Data_engine)

@@ -176,8 +176,8 @@ DataEngineSection *DataEngineSections::get_section_raw(const QString &section_na
     return const_cast<DataEngineSection *>(result);
 }
 
-QList<const DataEngineDataEntry *> DataEngineSections::get_entry_raw(const FormID &id, DataEngineErrorNumber *error_num,
-                                                                     DecodecFieldID &decoded_field_name) const {
+QList<const DataEngineDataEntry *> DataEngineSections::get_entries_raw(const FormID &id, DataEngineErrorNumber *error_num, DecodecFieldID &decoded_field_name,
+                                                                       bool using_instance_index) const {
     *error_num = DataEngineErrorNumber::ok;
     decoded_field_name = decode_field_id(id);
     DataEngineSection *section = get_section_raw(decoded_field_name.section_name, error_num);
@@ -193,7 +193,12 @@ QList<const DataEngineDataEntry *> DataEngineSections::get_entry_raw(const FormI
             //                          .arg(section->get_instance_count_name()));
         }
 
-        for (auto &instance : section->instances) {
+        for (uint index = 0; index < section->instances.size(); index++) {
+            auto &instance = section->instances[index];
+            if (using_instance_index && (index != section->get_actual_instance_index())) {
+                continue;
+            }
+
             const VariantData *variant = instance.get_variant();
             assert(variant);
             DataEngineErrorNumber error_num_dummy;
@@ -203,6 +208,7 @@ QList<const DataEngineDataEntry *> DataEngineSections::get_entry_raw(const FormI
                 result.append(item);
             }
         }
+
         if (result.count() == 0) {
             *error_num = DataEngineErrorNumber::no_field_id_found;
         }
@@ -212,10 +218,10 @@ QList<const DataEngineDataEntry *> DataEngineSections::get_entry_raw(const FormI
     return {};
 }
 
-QList<const DataEngineDataEntry *> DataEngineSections::get_entry_const(const FormID &id) const {
+QList<const DataEngineDataEntry *> DataEngineSections::get_entries_const(const FormID &id) const {
     DataEngineErrorNumber error_num = DataEngineErrorNumber::ok;
     DecodecFieldID decoded_field_id;
-    auto result = get_entry_raw(id, &error_num, decoded_field_id);
+    auto result = get_entries_raw(id, &error_num, decoded_field_id, false);
     if (error_num == DataEngineErrorNumber::no_field_id_found) {
         throw DataEngineError(DataEngineErrorNumber::no_field_id_found, QString("Could not find field with name = \"%1\"").arg(decoded_field_id.field_name));
     } else if (error_num == DataEngineErrorNumber::no_section_id_found) {
@@ -228,9 +234,26 @@ QList<const DataEngineDataEntry *> DataEngineSections::get_entry_const(const For
     return result;
 }
 
-QList<DataEngineDataEntry *> DataEngineSections::get_entry(const FormID &id) {
+const DataEngineDataEntry *DataEngineSections::get_actual_instance_entry_const(const FormID &id) const {
+    DataEngineErrorNumber error_num = DataEngineErrorNumber::ok;
+    DecodecFieldID decoded_field_id;
+    auto result_list = get_entries_raw(id, &error_num, decoded_field_id, true);
+    if (error_num == DataEngineErrorNumber::no_field_id_found) {
+        throw DataEngineError(DataEngineErrorNumber::no_field_id_found, QString("Could not find field with name = \"%1\"").arg(decoded_field_id.field_name));
+    } else if (error_num == DataEngineErrorNumber::no_section_id_found) {
+        throw DataEngineError(DataEngineErrorNumber::no_section_id_found,
+                              QString("Could not find section with name = \"%1\"").arg(decoded_field_id.section_name));
+    } else if (error_num != DataEngineErrorNumber::ok) {
+        assert(0);
+    }
+    assert(result_list.size() == 1);
+
+    return result_list[0];
+}
+
+QList<DataEngineDataEntry *> DataEngineSections::get_entries(const FormID &id) {
     QList<DataEngineDataEntry *> result;
-    auto const_results = get_entry_const(id);
+    auto const_results = get_entries_const(id);
     for (auto const_result : const_results) {
         result.append(const_cast<DataEngineDataEntry *>(const_result));
     }
@@ -243,7 +266,7 @@ bool DataEngineSections::exists_uniquely(const FormID &id) const {
 
     bool result = true;
     DecodecFieldID decoded_field_id;
-    auto entries = get_entry_raw(id, &error_num, decoded_field_id);
+    auto entries = get_entries_raw(id, &error_num, decoded_field_id, false);
     if (error_num == DataEngineErrorNumber::no_field_id_found) {
         result = false;
     } else if (error_num == DataEngineErrorNumber::no_section_id_found) {
@@ -534,6 +557,27 @@ QString DataEngineSection::get_instance_count_name() const {
     return instance_count_name;
 }
 
+QStringList DataEngineSection::get_all_ids_of_selected_instance(const QString &prefix) const {
+    QStringList result;
+    auto instance = get_actual_instance();
+    assert(instance);
+    auto variant = instance->get_variant();
+    assert(variant);
+    for (const auto &entry : variant->data_entries) {
+        result.append(prefix + entry.get()->field_name);
+    }
+    return result;
+}
+
+QStringList DataEngineSection::get_instance_captions() const {
+    QStringList result;
+    assert_instance_is_defined();
+    for (const auto &instance : instances) {
+        result.append(instance.instance_caption);
+    }
+    return result;
+}
+
 bool DataEngineSection::is_section_instance_defined() const {
     return (bool)instance_count;
 }
@@ -579,12 +623,16 @@ void DataEngineSection::create_instances_if_defined() {
     }
 }
 
-void DataEngineSection::use_instance(QString instance_caption, uint instance_index) {
+void DataEngineSection::assert_instance_is_defined() const {
     if (is_section_instance_defined() == false) {
         throw DataEngineError(
             DataEngineErrorNumber::instance_count_yet_undefined,
             QString("Instance count of section \"%1\" yet undefined. Instance count value is: \"%2\".").arg(get_section_name()).arg(get_instance_count_name()));
     }
+}
+
+void DataEngineSection::use_instance(QString instance_caption, uint instance_index) {
+    assert_instance_is_defined();
     instance_index--;
     if (instance_index >= instance_count.value()) {
         throw DataEngineError(DataEngineErrorNumber::instance_count_exceeding, QString("Instance index (%1) of section \"%2\" exceeds instance count(%3).")
@@ -978,7 +1026,7 @@ bool Data_engine::all_values_in_range() const {
 }
 
 bool Data_engine::value_in_range(const FormID &id) const {
-    QList<const DataEngineDataEntry *> data_entry = sections.get_entry_const(id);
+    QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id);
     for (auto entry : data_entry) {
         assert(entry);
         if (!entry->is_in_range()) {
@@ -989,18 +1037,23 @@ bool Data_engine::value_in_range(const FormID &id) const {
 }
 
 DataEngineDataEntry *DataEngineSection::get_entry(QString id) const {
+    const auto instance = get_actual_instance();
+    assert(instance);
+    auto variant = instance->get_variant();
+    assert(variant);
+    auto field_id = DataEngineSections::decode_field_id(id);
+    auto data_entry = variant->get_entry(field_id.field_name);
+    return data_entry;
+}
+
+const DataEngineInstance *DataEngineSection::get_actual_instance() const {
     if (is_section_instance_defined() == false) {
         throw DataEngineError(
             DataEngineErrorNumber::instance_count_yet_undefined,
             QString("Instance count of section \"%1\" yet undefined. Instance count value is: \"%2\".").arg(get_section_name()).arg(get_instance_count_name()));
     }
-
-    const auto &instance = instances[actual_instance_index];
-    auto variant = instance.get_variant();
-    assert(variant);
-    auto field_id = DataEngineSections::decode_field_id(id);
-    auto data_entry = variant->get_entry(field_id.field_name);
-    return data_entry;
+    assert(actual_instance_index < instances.size());
+    return &instances[actual_instance_index];
 }
 
 void DataEngineSection::set_actual_number(const FormID &id, double number) {
@@ -1054,6 +1107,10 @@ void DataEngineSection::set_actual_bool(const FormID &id, bool value) {
     }
 }
 
+uint DataEngineSection::get_actual_instance_index() {
+    return actual_instance_index;
+}
+
 void Data_engine::set_actual_number(const FormID &id, double number) {
     auto section = sections.get_section(id);
     section->set_actual_number(id, number);
@@ -1077,43 +1134,77 @@ void Data_engine::set_instance_count(QString instance_count_name, uint instance_
     sections.set_instance_count(instance_count_name, instance_count);
 }
 
-QStringList Data_engine::get_actual_values(const FormID &id) const {
-    auto data_entries = sections.get_entry_const(id);
+QStringList Data_engine::get_instance_captions(const QString &section_name) const {
+    DataEngineSection *the_section = sections.get_section(section_name + "/dummy");
+    assert(the_section);
+    return the_section->get_instance_captions();
+}
+
+QStringList Data_engine::get_ids_of_section(const QString &section_name) {
+    DataEngineSection *the_section = sections.get_section(section_name + "/dummy");
+    assert(the_section);
+    return the_section->get_all_ids_of_selected_instance(section_name + "/");
+}
+
+QStringList Data_engine::get_section_names() {
     QStringList result;
-    for (auto data_entry : data_entries) {
-        assert(data_entry);
-        result.append(data_entry->get_actual_values());
+    for (auto &section : sections.sections) {
+        result.append(section.get_section_name());
     }
     return result;
 }
 
-QStringList Data_engine::get_description(const FormID &id) const {
-    auto data_entries = sections.get_entry_const(id);
-    QStringList result;
-    for (auto data_entry : data_entries) {
-        assert(data_entry);
-        result.append(data_entry->get_description());
+sol::table Data_engine::get_ids_of_section(sol::state *lua, const std::string &section_name) {
+    sol::table result = lua->create_table_with();
+    auto id_list = get_ids_of_section(QString::fromStdString(section_name));
+    for (const auto &id : id_list) {
+        result.add(id.toStdString());
     }
     return result;
 }
 
-QStringList Data_engine::get_desired_value_as_string(const FormID &id) const {
-    auto data_entries = sections.get_entry_const(id);
-    QStringList result;
-    for (auto data_entry : data_entries) {
-        assert(data_entry);
-        result.append(data_entry->get_desired_value_as_string());
+sol::table Data_engine::get_section_names(sol::state *lua) {
+    sol::table result = lua->create_table_with();
+    auto section_names = get_section_names();
+    for (const auto &section_name : section_names) {
+        result.add(section_name.toStdString());
     }
     return result;
 }
 
-QStringList Data_engine::get_unit(const FormID &id) const {
-    auto data_entries = sections.get_entry_const(id);
-    QStringList result;
-    for (auto data_entry : data_entries) {
-        assert(data_entry);
-        result.append(data_entry->get_unit());
-    }
+uint Data_engine::get_instance_count(const std::string &section_name) {
+    return get_instance_captions(QString::fromStdString(section_name)).size();
+}
+
+QString Data_engine::get_actual_value(const FormID &id) const {
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    QString result;
+    assert(data_entry);
+    result = data_entry->get_actual_values();
+    return result;
+}
+
+QString Data_engine::get_description(const FormID &id) const {
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    QString result;
+    assert(data_entry);
+    result = data_entry->get_description();
+    return result;
+}
+
+QString Data_engine::get_desired_value_as_string(const FormID &id) const {
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    QString result;
+    assert(data_entry);
+    result = data_entry->get_desired_value_as_string();
+    return result;
+}
+
+QString Data_engine::get_unit(const FormID &id) const {
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    QString result;
+    assert(data_entry);
+    result = data_entry->get_unit();
     return result;
 }
 
@@ -1916,7 +2007,7 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
         throw DataEngineError(DataEngineErrorNumber::reference_ambiguous,
                               QString("reference ambiguous  with links: \"%1\", fieldname: \"%2\"").arg(t).arg(field_name));
     }
-    auto targets = sections->get_entry_const(reference_links[0].link);
+    auto targets = sections->get_entries_const(reference_links[0].link);
 
     target_instance_count = targets.count();
     if (have_entries_equal_desired_values(targets)) {
