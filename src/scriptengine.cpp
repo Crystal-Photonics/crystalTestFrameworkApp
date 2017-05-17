@@ -986,7 +986,10 @@ void ScriptEngine::load_script(const QString &path) {
                 "load_actual_value",
                 thread_call_wrapper(&DataEngineInput::load_actual_value),          //
                 "set_visible", thread_call_wrapper(&DataEngineInput::set_visible), //
-                "set_enabled", thread_call_wrapper(&DataEngineInput::set_enabled)
+                "set_enabled", thread_call_wrapper(&DataEngineInput::set_enabled), //
+                "save_to_data_engine",
+                thread_call_wrapper(&DataEngineInput::save_to_data_engine), //
+                "set_editable", thread_call_wrapper(&DataEngineInput::set_editable)
 
                     );
         }

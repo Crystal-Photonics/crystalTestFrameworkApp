@@ -85,11 +85,12 @@ struct DataEngineDataEntry {
     virtual QString get_description() const = 0;
     virtual QString get_desired_value_as_string() const = 0;
     virtual QString get_unit() const = 0;
-
+    virtual double get_si_prefix() const = 0;
     virtual void set_desired_value_from_desired(DataEngineDataEntry *from) = 0;
     virtual void set_desired_value_from_actual(DataEngineDataEntry *from) = 0;
-    virtual bool is_desired_value_set() = 0;
+    virtual bool is_desired_value_set() const = 0;
     virtual bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const = 0;
+    virtual EntryType get_entry_type() const = 0;
 
     template <class T>
     T *as();
@@ -145,19 +146,21 @@ struct NumericDataEntry : DataEngineDataEntry {
     QString get_actual_values() const override;
     QString get_description() const override;
     QString get_unit() const override;
+    double get_si_prefix() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
     void set_actual_value(double actual_value);
+    EntryType get_entry_type() const override;
+    bool is_desired_value_set() const override;
 
     std::experimental::optional<double> desired_value{};
     QString unit{};
     QString description{};
-    double si_prefix = 1.0;
 
     private:
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
-    bool is_desired_value_set() override;
 
+    double si_prefix = 1.0;
     NumericTolerance tolerance;
     std::experimental::optional<double> actual_value;
 };
@@ -173,8 +176,11 @@ struct TextDataEntry : DataEngineDataEntry {
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
+    double get_si_prefix() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
     void set_actual_value(QString actual_value);
+    EntryType get_entry_type() const override;
+    bool is_desired_value_set() const override;
 
     std::experimental::optional<QString> desired_value{};
     QString description{};
@@ -182,7 +188,6 @@ struct TextDataEntry : DataEngineDataEntry {
     private:
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
-    bool is_desired_value_set() override;
 
     std::experimental::optional<QString> actual_value{};
 };
@@ -197,8 +202,11 @@ struct BoolDataEntry : DataEngineDataEntry {
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
+    double get_si_prefix() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
     void set_actual_value(bool value);
+    EntryType get_entry_type() const override;
+    bool is_desired_value_set() const override;
 
     std::experimental::optional<bool> desired_value{};
     QString description{};
@@ -206,7 +214,6 @@ struct BoolDataEntry : DataEngineDataEntry {
     private:
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
-    bool is_desired_value_set() override;
 
     std::experimental::optional<bool> actual_value{};
 };
@@ -231,11 +238,14 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
+    double get_si_prefix() const override;
+    EntryType get_entry_type() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
     void set_actual_value(double number);
     void set_actual_value(QString val);
     void set_actual_value(bool val);
     void dereference(DataEngineSections *sections);
+    bool is_desired_value_set() const override;
 
     NumericTolerance tolerance;
     QString description{};
@@ -243,12 +253,9 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     private:
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
     void set_desired_value_from_actual(DataEngineDataEntry *from) override;
-    bool is_desired_value_set() override;
     void update_desired_value_from_reference() const;
     void parse_refence_string(QString reference_string);
-
     bool not_defined_yet_due_to_undefined_instance_count = false;
-
     void assert_that_instance_count_is_defined() const;
 
     std::vector<ReferenceLink> reference_links;
@@ -425,7 +432,9 @@ class Data_engine {
     QString get_description(const FormID &id) const;
     QString get_desired_value_as_string(const FormID &id) const;
     QString get_unit(const FormID &id) const;
-
+    EntryType get_entry_type(const FormID &id) const;
+    double get_si_prefix(const FormID &id) const;
+    bool is_desired_value_set(const FormID &id) const;
 
     QStringList get_section_names();
     sol::table get_section_names(sol::state *lua);
@@ -433,7 +442,6 @@ class Data_engine {
     uint get_instance_count(const std::string &section_name);
     sol::table get_ids_of_section(sol::state *lua, const std::string &section_name);
     QStringList get_ids_of_section(const QString &section_name);
-
 
     Statistics get_statistics() const;
 

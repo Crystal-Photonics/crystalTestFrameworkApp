@@ -1036,8 +1036,7 @@ bool Data_engine::value_in_range(const FormID &id) const {
     return true;
 }
 
-bool Data_engine::value_complete(const FormID &id) const
-{
+bool Data_engine::value_complete(const FormID &id) const {
     QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id);
     for (auto entry : data_entry) {
         assert(entry);
@@ -1204,6 +1203,12 @@ QString Data_engine::get_description(const FormID &id) const {
     return result;
 }
 
+bool Data_engine::is_desired_value_set(const FormID &id) const {
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    assert(data_entry);
+    return data_entry->is_desired_value_set();
+}
+
 QString Data_engine::get_desired_value_as_string(const FormID &id) const {
     auto data_entry = sections.get_actual_instance_entry_const(id);
     QString result;
@@ -1218,6 +1223,18 @@ QString Data_engine::get_unit(const FormID &id) const {
     assert(data_entry);
     result = data_entry->get_unit();
     return result;
+}
+
+EntryType Data_engine::get_entry_type(const FormID &id) const {
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    assert(data_entry);
+    return data_entry->get_entry_type();
+}
+
+double Data_engine::get_si_prefix(const FormID &id) const {
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    assert(data_entry);
+    return data_entry->get_si_prefix();
 }
 
 std::unique_ptr<QWidget> Data_engine::get_preview() const {
@@ -1632,6 +1649,10 @@ QString NumericDataEntry::get_unit() const {
     return unit;
 }
 
+double NumericDataEntry::get_si_prefix() const {
+    return si_prefix;
+}
+
 bool NumericDataEntry::compare_unit_desired_siprefix(const DataEngineDataEntry *from) const {
     auto const from_num = dynamic_cast<const NumericDataEntry *>(from);
     if (from_num == nullptr) {
@@ -1653,6 +1674,14 @@ void NumericDataEntry::set_actual_value(double actual_value) {
     this->actual_value = actual_value / si_prefix;
 }
 
+EntryType NumericDataEntry::get_entry_type() const {
+    return EntryType::Numeric;
+}
+
+bool NumericDataEntry::is_desired_value_set() const {
+    return (bool)desired_value;
+}
+
 void NumericDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
     NumericDataEntry *num_from = from->as<NumericDataEntry>();
     assert(num_from);
@@ -1663,10 +1692,6 @@ void NumericDataEntry::set_desired_value_from_actual(DataEngineDataEntry *from) 
     NumericDataEntry *num_from = from->as<NumericDataEntry>();
     assert(num_from);
     desired_value = num_from->actual_value;
-}
-
-bool NumericDataEntry::is_desired_value_set() {
-    return (bool)desired_value;
 }
 
 TextDataEntry::TextDataEntry(const TextDataEntry &other)
@@ -1723,6 +1748,10 @@ QString TextDataEntry::get_unit() const {
     return "";
 }
 
+double TextDataEntry::get_si_prefix() const {
+    return 1;
+}
+
 bool TextDataEntry::compare_unit_desired_siprefix(const DataEngineDataEntry *from) const {
     auto const from_text = dynamic_cast<const TextDataEntry *>(from);
     if (from_text == nullptr) {
@@ -1738,6 +1767,10 @@ void TextDataEntry::set_actual_value(QString actual_value) {
     this->actual_value = actual_value;
 }
 
+EntryType TextDataEntry::get_entry_type() const {
+    return EntryType::String;
+}
+
 void TextDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
     TextDataEntry *num_from = from->as<TextDataEntry>();
     assert(num_from);
@@ -1750,7 +1783,7 @@ void TextDataEntry::set_desired_value_from_actual(DataEngineDataEntry *from) {
     desired_value = num_from->actual_value;
 }
 
-bool TextDataEntry::is_desired_value_set() {
+bool TextDataEntry::is_desired_value_set() const {
     return (bool)desired_value;
 }
 
@@ -1824,6 +1857,10 @@ QString BoolDataEntry::get_unit() const {
     return "";
 }
 
+double BoolDataEntry::get_si_prefix() const {
+    return 1;
+}
+
 bool BoolDataEntry::compare_unit_desired_siprefix(const DataEngineDataEntry *from) const {
     auto const from_bool = dynamic_cast<const BoolDataEntry *>(from);
     if (from_bool == nullptr) {
@@ -1839,6 +1876,10 @@ void BoolDataEntry::set_actual_value(bool value) {
     this->actual_value = value;
 }
 
+EntryType BoolDataEntry::get_entry_type() const {
+    return EntryType::Bool;
+}
+
 void BoolDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
     BoolDataEntry *num_from = from->as<BoolDataEntry>();
     assert(num_from);
@@ -1851,7 +1892,7 @@ void BoolDataEntry::set_desired_value_from_actual(DataEngineDataEntry *from) {
     desired_value = bool_from->actual_value;
 }
 
-bool BoolDataEntry::is_desired_value_set() {
+bool BoolDataEntry::is_desired_value_set() const {
     return (bool)desired_value;
 }
 
@@ -1982,6 +2023,16 @@ QString ReferenceDataEntry::get_unit() const {
     return entry_target->get_unit();
 }
 
+double ReferenceDataEntry::get_si_prefix() const {
+    assert_that_instance_count_is_defined();
+    return entry_target->get_si_prefix();
+}
+
+EntryType ReferenceDataEntry::get_entry_type() const {
+    assert_that_instance_count_is_defined();
+    return entry_target->get_entry_type();
+}
+
 bool ReferenceDataEntry::compare_unit_desired_siprefix(const DataEngineDataEntry *from) const {
     (void)from;
     assert(0);
@@ -2050,7 +2101,7 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
                     .arg(field_name)
                     .arg(reference_links[0].link));
         }
-        entry = std::make_unique<NumericDataEntry>("", temp_desired_value, tolerance, num_entry->unit, num_entry->si_prefix, description);
+        entry = std::make_unique<NumericDataEntry>("", temp_desired_value, tolerance, num_entry->unit, num_entry->get_si_prefix(), description);
     } else if (text_entry) {
         std::experimental::optional<QString> temp_desired_value; //will be set later, when beeing compared
         entry = std::make_unique<TextDataEntry>("", temp_desired_value, description);
@@ -2119,7 +2170,7 @@ void ReferenceDataEntry::set_desired_value_from_actual(DataEngineDataEntry *from
     assert(0);
 }
 
-bool ReferenceDataEntry::is_desired_value_set() {
+bool ReferenceDataEntry::is_desired_value_set() const {
     assert(0);
     return false;
 }
