@@ -51,6 +51,11 @@ void ProgressBar::set_value(const int value) {
     progressbar->setValue(value);
 }
 
+void ProgressBar::increment_value()
+{
+    progressbar->setValue(progressbar->value()+1);
+}
+
 void ProgressBar::set_caption(const std::string &caption) {
     label->setText(QString::fromStdString(caption));
     if (caption == "") {

@@ -1209,6 +1209,24 @@ bool Data_engine::is_desired_value_set(const FormID &id) const {
     return data_entry->is_desired_value_set();
 }
 
+bool Data_engine::is_bool(const FormID &id) const {
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    assert(data_entry);
+    return data_entry->get_entry_type() == EntryType::Bool;
+}
+
+bool Data_engine::is_number(const FormID &id) const {
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    assert(data_entry);
+    return data_entry->get_entry_type() == EntryType::Numeric;
+}
+
+bool Data_engine::is_text(const FormID &id) const {
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    assert(data_entry);
+    return data_entry->get_entry_type() == EntryType::String;
+}
+
 QString Data_engine::get_desired_value_as_string(const FormID &id) const {
     auto data_entry = sections.get_actual_instance_entry_const(id);
     QString result;

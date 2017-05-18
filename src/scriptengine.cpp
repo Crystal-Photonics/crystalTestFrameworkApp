@@ -864,6 +864,12 @@ void ScriptEngine::load_script(const QString &path) {
                 },
                 "value_in_range",
                 [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->value_in_range(QString::fromStdString(field_id)); },
+                "is_bool",
+                [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->is_bool(QString::fromStdString(field_id)); },
+                "is_text",
+                [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->is_text(QString::fromStdString(field_id)); },
+                "is_number",
+                [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->is_number(QString::fromStdString(field_id)); },
                 "set_actual_number", [](Data_engine_handle &handle, const std::string &field_id,
                                         double value) { handle.data_engine->set_actual_number(QString::fromStdString(field_id), value); },
                 "set_actual_bool", [](Data_engine_handle &handle, const std::string &field_id,
@@ -1077,6 +1083,8 @@ void ScriptEngine::load_script(const QString &path) {
                                                                thread_call_wrapper(&ProgressBar::set_min_value), //
                                                                "set_value",
                                                                thread_call_wrapper(&ProgressBar::set_value), //
+                                                               "increment_value",
+                                                               thread_call_wrapper(&ProgressBar::increment_value), //
                                                                "set_visible",
                                                                thread_call_wrapper(&ProgressBar::set_visible), //
                                                                "set_caption",

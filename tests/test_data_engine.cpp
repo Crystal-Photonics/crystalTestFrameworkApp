@@ -2026,6 +2026,17 @@ void Test_Data_engine::test_references_get_actual_value_description_desired_valu
     QCOMPARE(de.is_desired_value_set("test_valuesA/test_bool"), true);
     QCOMPARE(de.is_desired_value_set("test_valuesA/test_string"), true);
 
+    QCOMPARE(de.is_number("test_valuesA/test_string"), false);
+    QCOMPARE(de.is_number("test_valuesA/test_number"), true);
+    QCOMPARE(de.is_number("referenzen/test_number_ref"), true);
+
+    QCOMPARE(de.is_bool("test_valuesA/test_string"), false);
+    QCOMPARE(de.is_bool("test_valuesA/test_bool"), true);
+    QCOMPARE(de.is_bool("referenzen/test_bool_ref"), true);
+
+    QCOMPARE(de.is_text("test_valuesA/test_bool"), false);
+    QCOMPARE(de.is_text("test_valuesA/test_string"), true);
+    QCOMPARE(de.is_text("referenzen/test_string_ref"), true);
 
     de.set_actual_number("test_valuesA/test_number", 0.101);
     de.set_actual_bool("test_valuesA/test_bool", true);

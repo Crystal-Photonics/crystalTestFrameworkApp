@@ -422,6 +422,9 @@ class Data_engine {
     bool all_values_in_range() const;
     bool value_in_range(const FormID &id) const;
     bool value_complete(const FormID &id) const;
+    bool is_bool(const FormID &id) const;
+    bool is_number(const FormID &id) const;
+    bool is_text(const FormID &id) const;
     void set_actual_number(const FormID &id, double number);
     void set_actual_text(const FormID &id, QString text);
     void set_actual_bool(const FormID &id, bool value);
@@ -448,7 +451,8 @@ class Data_engine {
     std::unique_ptr<QWidget> get_preview() const;
     void generate_pdf(const std::string &form, const std::string &destination) const;
 
-    private:
+
+private:
     struct FormIdWrapper {
         FormIdWrapper(const FormID &id)
             : value(id) {}

@@ -58,6 +58,14 @@ class ProgressBar {
                                             //!
                                             //! \endcode
 
+    void increment_value();                 //!<\brief Increments value of an progressbar by one.
+                                            //! \sa set_value()
+                                            //!< \par examples:
+                                            //!< \code
+                                            //!  	local pb = Ui.ProgressBar.new()
+                                            //!  	pb:increment_value() -- The progress progressed by one
+                                            //!
+                                            //! \endcode
 
 
     void set_caption(const std::string &caption); //!<\brief Sets the caption of an progressbar object.
