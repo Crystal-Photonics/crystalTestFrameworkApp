@@ -84,7 +84,9 @@ class EXPORT MainWindow : public QMainWindow {
     void poll_sg04_counts();
 	void on_close_finished_tests_button_clicked();
 
-	private:
+    void on_actionDummy_Data_Creator_for_print_templates_triggered();
+
+private:
 	std::vector<TestDescriptionLoader> test_descriptions;
 	std::vector<std::unique_ptr<TestRunner>> test_runners;
 

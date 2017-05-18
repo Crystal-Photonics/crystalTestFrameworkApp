@@ -2254,6 +2254,94 @@ void Test_Data_engine::test_references_set_value_in_wrong_type() {
 #endif
 }
 
+
+void Test_Data_engine::test_get_possible_variant_tag_values() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+                            {
+                                "A":{
+                                    "instance_count":"count_name_a",
+                                    "variants":[
+                                        {
+                                            "apply_if":{
+                                                "high_power_edidtion":true
+                                            },
+                                            "data":[
+                                                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+                                            ]
+                                        },
+                                        {
+                                            "apply_if":{
+                                                "high_power_edidtion":true
+                                            },
+                                            "data":[
+                                                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "B":{
+                                    "instance_count":"count_name_a",
+                                    "variants":[
+                                        {
+                                            "apply_if":{
+                                                "high_power_edidtion":true
+                                            },
+                                            "data":[
+                                                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+                                            ]
+                                        },
+                                        {
+                                            "apply_if":{
+
+                                                "high_power_edidtion":true
+                                            },
+                                            "data":[
+                                                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+                                            ]
+                                        }
+                                    ]
+                                },
+
+                                "C":{
+                                    "instance_count":"count_name_c",
+                                    "variants":[
+                                        {
+                                            "apply_if":{
+                                                "high_power_edidtion":true
+                                            },
+                                            "data":[
+                                                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+                                            ]
+                                        },
+                                        {
+                                            "apply_if":{
+                                                "high_power_edidtion":true
+                                            },
+                                            "data":[
+                                                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                            )"};
+
+    Data_engine de{input};
+    QStringList count_names = de.get_instance_count_names();
+    QCOMPARE(count_names.count(),2);
+    QCOMPARE(count_names[0],QString("count_name_a"));
+    QCOMPARE(count_names[1],QString("count_name_c"));
+
+    de.set_instance_count(count_names[0],2);
+    de.set_instance_count(count_names[1],2);
+
+    de.fill_engine_with_dummy_data();
+#endif
+}
+
+
 void Test_Data_engine::test_references_if_fails_when_setting_tolerance_in_bool() {
 #if !DISABLE_ALL || 0
 

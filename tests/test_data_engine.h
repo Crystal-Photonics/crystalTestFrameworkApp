@@ -65,6 +65,7 @@ public:
     void test_instances_with_different_variants_and_references_and_different_signatures_and_already_defined_instance_counts();
     void test_iterate_entries();
     void test_iterate_entries_instance();
+    void test_get_possible_variant_tag_values();
 };
 
 DECLARE_TEST(Test_Data_engine)

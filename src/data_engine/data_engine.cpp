@@ -46,10 +46,21 @@ bool have_entries_equal_desired_values(QList<const DataEngineDataEntry *> entrie
 
 Data_engine::Data_engine(std::istream &source, const QMap<QString, QList<QVariant>> &tags)
     : sections{} {
-    set_source(source, tags);
+    set_dependancy_tags(tags);
+    set_source(source);
 }
 
-void Data_engine::set_source(std::istream &source, const QMap<QString, QList<QVariant>> &tags) {
+Data_engine::Data_engine(std::istream &source)
+    : sections{} {
+    set_source(source);
+}
+
+void Data_engine::set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags) {
+    sections.set_dependancy_tags(tags);
+    sections.is_dummy_data_mode = false;
+}
+
+void Data_engine::set_source(std::istream &source) {
     QByteArray data;
     constexpr auto eof = std::remove_reference<decltype(source)>::type::traits_type::eof();
     while (source) {
@@ -65,18 +76,36 @@ void Data_engine::set_source(std::istream &source, const QMap<QString, QList<QVa
         throw std::runtime_error("invalid json file");
     }
 
-    sections.set_dependancy_tags(tags);
     sections.from_json(document.object());
     sections.create_already_defined_instances();
+
     sections.delete_unmatched_variants();
+
     sections.deref_references();
+}
+
+QStringList Data_engine::get_instance_count_names() {
+    QStringList result;
+    for (auto &section : sections.sections) {
+        auto name = section.get_instance_count_name();
+        if ((name.count()) && !result.contains(name)) {
+            result.append(name);
+        }
+    }
+    return result;
 }
 
 DataEngineSections::DataEngineSections() {}
 
 void DataEngineSections::delete_unmatched_variants() {
-    for (auto &section : sections) {
-        section.delete_unmatched_variants(dependency_tags);
+    if (is_dummy_data_mode) {
+        for (auto &section : sections) {
+            section.delete_all_but_biggest_variants();
+        }
+    } else {
+        for (auto &section : sections) {
+            section.delete_unmatched_variants(dependency_tags);
+        }
     }
 }
 
@@ -101,8 +130,11 @@ void DataEngineSections::set_instance_count(QString instance_count_name, uint in
     bool instance_count_name_found = false;
     for (auto &section : sections) {
         if (section.set_instance_count_if_name_matches(instance_count_name, instance_count)) {
-            section.delete_unmatched_variants(dependency_tags);
-
+            if (is_dummy_data_mode) {
+                section.delete_all_but_biggest_variants();
+            } else {
+                section.delete_unmatched_variants(dependency_tags);
+            }
             instance_count_name_found = true;
         }
     }
@@ -333,6 +365,15 @@ void DataEngineSection::delete_unmatched_variants(const QMap<QString, QList<QVar
     }
 }
 
+void DataEngineSection::delete_all_but_biggest_variants() {
+    int instance_index = 0;
+    for (auto &instance : instances) {
+        assert((bool)instance_count);
+        instance.delete_all_but_biggest_variants();
+        instance_index++;
+    }
+}
+
 DataEngineInstance::DataEngineInstance() {}
 
 DataEngineInstance::DataEngineInstance(const DataEngineInstance &other)
@@ -366,18 +407,35 @@ void DataEngineInstance::delete_unmatched_variants(const QMap<QString, QList<QVa
             //i++;
         }
     }
-#if 0
-    while (i < variants.size()) {
-        auto &variant = variants[i];
-        if (variant.is_dependency_matching(tags)) {
-            variants_new.push_back(std::move(variant));
-            i++;
-        } else {
-            //   auto start_iter = variants.begin() + i;
-            // variants.erase(start_iter);
+    variants = std::move(variants_new);
+    if (variants.size() > 1) {
+        throw DataEngineError(DataEngineErrorNumber::non_unique_desired_field_found,
+                              QString("More than one dependency fullfilling variants (%1) found in section: \"%2\"").arg(variants.size()).arg(section_name));
+    }
+
+    if ((allow_empty_section) && (variants.size() == 0)) {
+        VariantData variant_data{};
+        variants.push_back(std::move(variant_data));
+    }
+    get_variant(); //for throwing exception if no variant was found
+}
+
+void DataEngineInstance::delete_all_but_biggest_variants() {
+    std::vector<VariantData> variants_new;
+    std::experimental::optional<uint> max_size;
+    for (auto &variant : variants) {
+        if (max_size < variant.get_entry_count()) {
+            max_size = variant.get_entry_count();
         }
     }
-#endif
+
+    for (auto &variant : variants) {
+        if (max_size == variant.get_entry_count()) {
+            variants_new.push_back(std::move(variant));
+            break;
+        }
+    }
+
     variants = std::move(variants_new);
     if (variants.size() > 1) {
         throw DataEngineError(DataEngineErrorNumber::non_unique_desired_field_found,
@@ -675,6 +733,10 @@ VariantData::VariantData(const VariantData &other) {
             //unknown data type
         }
     }
+}
+
+uint VariantData::get_entry_count() const {
+    return data_entries.size();
 }
 
 bool VariantData::is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count,
@@ -1018,14 +1080,17 @@ void DependencyValue::from_bool(const bool &boolean) {
 }
 
 bool Data_engine::is_complete() const {
+    assert_in_dummy_mode();
     return sections.is_complete();
 }
 
 bool Data_engine::all_values_in_range() const {
+    assert_in_dummy_mode();
     return sections.all_values_in_range();
 }
 
 bool Data_engine::value_in_range(const FormID &id) const {
+    assert_in_dummy_mode();
     QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id);
     for (auto entry : data_entry) {
         assert(entry);
@@ -1037,6 +1102,7 @@ bool Data_engine::value_in_range(const FormID &id) const {
 }
 
 bool Data_engine::value_complete(const FormID &id) const {
+    assert_in_dummy_mode();
     QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id);
     for (auto entry : data_entry) {
         assert(entry);
@@ -1157,6 +1223,32 @@ QStringList Data_engine::get_ids_of_section(const QString &section_name) {
     return the_section->get_all_ids_of_selected_instance(section_name + "/");
 }
 
+void Data_engine::fill_engine_with_dummy_data() {
+    assert(sections.is_dummy_data_mode);
+    auto section_names = get_section_names();
+    for (const auto &sectionname : section_names) {
+        for (uint instance_i = 1; instance_i <= get_instance_count(sectionname.toStdString()); instance_i++) {
+            use_instance(sectionname, "Instance-caption #" + QString::number(instance_i), instance_i);
+            auto ids = get_ids_of_section(sectionname);
+            for (const auto &id : ids) {
+                if (is_bool(id)) {
+                    set_actual_bool(id, true);
+                } else if (is_number(id)) {
+                    set_actual_number(id, 1);
+                } else if (is_text(id)) {
+                    set_actual_text(id, "test 123");
+                } else {
+                    assert(0);
+                }
+            }
+        }
+    }
+}
+
+void Data_engine::save_data_to_file(const QString &filename) const {
+    //
+}
+
 QStringList Data_engine::get_section_names() {
     QStringList result;
     for (auto &section : sections.sections) {
@@ -1183,11 +1275,12 @@ sol::table Data_engine::get_section_names(sol::state *lua) {
     return result;
 }
 
-uint Data_engine::get_instance_count(const std::string &section_name) {
+uint Data_engine::get_instance_count(const std::string &section_name) const {
     return get_instance_captions(QString::fromStdString(section_name)).size();
 }
 
 QString Data_engine::get_actual_value(const FormID &id) const {
+    assert_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     QString result;
     assert(data_entry);
@@ -1196,6 +1289,7 @@ QString Data_engine::get_actual_value(const FormID &id) const {
 }
 
 QString Data_engine::get_description(const FormID &id) const {
+    assert_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     QString result;
     assert(data_entry);
@@ -1204,6 +1298,7 @@ QString Data_engine::get_description(const FormID &id) const {
 }
 
 bool Data_engine::is_desired_value_set(const FormID &id) const {
+    assert_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
     return data_entry->is_desired_value_set();
@@ -1228,6 +1323,7 @@ bool Data_engine::is_text(const FormID &id) const {
 }
 
 QString Data_engine::get_desired_value_as_string(const FormID &id) const {
+    assert_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     QString result;
     assert(data_entry);
@@ -1236,6 +1332,7 @@ QString Data_engine::get_desired_value_as_string(const FormID &id) const {
 }
 
 QString Data_engine::get_unit(const FormID &id) const {
+    assert_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     QString result;
     assert(data_entry);
@@ -1244,12 +1341,14 @@ QString Data_engine::get_unit(const FormID &id) const {
 }
 
 EntryType Data_engine::get_entry_type(const FormID &id) const {
+    assert_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
     return data_entry->get_entry_type();
 }
 
 double Data_engine::get_si_prefix(const FormID &id) const {
+    assert_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
     return data_entry->get_si_prefix();
@@ -1262,6 +1361,12 @@ std::unique_ptr<QWidget> Data_engine::get_preview() const {
 
 void Data_engine::generate_pdf(const std::string &form, const std::string &destination) const {
     //TODO
+}
+
+void Data_engine::assert_in_dummy_mode() const {
+    if (sections.is_dummy_data_mode) {
+        throw DataEngineError(DataEngineErrorNumber::is_in_dummy_mode, "Dataengine is in dummy mode. Access to data functions is prohibited.");
+    }
 }
 
 bool Data_engine::entry_compare(const FormIdWrapper &lhs, const FormIdWrapper &rhs) {

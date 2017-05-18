@@ -283,7 +283,14 @@
     <addaction name="actionPaths"/>
     <addaction name="actionHotkey"/>
    </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionDummy_Data_Creator_for_print_templates"/>
+   </widget>
    <addaction name="menuSettings"/>
+   <addaction name="menuTools"/>
   </widget>
   <action name="actionPaths">
    <property name="text">
@@ -293,6 +300,11 @@
   <action name="actionHotkey">
    <property name="text">
     <string>Hotkeys...</string>
+   </property>
+  </action>
+  <action name="actionDummy_Data_Creator_for_print_templates">
+   <property name="text">
+    <string>Dummy Data Creator</string>
    </property>
   </action>
  </widget>

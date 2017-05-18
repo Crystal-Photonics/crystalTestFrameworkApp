@@ -832,7 +832,8 @@ void ScriptEngine::load_script(const QString &path) {
 
                         tags.insert(QString().fromStdString(tag_name), values);
                     }
-                    data_engine->set_source(f, tags);
+                    data_engine->set_dependancy_tags(tags);
+                    data_engine->set_source(f);
                     *pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
                     *form_filepath =
                         QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath(QString::fromStdString(xml_file)).toStdString();

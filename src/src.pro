@@ -15,7 +15,8 @@ FORMS += \
 	Windows/pathsettingswindow.ui \
 	Windows/devicematcher.ui \
 	Windows/scpimetadatadeviceselector.ui \
-	Windows/hotkey_picker.ui
+	Windows/hotkey_picker.ui \
+    Windows/dummydatacreator.ui
 
 QPROTOCOL_INTERPRETER_PATH=$$PWD/../libs/qRPCRuntimeParser
 INCLUDEPATH += $$QPROTOCOL_INTERPRETER_PATH/project/src
@@ -78,7 +79,8 @@ HEADERS += \
     LuaUI/spinbox.h \
     LuaUI/progressbar.h \
     LuaUI/dataengineinput.h \
-    LuaUI/hline.h
+    LuaUI/hline.h \
+    Windows/dummydatacreator.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -130,4 +132,5 @@ SOURCES += \
     LuaUI/spinbox.cpp \
     LuaUI/progressbar.cpp \
     LuaUI/dataengineinput.cpp \
-    LuaUI/hline.cpp
+    LuaUI/hline.cpp \
+    Windows/dummydatacreator.cpp

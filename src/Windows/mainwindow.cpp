@@ -16,6 +16,7 @@
 #include "ui_container.h"
 #include "ui_mainwindow.h"
 #include "util.h"
+#include "Windows/dummydatacreator.h"
 
 #include "devicematcher.h"
 #include <QAction>
@@ -486,4 +487,10 @@ void MainWindow::poll_sg04_counts() {
 
 void MainWindow::on_close_finished_tests_button_clicked() {
     close_finished_tests();
+}
+
+void MainWindow::on_actionDummy_Data_Creator_for_print_templates_triggered()
+{
+    DummyDataCreator* dummydatacreator = new DummyDataCreator(this);
+    dummydatacreator->show();
 }

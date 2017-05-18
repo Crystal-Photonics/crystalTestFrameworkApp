@@ -59,6 +59,7 @@ enum class DataEngineErrorNumber {
     instance_count_must_match_list_of_dependency_values,
     list_of_dependency_values_must_be_of_equal_length,
     reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance,
+    is_in_dummy_mode
 };
 class DataEngineError : public std::runtime_error {
     public:
@@ -300,6 +301,7 @@ struct VariantData {
 
     DependencyTags dependency_tags;
     std::vector<std::unique_ptr<DataEngineDataEntry>> data_entries;
+    uint get_entry_count() const;
 
     public:
     bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count, const QString &section_name) const;
@@ -315,6 +317,7 @@ struct DataEngineInstance {
     DataEngineInstance(DataEngineInstance &&other); //move constructor
 
     void delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count);
+    void delete_all_but_biggest_variants();
     void set_section_name(QString section_name);
     void set_allow_empty_section(bool allow_empty_section);
     const VariantData *get_variant() const;
@@ -332,6 +335,7 @@ struct DataEngineSection {
 
     public:
     void delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags);
+    void delete_all_but_biggest_variants();
     bool is_complete() const;
     bool all_values_in_range() const;
 
@@ -396,6 +400,7 @@ struct DataEngineSections {
     static DecodecFieldID decode_field_id(const FormID &id);
     void set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags);
     const QMap<QString, QList<QVariant>> &get_dependancy_tags();
+    bool is_dummy_data_mode = true;
 
     private:
     QList<const DataEngineDataEntry *> get_entries_raw(const FormID &id, DataEngineErrorNumber *error_num, DecodecFieldID &decoded_field_name,
@@ -416,8 +421,11 @@ class Data_engine {
     public:
     Data_engine() = default;
     Data_engine(std::istream &source, const QMap<QString, QList<QVariant>> &tags);
+    Data_engine(std::istream &source); //for getting dummy data structure
+    void set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags);
+    void set_source(std::istream &source);
+    QStringList get_instance_count_names();
 
-    void set_source(std::istream &source, const QMap<QString, QList<QVariant>> &tags);
     bool is_complete() const;
     bool all_values_in_range() const;
     bool value_in_range(const FormID &id) const;
@@ -442,17 +450,19 @@ class Data_engine {
     QStringList get_section_names();
     sol::table get_section_names(sol::state *lua);
     QStringList get_instance_captions(const QString &section_name) const;
-    uint get_instance_count(const std::string &section_name);
+    uint get_instance_count(const std::string &section_name) const ;
     sol::table get_ids_of_section(sol::state *lua, const std::string &section_name);
     QStringList get_ids_of_section(const QString &section_name);
 
+    void fill_engine_with_dummy_data();
     Statistics get_statistics() const;
+
+    void save_data_to_file(const QString &filename) const;
 
     std::unique_ptr<QWidget> get_preview() const;
     void generate_pdf(const std::string &form, const std::string &destination) const;
 
-
-private:
+    private:
     struct FormIdWrapper {
         FormIdWrapper(const FormID &id)
             : value(id) {}
@@ -463,9 +473,11 @@ private:
         QString value;
     };
 
+    void assert_in_dummy_mode() const;
     static bool entry_compare(const FormIdWrapper &lhs, const FormIdWrapper &rhs);
 
     DataEngineSections sections;
+
 };
 
 #endif // DATA_ENGINE_H
