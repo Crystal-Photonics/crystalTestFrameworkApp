@@ -5,6 +5,7 @@
 #include "LuaUI/combobox.h"
 #include "LuaUI/combofileselector.h"
 #include "LuaUI/dataengineinput.h"
+#include "LuaUI/hline.h"
 #include "LuaUI/image.h"
 #include "LuaUI/isotopesourceselector.h"
 #include "LuaUI/label.h"
@@ -1098,6 +1099,13 @@ void ScriptEngine::load_script(const QString &path) {
                                                          "set_font_size",
                                                          thread_call_wrapper(&Label::set_font_size), //
                                                          "get_text", thread_call_wrapper(&Label::get_text));
+        }
+        //bind hline
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<HLine>>("HLine",                                                                                            //
+                                                         sol::meta_function::construct, [parent = this->parent]() { return Lua_UI_Wrapper<HLine>{parent}; }, //
+
+                                                         "set_visible", thread_call_wrapper(&HLine::set_visible));
         }
         //bind CheckBox
         {

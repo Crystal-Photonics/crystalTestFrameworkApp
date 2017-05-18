@@ -21,6 +21,8 @@ ComboBox::ComboBox(UI_container *parent, sol::table items)
 	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
 	parent->add(layout);
     set_items(items);
+    parent->scroll_to_bottom();
+
 }
 
 ComboBox::~ComboBox() {

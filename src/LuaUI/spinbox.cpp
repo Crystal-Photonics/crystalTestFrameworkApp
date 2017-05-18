@@ -22,6 +22,7 @@ SpinBox::SpinBox(UI_container *parent)
     label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     spinbox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     spinbox->setMaximum(100);
+    parent->scroll_to_bottom();
 }
 
 SpinBox::~SpinBox() {

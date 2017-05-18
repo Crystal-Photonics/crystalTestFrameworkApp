@@ -53,6 +53,7 @@ DataEngineInput::DataEngineInput(UI_container *parent, Data_engine *data_engine,
     }
     start_timer();
     timer->start(500);
+    parent->scroll_to_bottom();
 }
 
 DataEngineInput::~DataEngineInput() {

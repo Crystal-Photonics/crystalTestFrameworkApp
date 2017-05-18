@@ -35,6 +35,7 @@ Image::Image(UI_container *parent)
 	parent->add(label);
 	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     label->setScaledContents(true);
+    parent->scroll_to_bottom();
 }
 
 Image::~Image() {}

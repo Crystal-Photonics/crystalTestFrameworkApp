@@ -13,6 +13,7 @@ Button::Button(UI_container *parent, const std::string &title)
 	parent->add(button);
 	button->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
     pressed_connection = QObject::connect(button, &QPushButton::pressed, [this] { pressed = true; });
+    parent->scroll_to_bottom();
 }
 
 Button::~Button() {

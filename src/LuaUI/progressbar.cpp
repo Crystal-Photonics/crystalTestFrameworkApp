@@ -24,6 +24,7 @@ ProgressBar::ProgressBar(UI_container *parent)
     label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     progressbar->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     progressbar->setMaximum(100);
+    parent->scroll_to_bottom();
 }
 
 ProgressBar::~ProgressBar() {

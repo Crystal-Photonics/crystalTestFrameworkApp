@@ -20,6 +20,7 @@ CheckBox::CheckBox(UI_container *parent, const std::string text)
 	checkbox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     set_text(text);
+    parent->scroll_to_bottom();
 }
 
 CheckBox::~CheckBox() {

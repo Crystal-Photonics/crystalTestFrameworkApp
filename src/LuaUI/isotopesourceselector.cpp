@@ -25,6 +25,7 @@ IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     parent->add(layout);
     load_isotope_database();
     fill_combobox_with_isotopes();
+    parent->scroll_to_bottom();
 }
 
 IsotopeSourceSelector::~IsotopeSourceSelector() {

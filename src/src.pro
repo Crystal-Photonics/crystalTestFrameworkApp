@@ -77,7 +77,8 @@ HEADERS += \
     CommunicationDevices/libusbscan.h \
     LuaUI/spinbox.h \
     LuaUI/progressbar.h \
-    LuaUI/dataengineinput.h
+    LuaUI/dataengineinput.h \
+    LuaUI/hline.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -128,4 +129,5 @@ SOURCES += \
     CommunicationDevices/libusbscan.cpp \
     LuaUI/spinbox.cpp \
     LuaUI/progressbar.cpp \
-    LuaUI/dataengineinput.cpp
+    LuaUI/dataengineinput.cpp \
+    LuaUI/hline.cpp

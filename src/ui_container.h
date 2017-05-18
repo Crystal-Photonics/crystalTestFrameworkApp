@@ -17,6 +17,7 @@ class UI_container : public QScrollArea {
 	void add(QWidget *widget);
 	void add(QLayout *layout);
 	void set_column_count(int columns);
+    void scroll_to_bottom();
 
 	private:
 	void resizeEvent(QResizeEvent *event) override;

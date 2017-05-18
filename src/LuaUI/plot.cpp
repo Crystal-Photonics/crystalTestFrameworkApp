@@ -168,6 +168,7 @@ Curve::Curve(UI_container *, Plot *plot)
     plot->plot->canvas()->installEventFilter(event_filter);
     curve->setRenderHint(QwtPlotItem::RenderHint::RenderAntialiased, false);
     curve->setData(new Curve_data);
+
 }
 
 Curve::~Curve() {
@@ -303,6 +304,7 @@ Plot::Plot(UI_container *parent)
     picker->setTrackerMode(QwtPicker::ActiveOnly);
     track_picker->setStateMachine(tracker);
     track_picker->setTrackerMode(QwtPicker::AlwaysOn);
+    parent->scroll_to_bottom();
 }
 
 Plot::~Plot() {

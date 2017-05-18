@@ -2020,16 +2020,19 @@ QString ReferenceDataEntry::get_desired_value_as_string() const {
 
 QString ReferenceDataEntry::get_unit() const {
     assert_that_instance_count_is_defined();
+    assert(entry_target);
     return entry_target->get_unit();
 }
 
 double ReferenceDataEntry::get_si_prefix() const {
     assert_that_instance_count_is_defined();
+    assert(entry_target);
     return entry_target->get_si_prefix();
 }
 
 EntryType ReferenceDataEntry::get_entry_type() const {
     assert_that_instance_count_is_defined();
+    assert(entry_target);
     return entry_target->get_entry_type();
 }
 
@@ -2171,6 +2174,7 @@ void ReferenceDataEntry::set_desired_value_from_actual(DataEngineDataEntry *from
 }
 
 bool ReferenceDataEntry::is_desired_value_set() const {
-    assert(0);
-    return false;
+    assert_that_instance_count_is_defined();
+    assert(entry_target);
+    return entry_target->is_desired_value_set();
 }

@@ -18,6 +18,7 @@ Label::Label(UI_container *parent, const std::string text)
     set_text(text);
     normal_font_size = label->font().pointSize();
     label->setWordWrap(true);
+    parent->scroll_to_bottom();
 }
 
 Label::~Label() {

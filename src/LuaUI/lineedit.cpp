@@ -20,6 +20,7 @@ LineEdit::LineEdit(UI_container *parent)
 	parent->add(layout);
 	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
 	edit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+    parent->scroll_to_bottom();
 }
 
 LineEdit::~LineEdit() {

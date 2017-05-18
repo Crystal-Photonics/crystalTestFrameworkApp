@@ -78,6 +78,7 @@ ComboBoxFileSelector::ComboBoxFileSelector(UI_container *parent, const std::stri
 
     scan_directory();
     fill_combobox();
+    parent->scroll_to_bottom();
 }
 
 ComboBoxFileSelector::~ComboBoxFileSelector() {
