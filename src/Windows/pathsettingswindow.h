@@ -34,7 +34,9 @@ class PathSettingsWindow : public QDialog {
 
 	void on_forms_definitions_path_directory_selector_clicked();
 
-	private:
+    void on_git_path_selector_clicked();
+
+private:
 	Ui::PathSettingsWindow *ui;
 
 	std::vector<std::pair<QLineEdit *, const char *>> get_config_lines() const;

@@ -43,6 +43,7 @@ std::vector<std::pair<QLineEdit *, const char *>> PathSettingsWindow::get_config
 		{ui->meta_path_text, Globals::measurement_equipment_meta_data_path},
 		{ui->forms_path_directory_text, Globals::form_directory},
 		{ui->forms_definitions_path_directory_text, Globals::form_definitions_directory},
+        {ui->git_path, Globals::git_path},
 	};
 }
 
@@ -87,4 +88,9 @@ void PathSettingsWindow::on_forms_path_directory_selector_clicked() {
 
 void PathSettingsWindow::on_forms_definitions_path_directory_selector_clicked() {
 	request_user_dir(ui->forms_definitions_path_directory_text, tr("Select directory for JSON-forms definition files"), Globals::form_definitions_directory);
+}
+
+void PathSettingsWindow::on_git_path_selector_clicked()
+{
+    request_user_file(ui->git_path, tr("Selelect the location of the git executable"), Globals::git_path, "git.exe");
 }

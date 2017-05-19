@@ -2,18 +2,22 @@
 
 #include "lua_functions.h"
 #include "Windows/mainwindow.h"
+#include "config.h"
 #include "console.h"
 #include "scriptengine.h"
 #include "util.h"
 
+#include <QApplication>
+#include <QDateTime>
+#include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QProcess>
+#include <QSettings>
 #include <QTimer>
 #include <cmath>
-#include <QFile>
-#include <QDateTime>
-#include <QApplication>
+
 /// @endcond
 
 /** \defgroup convenience Convenience functions
@@ -516,9 +520,6 @@ double current_date_time_ms() {
 //this block is just for ducumentation purpose
 double round(double value, int precision);
 #endif
-
-
-
 
 ///
 /// @cond HIDDEN_SYMBOLS
@@ -1341,11 +1342,84 @@ pc_speaker_beep();
 #endif
 
 /// @cond HIDDEN_SYMBOLS
-void pc_speaker_beep()
-{
+void pc_speaker_beep() {
     QApplication::beep();
 }
 /// @endcond
+
+/*! \fn git_info(string path, bool allow_modified)
+    \brief returns the git revision hash of a given repository
+    \param path                A String containing the path to the git repository
+    \param allow_modified      If false this function will throw an exception if the repository contains modifications which are not yet commited.
+
+    \return                    a table with the git-hash, the date and the modified-flag of the last commit.
+    \details    \par example:
+    \code{.lua}
+        git = git_info(".",false)
+        print(git) -- git.hash = "1e46a0f", git.modified = true, git.date = "2017-05-19 14:26:36 +0200"
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+string git_info(string path, bool allow_modified);
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+sol::table git_info(sol::state &lua, std::string path, bool allow_modified) {
+    sol::table result = lua.create_table_with();
+    bool modified = false;
+    QString program = QSettings{}.value(Globals::git_path, "").toString();
+    if (!QFile::exists(program)) {
+        throw std::runtime_error("Could not find git executable at \"" + program.toStdString() + "\"");
+    }
+    if (!QFile::exists(QString::fromStdString(path))) {
+        throw std::runtime_error("Could not find directory at \"" + path + "\"");
+    }
+
+    QList<QStringList> argument_list;
+    argument_list.append({"status", "-s"});
+    argument_list.append({"log", "--format=%h"});
+    argument_list.append({"log", "--format=%ci"});
+
+    for (uint i = 0; i < argument_list.count(); i++) {
+        const auto &arguments = argument_list[i];
+        QProcess myProcess(nullptr);
+        myProcess.setWorkingDirectory(QString::fromStdString(path));
+
+        myProcess.start(program, arguments);
+        myProcess.waitForStarted();
+        myProcess.waitForFinished();
+        auto out = QString(myProcess.readAll()).split("\n");
+        if (myProcess.exitCode() != 0) {
+            throw std::runtime_error(myProcess.readAllStandardError().toStdString());
+        }
+        qDebug() << out;
+        switch (i) {
+            case 0: {
+                for (auto s : out) {
+                    if (s.startsWith(" M")) {
+                        modified = true;
+                        break;
+                    }
+                }
+                result["modfied"] = modified;
+                if ((!allow_modified) && modified) {
+                    throw std::runtime_error("Git Status: Git-Directory is modified.");
+                }
+            } break;
+            case 1: {
+                result["hash"] = out[0].toStdString();
+            } break;
+            case 2: {
+                result["date"] = out[0].toStdString();
+            } break;
+            default: {
+            } break; //
+        }
+    }
+    return result;
+}
+/// @endcond
+///
 /** \} */ // end of group convenience
-
-

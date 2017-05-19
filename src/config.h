@@ -13,6 +13,7 @@ namespace Globals {
     static const auto last_csv_saved_directory = "last csv saved directory";
     static const auto form_directory = "form directory";
     static const auto form_definitions_directory = "forms definitions directory";
+    static const auto git_path = "git_path";
     static const auto confirm_key_sequence = "confirm key sequence";
     static const auto skip_key_sequence = "skip key sequence";
     static const auto cancel_key_sequence = "cancel key sequence";

@@ -68,8 +68,10 @@ DataEngineInput::DataEngineInput(UI_container *parent, Data_engine *data_engine,
     vlayout_next->addWidget(button_next);
     vlayout_next->addWidget(label_next);
     hlayout->addLayout(vlayout_next);
+#if 0
     QKeySequence shortcut_yes = QKeySequence{QSettings{}.value(Globals::confirm_key_sequence, "").toString()};
     button_next->setShortcut(shortcut_yes);
+#endif
     callback_next = QObject::connect(button_next, &QPushButton::clicked, [this]() {});
 
     start_timer();
@@ -150,11 +152,12 @@ void DataEngineInput::set_editable() {
 
             hlayout->insertLayout(3, vlayout_no);
             hlayout->insertLayout(3, vlayout_yes);
-
+#if 0
             QKeySequence shortcut_yes = QKeySequence{QSettings{}.value(Globals::confirm_key_sequence, "").toString()};
             QKeySequence shortcut_no = QKeySequence{QSettings{}.value(Globals::cancel_key_sequence, "").toString()};
             button_yes->setShortcut(shortcut_yes);
             button_no->setShortcut(shortcut_no);
+#endif
 
             callback_bool_false = QObject::connect(button_no, &QPushButton::clicked, [this]() { bool_result = false; });
             callback_bool_true = QObject::connect(button_yes, &QPushButton::clicked, [this]() { bool_result = true; });

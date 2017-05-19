@@ -753,6 +753,9 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["table_max_abs"] = [](sol::table input_values) { return table_max_abs(input_values); };
 
             (*lua)["table_min_abs"] = [](sol::table input_values) { return table_min_abs(input_values); };
+            (*lua)["git_info"] = [&lua = *lua](std::string path, bool allow_modified) {
+                return git_info (lua, path, allow_modified);
+            };
         }
 
         {

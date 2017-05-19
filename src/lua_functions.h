@@ -38,5 +38,6 @@ double table_max(sol::table input_values);
 double table_min(sol::table input_values);
 double table_max_abs(sol::table input_values);
 double table_min_abs(sol::table input_values);
+sol::table git_info(sol::state &lua, std::string path, bool allow_modified);
 
 #endif // LUA_FUNCTIONS_H
