@@ -80,7 +80,8 @@ HEADERS += \
     LuaUI/progressbar.h \
     LuaUI/dataengineinput.h \
     LuaUI/hline.h \
-    Windows/dummydatacreator.h
+    Windows/dummydatacreator.h \
+    environmentvariables.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -133,4 +134,6 @@ SOURCES += \
     LuaUI/progressbar.cpp \
     LuaUI/dataengineinput.cpp \
     LuaUI/hline.cpp \
-    Windows/dummydatacreator.cpp
+    Windows/dummydatacreator.cpp \
+    environment_variables.cpp \
+    environmentvariables.cpp

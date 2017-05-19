@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>566</width>
-    <height>550</height>
+    <height>599</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -97,6 +97,35 @@
       </size>
      </property>
     </spacer>
+   </item>
+   <item>
+    <layout class="QVBoxLayout" name="verticalLayout_11">
+     <item>
+      <widget class="QLabel" name="label_12">
+       <property name="text">
+        <string>Path to Environment Variables</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_11">
+       <item>
+        <widget class="QLineEdit" name="env_var_path">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="env_var_path_button">
+         <property name="text">
+          <string>...</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
    </item>
    <item>
     <layout class="QVBoxLayout" name="verticalLayout_3">

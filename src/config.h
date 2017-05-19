@@ -17,6 +17,7 @@ namespace Globals {
     static const auto confirm_key_sequence = "confirm key sequence";
     static const auto skip_key_sequence = "skip key sequence";
     static const auto cancel_key_sequence = "cancel key sequence";
+    static const auto path_to_environment_variables = "path_to_environment_variables";
 }
 
 #endif // CONFIG_H

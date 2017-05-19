@@ -28,6 +28,7 @@
 #include "rpcruntime_encoded_function_call.h"
 #include "ui_container.h"
 #include "util.h"
+#include "environmentvariables.h"
 
 #include <QDebug>
 #include <QDir>
@@ -641,9 +642,13 @@ void ScriptEngine::load_script(const QString &path) {
     //NOTE: When using lambdas do not capture `this` or by reference, because it breaks when the ScriptEngine is moved
     this->path = path;
 
+
+    EnvironmentVariables env_variables(QSettings{}.value(Globals::path_to_environment_variables, "").toString());
+
     try {
         //load the standard libs if necessary
         lua->open_libraries();
+        env_variables.load_to_lua(lua.get());
 
         //add generic function
         {
