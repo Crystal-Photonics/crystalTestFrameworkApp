@@ -14,13 +14,15 @@ class QHBoxLayout;
 class UI_container;
 class QWidget;
 class QLineEdit;
+class QPushButton;
+
 /** \ingroup ui
  *  \{
  */
 class DataEngineInput {
     public:
     DataEngineInput(UI_container *parent, Data_engine *data_engine, std::string field_id, std::string extra_explanation, std::string empty_value_placeholder,
-                    std::__cxx11::string desired_prefix, std::__cxx11::string actual_prefix);
+                    std::string desired_prefix, std::string actual_prefix);
     ~DataEngineInput();
 
     void set_visible(bool visible);
@@ -29,6 +31,7 @@ class DataEngineInput {
     void load_actual_value();
     void set_editable();
     void save_to_data_engine();
+    void await_event();
 
     private:
     UI_container *parent;
@@ -38,7 +41,16 @@ class DataEngineInput {
     QLabel *label_de_desired_value = nullptr;
     QLabel *label_de_actual_value = nullptr;
     QLabel *label_ok = nullptr;
-    QCheckBox *checkbox = nullptr;
+
+    QPushButton *button_yes = nullptr;
+    QLabel *label_yes = nullptr;
+
+    QPushButton *button_no = nullptr;
+    QLabel *label_no = nullptr;
+
+    QPushButton *button_next = nullptr;
+    QLabel *label_next = nullptr;
+
     QLineEdit *lineedit = nullptr;
     QTimer *timer = nullptr;
 
@@ -57,7 +69,12 @@ class DataEngineInput {
     void start_timer();
     ///\endcond
 
-    QMetaObject::Connection callback_connection = {};
+    std::experimental::optional<bool> bool_result;
+
+    QMetaObject::Connection callback_timer = {};
+    QMetaObject::Connection callback_bool_true = {};
+    QMetaObject::Connection callback_bool_false = {};
+    QMetaObject::Connection callback_next = {};
 };
 
 #endif // DATAENGINEINPUT_H

@@ -992,7 +992,9 @@ void ScriptEngine::load_script(const QString &path) {
                                                            actual_prefix, desired_prefix};
                 }, //
                 "load_actual_value",
-                thread_call_wrapper(&DataEngineInput::load_actual_value),          //
+                thread_call_wrapper(&DataEngineInput::load_actual_value), //
+                "await_event",
+                thread_call_wrapper(&DataEngineInput::await_event),                //
                 "set_visible", thread_call_wrapper(&DataEngineInput::set_visible), //
                 "set_enabled", thread_call_wrapper(&DataEngineInput::set_enabled), //
                 "save_to_data_engine",
