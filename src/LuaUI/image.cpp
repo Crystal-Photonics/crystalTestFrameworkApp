@@ -1,5 +1,6 @@
 #include "image.h"
 #include "ui_container.h"
+#include "scriptengine.h"
 
 #include <QFile>
 #include <QImage>
@@ -30,8 +31,9 @@ class Aspect_ratio_label : public QLabel {
 	double aspect_ratio{};
 };
 
-Image::Image(UI_container *parent)
+Image::Image(UI_container *parent, QString script_path)
 	: label{new Aspect_ratio_label(parent)} {
+    this->script_path = script_path;
 	parent->add(label);
 	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     label->setScaledContents(true);
@@ -40,7 +42,7 @@ Image::Image(UI_container *parent)
 
 Image::~Image() {}
 
-void Image::load_image_file(const std::string path_to_image) {
+void Image::load_image_file( const std::string &path_to_image) {
     load_image(path_to_image);
 }
 
@@ -50,7 +52,8 @@ void Image::set_visible(bool visible)
 }
 
 
-void Image::load_image(const std::string path_to_image) {
+void Image::load_image(const std::string &path_to_image_) {
+    auto path_to_image = get_absolute_file_path(script_path,path_to_image_);
     if (QFile::exists(QString::fromStdString(path_to_image))) {
         image.load(QString::fromStdString(path_to_image));
         label->setPixmap(QPixmap::fromImage(image));

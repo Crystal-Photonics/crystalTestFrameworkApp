@@ -291,6 +291,22 @@ auto overloaded_function(Functions &&... functions) {
     return detail::overloaded_function_helper<ReturnType>(typename std::is_same<ReturnType, std::false_type>::type{}, std::forward<Functions>(functions)...);
 }
 
+QString get_absolute_file_path(const QString &script_path, const QString &file_to_open) {
+    QDir dir(file_to_open);
+    QString result;
+    if (dir.isRelative()) {
+        QDir base(QFileInfo(script_path).absoluteDir());
+        result = base.absoluteFilePath(file_to_open);
+    } else {
+        result = file_to_open;
+    }
+    return result;
+}
+
+std::string get_absolute_file_path(const QString &script_path, const std::string &file_to_open) {
+    return get_absolute_file_path(script_path, QString::fromStdString(file_to_open)).toStdString();
+}
+
 static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedParam &param, sol::state &lua) {
     switch (param.get_desciption()->get_type()) {
         case RPCRuntimeParameterDescription::Type::array: {
@@ -612,6 +628,10 @@ std::string ScriptEngine::to_string(const sol::stack_proxy &object) {
     return to_string(sol::object{object});
 }
 
+QString ScriptEngine::get_absolute_filename(QString file_to_open) {
+    return get_absolute_file_path(path, file_to_open);
+}
+
 struct Data_engine_handle {
     Data_engine *data_engine{nullptr};
     Data_engine_handle() = delete;
@@ -684,11 +704,11 @@ void ScriptEngine::load_script(const QString &path) {
 
         //table functions
         {
-            (*lua)["table_save_to_file"] = [console = console](const std::string file_name, sol::table input_table, bool over_write_file) {
-                table_save_to_file(console, file_name, input_table, over_write_file);
+            (*lua)["table_save_to_file"] = [ console = console, path = path ](const std::string file_name, sol::table input_table, bool over_write_file) {
+                table_save_to_file(console, get_absolute_file_path(path, file_name), input_table, over_write_file);
             };
-            (*lua)["table_load_from_file"] = [&lua = *lua, console = console ](const std::string file_name) {
-                return table_load_from_file(console, lua, file_name);
+            (*lua)["table_load_from_file"] = [&lua = *lua, console = console, path = path ](const std::string file_name) {
+                return table_load_from_file(console, lua, get_absolute_file_path(path, file_name));
             };
             (*lua)["table_sum"] = [](sol::table table) { return table_sum(table); };
 
@@ -753,8 +773,8 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["table_max_abs"] = [](sol::table input_values) { return table_max_abs(input_values); };
 
             (*lua)["table_min_abs"] = [](sol::table input_values) { return table_min_abs(input_values); };
-            (*lua)["git_info"] = [&lua = *lua](std::string path, bool allow_modified) {
-                return git_info (lua, path, allow_modified);
+            (*lua)["git_info"] = [&lua = *lua, path = path ](std::string dir_path, bool allow_modified) {
+                return git_info(lua, get_absolute_file_path(path, dir_path), allow_modified);
             };
         }
 
@@ -769,8 +789,8 @@ void ScriptEngine::load_script(const QString &path) {
             lua->new_usertype<DataLogger>(
                 "DataLogger", //
                 sol::meta_function::construct,
-                [console = console](const std::string &file_name, char seperating_character, sol::table field_names, bool over_write_file) {
-                    return DataLogger{console, file_name, seperating_character, field_names, over_write_file};
+                [ console = console, path = path ](const std::string &file_name, char seperating_character, sol::table field_names, bool over_write_file) {
+                    return DataLogger{console, get_absolute_file_path(path, file_name), seperating_character, field_names, over_write_file};
                 }, //
 
                 "append_data",
@@ -792,10 +812,10 @@ void ScriptEngine::load_script(const QString &path) {
         {
             lua->new_usertype<Data_engine_handle>(
                 "Data_engine", //
-                sol::meta_function::construct, [ data_engine = data_engine, pdf_filepath = pdf_filepath.get(), form_filepath = form_filepath.get() ](
-                                                   const std::string &xml_file, const std::string &json_file, const sol::table &dependency_tags) {
-                    QString form_dir = QSettings{}.value(Globals::form_directory, QDir::currentPath()).toString();
-                    auto file_path = QDir{form_dir}.absoluteFilePath(QString::fromStdString(json_file)).toStdString();
+                sol::meta_function::construct,
+                [ data_engine = data_engine, pdf_filepath = pdf_filepath.get(), form_filepath = form_filepath.get(),
+                  path = path ](const std::string &xml_file, const std::string &json_file, const sol::table &dependency_tags) {
+                    auto file_path = get_absolute_file_path(path, json_file);
                     std::ifstream f(file_path);
                     if (!f) {
                         throw std::runtime_error("Failed opening file " + file_path);
@@ -838,8 +858,7 @@ void ScriptEngine::load_script(const QString &path) {
                     data_engine->set_dependancy_tags(tags);
                     data_engine->set_source(f);
                     *pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
-                    *form_filepath =
-                        QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath(QString::fromStdString(xml_file)).toStdString();
+                    *form_filepath = get_absolute_file_path(path, xml_file);
 
                     return Data_engine_handle{data_engine};
                 }, //
@@ -1008,19 +1027,19 @@ void ScriptEngine::load_script(const QString &path) {
         }
         //bind ComboBoxFileSelector
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<ComboBoxFileSelector>>("ComboBoxFileSelector", //
-                                                                        sol::meta_function::construct,
-                                                                        [parent = this->parent](const std::string &directory, const sol::table &filters) {
-                                                                            return Lua_UI_Wrapper<ComboBoxFileSelector>{parent, directory, filters};
-                                                                        }, //
-                                                                        "get_selected_file",
-                                                                        thread_call_wrapper(&ComboBoxFileSelector::get_selected_file), //
-                                                                        "set_visible",
-                                                                        thread_call_wrapper(&ComboBoxFileSelector::set_visible), //
-                                                                        "set_order_by",
-                                                                        thread_call_wrapper(&ComboBoxFileSelector::set_order_by) //
+            ui_table.new_usertype<Lua_UI_Wrapper<ComboBoxFileSelector>>(
+                "ComboBoxFileSelector", //
+                sol::meta_function::construct, [ parent = this->parent, path = path ](const std::string &directory, const sol::table &filters) {
+                    return Lua_UI_Wrapper<ComboBoxFileSelector>{parent, get_absolute_file_path(path, directory), filters};
+                }, //
+                "get_selected_file",
+                thread_call_wrapper(&ComboBoxFileSelector::get_selected_file), //
+                "set_visible",
+                thread_call_wrapper(&ComboBoxFileSelector::set_visible), //
+                "set_order_by",
+                thread_call_wrapper(&ComboBoxFileSelector::set_order_by) //
 
-                                                                        );
+                );
         }
         //bind IsotopeSourceSelector
         {
@@ -1139,10 +1158,14 @@ void ScriptEngine::load_script(const QString &path) {
                                                             "get_text", thread_call_wrapper(&CheckBox::get_text));
         }
         //bind Image
+
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image",                                                                                            //
-                                                         sol::meta_function::construct, [parent = this->parent]() { return Lua_UI_Wrapper<Image>{parent}; }, //
-                                                         "load_image_file", thread_call_wrapper(&Image::load_image_file),                                    //
+            ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image", sol::meta_function::construct,
+                                                         [parent = this->parent, path = path]() {
+                                                             return Lua_UI_Wrapper<Image>{parent, path}; //
+                                                         },
+                                                         "load_image_file",
+                                                         thread_call_wrapper(&Image::load_image_file), //
                                                          "set_visible",
                                                          thread_call_wrapper(&Image::set_visible) //
                                                          );

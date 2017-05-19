@@ -5,21 +5,20 @@
 #include "scriptengine.h"
 #include <QObject>
 
-class TestScriptEngine: public QObject
-{
+class TestScriptEngine : public QObject {
     Q_OBJECT
-public:
-    explicit TestScriptEngine( QObject *parent = 0);
+    public:
+    explicit TestScriptEngine(QObject *parent = 0);
     ~TestScriptEngine();
-private:
-	void initTestCase();
-	void cleanupTestCase();
-private slots:
-	void basicLuaTest();
+
+    private:
+    void initTestCase();
+    void cleanupTestCase();
+    private slots:
+    void basicLuaTest();
+    void test_file_name_path();
 };
 
-
 DECLARE_TEST(TestScriptEngine)
-
 
 #endif

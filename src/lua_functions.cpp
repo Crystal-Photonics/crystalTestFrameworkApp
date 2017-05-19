@@ -1394,7 +1394,7 @@ sol::table git_info(sol::state &lua, std::string path, bool allow_modified) {
         if (myProcess.exitCode() != 0) {
             throw std::runtime_error(myProcess.readAllStandardError().toStdString());
         }
-        qDebug() << out;
+        //qDebug() << out;
         switch (i) {
             case 0: {
                 for (auto s : out) {
