@@ -29,15 +29,9 @@
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout">
            <item>
-            <widget class="QPushButton" name="update_devices_list_button">
+            <widget class="QPushButton" name="btn_refresh_dut">
              <property name="text">
-              <string>Update</string>
-             </property>
-             <property name="checkable">
-              <bool>false</bool>
-             </property>
-             <property name="flat">
-              <bool>false</bool>
+              <string>Refresh only DUTs</string>
              </property>
             </widget>
            </item>
@@ -55,9 +49,9 @@
             </spacer>
            </item>
            <item>
-            <widget class="QPushButton" name="device_detect_button">
+            <widget class="QPushButton" name="btn_refresh_all">
              <property name="text">
-              <string>Detect</string>
+              <string>Refresh all</string>
              </property>
             </widget>
            </item>

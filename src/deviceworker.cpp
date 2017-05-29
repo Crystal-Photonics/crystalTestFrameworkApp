@@ -204,6 +204,38 @@ void DeviceWorker::forget_device(QTreeWidgetItem *item) {
     });
 }
 
+bool DeviceWorker::is_dut_device(QTreeWidgetItem *item) {
+    return Utility::promised_thread_call(this, [this, item] {
+        assert(currently_in_gui_thread() == false);
+        for (auto device_it = std::begin(communication_devices); device_it != std::end(communication_devices); ++device_it) {
+            if (device_it->ui_entry == item) {
+                auto rpc_protocol = dynamic_cast<RPCProtocol *> (device_it->protocol.get());
+                auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device_it->protocol.get());
+                if (rpc_protocol) {
+                    return true;
+                } else if (sg04_count_protocol) {
+                    return true;
+                }
+                break;
+            }
+        }
+        return false;
+    });
+
+}
+
+bool DeviceWorker::is_device_in_use(QTreeWidgetItem *item) {
+    return Utility::promised_thread_call(this, [this, item] {
+        assert(currently_in_gui_thread() == false);
+        for (auto device_it = std::begin(communication_devices); device_it != std::end(communication_devices); ++device_it) {
+            if (device_it->ui_entry == item) {
+                return device_it->get_is_in_use();
+            }
+        }
+        return false;
+    });
+}
+
 void DeviceWorker::update_devices() {
     device_meta_data.reload(QSettings{}.value(Globals::measurement_equipment_meta_data_path, "").toString());
     Utility::thread_call(this, [this] {
@@ -271,7 +303,6 @@ void DeviceWorker::update_devices() {
             CommunicationDevice *device = port_desc->device.get();
             MainWindow::mw->add_device_item(item.release(), port, device);
         }
-
 
     });
 }

@@ -34,7 +34,9 @@ class DeviceWorker : public QObject {
 
 
 
-    private:
+    bool is_dut_device(QTreeWidgetItem *item);
+    bool is_device_in_use(QTreeWidgetItem *item);
+private:
     std::list<PortDescription> communication_devices;
     bool contains_port(QMap<QString, QVariant> port_info);
     void detect_devices(std::vector<PortDescription *> device_list);

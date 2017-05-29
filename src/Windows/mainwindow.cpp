@@ -4,6 +4,7 @@
 #include "LuaUI/plot.h"
 #include "LuaUI/window.h"
 #include "Protocols/sg04countprotocol.h"
+#include "Windows/dummydatacreator.h"
 #include "config.h"
 #include "console.h"
 #include "deviceworker.h"
@@ -16,7 +17,6 @@
 #include "ui_container.h"
 #include "ui_mainwindow.h"
 #include "util.h"
-#include "Windows/dummydatacreator.h"
 
 #include "devicematcher.h"
 #include <QAction>
@@ -82,7 +82,7 @@ MainWindow::MainWindow(QWidget *parent)
     Console::console = ui->console_edit;
     Console::mw = this;
     devices_thread.start();
-    ui->update_devices_list_button->click();
+    ui->btn_refresh_all->click();
     load_scripts();
 }
 
@@ -115,20 +115,6 @@ void MainWindow::align_columns() {
 
 void MainWindow::remove_device_entry(QTreeWidgetItem *item) {
     Utility::thread_call(this, [this, item] { delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(item)); });
-}
-
-void MainWindow::forget_device() {
-    Utility::thread_call(this, [this] {
-        auto selected_device_item = ui->devices_list->currentItem();
-        if (!selected_device_item) {
-            return;
-        }
-        while (ui->devices_list->indexOfTopLevelItem(selected_device_item) == -1) {
-            selected_device_item = selected_device_item->parent();
-        }
-        device_worker->forget_device(selected_device_item);
-        delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(selected_device_item));
-    });
 }
 
 void MainWindow::load_scripts() {
@@ -198,15 +184,88 @@ void MainWindow::on_actionPaths_triggered() {
     });
 }
 
-void MainWindow::on_device_detect_button_clicked() {
+void MainWindow::device_detect() {
     Utility::thread_call(this, [this] { device_worker->detect_devices(); });
 }
 
-void MainWindow::on_update_devices_list_button_clicked() {
+void MainWindow::update_devices_list() {
     Utility::thread_call(this, [this] {
         assert(currently_in_gui_thread());
         device_worker->update_devices();
     });
+}
+
+static void forget_by_treewidget_root(QTreeWidgetItem *root_item, DeviceWorker *device_worker, bool dut_only) {
+    int j = 0;
+    while (j < root_item->childCount()) {
+        QTreeWidgetItem *itemchild = root_item->child(j);
+
+        forget_by_treewidget_root(itemchild, device_worker, dut_only);
+        if (device_worker->is_dut_device(itemchild) || !dut_only) {
+            if (!device_worker->is_device_in_use(itemchild)) {
+                device_worker->forget_device(itemchild);
+                delete root_item->takeChild(j);
+                j--;
+            }
+        }
+        j++;
+    }
+}
+
+void MainWindow::on_btn_refresh_all_clicked() {
+    Utility::thread_call(this, [this] {
+        QTreeWidgetItem *root = ui->devices_list->invisibleRootItem();
+        forget_by_treewidget_root(root, device_worker.get(), false);
+    });
+    update_devices_list();
+    device_detect();
+}
+
+void MainWindow::on_btn_refresh_dut_clicked() {
+    Utility::thread_call(this, [this] {
+        QTreeWidgetItem *root = ui->devices_list->invisibleRootItem();
+        forget_by_treewidget_root(root, device_worker.get(), true);
+    });
+    update_devices_list();
+    device_detect();
+}
+
+void MainWindow::forget_device() {
+    Utility::thread_call(this, [this] {
+        auto selected_device_item = ui->devices_list->currentItem();
+        if (!selected_device_item) {
+            return;
+        }
+        while (ui->devices_list->indexOfTopLevelItem(selected_device_item) == -1) {
+            selected_device_item = selected_device_item->parent();
+        }
+        device_worker->forget_device(selected_device_item);
+        delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(selected_device_item));
+    });
+}
+
+void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
+    auto item = ui->devices_list->itemAt(pos);
+    if (item) {
+        while (ui->devices_list->indexOfTopLevelItem(item) == -1) {
+            item = item->parent();
+        }
+        QMenu menu(this);
+
+        QAction action_detect(tr("Detect"), nullptr);
+        connect(&action_detect, &QAction::triggered, [this, item] { device_worker->detect_device(item); });
+        menu.addAction(&action_detect);
+
+        QAction action_forget(tr("Forget"), nullptr);
+        if (item->text(3).isEmpty() == false) {
+            action_forget.setDisabled(true);
+        } else {
+            connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
+        }
+        menu.addAction(&action_forget);
+
+        menu.exec(ui->devices_list->mapToGlobal(pos));
+    }
 }
 
 void MainWindow::on_console_tabs_tabCloseRequested(int index) {
@@ -299,42 +358,6 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
             menu.exec(ui->tests_list->mapToGlobal(pos));
         }
     });
-}
-
-void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
-    auto item = ui->devices_list->itemAt(pos);
-    if (item) {
-        while (ui->devices_list->indexOfTopLevelItem(item) == -1) {
-            item = item->parent();
-        }
-        QMenu menu(this);
-
-        QAction action_detect(tr("Detect"), nullptr);
-        connect(&action_detect, &QAction::triggered, [this, item] { device_worker->detect_device(item); });
-        menu.addAction(&action_detect);
-
-        QAction action_forget(tr("Forget"), nullptr);
-        if (item->text(3).isEmpty() == false) {
-            action_forget.setDisabled(true);
-        } else {
-            connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
-        }
-        menu.addAction(&action_forget);
-
-        menu.exec(ui->devices_list->mapToGlobal(pos));
-    } else {
-        QMenu menu(this);
-
-        QAction action_update(tr("Update device list"), nullptr);
-        connect(&action_update, &QAction::triggered, ui->update_devices_list_button, &QPushButton::clicked);
-        menu.addAction(&action_update);
-
-        QAction action_detect(tr("Detect device protocols"), nullptr);
-        connect(&action_detect, &QAction::triggered, ui->device_detect_button, &QPushButton::clicked);
-        menu.addAction(&action_detect);
-
-        menu.exec(ui->devices_list->mapToGlobal(pos));
-    }
 }
 
 TestDescriptionLoader *MainWindow::get_test_from_ui(const QTreeWidgetItem *item) {
@@ -489,8 +512,7 @@ void MainWindow::on_close_finished_tests_button_clicked() {
     close_finished_tests();
 }
 
-void MainWindow::on_actionDummy_Data_Creator_for_print_templates_triggered()
-{
-    DummyDataCreator* dummydatacreator = new DummyDataCreator(this);
+void MainWindow::on_actionDummy_Data_Creator_for_print_templates_triggered() {
+    DummyDataCreator *dummydatacreator = new DummyDataCreator(this);
     dummydatacreator->show();
 }

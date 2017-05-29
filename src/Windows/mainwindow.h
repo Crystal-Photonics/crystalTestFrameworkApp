@@ -53,6 +53,9 @@ class EXPORT MainWindow : public QMainWindow {
 	void show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon);
 	void remove_test_runner(TestRunner *runner);
 
+    void device_detect();
+    void update_devices_list();
+
 	public slots:
 	void align_columns();
 	void remove_device_entry(QTreeWidgetItem *item);
@@ -64,8 +67,7 @@ class EXPORT MainWindow : public QMainWindow {
 	void load_scripts();
 
 	void on_actionPaths_triggered();
-	void on_device_detect_button_clicked();
-	void on_update_devices_list_button_clicked();
+
 	void on_console_tabs_tabCloseRequested(int index);
 	void on_run_test_script_button_clicked();
 	void on_tests_list_itemClicked(QTreeWidgetItem *item, int column);
@@ -85,6 +87,10 @@ class EXPORT MainWindow : public QMainWindow {
 	void on_close_finished_tests_button_clicked();
 
     void on_actionDummy_Data_Creator_for_print_templates_triggered();
+
+    void on_btn_refresh_dut_clicked();
+
+    void on_btn_refresh_all_clicked();
 
 private:
 	std::vector<TestDescriptionLoader> test_descriptions;
