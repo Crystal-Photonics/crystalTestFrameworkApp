@@ -693,6 +693,14 @@ void ScriptEngine::load_script(const QString &path) {
                         QObject::connect(shortcuts[i].get(), &QShortcut::activated, [&event_loop, i] { event_loop.exit(i); });
                     }
                 });
+#if 0
+                static const auto secret_exit_code = -0xF42F;
+                QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
+                auto exit_value = event_loop.exec();
+                if (exit_value != secret_exit_code) {
+                    throw sol::error("Interrupted");
+                }
+#endif
                 auto exit_value = event_loop.exec();
                 Utility::promised_thread_call(MainWindow::mw, [&shortcuts] { std::fill(std::begin(shortcuts), std::end(shortcuts), nullptr); });
                 switch (exit_value) {
@@ -702,6 +710,9 @@ void ScriptEngine::load_script(const QString &path) {
                         return "skip";
                     case cancel_pressed:
                         return "cancel";
+                    default: {
+                        throw sol::error("Interrupted");
+                    }
                 }
                 return "unknown";
             };
