@@ -460,7 +460,7 @@ class Data_engine {
     void save_data_to_file(const QString &filename) const;
 
     std::unique_ptr<QWidget> get_preview() const;
-    void generate_pdf(const std::string &form, const std::string &destination) const;
+	bool generate_pdf(const std::string &form, const std::string &destination) const;
 
     private:
     struct FormIdWrapper {

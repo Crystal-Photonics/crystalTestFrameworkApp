@@ -9,6 +9,10 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 INCLUDEPATH += $$PWD/src
 INCLUDEPATH += ../libs/luasol/include
 
+INCLUDEPATH += $$PWD/libs/LimeReport/include
+LIBS += -L$$PWD/libs/LimeReport
+LIBS += -llimereport -lQtZint
+
 win32 {
     QWT_DIR = $$PWD/libs/qwt
     INCLUDEPATH += $$QWT_DIR/include

@@ -9,11 +9,14 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStringList>
+#include <QStringListModel>
 #include <QWidget>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <limits>
+#include <lrdatasourcemanagerintf.h>
+#include <lrreportengine.h>
 #include <type_traits>
 
 template <class T>
@@ -1355,12 +1358,22 @@ double Data_engine::get_si_prefix(const FormID &id) const {
 }
 
 std::unique_ptr<QWidget> Data_engine::get_preview() const {
-    //TODO
+	LimeReport::ReportEngine re;
+	//re.dataManager()->addModel();
+	re.previewReport();
     return nullptr;
 }
 
-void Data_engine::generate_pdf(const std::string &form, const std::string &destination) const {
-    //TODO
+bool Data_engine::generate_pdf(const std::string &form, const std::string &destination) const {
+	LimeReport::ReportEngine re;
+	if (re.loadFromFile(QString::fromStdString(form), false) == false) {
+		return false;
+	}
+	QStringListModel string_list_model;
+	QStringList string_list;
+	string_list_model.setStringList(string_list);
+	re.dataManager()->addModel("string_list", &string_list_model, false);
+	return re.printToPDF(QString::fromStdString(destination));
 }
 
 void Data_engine::assert_in_dummy_mode() const {
