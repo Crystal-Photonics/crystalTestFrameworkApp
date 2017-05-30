@@ -81,7 +81,8 @@ HEADERS += \
     LuaUI/dataengineinput.h \
     LuaUI/hline.h \
     Windows/dummydatacreator.h \
-    environmentvariables.h
+    environmentvariables.h \
+    LuaUI/userinstructionlabel.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -135,5 +136,5 @@ SOURCES += \
     LuaUI/dataengineinput.cpp \
     LuaUI/hline.cpp \
     Windows/dummydatacreator.cpp \
-    environment_variables.cpp \
-    environmentvariables.cpp
+    environmentvariables.cpp \
+    LuaUI/userinstructionlabel.cpp

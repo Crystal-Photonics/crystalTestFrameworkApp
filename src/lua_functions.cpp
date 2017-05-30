@@ -241,7 +241,7 @@ Following button strings are allowed:
 \par example:
 \code{.lua}
     result = show_question("hello","this is a hello world message.",{"yes", "no", "Cancel}) --script pauses until user clicks a button.
-    print(result) -- will print either "yes", "no" or "Cancel".
+    print(result) -- will print either "Yes", "No" or "Cancel".
 \endcode
 */
 

@@ -102,7 +102,7 @@ void DataEngineInput::load_actual_value() {
             label_ok->setText("fail");
         }
         if (!editable) {
-            label_extra_explanation->setText(" ");
+            //label_extra_explanation->setText(" ");
             if (button_next) {
                 button_next->setVisible(false);
                 button_next = nullptr;
@@ -229,6 +229,12 @@ void DataEngineInput::await_event() {
     Utility::promised_thread_call(MainWindow::mw, [&shortcuts] { std::fill(std::begin(shortcuts), std::end(shortcuts), nullptr); });
 }
 
+void DataEngineInput::set_explanation_text(const std::string &extra_explanation) {
+    this->extra_explanation = QString().fromStdString(extra_explanation);
+    label_extra_explanation->setText(this->extra_explanation);
+
+}
+
 void DataEngineInput::set_visible(bool visible) {
     label_extra_explanation->setVisible(visible);
     label_de_description->setVisible(visible);
@@ -289,6 +295,11 @@ void DataEngineInput::set_enabled(bool enabled) {
     }
     if (label_next) {
         label_next->setVisible(enabled);
+    }
+    if (enabled){
+        timer->start();
+    }else{
+        timer->stop();
     }
 }
 

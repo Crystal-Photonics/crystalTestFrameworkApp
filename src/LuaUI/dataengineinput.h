@@ -32,6 +32,7 @@ class DataEngineInput {
     void set_editable();
     void save_to_data_engine();
     void await_event();
+    void set_explanation_text(const std::string &extra_explanation);
 
     private:
     UI_container *parent;

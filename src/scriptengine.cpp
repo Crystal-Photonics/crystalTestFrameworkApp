@@ -5,6 +5,8 @@
 #include "LuaUI/combobox.h"
 #include "LuaUI/combofileselector.h"
 #include "LuaUI/dataengineinput.h"
+#include "LuaUI/userinstructionlabel.h"
+
 #include "LuaUI/hline.h"
 #include "LuaUI/image.h"
 #include "LuaUI/isotopesourceselector.h"
@@ -23,12 +25,12 @@
 #include "console.h"
 #include "data_engine/data_engine.h"
 #include "datalogger.h"
+#include "environmentvariables.h"
 #include "lua_functions.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_encoded_function_call.h"
 #include "ui_container.h"
 #include "util.h"
-#include "environmentvariables.h"
 
 #include <QDebug>
 #include <QDir>
@@ -642,7 +644,6 @@ void ScriptEngine::load_script(const QString &path) {
     //NOTE: When using lambdas do not capture `this` or by reference, because it breaks when the ScriptEngine is moved
     this->path = path;
 
-
     EnvironmentVariables env_variables(QSettings{}.value(Globals::path_to_environment_variables, "").toString());
 
     try {
@@ -693,14 +694,7 @@ void ScriptEngine::load_script(const QString &path) {
                         QObject::connect(shortcuts[i].get(), &QShortcut::activated, [&event_loop, i] { event_loop.exit(i); });
                     }
                 });
-#if 0
-                static const auto secret_exit_code = -0xF42F;
-                QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
-                auto exit_value = event_loop.exec();
-                if (exit_value != secret_exit_code) {
-                    throw sol::error("Interrupted");
-                }
-#endif
+
                 auto exit_value = event_loop.exec();
                 Utility::promised_thread_call(MainWindow::mw, [&shortcuts] { std::fill(std::begin(shortcuts), std::end(shortcuts), nullptr); });
                 switch (exit_value) {
@@ -710,9 +704,7 @@ void ScriptEngine::load_script(const QString &path) {
                         return "skip";
                     case cancel_pressed:
                         return "cancel";
-                    default: {
-                        throw sol::error("Interrupted");
-                    }
+                    default: { throw sol::error("Interrupted"); }
                 }
                 return "unknown";
             };
@@ -1037,10 +1029,30 @@ void ScriptEngine::load_script(const QString &path) {
                 "set_enabled", thread_call_wrapper(&DataEngineInput::set_enabled), //
                 "save_to_data_engine",
                 thread_call_wrapper(&DataEngineInput::save_to_data_engine), //
-                "set_editable", thread_call_wrapper(&DataEngineInput::set_editable)
+                "set_editable", thread_call_wrapper(&DataEngineInput::set_editable), "set_explanation_text",
+                thread_call_wrapper(&DataEngineInput::set_explanation_text)
 
                     );
         }
+        //bind UserInstructionLabel
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<UserInstructionLabel>>("UserInstructionLabel", //
+                                                                        sol::meta_function::construct,
+                                                                        [parent = this->parent](const std::string &instruction_text) {
+                                                                            return Lua_UI_Wrapper<UserInstructionLabel>{parent, instruction_text};
+                                                                        }, //
+                                                                        "await_event",
+                                                                        thread_call_wrapper(&UserInstructionLabel::await_event), //
+                                                                        "await_yes_no",
+                                                                        thread_call_wrapper(&UserInstructionLabel::await_yes_no), //
+
+                                                                        "set_visible", thread_call_wrapper(&UserInstructionLabel::set_visible), //
+                                                                        "set_enabled", thread_call_wrapper(&UserInstructionLabel::set_enabled), //
+                                                                        "set_instruction_text", thread_call_wrapper(&UserInstructionLabel::set_instruction_text)
+
+                                                                            );
+        }
+
         //bind ComboBoxFileSelector
         {
             ui_table.new_usertype<Lua_UI_Wrapper<ComboBoxFileSelector>>(
@@ -1176,10 +1188,9 @@ void ScriptEngine::load_script(const QString &path) {
         //bind Image
 
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image", sol::meta_function::construct,
-                                                         [parent = this->parent, path = path]() {
-                                                             return Lua_UI_Wrapper<Image>{parent, path}; //
-                                                         },
+            ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image", sol::meta_function::construct, [ parent = this->parent, path = path ]() {
+                return Lua_UI_Wrapper<Image>{parent, path}; //
+            },
                                                          "load_image_file",
                                                          thread_call_wrapper(&Image::load_image_file), //
                                                          "set_visible",
