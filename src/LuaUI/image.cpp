@@ -34,7 +34,7 @@ class Aspect_ratio_label : public QLabel {
 Image::Image(UI_container *parent, QString script_path)
 	: label{new Aspect_ratio_label(parent)} {
     this->script_path = script_path;
-	parent->add(label);
+    parent->add(label,this);
 	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     label->setScaledContents(true);
     parent->scroll_to_bottom();

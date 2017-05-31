@@ -3,9 +3,9 @@
 
 #include <QCheckBox>
 
-class UI_container;
+#include "ui_container.h"
 
-class CheckBox {
+class CheckBox : public UI_widget{
     public:
     ///\cond HIDDEN_SYMBOLS
     CheckBox(UI_container *parent, const std::string text);

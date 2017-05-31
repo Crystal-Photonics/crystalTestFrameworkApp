@@ -4,6 +4,7 @@
 #include "sol.hpp"
 #include <QString>
 #include <vector>
+#include "scriptengine.h"
 
 class QPlainTextEdit;
 
@@ -13,7 +14,7 @@ void print(QPlainTextEdit *console, const sol::variadic_args &args);
 std::string show_question(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table);
 void show_info(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
 void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
-void sleep_ms(const unsigned int timeout_ms);
+void sleep_ms(ScriptEngine* scriptengine, const unsigned int timeout_ms);
 void pc_speaker_beep();
 double current_date_time_ms(void);
 double round_double(const double value, const unsigned int precision);

@@ -3,27 +3,39 @@
 #include <QDebug>
 #include <QHBoxLayout>
 #include <QResizeEvent>
-#include <QVBoxLayout>
 #include <QScrollBar>
+#include <QVBoxLayout>
 #include <QWidget>
 #include <algorithm>
 #include <memory>
 
 struct Widget_paragraph {
     Widget_paragraph(QVBoxLayout *parent)
-        : layout{new QHBoxLayout} {
+        : layout{new QHBoxLayout}
+        , lua_ui_widget{lua_ui_widget} {
         parent->addLayout(layout);
     }
 
-    void add(QWidget *widget) {
+    void add(QWidget *widget, UI_widget *lua_ui_widget) {
         layout->addWidget(widget, 1, Qt::AlignBottom);
+        this->lua_ui_widget.push_back(lua_ui_widget);
     }
 
-    void add(QLayout *layout) {
+    void add(QLayout *layout, UI_widget *lua_ui_widget) {
         this->layout->addLayout(layout);
+        this->lua_ui_widget.push_back(lua_ui_widget);
+    }
+
+    void resizeEvent(QResizeEvent *event) {
+        for (auto w : lua_ui_widget) {
+            if (w) {
+                w->resizeEvent(event);
+            }
+        }
     }
 
     QHBoxLayout *layout{};
+    std::vector<UI_widget *> lua_ui_widget;
 };
 
 UI_container::UI_container(QWidget *parent)
@@ -39,19 +51,19 @@ UI_container::~UI_container() {
     //this destructor is required because we destruct forward declared objects Widget_paragraph
 }
 
-void UI_container::add(QWidget *widget) {
+void UI_container::add(QWidget *widget, UI_widget *lua_ui_widget) {
     if (paragraphs.size() < 2 || paragraphs.back().layout->count() >= column_count) {
         paragraphs.emplace_back(this->layout);
     }
-    paragraphs.back().add(widget);
+    paragraphs.back().add(widget, lua_ui_widget);
     trigger_resize();
 }
 
-void UI_container::add(QLayout *layout) {
+void UI_container::add(QLayout *layout, UI_widget *lua_ui_widget) {
     if (paragraphs.size() < 2 || paragraphs.back().layout->count() >= column_count) {
         paragraphs.emplace_back(this->layout);
     }
-    paragraphs.back().add(layout);
+    paragraphs.back().add(layout, lua_ui_widget);
     trigger_resize();
 }
 
@@ -68,6 +80,11 @@ void UI_container::scroll_to_bottom() {
 void UI_container::resizeEvent(QResizeEvent *event) {
     widget()->setFixedWidth(event->size().width());
     widget()->setFixedHeight(std::max(compute_size(event->size().width()), event->size().height()));
+
+    for (auto paragraph : paragraphs) {
+        paragraph.resizeEvent(event);
+    }
+
     QScrollArea::resizeEvent(event);
 }
 
@@ -84,4 +101,12 @@ void UI_container::trigger_resize() {
     const auto size = this->widget()->size();
     QResizeEvent resize_event{size, size};
     resizeEvent(&resize_event);
+}
+
+UI_widget::UI_widget() {}
+
+UI_widget::~UI_widget() {}
+
+void UI_widget::resizeEvent(QResizeEvent *event) {
+    (void)event;
 }

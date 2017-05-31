@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include "ui_container.h"
 
 namespace Utility {
 	class Event_filter;
@@ -210,7 +211,7 @@ class Curve {
 /** \ingroup ui
  *  \{
  */
-class Plot {
+class Plot : public UI_widget{
     public:
     ///\cond HIDDEN_SYMBOLS
 	Plot(UI_container *parent);

@@ -1,5 +1,4 @@
 #include "button.h"
-#include "ui_container.h"
 
 #include <QPushButton>
 #include <QSplitter>
@@ -8,17 +7,17 @@
 #include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-Button::Button(UI_container *parent, const std::string &title)
-	: button(new QPushButton(QString::fromStdString(title), parent)) {
-	parent->add(button);
-	button->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
+Button::Button(UI_container *parent, ScriptEngine *script_engine, const std::string &title)
+    : button(new QPushButton(QString::fromStdString(title), parent))
+    , script_engine{script_engine} {
+    parent->add(button,this);
+    button->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
     pressed_connection = QObject::connect(button, &QPushButton::pressed, [this] { pressed = true; });
     parent->scroll_to_bottom();
 }
 
 Button::~Button() {
     QObject::disconnect(pressed_connection);
-    QObject::disconnect(callback_connection);
     button->setEnabled(false);
 }
 ///\endcond
@@ -26,16 +25,14 @@ bool Button::has_been_clicked() const {
     return pressed;
 }
 
-void Button::set_visible(bool visible)
-{
+void Button::await_click() {
+    QMetaObject::Connection callback_connection =  QObject::connect(button, &QPushButton::pressed, [this] { script_engine->ui_event_queue_send(); });
+    script_engine->ui_event_queue_run();
+    QObject::disconnect(callback_connection);
+}
+
+void Button::set_visible(bool visible) {
     button->setVisible(visible);
 }
 
-///\cond HIDDEN_SYMBOLS
-void Button::set_single_shot_return_pressed_callback(std::function<void()> callback) {
-    callback_connection = QObject::connect(button, &QPushButton::clicked, [&callback_connection = this->callback_connection, callback = std::move(callback) ] {
-        callback();
-        QObject::disconnect(callback_connection);
-    });
-}
-///\endcond
+

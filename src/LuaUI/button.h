@@ -5,17 +5,17 @@
 #include <functional>
 #include <string>
 #include <QPushButton>
-
-class UI_container;
+#include "scriptengine.h"
+#include "ui_container.h"
 
 /** \defgroup ui User-intercation
  *  Interface of built-in user interface functions.
  *  \{
  */
 
-struct Button {
+struct Button : public UI_widget{
     ///\cond HIDDEN_SYMBOLS
-	Button(UI_container *parent, const std::string &title);
+    Button(UI_container *parent, ScriptEngine* script_engine,  const std::string &title);
     ///\endcond
     ~Button();
 
@@ -29,7 +29,7 @@ struct Button {
                                    //!  end
                                    //! \endcode
 
-    void set_single_shot_return_pressed_callback(std::function<void()> callback);
+    void await_click();
 
 
 public:
@@ -38,7 +38,8 @@ private:
     QPushButton *button = nullptr;
     QMetaObject::Connection pressed_connection;
     bool pressed = false;
-    QMetaObject::Connection callback_connection = {};
+    ScriptEngine* script_engine;
+
 };
 
 /** \} */ // end of group ui

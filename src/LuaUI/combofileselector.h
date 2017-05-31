@@ -9,7 +9,7 @@
 #include <sol.hpp>
 #include <string>
 
-class UI_container;
+#include "ui_container.h"
 
 class FileEntry {
     public:
@@ -18,7 +18,7 @@ class FileEntry {
     QDateTime date;
 };
 
-class ComboBoxFileSelector {
+class ComboBoxFileSelector : public UI_widget{
     public:
 	ComboBoxFileSelector(UI_container *parent, const std::string &directory, const sol::table &filter);
     ~ComboBoxFileSelector();

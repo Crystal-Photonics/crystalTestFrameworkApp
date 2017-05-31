@@ -468,7 +468,9 @@ sleep_ms(int timeout_ms);
 #endif
 
 /// @cond HIDDEN_SYMBOLS
-void sleep_ms(const unsigned int timeout_ms) {
+void sleep_ms(ScriptEngine* scriptengine, const unsigned int timeout_ms ) {
+    scriptengine->timer_event_queue_run(timeout_ms);
+#if 0
     QEventLoop event_loop;
     static const auto secret_exit_code = -0xF42F;
     QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
@@ -476,6 +478,7 @@ void sleep_ms(const unsigned int timeout_ms) {
     if (exit_value != secret_exit_code) {
         throw sol::error("Interrupted");
     }
+#endif
 };
 /// @endcond
 

@@ -5,9 +5,9 @@
 #include <QLabel>
 #include <sol.hpp>
 
-class UI_container;
+#include "ui_container.h"
 
-class ComboBox {
+class ComboBox : public UI_widget{
     public:
     ///\cond HIDDEN_SYMBOLS
     ComboBox(UI_container *parent, sol::table items);

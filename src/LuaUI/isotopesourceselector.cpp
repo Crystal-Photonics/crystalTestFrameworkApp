@@ -22,7 +22,7 @@ IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     layout->addWidget(label);
     layout->addWidget(combobox, 0, Qt::AlignBottom);
     layout->addStretch(1);
-    parent->add(layout);
+    parent->add(layout,this);
     load_isotope_database();
     fill_combobox_with_isotopes();
     parent->scroll_to_bottom();

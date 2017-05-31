@@ -4,20 +4,21 @@
 #include <QMetaObject>
 #include <functional>
 #include <string>
+#include "scriptengine.h"
+#include "ui_container.h"
 
 class QLabel;
 class QSplitter;
 class QLineEdit;
-class UI_container;
 class QWidget;
 
 /** \ingroup ui
  *  \{
  */
-class LineEdit {
+class LineEdit: public UI_widget {
     public:
     ///\cond HIDDEN_SYMBOLS
-	LineEdit(UI_container *parent);
+    LineEdit(UI_container *parent, ScriptEngine *script_engine);
     ~LineEdit();
     ///\endcond
     void set_placeholder_text(const std::string &text); //!<\brief Puts a gray explaining text into the line edit.
@@ -102,6 +103,7 @@ class LineEdit {
                                   //!< \return the caption of the line edit object set by set_caption() as a string value.
                                   //! \sa set_caption()
 
+    void await_return();
 ///\endcond
 //! \brief Waits until user hits the return key.
 //! \par examples:
@@ -113,16 +115,15 @@ class LineEdit {
     //this block is just for ducumentation purpose
     await_return();
 #endif
-    ///\cond HIDDEN_SYMBOLS
-    void set_single_shot_return_pressed_callback(std::function<void()> callback);
-    ///\endcond
+
     void set_visible(bool visible);
 private:
 	QLabel *label = nullptr;
     QLineEdit *edit = nullptr;
 
     std::string name;
-    QMetaObject::Connection callback_connection = {};
+    ScriptEngine *script_engine;
+
 };
 /** \} */ // end of group ui
 #endif // LINEEDIT_H
