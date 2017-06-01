@@ -109,17 +109,20 @@ void UserInstructionLabel::scale_columns() {
 }
 
 void UserInstructionLabel::await_event() {
+	assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     is_question_mode = false;
     run_hotkey_loop();
 }
 
 bool UserInstructionLabel::await_yes_no() {
+	assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     is_question_mode = true;
     return run_hotkey_loop();
 }
 
 bool UserInstructionLabel::run_hotkey_loop() {
-    set_enabled(true);
+	assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+	MainWindow::mw->execute_in_gui_thread([this] { set_enabled(true); });
     if (script_engine->hotkey_event_queue_run() == HotKeyEvent::HotKeyEvent::confirm_pressed) {
         return true;
     } else {

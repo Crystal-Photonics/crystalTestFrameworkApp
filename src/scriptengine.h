@@ -49,7 +49,7 @@ class ScriptEngine {
     friend class TestDescriptionLoader;
     friend class DeviceWorker;
 
-    ScriptEngine(UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine);
+	ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine);
     ~ScriptEngine();
 
     TimerEvent::TimerEvent timer_event_queue_run(int timeout_ms);
@@ -89,6 +89,7 @@ class ScriptEngine {
     QEventLoop event_loop;
 
     int event_queue_run_();
+	QObject *owner{nullptr};
 };
 
 template <class ReturnType, class... Arguments>

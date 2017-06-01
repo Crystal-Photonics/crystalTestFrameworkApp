@@ -19,7 +19,7 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
         return console;
     }())
     , lua_ui_container(new UI_container(MainWindow::mw))
-    , script(lua_ui_container, console, data_engine.get())
+	, script(this, lua_ui_container, console, data_engine.get())
     , name(description.get_name()) {
     Console::note(console) << "Script started";
     lua_ui_container->add(console, nullptr);

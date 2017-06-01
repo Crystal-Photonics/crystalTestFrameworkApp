@@ -223,6 +223,8 @@ void DataEngineInput::sleep_ms(uint timeout_ms) {
 }
 
 void DataEngineInput::await_event() {
+	//TODO: This now runs in the script thread, so we cannot call GUI functions like set_button_visibility directly anymore
+	//use MainWindow::mw->execute_in_gui_thread to fix
     is_waiting = true;
     switch (field_type) {
         case FieldType::Bool: {

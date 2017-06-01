@@ -5,8 +5,6 @@
 #include "LuaUI/combobox.h"
 #include "LuaUI/combofileselector.h"
 #include "LuaUI/dataengineinput.h"
-#include "LuaUI/userinstructionlabel.h"
-
 #include "LuaUI/hline.h"
 #include "LuaUI/image.h"
 #include "LuaUI/isotopesourceselector.h"
@@ -15,6 +13,7 @@
 #include "LuaUI/plot.h"
 #include "LuaUI/progressbar.h"
 #include "LuaUI/spinbox.h"
+#include "LuaUI/userinstructionlabel.h"
 #include "Protocols/manualprotocol.h"
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
@@ -29,6 +28,7 @@
 #include "lua_functions.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_encoded_function_call.h"
+#include "testrunner.h"
 #include "ui_container.h"
 #include "util.h"
 
@@ -271,6 +271,19 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
             return detail::call(function, ui, std::move(args));
         });
     };
+}
+
+//wrapper that wraps a UI function so it is NOT called from the GUI thread. The function must not call any GUI-related functions in the non-GUI thread.
+template <class ReturnType, class UI_class, class... Args>
+auto non_gui_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
+	return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
+		//TODO: Decide if we should use promised_thread_call or thread_call
+		//promised_thread_call lets us get return values while thread_call does not
+		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
+		//using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
+		UI_class &ui = Utility::promised_thread_call(MainWindow::mw, [id = lui.id]()->UI_class & { return MainWindow::mw->get_lua_UI_class<UI_class>(id); });
+		(ui.*function)(args...);
+	};
 }
 
 //wrapper that wraps a UI function such as Button::has_been_clicked so that it is called from the main window context. Doesn't wait for processing.
@@ -568,22 +581,25 @@ struct SCPIDevice {
     ScriptEngine *engine = nullptr;
 };
 
-ScriptEngine::ScriptEngine(UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine)
+ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine)
     : lua(std::make_unique<sol::state>())
     , parent(parent)
     , console(console)
-    , data_engine(data_engine) {}
+	, data_engine(data_engine)
+	, owner{owner} {}
 
 ScriptEngine::~ScriptEngine() {}
 
 int ScriptEngine::event_queue_run_() {
     assert(!event_loop.isRunning());
-    assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ darf nicht aus dem GUI-thread aufgerufen werden
+	assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     qDebug() << "eventloop start"
-             << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId();
+			 << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
+			 << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
     auto exit_value = event_loop.exec();
     qDebug() << "eventloop end"
-             << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId();
+			 << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
+			 << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
     if (exit_value < 0) {
         throw sol::error("Interrupted");
     }
@@ -612,9 +628,12 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
         for (std::size_t i = 0; i < shortcuts.size(); i++) {
             shortcuts[i] = std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
             QObject::connect(shortcuts[i].get(), &QShortcut::activated, [this, i] {
-                qDebug() << "quitting event loop which is " << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
-                         << "Current Thread:" << QThread::currentThreadId();
-                this->event_loop.exit(i);
+				Utility::thread_call(owner, [this, i] {
+					qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
+							 << "Current Thread:" << QThread::currentThreadId()
+							 << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
+					event_loop.exit(i);
+				});
             });
         }
 
@@ -1085,7 +1104,7 @@ void ScriptEngine::load_script(const QString &path) {
                 "load_actual_value",
                 thread_call_wrapper(&DataEngineInput::load_actual_value), //
                 "await_event",
-                thread_call_wrapper(&DataEngineInput::await_event),                //
+				non_gui_call_wrapper(&DataEngineInput::await_event),                //
                 "set_visible", thread_call_wrapper(&DataEngineInput::set_visible), //
                 "set_enabled", thread_call_wrapper(&DataEngineInput::set_enabled), //
                 "save_to_data_engine",
@@ -1104,11 +1123,11 @@ void ScriptEngine::load_script(const QString &path) {
                                                                             return Lua_UI_Wrapper<UserInstructionLabel>{parent, this, instruction_text};
                                                                         }, //
                                                                         "await_event",
-                                                                        thread_call_wrapper(&UserInstructionLabel::await_event), //
+																		non_gui_call_wrapper(&UserInstructionLabel::await_event), //
                                                                         "await_yes_no",
-                                                                        thread_call_wrapper(&UserInstructionLabel::await_yes_no), //
+																		non_gui_call_wrapper(&UserInstructionLabel::await_yes_no), //
 
-                                                                        "set_visible", thread_call_wrapper(&UserInstructionLabel::set_visible), //
+																		"set_visible", thread_call_wrapper(&UserInstructionLabel::set_visible), //
                                                                         "set_enabled", thread_call_wrapper(&UserInstructionLabel::set_enabled), //
                                                                         "set_instruction_text", thread_call_wrapper(&UserInstructionLabel::set_instruction_text)
 

@@ -1200,6 +1200,7 @@ void Data_engine::set_actual_text(const FormID &id, QString text) {
 
 void Data_engine::set_actual_bool(const FormID &id, bool value) {
     auto section = sections.get_section(id);
+	assert(section);
     section->set_actual_bool(id, value);
 }
 
