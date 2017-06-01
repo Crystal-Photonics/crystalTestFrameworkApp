@@ -1,12 +1,12 @@
 #ifndef HLINE_H
 #define HLINE_H
 
+#include "ui_container.h"
 
 class QFrame;
 class QWidget;
-class UI_container;
 
-class HLine {
+class HLine : public UI_widget{
     public:
     ///\cond HIDDEN_SYMBOLS
     HLine(UI_container *parent);

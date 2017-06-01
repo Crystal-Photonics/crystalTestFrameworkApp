@@ -2,6 +2,8 @@
 #define DATAENGINEINPUT_H
 
 #include "data_engine/data_engine.h"
+#include "scriptengine.h"
+#include "ui_container.h"
 #include <QMetaObject>
 #include <functional>
 #include <string>
@@ -11,7 +13,6 @@ class QSplitter;
 class QTimer;
 class QCheckBox;
 class QHBoxLayout;
-class UI_container;
 class QWidget;
 class QLineEdit;
 class QPushButton;
@@ -19,19 +20,22 @@ class QPushButton;
 /** \ingroup ui
  *  \{
  */
-class DataEngineInput {
+class DataEngineInput : public UI_widget {
+    enum FieldType { Bool, String, Numeric };
+
     public:
-    DataEngineInput(UI_container *parent, Data_engine *data_engine, std::string field_id, std::string extra_explanation, std::string empty_value_placeholder,
-                    std::string desired_prefix, std::string actual_prefix);
+    DataEngineInput(UI_container *parent, ScriptEngine *script_engine, Data_engine *data_engine, std::string field_id, std::string extra_explanation,
+                    std::string empty_value_placeholder, std::string desired_prefix, std::string actual_prefix);
     ~DataEngineInput();
 
     void set_visible(bool visible);
-    void set_enabled(bool enabled);
+    void set_enabled(bool is_enabled);
     void clear_explanation();
     void load_actual_value();
     void set_editable();
     void save_to_data_engine();
     void await_event();
+    void sleep_ms(uint timeout_ms);
     void set_explanation_text(const std::string &extra_explanation);
 
     private:
@@ -64,18 +68,32 @@ class DataEngineInput {
     QString desired_prefix;
     QString actual_prefix;
     bool blink_state = false;
-    bool editable = false;
+    bool is_editable = false;
 
+    bool is_enabled = true;
+    bool is_visible = true;
+    bool is_waiting = false;
     ///\cond HIDDEN_SYMBOLS
     void start_timer();
     ///\endcond
-
+    ScriptEngine *script_engine;
+    void resizeEvent(QResizeEvent *event) override;
     std::experimental::optional<bool> bool_result;
 
     QMetaObject::Connection callback_timer = {};
-    QMetaObject::Connection callback_bool_true = {};
-    QMetaObject::Connection callback_bool_false = {};
+    QMetaObject::Connection callback_bool_yes = {};
+    QMetaObject::Connection callback_bool_no = {};
     QMetaObject::Connection callback_next = {};
+    void set_ui_visibility();
+    void set_button_visibility(bool next, bool yes_no);
+    FieldType field_type;
+    void set_labels_enabled();
+    void set_total_visibilty();
+    const int BLINK_INTERVAL_MS = 500;
+    uint total_width = 0;
+    bool init_ok = false;
+
+    void scale_columns();
 };
 
 #endif // DATAENGINEINPUT_H

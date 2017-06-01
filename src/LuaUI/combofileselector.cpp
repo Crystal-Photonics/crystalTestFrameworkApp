@@ -55,26 +55,24 @@ void showInGraphicalShell(QWidget *parent, const QString &pathIn) {
 }
 #endif
 
-ComboBoxFileSelector::ComboBoxFileSelector(UI_container *parent, const std::string &directory, const sol::table &filter)
-	: parent{parent}
-	, combobox{new QComboBox(parent)}
-	, button{new QPushButton(parent)} {
-	QHBoxLayout *layout = new QHBoxLayout;
+ComboBoxFileSelector::ComboBoxFileSelector(UI_container *parent, const std::string &directory, const QStringList &filter)
+    : parent{parent}
+    , combobox{new QComboBox(parent)}
+    , button{new QPushButton(parent)} {
+    QHBoxLayout *layout = new QHBoxLayout;
 
-	layout->addWidget(combobox);
+    layout->addWidget(combobox);
     layout->addWidget(button);
-	parent->add(layout);
+    parent->add(layout, this);
 
     button->setText("explore..");
-	combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-	button->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+    button->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
 
     current_directory = QString::fromStdString(directory);
     button_clicked_connection = QObject::connect(button, &QPushButton::pressed, [this] { showInGraphicalShell(this->parent, this->current_directory); });
 
-    for (auto &filt : filter) {
-        filters.append(QString::fromStdString(filt.second.as<std::string>()));
-    }
+    this->filters = filter;
 
     scan_directory();
     fill_combobox();
@@ -82,7 +80,7 @@ ComboBoxFileSelector::ComboBoxFileSelector(UI_container *parent, const std::stri
 }
 
 ComboBoxFileSelector::~ComboBoxFileSelector() {
-	combobox->setEnabled(false);
+    combobox->setEnabled(false);
     QObject::disconnect(button_clicked_connection);
 }
 
@@ -115,8 +113,7 @@ void ComboBoxFileSelector::set_order_by(const std::string &field, const bool asc
     fill_combobox();
 }
 
-void ComboBoxFileSelector::set_visible(bool visible)
-{
+void ComboBoxFileSelector::set_visible(bool visible) {
     combobox->setVisible(visible);
     button->setVisible(visible);
 }

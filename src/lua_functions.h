@@ -4,6 +4,7 @@
 #include "sol.hpp"
 #include <QString>
 #include <vector>
+#include "scriptengine.h"
 
 class QPlainTextEdit;
 
@@ -13,7 +14,7 @@ void print(QPlainTextEdit *console, const sol::variadic_args &args);
 std::string show_question(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table);
 void show_info(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
 void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
-void sleep_ms(const unsigned int timeout_ms);
+void sleep_ms(ScriptEngine* scriptengine, const unsigned int timeout_ms);
 void pc_speaker_beep();
 double current_date_time_ms(void);
 double round_double(const double value, const unsigned int precision);
@@ -38,6 +39,7 @@ double table_max(sol::table input_values);
 double table_min(sol::table input_values);
 double table_max_abs(sol::table input_values);
 double table_min_abs(sol::table input_values);
+std::string propose_unique_filename_by_datetime(const std::string &dir_path, const std::string &prefix, const std::string &suffix);
 sol::table git_info(sol::state &lua, std::string path, bool allow_modified);
 
 #endif // LUA_FUNCTIONS_H

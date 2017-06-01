@@ -10,22 +10,22 @@
 #include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-LineEdit::LineEdit(UI_container *parent)
-	: label{new QLabel(parent)}
-	, edit{new QLineEdit(parent)} {
-	QVBoxLayout *layout = new QVBoxLayout;
+LineEdit::LineEdit(UI_container *parent, ScriptEngine *script_engine)
+    : label{new QLabel(parent)}
+    , edit{new QLineEdit(parent)}
+    , script_engine{script_engine} {
+    QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(label);
     layout->addWidget(edit, 0, Qt::AlignBottom);
     layout->addStretch(1);
-	parent->add(layout);
-	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-	edit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+    parent->add(layout,this);
+    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+    edit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     parent->scroll_to_bottom();
 }
 
 LineEdit::~LineEdit() {
     edit->setReadOnly(true);
-    QObject::disconnect(callback_connection);
 }
 ///\endcond
 void LineEdit::set_placeholder_text(const std::string &text) {
@@ -56,14 +56,19 @@ void LineEdit::set_caption(const std::string &caption) {
     }
 }
 
-void LineEdit::set_visible(bool visible)
-{
+void LineEdit::set_visible(bool visible) {
     label->setVisible(visible);
     edit->setVisible(visible);
 }
 
 std::string LineEdit::get_caption() const {
-   return label->text().toStdString();
+    return label->text().toStdString();
+}
+
+void LineEdit::await_return() {
+    QMetaObject::Connection callback_connection =  QObject::connect(edit, &QLineEdit::returnPressed, [this] { this->script_engine->ui_event_queue_send(); });
+    script_engine->ui_event_queue_run();
+    QObject::disconnect(callback_connection);
 }
 
 double LineEdit::get_number() const {
@@ -76,11 +81,5 @@ double LineEdit::get_number() const {
     return retval;
 }
 ///\cond HIDDEN_SYMBOLS
-void LineEdit::set_single_shot_return_pressed_callback(std::function<void()> callback) {
-    callback_connection =
-        QObject::connect(edit, &QLineEdit::returnPressed, [&callback_connection = this->callback_connection, callback = std::move(callback) ] {
-            callback();
-            QObject::disconnect(callback_connection);
-        });
-}
+
 ///\endcond

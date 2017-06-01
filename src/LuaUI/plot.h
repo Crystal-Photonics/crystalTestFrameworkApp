@@ -7,6 +7,8 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include "ui_container.h"
+#include "scriptengine.h"
 
 namespace Utility {
 	class Event_filter;
@@ -31,7 +33,7 @@ class UI_container;
 class Curve {
     public:
     ///\cond HIDDEN_SYMBOLS
-	Curve(UI_container *, Plot *plot);
+    Curve(UI_container *, ScriptEngine *script_engine, Plot *plot);
     Curve(Curve &&other) = delete;
     ~Curve();
     void add(const std::vector<double> &data);
@@ -191,7 +193,8 @@ class Curve {
     ///\endcond
 
 
-    private:
+    double pick_x_coord();
+private:
     ///\cond HIDDEN_SYMBOLS
 
     void update();
@@ -204,13 +207,14 @@ class Curve {
 	Utility::Event_filter *event_filter{nullptr};
 	///\endcond
     friend class Plot;
+    ScriptEngine *script_engine ;
 };
 /** \} */ // end of group ui
 
 /** \ingroup ui
  *  \{
  */
-class Plot {
+class Plot : public UI_widget{
     public:
     ///\cond HIDDEN_SYMBOLS
 	Plot(UI_container *parent);

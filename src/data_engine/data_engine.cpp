@@ -1967,9 +1967,9 @@ QString BoolDataEntry::get_actual_values() const {
     if ((bool)actual_value == false) {
         return unavailable_value;
     } else if (actual_value.value()) {
-        return "true";
+        return "Yes";
     } else {
-        return "false";
+        return "No";
     }
 }
 
@@ -1980,9 +1980,9 @@ QString BoolDataEntry::get_description() const {
 QString BoolDataEntry::get_desired_value_as_string() const {
     if ((bool)desired_value) {
         if (desired_value.value()) {
-            return "true";
+            return "Yes";
         } else {
-            return "false";
+            return "No";
         }
     } else {
         return "";

@@ -6,9 +6,9 @@
 #include <QMetaObject>
 #include <functional>
 #include <string>
+#include "ui_container.h"
 
 class QComboBox;
-class UI_container;
 
 class IsotopeSource {
     public:
@@ -22,7 +22,7 @@ class IsotopeSource {
     double get_activtiy_becquerel(QDate date_for_activity);
 };
 
-class IsotopeSourceSelector {
+class IsotopeSourceSelector : public UI_widget{
     public:
 	IsotopeSourceSelector(UI_container *parent);
 

@@ -8,7 +8,6 @@
 
 #include <QCheckBox>
 #include <QDoubleValidator>
-#include <QEventLoop>
 #include <QHBoxLayout>
 #include <QInputDialog>
 #include <QKeySequence>
@@ -24,8 +23,8 @@
 #include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-DataEngineInput::DataEngineInput(UI_container *parent, Data_engine *data_engine, std::string field_id, std::string extra_explanation,
-                                 std::string empty_value_placeholder, std::string desired_prefix, std::string actual_prefix)
+DataEngineInput::DataEngineInput(UI_container *parent, ScriptEngine *script_engine, Data_engine *data_engine, std::string field_id,
+                                 std::string extra_explanation, std::string empty_value_placeholder, std::string desired_prefix, std::string actual_prefix)
     : parent{parent}
     , label_extra_explanation{new QLabel(parent)}
     , label_de_description{new QLabel(parent)}
@@ -38,18 +37,20 @@ DataEngineInput::DataEngineInput(UI_container *parent, Data_engine *data_engine,
     , empty_value_placeholder{QString::fromStdString(empty_value_placeholder)}
     , extra_explanation{QString::fromStdString(extra_explanation)}
     , desired_prefix{QString::fromStdString(desired_prefix)}
-    , actual_prefix{QString::fromStdString(actual_prefix)} {
+    , actual_prefix{QString::fromStdString(actual_prefix)}
+    , script_engine{script_engine} {
     hlayout = new QHBoxLayout;
 
-    hlayout->addWidget(label_extra_explanation);
-    hlayout->addWidget(label_de_description);
-    hlayout->addWidget(label_de_desired_value);
-    hlayout->addWidget(label_de_actual_value);
-    hlayout->addWidget(label_ok);
-    parent->add(hlayout);
+    hlayout->addWidget(label_extra_explanation, 0, Qt::AlignTop);
+    hlayout->addWidget(label_de_description, 0, Qt::AlignTop);
+    hlayout->addWidget(label_de_desired_value, 0, Qt::AlignTop);
+    hlayout->addWidget(label_de_actual_value, 0, Qt::AlignTop);
+    hlayout->addWidget(label_ok, 0, Qt::AlignTop);
+    parent->add(hlayout, this);
 
     label_extra_explanation->setText(QString::fromStdString(extra_explanation));
     label_extra_explanation->setWordWrap(true);
+
     label_de_description->setText(data_engine->get_description(this->field_id));
     label_de_description->setWordWrap(true);
     label_de_desired_value->setText(this->desired_prefix + " " + data_engine->get_desired_value_as_string(this->field_id) + " " +
@@ -62,127 +63,121 @@ DataEngineInput::DataEngineInput(UI_container *parent, Data_engine *data_engine,
         label_de_desired_value->setText(" ");
     }
 
+    auto entry_type = data_engine->get_entry_type(this->field_id);
+    switch (entry_type) {
+        case EntryType::Bool: {
+            field_type = FieldType::Bool;
+
+        } break;
+        case EntryType::Numeric: {
+            field_type = FieldType::Numeric;
+        } break;
+        case EntryType::String: {
+            field_type = FieldType::String;
+        } break;
+        default:
+            assert(0);
+            break;
+    }
+
     auto *vlayout_next = new QVBoxLayout;
+    auto *vlayout_yes = new QVBoxLayout;
+    auto *vlayout_no = new QVBoxLayout;
+
     label_next = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence, "").toString() + ")", parent);
     button_next = new QPushButton("next", parent);
     vlayout_next->addWidget(button_next);
     vlayout_next->addWidget(label_next);
+    vlayout_next->addStretch();
+
+    label_yes = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence, "").toString() + ")", parent);
+    button_yes = new QPushButton("Yes", parent);
+    vlayout_yes->addWidget(button_yes);
+    vlayout_yes->addWidget(label_yes);
+    vlayout_yes->addStretch();
+
+    label_no = new QLabel("(or " + QSettings{}.value(Globals::cancel_key_sequence, "").toString() + ")", parent);
+    button_no = new QPushButton("No", parent);
+    vlayout_no->addWidget(button_no);
+    vlayout_no->addWidget(label_no);
+    vlayout_no->addStretch();
+
     hlayout->addLayout(vlayout_next);
-#if 0
-    QKeySequence shortcut_yes = QKeySequence{QSettings{}.value(Globals::confirm_key_sequence, "").toString()};
-    button_next->setShortcut(shortcut_yes);
-#endif
-    callback_next = QObject::connect(button_next, &QPushButton::clicked, [this]() {});
+    hlayout->insertLayout(3, vlayout_no);
+    hlayout->insertLayout(3, vlayout_yes);
+
+    lineedit = new QLineEdit(parent);
+    lineedit->setText(this->empty_value_placeholder);
+    hlayout->insertWidget(3, lineedit, 0, Qt::AlignTop);
+
+    auto sp_w = QSizePolicy::Maximum;
+    auto sp_h = QSizePolicy::Maximum;
+    label_extra_explanation->setSizePolicy(sp_w, sp_h);
+    label_de_desired_value->setSizePolicy(sp_w, sp_h);
+    label_de_actual_value->setSizePolicy(sp_w, sp_h);
+    label_ok->setSizePolicy(sp_w, sp_h);
+    button_yes->setSizePolicy(sp_w, sp_h);
+    button_no->setSizePolicy(sp_w, sp_h);
+    button_next->setSizePolicy(sp_w, sp_h);
+    lineedit->setSizePolicy(sp_w, sp_h);
+
+    callback_bool_no = QObject::connect(button_no, &QPushButton::clicked,
+                                        [script_engine = this->script_engine]() { script_engine->hotkey_event_queue_send_event(HotKeyEvent::cancel_pressed); });
+    callback_bool_yes = QObject::connect(button_yes, &QPushButton::clicked, [script_engine = this->script_engine]() {
+        script_engine->hotkey_event_queue_send_event(HotKeyEvent::confirm_pressed);
+    });
+
+    callback_next = QObject::connect(button_next, &QPushButton::clicked,
+                                     [script_engine]() { script_engine->hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent::confirm_pressed); });
+
+    set_enabled(true);
 
     start_timer();
-    timer->start(500);
+
     parent->scroll_to_bottom();
+    init_ok = true;
+    set_ui_visibility();
 }
 
 DataEngineInput::~DataEngineInput() {
     timer->stop();
     QObject::disconnect(callback_timer);
     QObject::disconnect(callback_next);
-    QObject::disconnect(callback_bool_false);
-    QObject::disconnect(callback_bool_true);
+    QObject::disconnect(callback_bool_no);
+    QObject::disconnect(callback_bool_yes);
     set_enabled(false);
 }
 ///\endcond
 
 void DataEngineInput::load_actual_value() {
+    is_editable = false;
     if (data_engine->value_complete(field_id)) {
         timer->stop();
-        QObject::disconnect(callback_timer);
 
         QString val = data_engine->get_actual_value(field_id);
         label_de_actual_value->setText(this->actual_prefix + " " + val + " " + data_engine->get_unit(this->field_id));
         if (data_engine->value_in_range(field_id)) {
             label_ok->setText("OK");
         } else {
-            label_ok->setText("fail");
+            label_ok->setText("Fail");
         }
-        if (!editable) {
-            //label_extra_explanation->setText(" ");
-            if (button_next) {
-                button_next->setVisible(false);
-                button_next = nullptr;
-            }
-            if (label_next) {
-                label_next->setVisible(false);
-                label_next = nullptr;
-            }
-        }
+        set_ui_visibility();
     }
 }
 
 void DataEngineInput::set_editable() {
-    if (editable) {
+    if (is_editable) {
         return;
     }
-    timer->stop();
-    QObject::disconnect(callback_timer);
+
     label_extra_explanation->setText(extra_explanation);
 
-    auto entry_type = data_engine->get_entry_type(field_id);
-    editable = true;
-    label_de_actual_value->setVisible(false);
-    switch (entry_type) {
-        case EntryType::Bool: {
-            if (button_next) {
-                button_next->setVisible(false);
-                button_next = nullptr;
-            }
-            if (label_next) {
-                label_next->setVisible(false);
-                label_next = nullptr;
-            }
-
-            auto *vlayout_yes = new QVBoxLayout;
-            auto *vlayout_no = new QVBoxLayout;
-            label_yes = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence, "").toString() + ")", parent);
-            label_no = new QLabel("(or " + QSettings{}.value(Globals::cancel_key_sequence, "").toString() + ")", parent);
-            button_no = new QPushButton("false", parent);
-            button_yes = new QPushButton("true", parent);
-
-            vlayout_no->addWidget(button_no);
-            vlayout_no->addWidget(label_no);
-
-            vlayout_yes->addWidget(button_yes);
-            vlayout_yes->addWidget(label_yes);
-
-            hlayout->insertLayout(3, vlayout_no);
-            hlayout->insertLayout(3, vlayout_yes);
-#if 0
-            QKeySequence shortcut_yes = QKeySequence{QSettings{}.value(Globals::confirm_key_sequence, "").toString()};
-            QKeySequence shortcut_no = QKeySequence{QSettings{}.value(Globals::cancel_key_sequence, "").toString()};
-            button_yes->setShortcut(shortcut_yes);
-            button_no->setShortcut(shortcut_no);
-#endif
-
-            callback_bool_false = QObject::connect(button_no, &QPushButton::clicked, [this]() { bool_result = false; });
-            callback_bool_true = QObject::connect(button_yes, &QPushButton::clicked, [this]() { bool_result = true; });
-
-        } break;
-        case EntryType::Numeric: {
-            lineedit = new QLineEdit(parent);
-            lineedit->setText(empty_value_placeholder);
-            hlayout->insertWidget(3, lineedit);
-            auto validator = new QDoubleValidator(parent);
-            lineedit->setValidator(validator);
-        } break;
-        case EntryType::String: {
-            lineedit = new QLineEdit(parent);
-            lineedit->setText(empty_value_placeholder);
-            hlayout->insertWidget(3, lineedit);
-
-        } break;
-        default:
-            break;
-    }
+    is_editable = true;
+    set_ui_visibility();
 }
 
 void DataEngineInput::save_to_data_engine() {
-    if (editable) {
+    if (is_editable) {
         auto entry_type = data_engine->get_entry_type(field_id);
         switch (entry_type) {
             case EntryType::Bool: {
@@ -214,91 +209,71 @@ void DataEngineInput::save_to_data_engine() {
     load_actual_value();
 }
 
+void DataEngineInput::sleep_ms(uint timeout_ms) {
+    is_waiting = true;
+    set_ui_visibility();
+
+    if (!is_editable) {
+        timer->start(BLINK_INTERVAL_MS);
+    }
+    script_engine->timer_event_queue_run(timeout_ms);
+    timer->stop();
+    is_waiting = false;
+    set_ui_visibility();
+}
+
 void DataEngineInput::await_event() {
-    QEventLoop event_loop;
-    enum { confirm_pressed, skip_pressed, cancel_pressed };
-    std::array<std::unique_ptr<QShortcut>, 3> shortcuts;
-    MainWindow::mw->execute_in_gui_thread([&event_loop, &shortcuts] {
-        const char *settings_keys[] = {Globals::confirm_key_sequence, Globals::skip_key_sequence, Globals::cancel_key_sequence};
-        for (std::size_t i = 0; i < shortcuts.size(); i++) {
-            shortcuts[i] = std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
-            QObject::connect(shortcuts[i].get(), &QShortcut::activated, [&event_loop, i] { event_loop.exit(i); });
+    is_waiting = true;
+    switch (field_type) {
+        case FieldType::Bool: {
+            set_button_visibility(false, true);
+
+        } break;
+        case FieldType::Numeric:
+        case FieldType::String: {
+            set_button_visibility(true, false);
+
+        } break;
+        default:
+            break;
+    }
+    if (!is_editable) {
+        timer->start(BLINK_INTERVAL_MS);
+    }
+    set_ui_visibility();
+    auto result = script_engine->hotkey_event_queue_run();
+
+    if (is_editable && (field_type == FieldType::Bool)) {
+        if (result == HotKeyEvent::HotKeyEvent::confirm_pressed) {
+            bool_result = true;
+        } else {
+            bool_result = false;
         }
-    });
-    auto exit_value = event_loop.exec();
-    Utility::promised_thread_call(MainWindow::mw, [&shortcuts] { std::fill(std::begin(shortcuts), std::end(shortcuts), nullptr); });
+    }
+    timer->stop();
+    if (is_editable) {
+        save_to_data_engine();
+    }
+    is_waiting = false;
+    set_ui_visibility();
 }
 
 void DataEngineInput::set_explanation_text(const std::string &extra_explanation) {
     this->extra_explanation = QString().fromStdString(extra_explanation);
     label_extra_explanation->setText(this->extra_explanation);
-
 }
 
 void DataEngineInput::set_visible(bool visible) {
-    label_extra_explanation->setVisible(visible);
-    label_de_description->setVisible(visible);
-    label_de_desired_value->setVisible(visible);
-    label_de_actual_value->setVisible(visible);
-    label_ok->setVisible(visible);
-    if (lineedit) {
-        lineedit->setVisible(visible);
-    }
-    if (button_no) {
-        button_no->setVisible(visible);
-    }
-    if (button_yes) {
-        button_yes->setVisible(visible);
-    }
-    if (label_yes) {
-        label_yes->setVisible(visible);
-    }
-    if (label_no) {
-        label_no->setVisible(visible);
-    }
-    if (button_next) {
-        button_next->setVisible(visible);
-    }
-    if (label_next) {
-        label_next->setVisible(visible);
-    }
+    is_visible = visible;
+    set_ui_visibility();
 }
 
 void DataEngineInput::set_enabled(bool enabled) {
-    label_extra_explanation->setEnabled(enabled);
-    label_de_description->setEnabled(enabled);
-    label_de_desired_value->setEnabled(enabled);
-    label_de_actual_value->setEnabled(enabled);
-    if (enabled == false) {
-        label_extra_explanation->setText(" ");
+    this->is_enabled = enabled;
+    set_ui_visibility();
+    if (enabled) {
+        timer->start(BLINK_INTERVAL_MS);
     } else {
-        label_extra_explanation->setText(extra_explanation);
-    }
-    label_ok->setEnabled(enabled);
-    if (lineedit) {
-        lineedit->setEnabled(enabled);
-    }
-    if (button_no) {
-        button_no->setVisible(enabled);
-    }
-    if (button_yes) {
-        button_yes->setVisible(enabled);
-    }
-    if (label_yes) {
-        label_yes->setVisible(enabled);
-    }
-    if (label_no) {
-        label_no->setVisible(enabled);
-    }
-    if (button_next) {
-        button_next->setVisible(enabled);
-    }
-    if (label_next) {
-        label_next->setVisible(enabled);
-    }
-    if (enabled){
-        timer->start();
-    }else{
         timer->stop();
     }
 }
@@ -313,11 +288,151 @@ void DataEngineInput::start_timer() {
             label_de_actual_value->setText(" ");
             label_extra_explanation->setText(" ");
         } else {
+
+
+            label_de_actual_value->setMinimumHeight(0);
+            label_de_actual_value->setMaximumHeight(16777215);
             label_de_actual_value->setText(actual_prefix + " " + empty_value_placeholder);
+            label_de_actual_value->setFixedHeight(label_de_actual_value->height());
+
+            label_extra_explanation->setMinimumHeight(0);
+            label_extra_explanation->setMaximumHeight(16777215);
             label_extra_explanation->setText(extra_explanation);
+            label_extra_explanation->setFixedHeight(label_extra_explanation->height());
         }
         blink_state = !blink_state;
 
     });
 }
+
+void DataEngineInput::resizeEvent(QResizeEvent *event) {
+    total_width = event->size().width();
+    set_ui_visibility();
+}
+
+void DataEngineInput::set_total_visibilty() {
+    label_extra_explanation->setVisible(is_visible && is_enabled && is_waiting);
+    label_de_description->setVisible(is_visible);
+    label_de_desired_value->setVisible(is_visible);
+    label_de_actual_value->setVisible(is_visible && (is_editable == false));
+    label_ok->setVisible(is_enabled && is_visible && (is_editable == false));
+    lineedit->setVisible(is_visible && is_editable && is_enabled);
+}
+
+void DataEngineInput::scale_columns() {
+    int col_size = 6;
+    if (is_editable && is_enabled && is_visible) {
+        switch (field_type) {
+            case FieldType::Numeric: {
+                lineedit->setFixedWidth((total_width / col_size));
+                button_next->setFixedWidth((total_width / col_size));
+            } break;
+            case FieldType::Bool: {
+                button_yes->setFixedWidth((total_width / (col_size * 2)));
+                button_no->setFixedWidth((total_width / (col_size * 2)));
+            } break;
+            case FieldType::String: {
+                lineedit->setFixedWidth((total_width / col_size));
+                button_next->setFixedWidth((total_width / col_size));
+            } break;
+            default:
+                break;
+        }
+        label_extra_explanation->setFixedWidth((total_width / col_size));
+        //label_de_description->setFixedWidth((total_width / col_size));
+        label_de_desired_value->setFixedWidth((total_width / col_size));
+
+    } else if (is_enabled && is_visible) {
+        label_extra_explanation->setFixedWidth((total_width / col_size));
+        //label_de_description->setFixedWidth((total_width / col_size));
+        label_de_desired_value->setFixedWidth((total_width / col_size));
+        label_de_actual_value->setFixedWidth((total_width / col_size));
+        label_ok->setFixedWidth((total_width / col_size));
+        button_next->setFixedWidth((total_width / col_size));
+
+    } else if ((is_enabled == false) && is_visible) {
+        label_extra_explanation->setFixedWidth((total_width / col_size));
+        //label_de_description->setFixedWidth((total_width / col_size));
+        label_de_desired_value->setFixedWidth((total_width / col_size));
+        label_de_actual_value->setFixedWidth((total_width / col_size));
+        label_ok->setFixedWidth((total_width / col_size));
+        button_next->setFixedWidth((total_width / col_size));
+
+    } else if (!is_visible) {
+    }
+}
+
+void DataEngineInput::set_button_visibility(bool next, bool yes_no) {
+    label_no->setVisible(yes_no);
+    button_no->setVisible(yes_no);
+
+    label_yes->setVisible(yes_no);
+    button_yes->setVisible(yes_no);
+
+    label_next->setVisible(next);
+    button_next->setVisible(next);
+}
+
+void DataEngineInput::set_labels_enabled() {
+    label_extra_explanation->setEnabled(is_enabled);
+    label_de_description->setEnabled(is_enabled);
+    label_de_desired_value->setEnabled(is_enabled);
+    label_de_actual_value->setEnabled(is_enabled);
+    if (is_enabled == false) {
+        //label_extra_explanation->setText(" ");
+        label_extra_explanation->setVisible(false);
+    } else {
+        // label_extra_explanation->setText(extra_explanation);
+        label_extra_explanation->setVisible(true);
+    }
+    label_ok->setEnabled(is_enabled);
+}
+
+void DataEngineInput::set_ui_visibility() {
+    if (init_ok == false) {
+        return;
+    }
+    scale_columns();
+    if (is_waiting) {
+        label_ok->setVisible(false);
+        label_ok->setText(empty_value_placeholder);
+        label_extra_explanation->setVisible(is_visible && is_enabled && is_waiting);
+        return;
+    }
+    set_labels_enabled();
+    set_total_visibilty();
+    set_button_visibility(false, false);
+
+    if (is_editable && is_enabled && is_visible) {
+        switch (field_type) {
+            case FieldType::Numeric: {
+                lineedit->setVisible(true);
+                auto validator = new QDoubleValidator(parent);
+                lineedit->setValidator(validator);
+
+            } break;
+            case FieldType::Bool: {
+                lineedit->setVisible(false);
+
+            } break;
+            case FieldType::String: {
+                lineedit->setVisible(true);
+                lineedit->setValidator(nullptr);
+
+            } break;
+            default:
+                break;
+        }
+
+    } else if (is_enabled && is_visible) {
+        lineedit->setVisible(false);
+
+    } else if ((is_enabled == false) && is_visible) {
+        lineedit->setVisible(false);
+
+    } else if (!is_visible) {
+        lineedit->setVisible(false);
+    }
+}
+
 ///\endcond

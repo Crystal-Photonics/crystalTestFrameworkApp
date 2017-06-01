@@ -20,7 +20,7 @@ ProgressBar::ProgressBar(UI_container *parent)
     layout->addWidget(label);
     layout->addWidget(progressbar, 0, Qt::AlignBottom);
     layout->addStretch(1);
-    parent->add(layout);
+    parent->add(layout,this);
     label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     progressbar->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     progressbar->setMaximum(100);

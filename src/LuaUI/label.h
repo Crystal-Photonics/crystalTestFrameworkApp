@@ -2,12 +2,13 @@
 #define LABEL_H
 
 #include <string>
+#include "ui_container.h"
 
 class QLabel;
 class QWidget;
-class UI_container;
 
-class Label {
+
+class Label : public UI_widget{
     public:
     ///\cond HIDDEN_SYMBOLS
 	Label(UI_container *parent, const std::string text);

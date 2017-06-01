@@ -4,18 +4,17 @@
 
 
 #include <string>
-
+#include "ui_container.h"
 class QLabel;
 class QSplitter;
 class QLineEdit;
-class UI_container;
 class QWidget;
 class QProgressBar;
 
 /** \ingroup ui
  *  \{
  */
-class ProgressBar {
+class ProgressBar : public UI_widget{
     public:
     ///\cond HIDDEN_SYMBOLS
     ProgressBar(UI_container *parent);

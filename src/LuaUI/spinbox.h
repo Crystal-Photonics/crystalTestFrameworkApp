@@ -2,18 +2,17 @@
 #define SPINEDIT_H
 
 #include <string>
-
+#include "ui_container.h"
 class QLabel;
 class QSplitter;
 class QLineEdit;
-class UI_container;
 class QWidget;
 class QSpinBox;
 
 /** \ingroup ui
  *  \{
  */
-class SpinBox {
+class SpinBox : public UI_widget{
     public:
     ///\cond HIDDEN_SYMBOLS
     SpinBox(UI_container *parent);

@@ -9,6 +9,7 @@
 
 #include <QApplication>
 #include <QDateTime>
+#include <QDir>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -468,7 +469,9 @@ sleep_ms(int timeout_ms);
 #endif
 
 /// @cond HIDDEN_SYMBOLS
-void sleep_ms(const unsigned int timeout_ms) {
+void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms) {
+    scriptengine->timer_event_queue_run(timeout_ms);
+#if 0
     QEventLoop event_loop;
     static const auto secret_exit_code = -0xF42F;
     QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
@@ -476,6 +479,7 @@ void sleep_ms(const unsigned int timeout_ms) {
     if (exit_value != secret_exit_code) {
         throw sol::error("Interrupted");
     }
+#endif
 };
 /// @endcond
 
@@ -1290,7 +1294,52 @@ double table_max_abs(sol::table input_values) {
         first = false;
     }
     return max;
-};
+}
+/// @endcond
+
+/*! \fn text propose_unique_filename_by_datetime(text dir_path, text prefix, text suffix)
+    \brief Returns a filename which does not exist in the directory.
+    \param dir_path                  The directory where to look for a file
+    \param prefix                The prefix of the filename
+    \param suffix                The suffix of the filename
+
+    \return                the first free filename of the directory.
+
+    \details    \par example:
+        The Filename will be:
+            dir/prefix_datetime_index_suffix
+        where index is incremented until a free filename is found. Index is starting at 1. The Datetime is the datetime of now().
+
+    \code{.lua}
+        local retval = propose_unique_filename_by_datetime("~/test/","mytestfile",".txt")
+        print(retval) --prints ~/test/mytestfile-2017_06_01-13_25_30-001.txt
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+text propose_unique_filename_by_datetime(text dir_path, text prefix, text suffix);
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+std::string propose_unique_filename_by_datetime(const std::string &dir_path, const std::string &prefix, const std::string &suffix) {
+    int index = 0;
+    QString dir_ = QString::fromStdString(dir_path);
+    QString prefix_ = QString::fromStdString(prefix);
+    QString suffix_ = QString::fromStdString(suffix);
+    dir_ = QDir::toNativeSeparators(dir_);
+    if (!dir_.endsWith(QDir::separator())) {
+        dir_ += QDir::separator();
+    }
+    QString result;
+    QString currentDateTime = QDateTime::currentDateTime().toString("-yyyy_MM_dd-HH_mm_ss-");
+    //currentDateTime = "-2017_06_01-14_50_49-";
+    do {
+        index++;
+        result = dir_ + prefix_ + currentDateTime + QString("%1").arg(index, 3, 10, QChar('0')) + suffix_;
+    } while (QFile::exists(result));
+    return result.toStdString();
+}
 /// @endcond
 
 /*! \fn double table_min_abs(table input_values);

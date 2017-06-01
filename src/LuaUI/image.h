@@ -2,13 +2,13 @@
 #define IMAGE_H
 
 #include <QImage>
+#include "ui_container.h"
 
-class UI_container;
 class QLabel;
 class QWidget;
 class Aspect_ratio_label;
 
-class Image {
+class Image : public UI_widget{
     public:
     ///\cond HIDDEN_SYMBOLS
     Image(UI_container *parent, QString script_path);
