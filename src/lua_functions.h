@@ -1,20 +1,21 @@
 #ifndef LUA_FUNCTIONS_H
 #define LUA_FUNCTIONS_H
 
+#include "scriptengine.h"
 #include "sol.hpp"
 #include <QString>
 #include <vector>
-#include "scriptengine.h"
 
 class QPlainTextEdit;
 
 std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigned int length, const double min_val, const double max_val);
 double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const unsigned int dacs_quantity, const unsigned int max_possible_dac_value);
 void print(QPlainTextEdit *console, const sol::variadic_args &args);
+std::string show_file_save_dialog(const std::string &title, const std::string &path, sol::table filters);
 std::string show_question(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table);
 void show_info(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
 void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
-void sleep_ms(ScriptEngine* scriptengine, const unsigned int timeout_ms);
+void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms);
 void pc_speaker_beep();
 double current_date_time_ms(void);
 double round_double(const double value, const unsigned int precision);

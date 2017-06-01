@@ -578,7 +578,12 @@ ScriptEngine::~ScriptEngine() {}
 
 int ScriptEngine::event_queue_run_() {
     assert(!event_loop.isRunning());
+    assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ darf nicht aus dem GUI-thread aufgerufen werden
+    qDebug() << "eventloop start"
+             << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId();
     auto exit_value = event_loop.exec();
+    qDebug() << "eventloop end"
+             << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId();
     if (exit_value < 0) {
         throw sol::error("Interrupted");
     }
@@ -606,11 +611,15 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
         const char *settings_keys[] = {Globals::confirm_key_sequence, Globals::skip_key_sequence, Globals::cancel_key_sequence};
         for (std::size_t i = 0; i < shortcuts.size(); i++) {
             shortcuts[i] = std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
-            QObject::connect(shortcuts[i].get(), &QShortcut::activated, [this, i] { this->event_loop.exit(i); });
+            QObject::connect(shortcuts[i].get(), &QShortcut::activated, [this, i] {
+                qDebug() << "quitting event loop which is " << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
+                         << "Current Thread:" << QThread::currentThreadId();
+                this->event_loop.exit(i);
+            });
         }
+
     });
     auto exit_value = event_queue_run_();
-
     Utility::promised_thread_call(MainWindow::mw, [&shortcuts] { std::fill(std::begin(shortcuts), std::end(shortcuts), nullptr); });
     return static_cast<HotKeyEvent::HotKeyEvent>(exit_value);
 }
@@ -703,6 +712,10 @@ void ScriptEngine::load_script(const QString &path) {
 
         //add generic function
         {
+            (*lua)["show_file_save_dialog"] = [path](const std::string &title, const std::string &preselected_path, sol::table filters) {
+
+                return show_file_save_dialog(title, get_absolute_file_path(path, preselected_path), filters);
+            };
             (*lua)["show_question"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table) {
                 return show_question(path, title, message, button_table);
             };
