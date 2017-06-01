@@ -18,6 +18,7 @@
 #include <qwt_plot_curve.h>
 #include <qwt_plot_marker.h>
 #include <qwt_plot_picker.h>
+#include "scriptengine.h"
 
 #include <chrono>
 
@@ -158,7 +159,7 @@ bool Curve_data::use_interpolated_values() const {
     return median_enable && (median_kernel_size < yvalues_orig.size());
 }
 
-Curve::Curve(UI_container *, Plot *plot)
+Curve::Curve(UI_container *, ScriptEngine *script_engine, Plot *plot)
     : plot(plot)
     , curve(new QwtPlotCurve)
     , event_filter(new Utility::Event_filter(plot->plot->canvas())) {
@@ -258,6 +259,32 @@ void Curve::set_median_kernel_size(unsigned int kernel_size) {
 void Curve::set_color(const Color &color) {
     curve->setPen(QColor(color.rgb));
 }
+
+double Curve::pick_x_coord() {
+
+  //  QMetaObject::Connection callback_connection =  QObject::connect(plot, &QLineEdit::returnPressed, [this] { this->script_engine->ui_event_queue_send(); });
+   // script_engine->ui_event_queue_run();
+   // QObject::disconnect(callback_connection);
+#if 0
+    event_filter->add_callback([ this ](QEvent * event) {
+        if (event->type() == QEvent::MouseButtonPress) {
+            auto mouse_event = static_cast<QMouseEvent *>(event);
+            const auto &pixel_pos = mouse_event->pos();
+            auto x_pos = plot->plot->invTransform(QwtPlot::xBottom, pixel_pos.x());
+            auto y_pos = plot->plot->invTransform(QwtPlot::yLeft, pixel_pos.y());
+            this->script_engine->ui_event_queue_send();
+            event_filter->clear();
+            return true;
+        }
+        return false;
+    });
+#endif
+    script_engine->ui_event_queue_run();
+    return 0;
+}
+
+
+
 ///\cond HIDDEN_SYMBOLS
 void Curve::set_onetime_click_callback(std::function<void(double, double)> click_callback) {
     event_filter->add_callback([ callback = std::move(click_callback), this ](QEvent * event) {

@@ -20,7 +20,7 @@ class FileEntry {
 
 class ComboBoxFileSelector : public UI_widget{
     public:
-	ComboBoxFileSelector(UI_container *parent, const std::string &directory, const sol::table &filter);
+    ComboBoxFileSelector(UI_container *parent, const std::string &directory, const QStringList &filter);
     ~ComboBoxFileSelector();
 
     std::string get_selected_file();

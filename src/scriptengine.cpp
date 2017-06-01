@@ -592,22 +592,11 @@ TimerEvent::TimerEvent ScriptEngine::timer_event_queue_run(int timeout_ms) {
     //});
     auto exit_value = event_queue_run_();
 
-
     return static_cast<TimerEvent::TimerEvent>(exit_value);
 }
 
 UiEvent::UiEvent ScriptEngine::ui_event_queue_run() {
-    std::array<std::unique_ptr<QShortcut>, 3> shortcuts;
-    MainWindow::mw->execute_in_gui_thread([this, &shortcuts] {
-        const char *settings_keys[] = {Globals::confirm_key_sequence, Globals::skip_key_sequence, Globals::cancel_key_sequence};
-        for (std::size_t i = 0; i < shortcuts.size(); i++) {
-            shortcuts[i] = std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
-            QObject::connect(shortcuts[i].get(), &QShortcut::activated, [this, i] { this->event_loop.exit(i); });
-        }
-    });
     auto exit_value = event_queue_run_();
-
-
     return static_cast<UiEvent::UiEvent>(exit_value);
 }
 
@@ -973,76 +962,82 @@ void ScriptEngine::load_script(const QString &path) {
 
         //bind plot
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<Curve>>(
-                "Curve",                                                               //
-                sol::meta_function::construct, sol::no_constructor,                    //
-                "append_point", thread_call_wrapper_non_waiting(&Curve::append_point), //
-                "add_spectrum",
-                [](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
-                    std::vector<double> data;
-                    data.reserve(table.size());
-                    for (auto &i : table) {
-                        data.push_back(i.second.as<double>());
-                    }
-                    Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data) ] {
-                        auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
-                        curve.add(data);
-                    });
-                }, //
-                "add_spectrum_at",
-                [](Lua_UI_Wrapper<Curve> &curve, const unsigned int spectrum_start_channel, const sol::table &table) {
-                    std::vector<double> data;
-                    data.reserve(table.size());
-                    for (auto &i : table) {
-                        data.push_back(i.second.as<double>());
-                    }
-                    Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
-                        auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
-                        curve.add_spectrum_at(spectrum_start_channel, data);
-                    });
-                }, //
+            ui_table.new_usertype<Lua_UI_Wrapper<Curve>>("Curve",                                                               //
+                                                         sol::meta_function::construct, sol::no_constructor,                    //
+                                                         "append_point", thread_call_wrapper_non_waiting(&Curve::append_point), //
+                                                         "add_spectrum",
+                                                         [](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
+                                                             std::vector<double> data;
+                                                             data.reserve(table.size());
+                                                             for (auto &i : table) {
+                                                                 data.push_back(i.second.as<double>());
+                                                             }
+                                                             Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data) ] {
+                                                                 auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
+                                                                 curve.add(data);
+                                                             });
+                                                         }, //
+                                                         "add_spectrum_at",
+                                                         [](Lua_UI_Wrapper<Curve> &curve, const unsigned int spectrum_start_channel, const sol::table &table) {
+                                                             std::vector<double> data;
+                                                             data.reserve(table.size());
+                                                             for (auto &i : table) {
+                                                                 data.push_back(i.second.as<double>());
+                                                             }
+                                                             Utility::thread_call(MainWindow::mw,
+                                                                                  [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
+                                                                                      auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
+                                                                                      curve.add_spectrum_at(spectrum_start_channel, data);
+                                                                                  });
+                                                         }, //
 
-                "clear",
-                thread_call_wrapper(&Curve::clear),                                            //
-                "set_median_enable", thread_call_wrapper(&Curve::set_median_enable),           //
-                "set_median_kernel_size", thread_call_wrapper(&Curve::set_median_kernel_size), //
-                "integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
-                "set_x_axis_gain", thread_call_wrapper(&Curve::set_x_axis_gain),               //
-                "set_x_axis_offset",
-                thread_call_wrapper(&Curve::set_x_axis_offset),      //
-                "set_color", thread_call_wrapper(&Curve::set_color), //
-                "user_pick_x_coord",
-                [](const Lua_UI_Wrapper<Curve> &lua_curve) {
-                    QThread *thread = QThread::currentThread();
-                    std::promise<double> x_selection_promise;
-                    std::future<double> x_selection_future = x_selection_promise.get_future();
-                    Utility::thread_call(MainWindow::mw, [&lua_curve, thread, x_selection_promise = &x_selection_promise ]() mutable {
-                        Curve &curve = MainWindow::mw->get_lua_UI_class<Curve>(lua_curve.id);
-                        curve.set_onetime_click_callback([thread, x_selection_promise](double x, double y) mutable {
-                            (void)y;
-                            x_selection_promise->set_value(x);
-                            Utility::thread_call(thread, [thread] { thread->exit(1234); });
-                        });
-                    });
-                    if (QEventLoop{}.exec() == 1234) {
-                        return x_selection_future.get();
-                    } else {
-                        throw sol::error("aborted");
-                    }
-                }
-                //
-                );
+                                                         "clear",
+                                                         thread_call_wrapper(&Curve::clear),                                            //
+                                                         "set_median_enable", thread_call_wrapper(&Curve::set_median_enable),           //
+                                                         "set_median_kernel_size", thread_call_wrapper(&Curve::set_median_kernel_size), //
+                                                         "integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
+                                                         "set_x_axis_gain", thread_call_wrapper(&Curve::set_x_axis_gain),               //
+                                                         "set_x_axis_offset",
+                                                         thread_call_wrapper(&Curve::set_x_axis_offset),      //
+                                                         "set_color", thread_call_wrapper(&Curve::set_color), //
+                                                         "user_pick_x_coord",
+#if 0
+                                                                 thread_call_wrapper(&Curve::pick_x_coord) //
+#else
+                                                         [](const Lua_UI_Wrapper<Curve> &lua_curve) {
+                                                             QThread *thread = QThread::currentThread();
+                                                             std::promise<double> x_selection_promise;
+                                                             std::future<double> x_selection_future = x_selection_promise.get_future();
+                                                             Utility::thread_call(MainWindow::mw,
+                                                                                  [&lua_curve, thread, x_selection_promise = &x_selection_promise ]() mutable {
+                                                                                      Curve &curve = MainWindow::mw->get_lua_UI_class<Curve>(lua_curve.id);
+                                                                                      curve.set_onetime_click_callback(
+                                                                                          [thread, x_selection_promise](double x, double y) mutable {
+                                                                                              (void)y;
+                                                                                              x_selection_promise->set_value(x);
+                                                                                              Utility::thread_call(thread, [thread] { thread->exit(1234); });
+                                                                                          });
+                                                                                  });
+                                                             if (QEventLoop{}.exec() == 1234) {
+                                                                 double result = x_selection_future.get();
+                                                                 return result;
+                                                             } else {
+                                                                 throw sol::error("aborted");
+                                                             }
+                                                         }
+//
+#endif
+                                                         );
             ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot",                                                                                          //
                                                         sol::meta_function::construct, [parent = this->parent] { return Lua_UI_Wrapper<Plot>{parent}; }, //
                                                         "clear",
                                                         thread_call_wrapper(&Plot::clear), //
-                                                        "add_curve",
-                                                        [parent = this->parent](Lua_UI_Wrapper<Plot> & lua_plot)->Lua_UI_Wrapper<Curve> {
+                                                        "add_curve", [ parent = this->parent, this ](Lua_UI_Wrapper<Plot> & lua_plot)->Lua_UI_Wrapper<Curve> {
                                                             return Utility::promised_thread_call(MainWindow::mw,
-                                                                                                 [parent, &lua_plot] {
+                                                                                                 [parent, &lua_plot, this] {
                                                                                                      auto &plot =
                                                                                                          MainWindow::mw->get_lua_UI_class<Plot>(lua_plot.id);
-                                                                                                     return Lua_UI_Wrapper<Curve>{parent, &plot};
+                                                                                                     return Lua_UI_Wrapper<Curve>{parent, this, &plot};
                                                                                                  } //
                                                                                                  );
                                                         }, //
@@ -1108,7 +1103,11 @@ void ScriptEngine::load_script(const QString &path) {
             ui_table.new_usertype<Lua_UI_Wrapper<ComboBoxFileSelector>>(
                 "ComboBoxFileSelector", //
                 sol::meta_function::construct, [ parent = this->parent, path = path ](const std::string &directory, const sol::table &filters) {
-                    return Lua_UI_Wrapper<ComboBoxFileSelector>{parent, get_absolute_file_path(path, directory), filters};
+                    QStringList sl;
+                    for (const auto &item : filters) {
+                        sl.append(QString::fromStdString(item.second.as<std::string>()));
+                    }
+                    return Lua_UI_Wrapper<ComboBoxFileSelector>{parent, get_absolute_file_path(path, directory), sl};
                 }, //
                 "get_selected_file",
                 thread_call_wrapper(&ComboBoxFileSelector::get_selected_file), //
@@ -1135,8 +1134,12 @@ void ScriptEngine::load_script(const QString &path) {
         {
             ui_table.new_usertype<Lua_UI_Wrapper<ComboBox>>("ComboBox", //
                                                             sol::meta_function::construct,
-                                                            [parent = this->parent](sol::table items) {
-                                                                return Lua_UI_Wrapper<ComboBox>{parent, items};
+                                                            [parent = this->parent](const sol::table &items) {
+                                                                QStringList sl;
+                                                                for (const auto &item : items) {
+                                                                    sl.append(QString::fromStdString(item.second.as<std::string>()));
+                                                                }
+                                                                return Lua_UI_Wrapper<ComboBox>{parent, sl};
                                                             }, //
                                                             "set_items",
                                                             thread_call_wrapper(&ComboBox::set_items), //
@@ -1158,7 +1161,9 @@ void ScriptEngine::load_script(const QString &path) {
         {
             ui_table.new_usertype<Lua_UI_Wrapper<SpinBox>>("SpinBox", //
                                                            sol::meta_function::construct,
-                                                           [parent = this->parent]() { return Lua_UI_Wrapper<SpinBox>{parent}; }, //
+                                                           [parent = this->parent]() {
+                                                               return Lua_UI_Wrapper<SpinBox>{parent}; //
+                                                           },                                          //
                                                            "get_value",
                                                            thread_call_wrapper(&SpinBox::get_value), //
                                                            "set_max_value",

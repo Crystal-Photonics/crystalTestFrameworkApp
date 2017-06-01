@@ -9,29 +9,29 @@
 #include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-ComboBox::ComboBox(UI_container *parent, sol::table items)
-	: combobox(new QComboBox(parent))
-	, label(new QLabel(parent)) {
-	QVBoxLayout *layout = new QVBoxLayout;
+ComboBox::ComboBox(UI_container *parent, const QStringList &sl)
+    : combobox(new QComboBox(parent))
+    , label(new QLabel(parent)) {
+    QVBoxLayout *layout = new QVBoxLayout;
     label->setText(" ");
     layout->addWidget(label);
     layout->addWidget(combobox);
     layout->addStretch(1);
-	combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
-    parent->add(layout,this);
-    set_items(items);
+    combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
+    parent->add(layout, this);
+    //set_items(items);
+    combobox->addItems(sl);
     parent->scroll_to_bottom();
-
 }
 
 ComboBox::~ComboBox() {
-	combobox->setEnabled(false);
+    combobox->setEnabled(false);
 }
 ///\endcond
-void ComboBox::set_items(sol::table items) {
+void ComboBox::set_items(const sol::table &items) {
     combobox->clear();
-    for (auto &item : items) {
+    for (const auto &item : items) {
         combobox->addItem(QString::fromStdString(item.second.as<std::string>()));
     }
 }
@@ -52,8 +52,7 @@ unsigned int ComboBox::get_index() {
     return combobox->currentIndex();
 }
 
-void ComboBox::set_visible(bool visible)
-{
+void ComboBox::set_visible(bool visible) {
     combobox->setVisible(visible);
     label->setVisible(visible);
 }
@@ -63,9 +62,9 @@ void ComboBox::set_caption(const std::string caption) {
     if (caption == "") {
         label->setText(" ");
     }
-  //  label->setVisible(label->text().size());
+    //  label->setVisible(label->text().size());
 }
 
 std::string ComboBox::get_caption() const {
-	return label->text().toStdString();
+    return label->text().toStdString();
 }

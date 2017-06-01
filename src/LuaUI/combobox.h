@@ -10,10 +10,10 @@
 class ComboBox : public UI_widget{
     public:
     ///\cond HIDDEN_SYMBOLS
-    ComboBox(UI_container *parent, sol::table items);
+    ComboBox(UI_container *parent,const QStringList &sl);
     ~ComboBox();
     ///\endcond
-    void set_items(sol::table items);
+    void set_items(const sol::table &items);
     std::string get_text() const;
     void set_index(unsigned int index);
     unsigned int get_index();
