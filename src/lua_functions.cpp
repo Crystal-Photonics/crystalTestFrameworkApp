@@ -11,6 +11,7 @@
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileDialog>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -205,6 +206,49 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
     lua["callback_measure_noise_level_restore_dac_thresholds_to_normal_mode"](rpc_device);
     return noise_level_result;
 }
+/// @endcond
+
+/*! \fn string show_file_save_dialog(string title, string path, table filter);
+\brief Shows a filesave dialog
+\param title             string value which is shown as the title of the window.
+\param path           preselected path of the dialog
+\param filter      a table of strings with the file filters the user can select
+
+\return the selected filename
+\sa show_file_open_dialog()
+
+\details
+The call is blocking, meaning the script pauses until the user clicks ok.
+
+
+
+\par example:
+\code{.lua}
+    result = show_file_save_dialog("Save copy",".",{"Images (*.png *.xpm *.jpg)", "Text files (*.txt)"}) --file save dialog appears and waits till user selects file
+    print(result) -- will print selected filename
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+string show_file_save_dialog(string title, string path, table filter);
+#endif
+#if 1
+/// @cond HIDDEN_SYMBOLS
+std::string show_file_save_dialog(const std::string &title, const std::string &path, sol::table filters) {
+    QStringList sl;
+    for (auto &i : filters) {
+        sl.append(QString::fromStdString(i.second.as<std::string>()));
+    }
+
+    QString filter = sl.join(";");
+    QString result = Utility::promised_thread_call(MainWindow::mw, [&title, &path, &filter]() {
+        return QFileDialog::getSaveFileName(MainWindow::mw, QString::fromStdString(title), QString::fromStdString(path), filter);
+    });
+
+    return result.toStdString();
+}
+#endif
 /// @endcond
 
 /*! \fn string show_question(string title, string message, table button_table);

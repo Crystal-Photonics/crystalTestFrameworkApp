@@ -703,6 +703,10 @@ void ScriptEngine::load_script(const QString &path) {
 
         //add generic function
         {
+            (*lua)["show_file_save_dialog"] = [path](const std::string &title, const std::string &preselected_path, sol::table filters) {
+
+                return show_file_save_dialog(title, get_absolute_file_path(path, preselected_path), filters);
+            };
             (*lua)["show_question"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table) {
                 return show_question(path, title, message, button_table);
             };
