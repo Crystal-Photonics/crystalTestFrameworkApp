@@ -32,15 +32,15 @@ class DeviceRequirements {
 };
 
 namespace HotKeyEvent {
-    enum HotKeyEvent { confirm_pressed, skip_pressed, cancel_pressed, interrupted=-1 };
+    enum HotKeyEvent { confirm_pressed, skip_pressed, cancel_pressed, interrupted = -1 };
 }
 
 namespace TimerEvent {
-    enum TimerEvent { expired, interrupted=-1 };
+    enum TimerEvent { expired, interrupted = -1 };
 }
 
 namespace UiEvent {
-    enum UiEvent { activated, interrupted=-1 };
+    enum UiEvent { activated, interrupted = -1 };
 }
 
 class ScriptEngine {
@@ -49,7 +49,7 @@ class ScriptEngine {
     friend class TestDescriptionLoader;
     friend class DeviceWorker;
 
-	ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine);
+    ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine);
     ~ScriptEngine();
 
     TimerEvent::TimerEvent timer_event_queue_run(int timeout_ms);
@@ -89,7 +89,8 @@ class ScriptEngine {
     QEventLoop event_loop;
 
     int event_queue_run_();
-	QObject *owner{nullptr};
+    QObject *owner{nullptr};
+
 };
 
 template <class ReturnType, class... Arguments>

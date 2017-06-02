@@ -624,6 +624,12 @@ UiEvent::UiEvent ScriptEngine::ui_event_queue_run() {
 
 HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
     std::array<std::unique_ptr<QShortcut>, 3> shortcuts;
+    auto cleanup = Utility::RAII_do([&] {                            //
+        Utility::promised_thread_call(MainWindow::mw, [&shortcuts] { //
+            std::fill(std::begin(shortcuts), std::end(shortcuts), nullptr);
+        });
+    });
+
     MainWindow::mw->execute_in_gui_thread([this, &shortcuts] {
         const char *settings_keys[] = {Globals::confirm_key_sequence, Globals::skip_key_sequence, Globals::cancel_key_sequence};
         for (std::size_t i = 0; i < shortcuts.size(); i++) {
@@ -639,8 +645,9 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
         }
 
     });
+
     auto exit_value = event_queue_run_();
-    Utility::promised_thread_call(MainWindow::mw, [&shortcuts] { std::fill(std::begin(shortcuts), std::end(shortcuts), nullptr); });
+    (void)cleanup;
     return static_cast<HotKeyEvent::HotKeyEvent>(exit_value);
 }
 
