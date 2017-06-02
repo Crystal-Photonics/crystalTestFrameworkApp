@@ -30,7 +30,6 @@
 #include <QSettings>
 #include <QStringList>
 #include <QTimer>
-#include <QTimer>
 #include <QTreeWidgetItem>
 #include <QtSerialPort/QSerialPort>
 #include <QtSerialPort/QSerialPortInfo>

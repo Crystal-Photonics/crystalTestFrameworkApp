@@ -276,14 +276,14 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
 //wrapper that wraps a UI function so it is NOT called from the GUI thread. The function must not call any GUI-related functions in the non-GUI thread.
 template <class ReturnType, class UI_class, class... Args>
 auto non_gui_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
-	return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
-		//TODO: Decide if we should use promised_thread_call or thread_call
-		//promised_thread_call lets us get return values while thread_call does not
-		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
-		//using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
-		UI_class &ui = Utility::promised_thread_call(MainWindow::mw, [id = lui.id]()->UI_class & { return MainWindow::mw->get_lua_UI_class<UI_class>(id); });
-		(ui.*function)(args...);
-	};
+    return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
+        //TODO: Decide if we should use promised_thread_call or thread_call
+        //promised_thread_call lets us get return values while thread_call does not
+        //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
+        //using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
+        UI_class &ui = Utility::promised_thread_call(MainWindow::mw, [id = lui.id]()->UI_class & { return MainWindow::mw->get_lua_UI_class<UI_class>(id); });
+        (ui.*function)(args...);
+    };
 }
 
 //wrapper that wraps a UI function such as Button::has_been_clicked so that it is called from the main window context. Doesn't wait for processing.
@@ -585,32 +585,33 @@ ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit 
     : lua(std::make_unique<sol::state>())
     , parent(parent)
     , console(console)
-	, data_engine(data_engine)
-	, owner{owner} {}
+    , data_engine(data_engine)
+    , owner{owner} {}
 
-ScriptEngine::~ScriptEngine() {}
+ScriptEngine::~ScriptEngine() { //
+}
 
 int ScriptEngine::event_queue_run_() {
     assert(!event_loop.isRunning());
-	assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+    assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     qDebug() << "eventloop start"
-			 << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
-			 << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
+             << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
+             << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
     auto exit_value = event_loop.exec();
     qDebug() << "eventloop end"
-			 << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
-			 << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
+             << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
+             << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
     if (exit_value < 0) {
+        qDebug() << "eventloop Interruption";
         throw sol::error("Interrupted");
     }
     return exit_value;
 }
 
 TimerEvent::TimerEvent ScriptEngine::timer_event_queue_run(int timeout_ms) {
-    // MainWindow::mw->execute_in_gui_thread([timeout_ms, this] {
     QTimer::singleShot(timeout_ms, [this] //
                        { this->event_loop.exit(TimerEvent::TimerEvent::expired); });
-    //});
+
     auto exit_value = event_queue_run_();
 
     return static_cast<TimerEvent::TimerEvent>(exit_value);
@@ -628,12 +629,12 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
         for (std::size_t i = 0; i < shortcuts.size(); i++) {
             shortcuts[i] = std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
             QObject::connect(shortcuts[i].get(), &QShortcut::activated, [this, i] {
-				Utility::thread_call(owner, [this, i] {
-					qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
-							 << "Current Thread:" << QThread::currentThreadId()
-							 << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
-					event_loop.exit(i);
-				});
+                Utility::thread_call(owner, [this, i] {
+                    qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
+                             << "Current Thread:" << QThread::currentThreadId()
+                             << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
+                    event_loop.exit(i);
+                });
             });
         }
 
@@ -644,15 +645,28 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
 }
 
 void ScriptEngine::ui_event_queue_send() {
-    event_loop.exit(UiEvent::UiEvent::activated);
+    Utility::thread_call(this->owner, [this]() { //
+        event_loop.exit(UiEvent::UiEvent::activated);
+    }); //calls fun in the thread that owns obj
 }
 
 void ScriptEngine::hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent event) {
-    event_loop.exit(event);
+    Utility::thread_call(this->owner, [this, event]() {
+        qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "by event"
+                 << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
+                 << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
+        this->event_loop.exit(event);
+    }); //calls fun in the thread that owns obj
 }
 
 void ScriptEngine::event_queue_interrupt() {
-    event_loop.exit(-1);
+    Utility::thread_call(this->owner, [this]() { //
+        qDebug() << "interrupting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "by event"
+                 << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
+                 << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
+        event_loop.exit(-1);
+    }); //calls fun in the thread that owns obj
+    qDebug() << "interrupt event loop called";
 }
 
 std::string ScriptEngine::to_string(double d) {
@@ -1104,13 +1118,13 @@ void ScriptEngine::load_script(const QString &path) {
                 "load_actual_value",
                 thread_call_wrapper(&DataEngineInput::load_actual_value), //
                 "await_event",
-				non_gui_call_wrapper(&DataEngineInput::await_event),                //
+                non_gui_call_wrapper(&DataEngineInput::await_event),               //
                 "set_visible", thread_call_wrapper(&DataEngineInput::set_visible), //
                 "set_enabled", thread_call_wrapper(&DataEngineInput::set_enabled), //
                 "save_to_data_engine",
                 thread_call_wrapper(&DataEngineInput::save_to_data_engine),          //
                 "set_editable", thread_call_wrapper(&DataEngineInput::set_editable), //
-                "sleep_ms", thread_call_wrapper(&DataEngineInput::sleep_ms),         //
+                "sleep_ms", non_gui_call_wrapper(&DataEngineInput::sleep_ms),        //
                 "set_explanation_text", thread_call_wrapper(&DataEngineInput::set_explanation_text)
 
                     );
@@ -1123,11 +1137,11 @@ void ScriptEngine::load_script(const QString &path) {
                                                                             return Lua_UI_Wrapper<UserInstructionLabel>{parent, this, instruction_text};
                                                                         }, //
                                                                         "await_event",
-																		non_gui_call_wrapper(&UserInstructionLabel::await_event), //
+                                                                        non_gui_call_wrapper(&UserInstructionLabel::await_event), //
                                                                         "await_yes_no",
-																		non_gui_call_wrapper(&UserInstructionLabel::await_yes_no), //
+                                                                        non_gui_call_wrapper(&UserInstructionLabel::await_yes_no), //
 
-																		"set_visible", thread_call_wrapper(&UserInstructionLabel::set_visible), //
+                                                                        "set_visible", thread_call_wrapper(&UserInstructionLabel::set_visible), //
                                                                         "set_enabled", thread_call_wrapper(&UserInstructionLabel::set_enabled), //
                                                                         "set_instruction_text", thread_call_wrapper(&UserInstructionLabel::set_instruction_text)
 
@@ -1299,7 +1313,7 @@ void ScriptEngine::load_script(const QString &path) {
                                                           "set_visible",
                                                           thread_call_wrapper(&Button::set_visible), //
                                                           "await_click",
-                                                          thread_call_wrapper(&Button::await_click) //
+                                                          non_gui_call_wrapper(&Button::await_click) //
                                                           );
         }
 
@@ -1317,8 +1331,8 @@ void ScriptEngine::load_script(const QString &path) {
                                                             "get_caption", thread_call_wrapper(&LineEdit::get_caption),                         //
                                                             "set_caption", thread_call_wrapper(&LineEdit::set_caption),                         //
                                                             "set_visible",
-                                                            thread_call_wrapper(&LineEdit::set_visible),                 //
-                                                            "await_return", thread_call_wrapper(&LineEdit::await_return) //
+                                                            thread_call_wrapper(&LineEdit::set_visible),                  //
+                                                            "await_return", non_gui_call_wrapper(&LineEdit::await_return) //
                                                             );
         }
         {
