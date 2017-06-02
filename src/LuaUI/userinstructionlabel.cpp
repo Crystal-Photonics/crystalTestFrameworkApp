@@ -88,15 +88,19 @@ UserInstructionLabel::UserInstructionLabel(UI_container *parent, ScriptEngine *s
     parent->scroll_to_bottom();
     is_init = true;
     scale_columns();
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
 UserInstructionLabel::~UserInstructionLabel() {
-    timer->stop();
-    QObject::disconnect(callback_timer);
-    QObject::disconnect(callback_button_next);
-    QObject::disconnect(callback_button_no);
-    QObject::disconnect(callback_button_yes);
-    set_enabled(false);
+    MainWindow::mw->execute_in_gui_thread([this] {                  //
+        assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+        timer->stop();
+        QObject::disconnect(callback_timer);
+        QObject::disconnect(callback_button_next);
+        QObject::disconnect(callback_button_no);
+        QObject::disconnect(callback_button_yes);
+        set_enabled(false);
+    });
 }
 ///\endcond
 
@@ -109,17 +113,20 @@ void UserInstructionLabel::scale_columns() {
 }
 
 void UserInstructionLabel::await_event() {
+    assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     is_question_mode = false;
     run_hotkey_loop();
 }
 
 bool UserInstructionLabel::await_yes_no() {
+    assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     is_question_mode = true;
     return run_hotkey_loop();
 }
 
 bool UserInstructionLabel::run_hotkey_loop() {
-    set_enabled(true);
+    assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+    MainWindow::mw->execute_in_gui_thread([this] { set_enabled(true); });
     if (script_engine->hotkey_event_queue_run() == HotKeyEvent::HotKeyEvent::confirm_pressed) {
         return true;
     } else {
@@ -146,23 +153,25 @@ void UserInstructionLabel::set_visible(bool visible) {
 }
 
 void UserInstructionLabel::set_enabled(bool enabled) {
-    label_user_instruction->setEnabled(enabled);
-    label_user_instruction->setText(instruction_text);
+    MainWindow::mw->execute_in_gui_thread([this, enabled] { //
+        label_user_instruction->setEnabled(enabled);
+        label_user_instruction->setText(instruction_text);
 
-    button_yes->setVisible(enabled && is_question_mode);
-    label_yes->setVisible(enabled && is_question_mode);
+        button_yes->setVisible(enabled && is_question_mode);
+        label_yes->setVisible(enabled && is_question_mode);
 
-    button_no->setVisible(enabled && is_question_mode);
-    label_no->setVisible(enabled && is_question_mode);
+        button_no->setVisible(enabled && is_question_mode);
+        label_no->setVisible(enabled && is_question_mode);
 
-    button_next->setVisible(enabled && !is_question_mode);
-    label_next->setVisible(enabled && !is_question_mode);
+        button_next->setVisible(enabled && !is_question_mode);
+        label_next->setVisible(enabled && !is_question_mode);
 
-    if (enabled) {
-        timer->start(500);
-    } else {
-        timer->stop();
-    }
+        if (enabled) {
+            timer->start(500);
+        } else {
+            timer->stop();
+        }
+    });
 }
 
 void UserInstructionLabel::resizeEvent(QResizeEvent *event) {

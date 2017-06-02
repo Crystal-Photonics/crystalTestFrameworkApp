@@ -15,7 +15,7 @@
 #include "util.h"
 
 #include <QSettings>
-#include <QTimer>
+//#include <QTimer>
 #include <QTreeWidgetItem>
 #include <functional>
 #include <initializer_list>

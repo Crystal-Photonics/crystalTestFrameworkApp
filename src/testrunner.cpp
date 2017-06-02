@@ -19,7 +19,7 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
         return console;
     }())
     , lua_ui_container(new UI_container(MainWindow::mw))
-    , script(lua_ui_container, console, data_engine.get())
+	, script(this, lua_ui_container, console, data_engine.get())
     , name(description.get_name()) {
     Console::note(console) << "Script started";
     lua_ui_container->add(console, nullptr);
@@ -38,9 +38,10 @@ TestRunner::~TestRunner() {
 }
 
 void TestRunner::interrupt() {
-    Utility::thread_call(this, [this]() mutable { this->script.event_queue_interrupt(); });
+    //Utility::thread_call(this, [this]() mutable { this->script.event_queue_interrupt(); });
 
     MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script interrupted"; });
+    this->script.event_queue_interrupt();
     thread.exit(-1);
     thread.exit(-1);
     thread.requestInterruption();
