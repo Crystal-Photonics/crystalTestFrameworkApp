@@ -39,9 +39,8 @@ TestRunner::~TestRunner() {
 
 void TestRunner::interrupt() {
     //Utility::thread_call(this, [this]() mutable { this->script.event_queue_interrupt(); });
-
-    MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script interrupted"; });
     this->script.event_queue_interrupt();
+    MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script interrupted"; });
     thread.exit(-1);
     thread.exit(-1);
     thread.requestInterruption();

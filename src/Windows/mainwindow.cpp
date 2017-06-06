@@ -87,7 +87,9 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow() {
     for (auto &test : test_runners) {
-        test->interrupt();
+        if (test->is_running()) {
+            test->interrupt();
+        }
     }
     for (auto &test : test_runners) {
         test->join();
@@ -384,6 +386,37 @@ TestRunner *MainWindow::get_runner_from_tab_index(int index) {
     return nullptr;
 }
 
+void MainWindow::closeEvent(QCloseEvent *event) {
+#if 1
+    bool one_is_running = false;
+    for (auto &test : test_runners) {
+        if (test->is_running()) {
+            one_is_running = true;
+            break;
+        }
+    }
+    if (one_is_running) {
+        if (QMessageBox::question(this, tr(""), tr("Scripts are still running. Abort them now?"), QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
+            for (auto &test : test_runners) {
+                if (test->is_running()) {
+                    test->interrupt();
+                    test->join();
+                }
+            }
+
+        } else {
+            event->ignore();
+            return; //canceled closing the window
+        }
+
+        QApplication::processEvents();
+        test_runners.clear();
+        QApplication::processEvents();
+    }
+    event->accept();
+#endif
+}
+
 void MainWindow::close_finished_tests() {
     auto &test_runners = MainWindow::mw->test_runners;
     test_runners.erase(std::remove_if(std::begin(test_runners), std::end(test_runners),
@@ -412,6 +445,7 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
             runner.interrupt();
             runner.join();
         } else {
+
             return; //canceled closing the tab
         }
     }
