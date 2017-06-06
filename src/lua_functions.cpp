@@ -387,7 +387,7 @@ std::string show_question(const QString &path, const sol::optional<std::string> 
             return "Ignore";
     }
     return "";
-};
+}
 #endif
 /// @endcond
 
@@ -419,7 +419,7 @@ void show_info(const QString &path, const sol::optional<std::string> &title, con
         QMessageBox::information(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path,
                                  QString::fromStdString(message.value_or("nil")));
     });
-};
+}
 /// @endcond
 
 /*! \fn show_warning(string title, string message);
@@ -449,7 +449,7 @@ void show_warning(const QString &path, const sol::optional<std::string> &title, 
     Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message]() {
         QMessageBox::warning(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path, QString::fromStdString(message.value_or("nil")));
     });
-};
+}
 /// @endcond
 
 /*! \fn print(argument);
@@ -491,7 +491,7 @@ void print(QPlainTextEdit *console, const sol::variadic_args &args) {
         text += ScriptEngine::to_string(object);
     }
     Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
-};
+}
 /// @endcond
 
 /*! \fn sleep_ms(int timeout_ms);
@@ -524,7 +524,7 @@ void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms) {
         throw sol::error("Interrupted");
     }
 #endif
-};
+}
 /// @endcond
 
 /*! \fn double current_date_time_ms();
@@ -606,7 +606,7 @@ double table_sum(sol::table input_values) {
         retval += i.second.as<double>();
     }
     return retval;
-};
+}
 /// @endcond
 
 void lua_object_to_string(QPlainTextEdit *console, sol::object &obj, QString &v, QString &t) {
@@ -684,7 +684,7 @@ void table_save_to_file(QPlainTextEdit *console, const std::string file_name, so
     obj["table"] = jarray;
     QJsonDocument saveDoc(obj);
     saveFile.write(saveDoc.toJson());
-};
+}
 
 sol::object sol_object_from_type_string(QPlainTextEdit *console, sol::state &lua, const QString &value_type, const QString &v) {
     if (value_type == "s") {
@@ -772,7 +772,7 @@ sol::table table_load_from_file(QPlainTextEdit *console, sol::state &lua, const 
     QJsonObject obj = loadDoc.object();
     QJsonArray jarray = obj["table"].toArray();
     return jsonarray_to_table(console, lua, jarray);
-};
+}
 
 /*! \fn double table_mean(table input_values);
 \brief Returns the mean value of the table \c input_values
@@ -805,7 +805,7 @@ double table_mean(sol::table input_values) {
         retval /= count;
     }
     return retval;
-};
+}
 
 /// @endcond
 
@@ -838,7 +838,7 @@ sol::table table_set_constant(sol::state &lua, sol::table input_values, double c
         retval.add(constant);
     }
     return retval;
-};
+}
 /// @endcond
 
 /*! \fn table table_create_constant(int size, double constant);
@@ -869,7 +869,7 @@ sol::table table_create_constant(sol::state &lua, const unsigned int size, doubl
         retval.add(constant);
     }
     return retval;
-};
+}
 /// @endcond
 ///
 
@@ -903,7 +903,7 @@ sol::table table_add_table(sol::state &lua, sol::table input_values_a, sol::tabl
         retval.add(sum_i);
     }
     return retval;
-};
+}
 /// @endcond
 
 /*! \fn table table_add_constant(table input_values,  double constant);
@@ -936,7 +936,7 @@ sol::table table_add_constant(sol::state &lua, sol::table input_values, double c
         retval.add(sum_i);
     }
     return retval;
-};
+}
 /// @endcond
 
 /*! \fn table table_sub_table(table input_values_a, table input_values_b);
@@ -969,7 +969,7 @@ sol::table table_sub_table(sol::state &lua, sol::table input_values_a, sol::tabl
         retval.add(sum_i);
     }
     return retval;
-};
+}
 /// @endcond
 
 /*! \fn table table_mul_table(table input_values_a, table input_values_b);
@@ -1002,7 +1002,7 @@ sol::table table_mul_table(sol::state &lua, sol::table input_values_a, sol::tabl
         retval.add(sum_i);
     }
     return retval;
-};
+}
 /// @endcond
 
 /*! \fn table table_mul_constant(table input_values_a, double constant);
@@ -1035,7 +1035,7 @@ sol::table table_mul_constant(sol::state &lua, sol::table input_values_a, double
         retval.add(sum_i);
     }
     return retval;
-};
+}
 /// @endcond
 
 /*! \fn table table_div_table(table input_values_a, table input_values_b);
@@ -1076,7 +1076,7 @@ sol::table table_div_table(sol::state &lua, sol::table input_values_a, sol::tabl
         retval.add(sum_i);
     }
     return retval;
-};
+}
 /// @endcond
 
 /*! \fn table table_round(table input_values, int precision);
@@ -1109,7 +1109,7 @@ sol::table table_round(sol::state &lua, sol::table input_values, const unsigned 
         retval.add(sum_i);
     }
     return retval;
-};
+}
 /// @endcond
 
 /*! \fn table table_abs(table input_values);
@@ -1139,7 +1139,7 @@ sol::table table_abs(sol::state &lua, sol::table input_values) {
         retval.add(sum_i);
     }
     return retval;
-};
+}
 /// @endcond
 
 /*! \fn table table_mid(table input_values, int start, int length);
@@ -1170,7 +1170,7 @@ sol::table table_mid(sol::state &lua, sol::table input_values, const unsigned in
         retval.add(sum_i);
     }
     return retval;
-};
+}
 
 /// @endcond
 
@@ -1204,7 +1204,7 @@ bool table_equal_constant(sol::table input_values_a, double input_const_val) {
         }
     }
     return true;
-};
+}
 /// @endcond
 
 /*! \fn bool table_equal_table(table input_values_a, table input_values_b);
@@ -1237,7 +1237,7 @@ bool table_equal_table(sol::table input_values_a, sol::table input_values_b) {
         }
     }
     return true;
-};
+}
 /// @endcond
 
 /*! \fn double table_max(table input_values);
@@ -1270,7 +1270,7 @@ double table_max(sol::table input_values) {
         first = false;
     }
     return max;
-};
+}
 /// @endcond
 
 /*! \fn double table_min(table input_values);
@@ -1304,7 +1304,7 @@ double table_min(sol::table input_values) {
         first = false;
     }
     return min;
-};
+}
 /// @endcond
 
 /*! \fn double table_max_abs(table input_values);

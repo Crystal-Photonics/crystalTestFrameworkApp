@@ -52,11 +52,11 @@ void TestRunner::join() {
 }
 
 void TestRunner::pause_timers() {
-    this->script.pause_timers();
+	this->script.pause_timer();
 }
 
 void TestRunner::resume_timers() {
-    this->script.resume_timers();
+	this->script.resume_timer();
 }
 
 sol::table TestRunner::create_table() {
