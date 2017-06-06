@@ -19,7 +19,7 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
         return console;
     }())
     , lua_ui_container(new UI_container(MainWindow::mw))
-	, script(this, lua_ui_container, console, data_engine.get())
+    , script(this, lua_ui_container, console, data_engine.get())
     , name(description.get_name()) {
     Console::note(console) << "Script started";
     lua_ui_container->add(console, nullptr);
@@ -38,7 +38,6 @@ TestRunner::~TestRunner() {
 }
 
 void TestRunner::interrupt() {
-    //Utility::thread_call(this, [this]() mutable { this->script.event_queue_interrupt(); });
     this->script.event_queue_interrupt();
     MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script interrupted"; });
     thread.exit(-1);
@@ -50,6 +49,14 @@ void TestRunner::join() {
     while (!thread.wait(16)) {
         QApplication::processEvents();
     }
+}
+
+void TestRunner::pause_timers() {
+    this->script.pause_timers();
+}
+
+void TestRunner::resume_timers() {
+    this->script.resume_timers();
 }
 
 sol::table TestRunner::create_table() {

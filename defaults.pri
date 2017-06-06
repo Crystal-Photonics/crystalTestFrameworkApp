@@ -36,8 +36,8 @@ DEFINES += SOL_CHECK_ARGUMENTS
 
 QMAKE_CXXFLAGS += -Werror
 
-QMAKE_CXXFLAGS_DEBUG += -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare
-QMAKE_CXXFLAGS_RELEASE += -Wunused-function -Wunused-parameter -Wunused-variable
+QMAKE_CXXFLAGS_DEBUG += -Wall -pedantic  -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare
+QMAKE_CXXFLAGS_RELEASE += -Wall -pedantic  -Wunused-function -Wunused-parameter -Wunused-variable
 
 QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address

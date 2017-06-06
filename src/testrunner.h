@@ -28,6 +28,8 @@ class TestRunner : QObject {
 
 	void interrupt();
 	void join();
+    void pause_timers();
+    void resume_timers();
 	sol::table create_table();
 	template <class ReturnType, class... Arguments>
 	ReturnType call(const char *function_name, Arguments &&... args);
