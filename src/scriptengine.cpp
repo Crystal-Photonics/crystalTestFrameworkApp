@@ -37,6 +37,7 @@
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QMessageBox>
+#include <QMutex>
 #include <QPlainTextEdit>
 #include <QProcess>
 #include <QSettings>
@@ -48,7 +49,6 @@
 #include <regex>
 #include <string>
 #include <vector>
-#include <QMutex>
 
 template <class T>
 struct Lua_UI_Wrapper {
@@ -592,9 +592,18 @@ ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit 
 ScriptEngine::~ScriptEngine() { //
 }
 
-void ScriptEngine::pause_timer() {}
+void ScriptEngine::pause_timer() {
+    timer_pause_mutex.lock();
+    timer_pause_condition = true;
+    timer_pause_mutex.unlock();
+}
 
-void ScriptEngine::resume_timer() {}
+void ScriptEngine::resume_timer() {
+    timer_pause_mutex.lock();
+    timer_pause_condition = false;
+    timer_pause_mutex.unlock();
+    timer_pause.wakeAll();
+}
 
 int ScriptEngine::event_queue_run_() {
     assert(!event_loop.isRunning());
@@ -639,11 +648,12 @@ TimerEvent::TimerEvent ScriptEngine::timer_event_queue_run(int timeout_ms) {
                 qDebug() << "quitting timer event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
                          << "Current Thread:" << QThread::currentThreadId()
                          << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
-                QMutex mutex;
-                mutex.lock();
-                timer_pause.wait(&mutex);
+                timer_pause_mutex.lock();
+                if (timer_pause_condition) {
+                    timer_pause.wait(&timer_pause_mutex);
+                }
                 event_loop.exit(TimerEvent::TimerEvent::expired);
-                mutex.unlock();
+                timer_pause_mutex.unlock();
             });
         });
 

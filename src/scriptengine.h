@@ -7,10 +7,10 @@
 #include <QEventLoop>
 #include <QList>
 #include <QString>
+#include <QWaitCondition>
 #include <functional>
 #include <memory>
 #include <vector>
-#include <QWaitCondition>
 
 class CommunicationDevice;
 class QStringList;
@@ -94,8 +94,9 @@ class ScriptEngine {
     int event_queue_run_();
     QObject *owner{nullptr};
 
-     QWaitCondition timer_pause;
-
+    QMutex timer_pause_mutex;
+    QWaitCondition timer_pause;
+    bool timer_pause_condition = false;
 };
 
 template <class ReturnType, class... Arguments>
