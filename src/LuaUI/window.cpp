@@ -25,7 +25,6 @@ QSize Window::sizeHint() const {
 
 void Window::closeEvent(QCloseEvent *event) {
 	if (test->is_running()) {
-        test->
 		if (QMessageBox::question(this, tr(""), tr("Selected script %1 is still running. Abort it now?").arg(test->get_name()),
 								  QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
 			test->interrupt();
