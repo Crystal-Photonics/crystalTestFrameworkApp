@@ -10,6 +10,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <QWaitCondition>
 
 class CommunicationDevice;
 class QStringList;
@@ -92,6 +93,8 @@ class ScriptEngine {
 
     int event_queue_run_();
     QObject *owner{nullptr};
+
+     QWaitCondition timer_pause;
 
 };
 
