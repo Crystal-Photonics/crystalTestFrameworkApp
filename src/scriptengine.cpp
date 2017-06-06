@@ -591,6 +591,16 @@ ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit 
 ScriptEngine::~ScriptEngine() { //
 }
 
+void ScriptEngine::pause_timer()
+{
+
+}
+
+void ScriptEngine::resume_timer()
+{
+
+}
+
 int ScriptEngine::event_queue_run_() {
     assert(!event_loop.isRunning());
     assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI

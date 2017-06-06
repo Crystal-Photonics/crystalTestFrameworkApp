@@ -54,6 +54,8 @@ class ScriptEngine {
 	ScriptEngine(ScriptEngine &&) = delete;
 	~ScriptEngine();
 
+    void pause_timer();
+    void resume_timer();
     TimerEvent::TimerEvent timer_event_queue_run(int timeout_ms);
     UiEvent::UiEvent ui_event_queue_run();
     HotKeyEvent::HotKeyEvent hotkey_event_queue_run();

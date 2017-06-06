@@ -2,7 +2,6 @@
 
 #include "Windows/mainwindow.h"
 #include "config.h"
-#include "global.h"
 #include "ui_container.h"
 #include "util.h"
 

@@ -114,7 +114,7 @@ SOURCES += \
 	Windows/devicematcher.cpp \
 	Windows/scpimetadatadeviceselector.cpp \
 	Protocols/sg04countprotocol.cpp \
-        Windows/hotkey_picker.cpp \
+	Windows/hotkey_picker.cpp \
     datalogger.cpp \
     LuaUI/isotopesourceselector.cpp \
     LuaUI/combofileselector.cpp \
