@@ -8,6 +8,7 @@
 #include <QList>
 #include <QString>
 #include <QWaitCondition>
+#include <QMutex>
 #include <functional>
 #include <memory>
 #include <vector>
