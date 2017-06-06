@@ -14,6 +14,7 @@ class QJsonObject;
 class QWidget;
 class QVariant;
 class DataEngineSections;
+class QSqlDatabase;
 
 using FormID = QString;
 enum class EntryType { Unspecified, Bool, String, Reference, Numeric };
@@ -59,7 +60,8 @@ enum class DataEngineErrorNumber {
     instance_count_must_match_list_of_dependency_values,
     list_of_dependency_values_must_be_of_equal_length,
     reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance,
-    is_in_dummy_mode
+	is_in_dummy_mode,
+	sql_error,
 };
 class DataEngineError : public std::runtime_error {
     public:
@@ -461,6 +463,7 @@ class Data_engine {
 
     std::unique_ptr<QWidget> get_preview() const;
 	bool generate_pdf(const std::string &form, const std::string &destination) const;
+	void fill_database(QSqlDatabase &db);
 
     private:
     struct FormIdWrapper {

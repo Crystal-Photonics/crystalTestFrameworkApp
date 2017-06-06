@@ -31,7 +31,7 @@ UserInstructionLabel::UserInstructionLabel(UI_container *parent, ScriptEngine *s
     , script_engine(script_engine)
 
 {
-    hlayout = new QHBoxLayout;
+	hlayout = new QHBoxLayout;
 
     hlayout->addWidget(label_user_instruction, 0, Qt::AlignTop);
 

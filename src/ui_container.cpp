@@ -12,9 +12,9 @@
 struct Widget_paragraph {
     Widget_paragraph(QVBoxLayout *parent)
         : layout{new QHBoxLayout}
-        , lua_ui_widget{lua_ui_widget} {
+		, lua_ui_widget{} {
         parent->addLayout(layout);
-    }
+	}
 
     void add(QWidget *widget, UI_widget *lua_ui_widget) {
         layout->addWidget(widget, 1, Qt::AlignBottom);
@@ -29,12 +29,13 @@ struct Widget_paragraph {
     void resizeEvent(QResizeEvent *event) {
         for (auto w : lua_ui_widget) {
             if (w) {
-                w->resizeEvent(event);
+				w->resizeEvent(event);
             }
         }
     }
 
     QHBoxLayout *layout{};
+	private:
     std::vector<UI_widget *> lua_ui_widget;
 };
 
@@ -61,10 +62,10 @@ void UI_container::add(QWidget *widget, UI_widget *lua_ui_widget) {
 
 void UI_container::add(QLayout *layout, UI_widget *lua_ui_widget) {
     if (paragraphs.size() < 2 || paragraphs.back().layout->count() >= column_count) {
-        paragraphs.emplace_back(this->layout);
-    }
-    paragraphs.back().add(layout, lua_ui_widget);
-    trigger_resize();
+		paragraphs.emplace_back(this->layout);
+	}
+	paragraphs.back().add(layout, lua_ui_widget);
+	trigger_resize();
 }
 
 void UI_container::set_column_count(int columns) {

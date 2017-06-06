@@ -219,7 +219,7 @@ void MainWindow::on_btn_refresh_all_clicked() {
         forget_by_treewidget_root(root, device_worker.get(), false);
     });
     update_devices_list();
-    device_detect();
+	device_detect();
 }
 
 void MainWindow::on_btn_refresh_dut_clicked() {

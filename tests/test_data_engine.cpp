@@ -6,7 +6,7 @@
 #include <QString>
 #include <sstream>
 
-#define DISABLE_ALL 0
+#define DISABLE_ALL 1
 //
 #define QVERIFY_EXCEPTION_THROWN_error_number(expression, error_number)                                                                                        \
     do {                                                                                                                                                       \
@@ -2499,21 +2499,21 @@ void Test_Data_engine::test_references_if_fails_when_mismatch_in_unit() {
 #include <QSqlRecord>
 
 void Test_Data_engine::test_preview() {
-#if !DISABLE_ALL || 0
+#if !DISABLE_ALL || 1
 	std::stringstream input{R"(
 		{
 			"testA":{
 				"data":[
-					{	"name": "idA1",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	},
-					{	"name": "idA2",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	}
+					{	"name": "idA1",	 	"value": 100,	"tolerance": 10,	"nice_name": "Betriebsspannung +5V"	},
+					{	"name": "idA2",	 	"value": 200,	"tolerance": 10,	"nice_name": "Betriebsspannung +5V"	}
 				]
 			},
 			"testB":{
 				"data":[
-					{	"name": "idB1",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	},
-					{	"name": "idB2",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	},
-					{	"name": "idB3",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	},
-					{	"name": "idB4",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	}
+					{	"name": "idB1",	 	"value": 300,	"tolerance": 10,	"nice_name": "Betriebsspannung +5V"	},
+					{	"name": "idB2",	 	"value": 400,	"tolerance": 10,	"nice_name": "Betriebsspannung +5V"	},
+					{	"name": "idB3",	 	"value": 500,	"tolerance": 10,	"nice_name": "Betriebsspannung +5V"	},
+					{	"name": "idB4",	 	"value": 600,	"tolerance": 10,	"nice_name": "Betriebsspannung +5V"	}
 				]
 			}
 		}
@@ -2529,43 +2529,22 @@ void Test_Data_engine::test_preview() {
 	QMap<QString, QList<QVariant>> tags;
 	Data_engine de{input, tags};
 
-	for (const auto &section : de.get_section_names()) {
-		auto section_ids = de.get_ids_of_section(section);
-		if (section_ids.isEmpty()) {
-			continue;
-		}
-		const auto query = db.exec(QString{R"(
-			CREATE TABLE %1 (
-				Name text PRIMARY KEY,
-				Description text,
-				Desired text,
-				Actual text
-			)
-		)"}.arg(section));
-		qDebug() << query.lastError().text();
-		QVERIFY(query.lastError().isValid() == false);
-		qDebug() << section;
-		for (const auto &section_id : section_ids) {
-			qDebug() << section_id << de.get_description(section_id) << de.get_desired_value_as_string(section_id) << de.get_actual_value(section_id);
-			const auto query = db.exec(QString{"INSERT INTO %1 VALUES('%2', '%3', '%4', '%5')"}.arg(
-				section, section_id, de.get_description(section_id), de.get_desired_value_as_string(section_id), de.get_actual_value(section_id)));
-			qDebug() << query.lastError().text();
-			QVERIFY(query.lastError().isValid() == false);
-		}
-	}
-	return;
-
 	int argc = 1;
     char executable[] = "";
     char *executable2 = executable;
     char **argv = &executable2;
     QApplication app(argc, argv);
 
-	de.set_actual_number("supply/voltage", 5.200);
-	de.set_actual_number("supply/current", 0.105);
-	de.set_actual_number("supply/power", 0.05);
-	QVERIFY(de.all_values_in_range());
+	de.set_actual_number("testA/idA1", 100);
+	de.set_actual_number("testA/idA2", 200);
+	de.set_actual_number("testB/idB1", 300);
+	de.set_actual_number("testB/idB2", 400);
+	de.set_actual_number("testB/idB3", 500);
+	de.set_actual_number("testB/idB4", 100);
+	//QVERIFY(de.all_values_in_range());
 	QVERIFY(de.is_complete());
+
+	de.fill_database(db);
 
 	QVERIFY(de.generate_pdf("testreport.lrxml", QDir::current().absoluteFilePath("test.pdf").toStdString()));
 

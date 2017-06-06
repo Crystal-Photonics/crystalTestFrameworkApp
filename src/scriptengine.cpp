@@ -68,7 +68,7 @@ struct Lua_UI_Wrapper {
         }
     }
 
-    int id = id_counter++;
+	int id = ++id_counter;
 
     private:
     static int id_counter;
@@ -582,8 +582,8 @@ struct SCPIDevice {
 };
 
 ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine)
-    : lua(std::make_unique<sol::state>())
-    , parent(parent)
+	: lua{std::make_unique<sol::state>()}
+	, parent{parent}
     , console(console)
     , data_engine(data_engine)
     , owner{owner} {}
@@ -796,7 +796,6 @@ struct Data_engine_handle {
 };
 
 void ScriptEngine::load_script(const QString &path) {
-    //NOTE: When using lambdas do not capture `this` or by reference, because it breaks when the ScriptEngine is moved
     this->path = path;
 
     EnvironmentVariables env_variables(QSettings{}.value(Globals::path_to_environment_variables, "").toString());

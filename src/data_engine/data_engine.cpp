@@ -8,6 +8,10 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSqlDatabase>
+#include <QSqlError>
+#include <QSqlQuery>
+#include <QSqlRecord>
 #include <QStringList>
 #include <QStringListModel>
 #include <QWidget>
@@ -172,8 +176,9 @@ DataEngineSection *DataEngineSections::get_section(const FormID &id) const {
     DataEngineErrorNumber error_num = DataEngineErrorNumber::ok;
     DecodecFieldID field_id = decode_field_id(id);
     DataEngineSection *result_section = get_section_raw(field_id.section_name, &error_num);
-    //TODO: handle no section found
-    return result_section;
+	if (result_section == nullptr)
+		throw DataEngineError(DataEngineErrorNumber::no_section_id_found, "Section not found");
+	return result_section;
 }
 
 DecodecFieldID DataEngineSections::decode_field_id(const FormID &id) {
@@ -1203,7 +1208,6 @@ void Data_engine::set_actual_text(const FormID &id, QString text) {
 
 void Data_engine::set_actual_bool(const FormID &id, bool value) {
     auto section = sections.get_section(id);
-	assert(section);
     section->set_actual_bool(id, value);
 }
 
@@ -1375,6 +1379,33 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
 	string_list_model.setStringList(string_list);
 	re.dataManager()->addModel("string_list", &string_list_model, false);
 	return re.printToPDF(QString::fromStdString(destination));
+}
+
+void Data_engine::fill_database(QSqlDatabase &db) {
+	for (const auto &section : get_section_names()) {
+		auto section_ids = get_ids_of_section(section);
+		if (section_ids.isEmpty()) {
+			continue;
+		}
+		const auto query = db.exec(QString{R"(
+			CREATE TABLE %1 (
+				Name text PRIMARY KEY,
+				Description text,
+				Desired text,
+				Actual text
+			)
+		)"}.arg(section));
+		if (query.lastError().isValid()){
+			throw DataEngineError(DataEngineErrorNumber::sql_error, "Failed creating table: " + query.lastError().text());
+		}
+		for (const auto &section_id : section_ids) {
+			const auto query = db.exec(QString{"INSERT INTO %1 VALUES('%2', '%3', '%4', '%5')"}.arg(
+				section, section_id, get_description(section_id), get_desired_value_as_string(section_id), get_actual_value(section_id)));
+			if (query.lastError().isValid()){
+				throw DataEngineError(DataEngineErrorNumber::sql_error, "Failed inserting value: " + query.lastError().text());
+			}
+		}
+	}
 }
 
 void Data_engine::assert_in_dummy_mode() const {

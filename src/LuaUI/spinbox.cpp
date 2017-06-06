@@ -13,16 +13,16 @@
 SpinBox::SpinBox(UI_container *parent)
     : label{new QLabel(parent)}
     , spinbox{new QSpinBox(parent)} {
-    QVBoxLayout *layout = new QVBoxLayout;
-    label->setText(" ");
-    layout->addWidget(label);
-    layout->addWidget(spinbox, 0, Qt::AlignBottom);
-    layout->addStretch(1);
-    parent->add(layout,this);
-    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-    spinbox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-    spinbox->setMaximum(100);
-    parent->scroll_to_bottom();
+	QVBoxLayout *layout = new QVBoxLayout;
+	label->setText(" ");
+	layout->addWidget(label);
+	layout->addWidget(spinbox, 0, Qt::AlignBottom);
+	layout->addStretch(1);
+	parent->add(layout, this);
+	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+	spinbox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+	spinbox->setMaximum(100);
+	parent->scroll_to_bottom();
 }
 
 SpinBox::~SpinBox() {

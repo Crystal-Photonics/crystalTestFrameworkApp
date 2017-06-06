@@ -50,7 +50,9 @@ class ScriptEngine {
     friend class DeviceWorker;
 
     ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine);
-    ~ScriptEngine();
+	ScriptEngine(const ScriptEngine &) = delete;
+	ScriptEngine(ScriptEngine &&) = delete;
+	~ScriptEngine();
 
     TimerEvent::TimerEvent timer_event_queue_run(int timeout_ms);
     UiEvent::UiEvent ui_event_queue_run();
