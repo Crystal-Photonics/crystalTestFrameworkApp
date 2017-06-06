@@ -38,6 +38,7 @@ class DataEngineInput : public UI_widget {
     void sleep_ms(uint timeout_ms);
     void set_explanation_text(const std::string &extra_explanation);
 
+    bool get_is_editable();
     private:
     UI_container *parent;
 

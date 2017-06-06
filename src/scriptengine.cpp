@@ -609,10 +609,66 @@ int ScriptEngine::event_queue_run_() {
 }
 
 TimerEvent::TimerEvent ScriptEngine::timer_event_queue_run(int timeout_ms) {
-    QTimer::singleShot(timeout_ms, [this] //
-                       { this->event_loop.exit(TimerEvent::TimerEvent::expired); });
+    std::unique_ptr<QTimer> timer;
 
+    QMetaObject::Connection callback_timer;
+    auto cleanup = Utility::RAII_do([&timer, &callback_timer,this] {             //
+                                                                                 //Utility::thread_call(owner, [&timer, callback_timer] {       //
+        Utility::promised_thread_call(MainWindow::mw, [&timer, &callback_timer] { //
+            timer->stop();
+            QObject::disconnect(callback_timer);
+            timer.release();
+        });
+
+    });
+
+    MainWindow::mw->execute_in_gui_thread([this, &timer, timeout_ms, &callback_timer] {
+
+        timer = std::make_unique<QTimer>();
+
+        timer->setSingleShot(true);
+        timer->start(timeout_ms);
+
+        callback_timer = QObject::connect(timer.get(), &QTimer::timeout, [this] {
+            Utility::thread_call(owner, [this] {
+                qDebug() << "quitting timer event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
+                         << "Current Thread:" << QThread::currentThreadId()
+                         << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
+                event_loop.exit(TimerEvent::TimerEvent::expired);
+            });
+        });
+
+    });
+
+#if 0
+    QTimer timer;
+
+    auto callback_timer = QObject::connect(&timer, &QTimer::timeout, [this]() { //
+        Utility::thread_call(owner, [this] {                                    //
+            this->event_loop.exit(TimerEvent::TimerEvent::expired);
+        });
+    });
+    auto cleanup = Utility::RAII_do([&timer, callback_timer, this] { //
+        Utility::thread_call(owner, [&timer, callback_timer] {       //
+                                                                     //Utility::promised_thread_call(MainWindow::mw, [&timer, callback_timer] { //
+            timer.stop();
+            QObject::disconnect(callback_timer);
+        });
+
+    });
+    // MainWindow::mw->execute_in_gui_thread([&timer, timeout_ms] { //
+    Utility::thread_call(owner, [&timer, timeout_ms] { //
+        timer.setSingleShot(true);
+        timer.start(timeout_ms);
+    });
+
+    //QTimer::singleShot(timeout_ms, [this] //
+    //                     { });
+    //
+#endif
     auto exit_value = event_queue_run_();
+
+    (void)cleanup;
 
     return static_cast<TimerEvent::TimerEvent>(exit_value);
 }
@@ -1129,9 +1185,10 @@ void ScriptEngine::load_script(const QString &path) {
                 "set_visible", thread_call_wrapper(&DataEngineInput::set_visible), //
                 "set_enabled", thread_call_wrapper(&DataEngineInput::set_enabled), //
                 "save_to_data_engine",
-                thread_call_wrapper(&DataEngineInput::save_to_data_engine),          //
-                "set_editable", thread_call_wrapper(&DataEngineInput::set_editable), //
-                "sleep_ms", non_gui_call_wrapper(&DataEngineInput::sleep_ms),        //
+                thread_call_wrapper(&DataEngineInput::save_to_data_engine),             //
+                "set_editable", thread_call_wrapper(&DataEngineInput::set_editable),    //
+                "sleep_ms", non_gui_call_wrapper(&DataEngineInput::sleep_ms),           //
+                "is_editable", non_gui_call_wrapper(&DataEngineInput::get_is_editable), //
                 "set_explanation_text", thread_call_wrapper(&DataEngineInput::set_explanation_text)
 
                     );

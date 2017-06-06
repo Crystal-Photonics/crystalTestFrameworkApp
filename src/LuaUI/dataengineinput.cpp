@@ -278,6 +278,11 @@ void DataEngineInput::set_explanation_text(const std::string &extra_explanation)
     MainWindow::mw->execute_in_gui_thread([this] { label_extra_explanation->setText(this->extra_explanation); });
 }
 
+bool DataEngineInput::get_is_editable()
+{
+    return is_editable;
+}
+
 void DataEngineInput::set_visible(bool visible) {
     is_visible = visible;
     set_ui_visibility();
