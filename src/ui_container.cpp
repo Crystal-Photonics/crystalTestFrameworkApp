@@ -12,7 +12,7 @@
 struct Widget_paragraph {
     Widget_paragraph(QVBoxLayout *parent)
         : layout{new QHBoxLayout}
-        , lua_ui_widget{lua_ui_widget} {
+        , lua_ui_widget{} {
         parent->addLayout(layout);
     }
 
@@ -35,6 +35,8 @@ struct Widget_paragraph {
     }
 
     QHBoxLayout *layout{};
+
+    private:
     std::vector<UI_widget *> lua_ui_widget;
 };
 
