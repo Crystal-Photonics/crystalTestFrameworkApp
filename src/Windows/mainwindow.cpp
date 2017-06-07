@@ -396,9 +396,16 @@ void MainWindow::closeEvent(QCloseEvent *event) {
         }
     }
     if (one_is_running) {
+        for (auto &test : test_runners) {
+            if (test->is_running()) {
+                test->pause_timers();
+            }
+        }
+
         if (QMessageBox::question(this, tr(""), tr("Scripts are still running. Abort them now?"), QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
             for (auto &test : test_runners) {
                 if (test->is_running()) {
+                    test->resume_timers();
                     test->interrupt();
                     test->join();
                 }
@@ -406,6 +413,11 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 
         } else {
             event->ignore();
+            for (auto &test : test_runners) {
+                if (test->is_running()) {
+                    test->resume_timers();
+                }
+            }
             return; //canceled closing the window
         }
 
@@ -440,12 +452,14 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
     }
     auto &runner = **runner_it;
     if (runner.is_running()) {
+        runner.pause_timers();
         if (QMessageBox::question(this, tr(""), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
                                   QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
+            runner.resume_timers();
             runner.interrupt();
             runner.join();
         } else {
-
+            runner.resume_timers();
             return; //canceled closing the tab
         }
     }

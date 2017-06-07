@@ -37,6 +37,7 @@
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QMessageBox>
+#include <QMutex>
 #include <QPlainTextEdit>
 #include <QProcess>
 #include <QSettings>
@@ -472,6 +473,10 @@ struct SG04CountDevice {
         return protocol->get_sg04_counts(*lua, clear);
     }
 
+    uint accumulate_counts(uint time_ms) {
+        return protocol->accumulate_counts(engine, time_ms);
+    }
+
     sol::state *lua = nullptr;
     SG04CountProtocol *protocol = nullptr;
     CommunicationDevice *device = nullptr;
@@ -591,28 +596,35 @@ ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit 
 ScriptEngine::~ScriptEngine() { //
 }
 
-void ScriptEngine::pause_timer()
-{
-
+void ScriptEngine::pause_timer() {
+    timer_pause_mutex.lock();
+    timer_pause_condition = true;
+    timer_pause_mutex.unlock();
 }
 
-void ScriptEngine::resume_timer()
-{
-
+void ScriptEngine::resume_timer() {
+    timer_pause_mutex.lock();
+    timer_pause_condition = false;
+    timer_pause_mutex.unlock();
+    timer_pause.wakeAll();
 }
 
 int ScriptEngine::event_queue_run_() {
     assert(!event_loop.isRunning());
     assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+#if 0
     qDebug() << "eventloop start"
              << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
              << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
+#endif
     auto exit_value = event_loop.exec();
+#if 0
     qDebug() << "eventloop end"
              << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
              << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
+#endif
     if (exit_value < 0) {
-        qDebug() << "eventloop Interruption";
+        // qDebug() << "eventloop Interruption";
         throw sol::error("Interrupted");
     }
     return exit_value;
@@ -622,8 +634,8 @@ TimerEvent::TimerEvent ScriptEngine::timer_event_queue_run(int timeout_ms) {
     std::unique_ptr<QTimer> timer;
 
     QMetaObject::Connection callback_timer;
-    auto cleanup = Utility::RAII_do([&timer, &callback_timer,this] {             //
-                                                                                 //Utility::thread_call(owner, [&timer, callback_timer] {       //
+    auto cleanup = Utility::RAII_do([&timer, &callback_timer, this] {             //
+                                                                                  //Utility::thread_call(owner, [&timer, callback_timer] {       //
         Utility::promised_thread_call(MainWindow::mw, [&timer, &callback_timer] { //
             timer->stop();
             QObject::disconnect(callback_timer);
@@ -641,41 +653,22 @@ TimerEvent::TimerEvent ScriptEngine::timer_event_queue_run(int timeout_ms) {
 
         callback_timer = QObject::connect(timer.get(), &QTimer::timeout, [this] {
             Utility::thread_call(owner, [this] {
+#if 0
                 qDebug() << "quitting timer event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
                          << "Current Thread:" << QThread::currentThreadId()
                          << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
+#endif
+                timer_pause_mutex.lock();
+                if (timer_pause_condition) {
+                    timer_pause.wait(&timer_pause_mutex);
+                }
                 event_loop.exit(TimerEvent::TimerEvent::expired);
+                timer_pause_mutex.unlock();
             });
         });
 
     });
 
-#if 0
-    QTimer timer;
-
-    auto callback_timer = QObject::connect(&timer, &QTimer::timeout, [this]() { //
-        Utility::thread_call(owner, [this] {                                    //
-            this->event_loop.exit(TimerEvent::TimerEvent::expired);
-        });
-    });
-    auto cleanup = Utility::RAII_do([&timer, callback_timer, this] { //
-        Utility::thread_call(owner, [&timer, callback_timer] {       //
-                                                                     //Utility::promised_thread_call(MainWindow::mw, [&timer, callback_timer] { //
-            timer.stop();
-            QObject::disconnect(callback_timer);
-        });
-
-    });
-    // MainWindow::mw->execute_in_gui_thread([&timer, timeout_ms] { //
-    Utility::thread_call(owner, [&timer, timeout_ms] { //
-        timer.setSingleShot(true);
-        timer.start(timeout_ms);
-    });
-
-    //QTimer::singleShot(timeout_ms, [this] //
-    //                     { });
-    //
-#endif
     auto exit_value = event_queue_run_();
 
     (void)cleanup;
@@ -702,9 +695,11 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
             shortcuts[i] = std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
             QObject::connect(shortcuts[i].get(), &QShortcut::activated, [this, i] {
                 Utility::thread_call(owner, [this, i] {
+#if 0
                     qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
                              << "Current Thread:" << QThread::currentThreadId()
                              << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
+#endif
                     event_loop.exit(i);
                 });
             });
@@ -725,18 +720,22 @@ void ScriptEngine::ui_event_queue_send() {
 
 void ScriptEngine::hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent event) {
     Utility::thread_call(this->owner, [this, event]() {
+#if 0
         qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "by event"
                  << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
                  << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
+#endif
         this->event_loop.exit(event);
     }); //calls fun in the thread that owns obj
 }
 
 void ScriptEngine::event_queue_interrupt() {
     Utility::thread_call(this->owner, [this]() { //
+#if 0
         qDebug() << "interrupting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "by event"
                  << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
                  << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
+#endif
         event_loop.exit(-1);
     }); //calls fun in the thread that owns obj
     qDebug() << "interrupt event loop called";
@@ -1436,9 +1435,15 @@ void ScriptEngine::load_script(const QString &path) {
             lua->new_usertype<SG04CountDevice>("SG04CountDevice",                                                                           //
                                                sol::meta_function::construct, sol::no_constructor,                                          //
                                                "get_protocol_name", [](SG04CountDevice &protocol) { return protocol.get_protocol_name(); }, //
+                                               "get_name",
+                                               [](SG04CountDevice &protocol) {
+                                                   (void)protocol;
+                                                   return "SG04";
+                                               }, //
                                                "get_sg04_counts",
-                                               [](SG04CountDevice &protocol, bool clear_on_read) { return protocol.get_sg04_counts(clear_on_read); } //
-
+                                               [](SG04CountDevice &protocol, bool clear_on_read) { return protocol.get_sg04_counts(clear_on_read); }, //
+                                               "accumulate_counts",
+                                               [](SG04CountDevice &protocol, uint time_ms) { return protocol.accumulate_counts(time_ms); } //
                                                );
         }
         {

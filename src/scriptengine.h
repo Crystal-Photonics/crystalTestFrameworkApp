@@ -7,6 +7,8 @@
 #include <QEventLoop>
 #include <QList>
 #include <QString>
+#include <QWaitCondition>
+#include <QMutex>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -95,6 +97,9 @@ class ScriptEngine {
     int event_queue_run_();
     QObject *owner{nullptr};
 
+    QMutex timer_pause_mutex;
+    QWaitCondition timer_pause;
+    bool timer_pause_condition = false;
 };
 
 template <class ReturnType, class... Arguments>
