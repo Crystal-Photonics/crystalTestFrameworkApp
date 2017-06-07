@@ -449,12 +449,12 @@ class Data_engine {
     double get_si_prefix(const FormID &id) const;
     bool is_desired_value_set(const FormID &id) const;
 
-    QStringList get_section_names();
+	QStringList get_section_names() const;
     sol::table get_section_names(sol::state *lua);
     QStringList get_instance_captions(const QString &section_name) const;
-    uint get_instance_count(const std::string &section_name) const ;
-    sol::table get_ids_of_section(sol::state *lua, const std::string &section_name);
-    QStringList get_ids_of_section(const QString &section_name);
+	uint get_instance_count(const std::string &section_name) const;
+	sol::table get_ids_of_section(sol::state *lua, const std::string &section_name);
+	QStringList get_ids_of_section(const QString &section_name) const;
 
     void fill_engine_with_dummy_data();
     Statistics get_statistics() const;
@@ -480,7 +480,6 @@ class Data_engine {
     static bool entry_compare(const FormIdWrapper &lhs, const FormIdWrapper &rhs);
 
     DataEngineSections sections;
-
 };
 
 #endif // DATA_ENGINE_H

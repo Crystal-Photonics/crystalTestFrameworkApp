@@ -1225,7 +1225,7 @@ QStringList Data_engine::get_instance_captions(const QString &section_name) cons
     return the_section->get_instance_captions();
 }
 
-QStringList Data_engine::get_ids_of_section(const QString &section_name) {
+QStringList Data_engine::get_ids_of_section(const QString &section_name) const {
     DataEngineSection *the_section = sections.get_section(section_name + "/dummy");
     assert(the_section);
     return the_section->get_all_ids_of_selected_instance(section_name + "/");
@@ -1257,7 +1257,7 @@ void Data_engine::save_data_to_file(const QString &filename) const {
     //
 }
 
-QStringList Data_engine::get_section_names() {
+QStringList Data_engine::get_section_names() const {
     QStringList result;
     for (auto &section : sections.sections) {
         result.append(section.get_section_name());
@@ -1381,29 +1381,60 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
 	return re.printToPDF(QString::fromStdString(destination));
 }
 
+static void db_exec(QSqlDatabase &db, const QString &query) {
+	auto instance = db.exec(query);
+	if (instance.lastError().isValid()) {
+		qDebug() << instance.lastError().text();
+		throw DataEngineError(DataEngineErrorNumber::sql_error, QString{"Failed executing query: ''%1''. Error: %2"}.arg(query, instance.lastError().text()));
+	}
+}
+
+static QString get_caption(const QString &section_name, const QString &instance_caption) {
+	if (instance_caption.isEmpty()) {
+		return section_name;
+	}
+	return section_name + " " + instance_caption;
+}
+
 void Data_engine::fill_database(QSqlDatabase &db) {
-	for (const auto &section : get_section_names()) {
-		auto section_ids = get_ids_of_section(section);
-		if (section_ids.isEmpty()) {
-			continue;
-		}
-		const auto query = db.exec(QString{R"(
+	int instance_id_counter{};
+	//for (const auto &section : sections.sections) { //cannot use auto because Qt Creator is a PoS
+	for (const DataEngineSection &section : sections.sections) {
+		const auto instances_table_name = section.get_section_name() + "_instances";
+		db_exec(db, QString{R"(
 			CREATE TABLE %1 (
-				Name text PRIMARY KEY,
-				Description text,
-				Desired text,
-				Actual text
+				ID int PRIMARY KEY,
+				Caption text
 			)
-		)"}.arg(section));
-		if (query.lastError().isValid()){
-			throw DataEngineError(DataEngineErrorNumber::sql_error, "Failed creating table: " + query.lastError().text());
-		}
-		for (const auto &section_id : section_ids) {
-			const auto query = db.exec(QString{"INSERT INTO %1 VALUES('%2', '%3', '%4', '%5')"}.arg(
-				section, section_id, get_description(section_id), get_desired_value_as_string(section_id), get_actual_value(section_id)));
-			if (query.lastError().isValid()){
-				throw DataEngineError(DataEngineErrorNumber::sql_error, "Failed inserting value: " + query.lastError().text());
+		)"}.arg(instances_table_name));
+		//for (const auto &instance : section.instances) { //cannot use auto because Qt Creator is a PoS
+		for (const DataEngineInstance &instance : section.instances) {
+			const auto &section_table_name = section.get_section_name();
+			db_exec(db, QString{"INSERT INTO %1 VALUES(%2, '%3')"}.arg(instances_table_name, QString::number(instance_id_counter),
+																	   get_caption(section.get_section_name(), instance.instance_caption)));
+
+			db_exec(db, QString{R"(
+				CREATE TABLE %1 (
+					Name text PRIMARY KEY,
+					Description text,
+					Desired text,
+					Actual text,
+					Instance_id int KEY,
+					Inrange flag,
+					Unit text
+				)
+			)"}.arg(section_table_name));
+			int variant_counter = 0;
+			for (const VariantData &variant : instance.variants) {
+				for (const std::unique_ptr<DataEngineDataEntry> &entry : variant.data_entries) {
+					variant_counter++;
+					db_exec(db, QString{"INSERT INTO %1 VALUES('%2', '%3', '%4', '%5', %6, %7, '%8')"}.arg(
+									section_table_name, section.get_section_name() + "/" + entry->field_name, entry->get_description(),
+									entry->get_desired_value_as_string(), entry->get_actual_values(), QString::number(instance_id_counter),
+									entry->is_in_range() ? "1" : "0", entry->get_unit()));
+				}
 			}
+			instance_id_counter++;
 		}
 	}
 }
