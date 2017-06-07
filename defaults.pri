@@ -9,9 +9,6 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 INCLUDEPATH += $$PWD/src
 INCLUDEPATH += ../libs/luasol/include
 
-INCLUDEPATH += $$PWD/libs/LimeReport/include
-LIBS += -L$$PWD/libs/LimeReport
-LIBS += -llimereport -lQtZint
 
 win32 {
     QWT_DIR = $$PWD/libs/qwt
@@ -22,9 +19,15 @@ win32 {
 
     LIBS += -L$$PWD/libs/luasol
     LIBS += -llua53
+
+	Debug:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/win32/debug/lib
+	Release:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/win32/release/lib
 }else{
     CONFIG += qwt
     LIBS += -llua5.3
+	error("fill in the correct path for linux")
+	Debug:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux/debug/lib
+	Release:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux/release/lib
 }
 
 win32 {
@@ -36,6 +39,8 @@ win32 {
     LIBS += -llibusb-1.0
 }
 
+INCLUDEPATH += $$PWD/libs/LimeReport/include
+LIBS += -llimereport -lQtZint
 DEFINES += SOL_CHECK_ARGUMENTS
 
 QMAKE_CXXFLAGS += -Werror

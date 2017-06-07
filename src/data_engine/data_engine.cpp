@@ -1397,9 +1397,9 @@ static QString get_caption(const QString &section_name, const QString &instance_
 }
 
 void Data_engine::fill_database(QSqlDatabase &db) {
-	int instance_id_counter{};
 	//for (const auto &section : sections.sections) { //cannot use auto because Qt Creator is a PoS
 	for (const DataEngineSection &section : sections.sections) {
+		int instance_id_counter{1};
 		const auto instances_table_name = section.get_section_name() + "_instances";
 		db_exec(db, QString{R"(
 			CREATE TABLE %1 (
@@ -1424,10 +1424,8 @@ void Data_engine::fill_database(QSqlDatabase &db) {
 					Unit text
 				)
 			)"}.arg(section_table_name));
-			int variant_counter = 0;
 			for (const VariantData &variant : instance.variants) {
 				for (const std::unique_ptr<DataEngineDataEntry> &entry : variant.data_entries) {
-					variant_counter++;
 					db_exec(db, QString{"INSERT INTO %1 VALUES('%2', '%3', '%4', '%5', %6, %7, '%8')"}.arg(
 									section_table_name, section.get_section_name() + "/" + entry->field_name, entry->get_description(),
 									entry->get_desired_value_as_string(), entry->get_actual_values(), QString::number(instance_id_counter),

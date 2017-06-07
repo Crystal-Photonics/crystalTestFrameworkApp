@@ -10,3 +10,6 @@
 [submodule "libs/luasol"]
 	path = libs/luasol
 	url = https://github.com/Crystal-Photonics/luasol
+[submodule "libs/LimeReport"]
+	path = libs/LimeReport
+	url = https://github.com/fralx/LimeReport

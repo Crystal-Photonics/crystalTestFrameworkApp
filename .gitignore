@@ -5,6 +5,8 @@ libs/build/*
 builds/*
 libs/googletest/CMakeLists.txt.user
 comModules/mocklayer/*
+libs/LimeReport/translations
+libs/LimeReport/build
 
 *.zip
 
