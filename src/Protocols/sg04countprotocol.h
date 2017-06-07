@@ -6,6 +6,8 @@
 #include <QTreeWidgetItem>
 #include <sol.hpp>
 #include <QTime>
+#include "scriptengine.h"
+#include <QMutex>
 
 class SG04CountProtocol : public Protocol {
     public:
@@ -20,6 +22,7 @@ class SG04CountProtocol : public Protocol {
 
     void sg04_counts_clear();
     sol::table get_sg04_counts(sol::state &lua, bool clear);
+    uint accumulate_counts(ScriptEngine *script_engine, uint time_ms);
 
     uint16_t get_actual_count_rate();
     unsigned int get_actual_count_rate_cps();
@@ -34,6 +37,8 @@ class SG04CountProtocol : public Protocol {
 
     QList<uint16_t> received_count_packages;
     QTime performance_measurement_timer;
+    QMutex received_counts_mutex;
+    void sg04_counts_clear_raw();
 };
 
 #endif // SG04COUNTPROTOCOL_H
