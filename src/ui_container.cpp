@@ -30,6 +30,11 @@ struct Widget_paragraph {
         for (auto w : lua_ui_widget) {
             if (w) {
 				w->resizeEvent(event);
+#if 0
+                static uint i=0;
+                i++;
+                qDebug() << "resize" << i;
+#endif
             }
         }
     }
@@ -91,10 +96,14 @@ void UI_container::resizeEvent(QResizeEvent *event) {
 
 int UI_container::compute_size(int width) {
     return std::accumulate(std::begin(paragraphs), std::end(paragraphs), 0, [width](int size, const Widget_paragraph &paragraph) {
+        const auto ARTIFICIAL_MARGIN = 5;
         if (paragraph.layout->hasHeightForWidth()) {
-            return size + paragraph.layout->heightForWidth(width);
+            auto margin_height = ARTIFICIAL_MARGIN; //TODO: figure out how to use layout's margin here
+            return size + paragraph.layout->heightForWidth(width)+margin_height;
         }
-        return size + paragraph.layout->sizeHint().height();
+        return size + paragraph.layout->sizeHint().height()+ARTIFICIAL_MARGIN;
+        //return size + paragraph.layout->contentsRect().height();
+
     });
 }
 

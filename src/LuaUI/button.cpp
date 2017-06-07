@@ -11,7 +11,7 @@ Button::Button(UI_container *parent, ScriptEngine *script_engine, const std::str
     : button(new QPushButton(QString::fromStdString(title), parent))
     , script_engine{script_engine} {
     parent->add(button,this);
-    button->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
+    button->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     pressed_connection = QObject::connect(button, &QPushButton::pressed, [this] { pressed = true; });
     parent->scroll_to_bottom();
 }

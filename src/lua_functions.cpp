@@ -15,11 +15,11 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QPlainTextEdit>
 #include <QProcess>
 #include <QSettings>
 #include <QTimer>
 #include <cmath>
-
 /// @endcond
 
 /** \defgroup convenience Convenience functions
@@ -490,7 +490,12 @@ void print(QPlainTextEdit *console, const sol::variadic_args &args) {
     for (auto &object : args) {
         text += ScriptEngine::to_string(object);
     }
-    Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] { Console::script(console) << text; });
+    Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] {
+        if (console) {
+            console->setVisible(true);
+        }
+        Console::script(console) << text;
+    });
 }
 /// @endcond
 

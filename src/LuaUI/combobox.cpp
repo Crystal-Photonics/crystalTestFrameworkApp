@@ -17,8 +17,8 @@ ComboBox::ComboBox(UI_container *parent, const QStringList &sl)
     layout->addWidget(label);
     layout->addWidget(combobox);
     layout->addStretch(1);
-    combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
+    combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     parent->add(layout, this);
     //set_items(items);
     combobox->addItems(sl);

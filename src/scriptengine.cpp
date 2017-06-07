@@ -1196,7 +1196,7 @@ void ScriptEngine::load_script(const QString &path) {
                 thread_call_wrapper(&DataEngineInput::save_to_data_engine),             //
                 "set_editable", thread_call_wrapper(&DataEngineInput::set_editable),    //
                 "sleep_ms", non_gui_call_wrapper(&DataEngineInput::sleep_ms),           //
-                "is_editable", non_gui_call_wrapper(&DataEngineInput::get_is_editable), //
+                "is_editable", thread_call_wrapper(&DataEngineInput::get_is_editable), //
                 "set_explanation_text", thread_call_wrapper(&DataEngineInput::set_explanation_text)
 
                     );
@@ -1247,6 +1247,8 @@ void ScriptEngine::load_script(const QString &path) {
                 sol::meta_function::construct, [parent = this->parent]() { return Lua_UI_Wrapper<IsotopeSourceSelector>{parent}; }, //
                 "set_visible",
                 thread_call_wrapper(&IsotopeSourceSelector::set_visible), //
+            "set_enabled",
+            thread_call_wrapper(&IsotopeSourceSelector::set_enabled), //
                 "get_selected_activity_Bq",
                 thread_call_wrapper(&IsotopeSourceSelector::get_selected_activity_Bq),                                //
                 "get_selected_serial_number", thread_call_wrapper(&IsotopeSourceSelector::get_selected_serial_number) //

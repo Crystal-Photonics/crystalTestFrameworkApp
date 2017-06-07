@@ -47,7 +47,7 @@ private:
 
     QHBoxLayout *hlayout = nullptr;
     QString instruction_text;
-    bool blink_state = false;
+    uint blink_state = 0;
     bool run_hotkey_loop();
 
     ///\cond HIDDEN_SYMBOLS

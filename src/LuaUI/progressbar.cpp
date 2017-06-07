@@ -21,8 +21,8 @@ ProgressBar::ProgressBar(UI_container *parent)
     layout->addWidget(progressbar, 0, Qt::AlignBottom);
     layout->addStretch(1);
     parent->add(layout,this);
-    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-    progressbar->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+    progressbar->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     progressbar->setMaximum(100);
     parent->scroll_to_bottom();
 }

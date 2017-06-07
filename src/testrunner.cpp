@@ -22,7 +22,10 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
     , script(this, lua_ui_container, console, data_engine.get())
     , name(description.get_name()) {
     Console::note(console) << "Script started";
+
     lua_ui_container->add(console, nullptr);
+    assert(console);
+    console->setVisible(false);
     moveToThread(&thread);
     thread.start();
     try {
@@ -52,11 +55,11 @@ void TestRunner::join() {
 }
 
 void TestRunner::pause_timers() {
-	this->script.pause_timer();
+    this->script.pause_timer();
 }
 
 void TestRunner::resume_timers() {
-	this->script.resume_timer();
+    this->script.resume_timer();
 }
 
 sol::table TestRunner::create_table() {
@@ -75,7 +78,11 @@ void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protoco
         try {
             script.run(devices);
         } catch (const std::runtime_error &e) {
-            MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] { Console::error(console) << message; });
+            MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] {
+                assert(console);
+                console->setVisible(true);
+                Console::error(console) << message;
+            });
         }
         for (auto &dev_prot : devices) {
             device_worker.set_currently_running_test(dev_prot.first, "");

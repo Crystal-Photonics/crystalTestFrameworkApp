@@ -14,7 +14,7 @@ Label::Label(UI_container *parent, const std::string text)
     layout->addStretch(1);
     parent->add(layout,this);
 
-    label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Minimum);
+    label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::MinimumExpanding);
     set_text(text);
     normal_font_size = label->font().pointSize();
     label->setWordWrap(true);

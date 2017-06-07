@@ -77,7 +77,7 @@ UserInstructionLabel::UserInstructionLabel(UI_container *parent, ScriptEngine *s
     start_timer();
     timer->start(500);
     auto sp_w = QSizePolicy::Maximum;
-    auto sp_h = QSizePolicy::Maximum;
+    auto sp_h = QSizePolicy::MinimumExpanding;
     button_next->setSizePolicy(sp_w, sp_h);
     button_yes->setSizePolicy(sp_w, sp_h);
     button_no->setSizePolicy(sp_w, sp_h);
@@ -183,15 +183,16 @@ void UserInstructionLabel::resizeEvent(QResizeEvent *event) {
 ///\cond HIDDEN_SYMBOLS
 void UserInstructionLabel::start_timer() {
     callback_timer = QObject::connect(timer, &QTimer::timeout, [this]() {
-        if (blink_state) {
+        if (blink_state == Globals::ui_blink_ratio) {
             label_user_instruction->setText(" ");
+            blink_state = 0;
         } else {
             label_user_instruction->setMinimumHeight(0);
             label_user_instruction->setMaximumHeight(16777215);
             label_user_instruction->setText(instruction_text);
             label_user_instruction->setFixedHeight(label_user_instruction->height());
         }
-        blink_state = !blink_state;
+        blink_state++;
 
     });
 }

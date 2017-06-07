@@ -19,8 +19,8 @@ SpinBox::SpinBox(UI_container *parent)
 	layout->addWidget(spinbox, 0, Qt::AlignBottom);
 	layout->addStretch(1);
 	parent->add(layout, this);
-	label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-	spinbox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+    spinbox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
 	spinbox->setMaximum(100);
 	parent->scroll_to_bottom();
 }

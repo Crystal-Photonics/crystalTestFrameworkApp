@@ -18,6 +18,8 @@ namespace Globals {
     static const auto skip_key_sequence = "skip key sequence";
     static const auto cancel_key_sequence = "cancel key sequence";
     static const auto path_to_environment_variables = "path_to_environment_variables";
+
+    static const auto ui_blink_ratio = 8;
 }
 
 #endif // CONFIG_H

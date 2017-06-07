@@ -110,7 +110,7 @@ DataEngineInput::DataEngineInput(UI_container *parent, ScriptEngine *script_engi
     hlayout->insertWidget(3, lineedit, 0, Qt::AlignTop);
 
     auto sp_w = QSizePolicy::Maximum;
-    auto sp_h = QSizePolicy::Maximum;
+    auto sp_h = QSizePolicy::MinimumExpanding;
     label_extra_explanation->setSizePolicy(sp_w, sp_h);
     label_de_desired_value->setSizePolicy(sp_w, sp_h);
     label_de_actual_value->setSizePolicy(sp_w, sp_h);
@@ -136,6 +136,9 @@ DataEngineInput::DataEngineInput(UI_container *parent, ScriptEngine *script_engi
     parent->scroll_to_bottom();
     init_ok = true;
     set_ui_visibility();
+    if ((field_type == FieldType::Numeric) || (field_type == FieldType::String)) {
+        lineedit->setFocus();
+    }
     assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
@@ -262,12 +265,13 @@ void DataEngineInput::await_event() {
             bool_result = false;
         }
     }
+    is_waiting = false;
     MainWindow::mw->execute_in_gui_thread([this] {
         timer->stop();
         if (is_editable) {
             save_to_data_engine();
+            load_actual_value();
         }
-        is_waiting = false;
         set_ui_visibility();
     });
 }
@@ -277,8 +281,7 @@ void DataEngineInput::set_explanation_text(const std::string &extra_explanation)
     MainWindow::mw->execute_in_gui_thread([this] { label_extra_explanation->setText(this->extra_explanation); });
 }
 
-bool DataEngineInput::get_is_editable()
-{
+bool DataEngineInput::get_is_editable() {
     return is_editable;
 }
 
@@ -307,9 +310,10 @@ void DataEngineInput::clear_explanation() {
 ///\cond HIDDEN_SYMBOLS
 void DataEngineInput::start_timer() {
     callback_timer = QObject::connect(timer, &QTimer::timeout, [this]() {
-        if (blink_state) {
+        if (blink_state == Globals::ui_blink_ratio) {
             label_de_actual_value->setText(" ");
             label_extra_explanation->setText(" ");
+            blink_state = 0;
         } else {
             label_de_actual_value->setMinimumHeight(0);
             label_de_actual_value->setMaximumHeight(16777215);
@@ -321,7 +325,7 @@ void DataEngineInput::start_timer() {
             label_extra_explanation->setText(extra_explanation);
             label_extra_explanation->setFixedHeight(label_extra_explanation->height());
         }
-        blink_state = !blink_state;
+        blink_state++;
 
     });
 }
@@ -337,7 +341,7 @@ void DataEngineInput::set_total_visibilty() {
         label_de_description->setVisible(is_visible);
         label_de_desired_value->setVisible(is_visible);
         label_de_actual_value->setVisible(is_visible && (is_editable == false));
-        label_ok->setVisible(is_enabled && is_visible && (is_editable == false));
+        label_ok->setVisible(is_visible && ((is_editable == false) || (is_enabled == false)));
         lineedit->setVisible(is_visible && is_editable && is_enabled);
     });
 }

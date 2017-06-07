@@ -44,6 +44,11 @@ void IsotopeSourceSelector::set_visible(bool visible)
     combobox->setVisible(visible);
 }
 
+void IsotopeSourceSelector::set_enabled(bool enabled)
+{
+    combobox->setEnabled(enabled);
+}
+
 
 std::string IsotopeSourceSelector::get_selected_serial_number() {
     return combobox->currentText().toStdString();

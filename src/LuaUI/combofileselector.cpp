@@ -66,8 +66,8 @@ ComboBoxFileSelector::ComboBoxFileSelector(UI_container *parent, const std::stri
     parent->add(layout, this);
 
     button->setText("explore..");
-    combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-    button->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+    combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+    button->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::MinimumExpanding);
 
     current_directory = QString::fromStdString(directory);
     button_clicked_connection = QObject::connect(button, &QPushButton::pressed, [this] { showInGraphicalShell(this->parent, this->current_directory); });

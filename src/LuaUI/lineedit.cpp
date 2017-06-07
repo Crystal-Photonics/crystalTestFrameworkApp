@@ -19,8 +19,8 @@ LineEdit::LineEdit(UI_container *parent, ScriptEngine *script_engine)
     layout->addWidget(edit, 0, Qt::AlignBottom);
     layout->addStretch(1);
     parent->add(layout,this);
-    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-    edit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+    edit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     parent->scroll_to_bottom();
 }
 

@@ -32,6 +32,7 @@ class IsotopeSourceSelector : public UI_widget{
     std::string get_selected_serial_number();
 
     void set_visible(bool visible);
+    void set_enabled(bool enabled);
 private:
     void load_isotope_database();
     QComboBox *combobox = nullptr;

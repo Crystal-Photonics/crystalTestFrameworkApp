@@ -17,7 +17,7 @@ CheckBox::CheckBox(UI_container *parent, const std::string text)
     layout->addStretch(1);
     parent->add(layout,this);
 
-	checkbox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    checkbox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::MinimumExpanding);
 
     set_text(text);
     parent->scroll_to_bottom();

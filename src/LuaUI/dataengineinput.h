@@ -68,7 +68,7 @@ class DataEngineInput : public UI_widget {
     QString extra_explanation;
     QString desired_prefix;
     QString actual_prefix;
-    bool blink_state = false;
+    uint blink_state = 0;
     bool is_editable = false;
 
     bool is_enabled = true;
