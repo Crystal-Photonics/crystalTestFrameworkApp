@@ -15,6 +15,7 @@
 #include <QStringList>
 #include <QStringListModel>
 #include <QWidget>
+#include <QXmlStreamWriter>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
@@ -1436,6 +1437,47 @@ void Data_engine::fill_database(QSqlDatabase &db) {
 		}
 	}
 }
+
+void Data_engine::generate_template(const QString &destination) const {
+	QFile xml_file{destination};
+	xml_file.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
+	QXmlStreamWriter xml{&xml_file};
+	xml.setAutoFormatting(true);
+	xml.writeStartDocument();
+	xml.writeStartElement("Report");
+	{
+		xml.writeStartElement("object");
+		xml.writeAttribute("Type", "Object");
+		xml.writeAttribute("ClassName", "LimeReport::ReportEnginePrivate");
+		{
+			xml.writeStartElement("pages");
+			xml.writeAttribute("Type", "Collection");
+			generate_pages(xml);
+			xml.writeEndElement(); //pages
+
+			xml.writeStartElement("datasourcesManager");
+			xml.writeAttribute("Type", "Object");
+			xml.writeAttribute("ClassName", "LimeReport::DataSourceManager");
+			generate_datasourcesManager(xml);
+			xml.writeEndElement(); //datasourcesManager
+
+			xml.writeStartElement("scriptContext");
+			xml.writeAttribute("Type", "Object");
+			xml.writeAttribute("ClassName", "LimeReport::ScriptEngineContext");
+			generate_scriptContext(xml);
+			xml.writeEndElement(); //scriptContext
+		}
+		xml.writeEndElement(); //"object"
+	}
+	xml.writeEndElement(); //Report
+	xml.writeEndDocument();
+}
+
+void Data_engine::generate_pages(QXmlStreamWriter &xml) const {}
+
+void Data_engine::generate_datasourcesManager(QXmlStreamWriter &xml) const {}
+
+void Data_engine::generate_scriptContext(QXmlStreamWriter &xml) const {}
 
 void Data_engine::assert_in_dummy_mode() const {
     if (sections.is_dummy_data_mode) {

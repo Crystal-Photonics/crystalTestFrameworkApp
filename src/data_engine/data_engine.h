@@ -13,8 +13,9 @@
 class QJsonObject;
 class QWidget;
 class QVariant;
-class DataEngineSections;
+struct DataEngineSections;
 class QSqlDatabase;
+class QXmlStreamWriter;
 
 using FormID = QString;
 enum class EntryType { Unspecified, Bool, String, Reference, Numeric };
@@ -464,8 +465,13 @@ class Data_engine {
     std::unique_ptr<QWidget> get_preview() const;
 	bool generate_pdf(const std::string &form, const std::string &destination) const;
 	void fill_database(QSqlDatabase &db);
+	void generate_template(const QString &destination) const;
 
     private:
+	void generate_pages(QXmlStreamWriter &xml) const;
+	void generate_datasourcesManager(QXmlStreamWriter &xml) const;
+	void generate_scriptContext(QXmlStreamWriter &xml) const;
+
     struct FormIdWrapper {
         FormIdWrapper(const FormID &id)
             : value(id) {}
