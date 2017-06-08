@@ -513,6 +513,10 @@ struct ManualDevice {
         return protocol->get_summary();
     }
 
+    std::string get_calibration() {
+        return protocol->get_approved_state_str().toStdString();
+    }
+
     sol::state *lua = nullptr;
     ManualProtocol *protocol = nullptr;
     CommunicationDevice *device = nullptr;
@@ -571,6 +575,9 @@ struct SCPIDevice {
 
     std::string get_manufacturer(void) {
         return protocol->get_manufacturer();
+    }
+    std::string get_calibration(void) {
+        return protocol->get_approved_state_str().toStdString();
     }
 
     void set_validation_max_standard_deviation(double max_std_dev) {
@@ -1251,7 +1258,9 @@ void ScriptEngine::load_script(const QString &path) {
                 "set_enabled",
                 thread_call_wrapper(&IsotopeSourceSelector::set_enabled), //
                 "get_selected_activity_Bq",
-                thread_call_wrapper(&IsotopeSourceSelector::get_selected_activity_Bq),                                //
+                thread_call_wrapper(&IsotopeSourceSelector::set_enabled), //
+                "get_selected_name",
+                thread_call_wrapper(&IsotopeSourceSelector::get_selected_name),                                       //
                 "get_selected_serial_number", thread_call_wrapper(&IsotopeSourceSelector::get_selected_serial_number) //
                 );
         }
@@ -1426,9 +1435,10 @@ void ScriptEngine::load_script(const QString &path) {
                 "get_name", [](SCPIDevice &protocol) { return protocol.get_name(); },                                                                       //
                 "get_serial_number", [](SCPIDevice &protocol) { return protocol.get_serial_number(); },                                                     //
                 "get_manufacturer", [](SCPIDevice &protocol) { return protocol.get_manufacturer(); },                                                       //
-                "is_event_received", [](SCPIDevice &protocol, std::string event_name) { return protocol.is_event_received(event_name); },                   //
-                "clear_event_list", [](SCPIDevice &protocol) { return protocol.clear_event_list(); },                                                       //
-                "get_event_list", [](SCPIDevice &protocol) { return protocol.get_event_list(); },                                                           //
+                "get_calibration", [](SCPIDevice &protocol) { return protocol.get_calibration(); },                                                         //
+                "is_event_received", [](SCPIDevice &protocol, std::string event_name) { return protocol.is_event_received(event_name); }, //
+                "clear_event_list", [](SCPIDevice &protocol) { return protocol.clear_event_list(); },                                     //
+                "get_event_list", [](SCPIDevice &protocol) { return protocol.get_event_list(); },                                         //
                 "set_validation_max_standard_deviation",
                 [](SCPIDevice &protocoll, double max_std_dev) { return protocoll.set_validation_max_standard_deviation(max_std_dev); },          //
                 "set_validation_retries", [](SCPIDevice &protocoll, unsigned int retries) { return protocoll.set_validation_retries(retries); }, //
@@ -1461,7 +1471,9 @@ void ScriptEngine::load_script(const QString &path) {
                                             "get_description", [](ManualDevice &protocol) { return protocol.get_description(); },     //
                                             "get_serial_number", [](ManualDevice &protocol) { return protocol.get_serial_number(); }, //
                                             "get_notes", [](ManualDevice &protocol) { return protocol.get_notes(); },                 //
-                                            "get_summary", [](ManualDevice &protocol) { return protocol.get_summary(); }              //
+                                            "get_calibration", [](ManualDevice &protocol) { return protocol.get_calibration(); },     //
+
+                                            "get_summary", [](ManualDevice &protocol) { return protocol.get_summary(); } //
 
                                             );
         }

@@ -30,6 +30,7 @@ class IsotopeSourceSelector : public UI_widget{
 
     double get_selected_activity_Bq();
     std::string get_selected_serial_number();
+    std::string get_selected_name();
 
     void set_visible(bool visible);
     void set_enabled(bool enabled);

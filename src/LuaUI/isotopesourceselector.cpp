@@ -14,15 +14,15 @@
 #include <sol.hpp>
 
 IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
-	: combobox{new QComboBox(parent)} {
-	combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+    : combobox{new QComboBox(parent)} {
+    combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     QVBoxLayout *layout = new QVBoxLayout;
     QLabel *label = new QLabel(parent);
     label->setText(" ");
     layout->addWidget(label);
     layout->addWidget(combobox, 0, Qt::AlignBottom);
     layout->addStretch(1);
-    parent->add(layout,this);
+    parent->add(layout, this);
     load_isotope_database();
     fill_combobox_with_isotopes();
     parent->scroll_to_bottom();
@@ -39,19 +39,21 @@ double IsotopeSourceSelector::get_selected_activity_Bq() {
     return get_source_by_serial_number(combobox->currentText()).get_activtiy_becquerel(QDate::currentDate());
 }
 
-void IsotopeSourceSelector::set_visible(bool visible)
-{
+void IsotopeSourceSelector::set_visible(bool visible) {
     combobox->setVisible(visible);
 }
 
-void IsotopeSourceSelector::set_enabled(bool enabled)
-{
+void IsotopeSourceSelector::set_enabled(bool enabled) {
     combobox->setEnabled(enabled);
 }
 
-
 std::string IsotopeSourceSelector::get_selected_serial_number() {
     return combobox->currentText().toStdString();
+}
+
+std::string IsotopeSourceSelector::get_selected_name() {
+    auto isot = get_source_by_serial_number(QString::fromStdString(get_selected_serial_number()));
+    return isot.isotope.toStdString();
 }
 
 void IsotopeSourceSelector::fill_combobox_with_isotopes() {
@@ -92,7 +94,7 @@ void IsotopeSourceSelector::load_isotope_database() {
     QJsonArray jarray = obj["isotopes"].toArray();
     for (auto item : jarray) {
         QJsonObject obj = item.toObject();
-		if (obj["removed"].toString() == "yes") {
+        if (obj["removed"].toString() == "yes") {
             continue;
         }
         IsotopeSource isotope_source;
