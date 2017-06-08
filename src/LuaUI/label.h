@@ -18,6 +18,7 @@ class Label : public UI_widget{
     std::string get_text() const;
 
     void set_visible(bool visible);
+    void set_enabled(bool enabled);
     void set_font_size(bool big_font);
 private:
     QLabel *label = nullptr;

@@ -20,6 +20,7 @@
 #include <QSettings>
 #include <QTimer>
 #include <cmath>
+#include <QDebug>
 /// @endcond
 
 /** \defgroup convenience Convenience functions
@@ -494,6 +495,7 @@ void print(QPlainTextEdit *console, const sol::variadic_args &args) {
         if (console) {
             console->setVisible(true);
         }
+        qDebug() << QString::fromStdString(text);
         Console::script(console) << text;
     });
 }

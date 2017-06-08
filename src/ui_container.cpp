@@ -12,23 +12,24 @@
 struct Widget_paragraph {
     Widget_paragraph(QVBoxLayout *parent)
         : layout{new QHBoxLayout}
-		, lua_ui_widget{} {
+        , lua_ui_widgets{} {
         parent->addLayout(layout);
 	}
 
     void add(QWidget *widget, UI_widget *lua_ui_widget) {
         layout->addWidget(widget, 1, Qt::AlignBottom);
-        this->lua_ui_widget.push_back(lua_ui_widget);
+        this->lua_ui_widgets.push_back(lua_ui_widget);
     }
 
     void add(QLayout *layout, UI_widget *lua_ui_widget) {
         this->layout->addLayout(layout);
-        this->lua_ui_widget.push_back(lua_ui_widget);
+        this->lua_ui_widgets.push_back(lua_ui_widget);
     }
 
     void resizeEvent(QResizeEvent *event) {
-        for (auto w : lua_ui_widget) {
+        for (auto w : lua_ui_widgets) {
             if (w) {
+                qDebug() << "resizeEvent" << w;
 				w->resizeEvent(event);
 #if 0
                 static uint i=0;
@@ -41,7 +42,7 @@ struct Widget_paragraph {
 
     QHBoxLayout *layout{};
 	private:
-    std::vector<UI_widget *> lua_ui_widget;
+    std::vector<UI_widget *> lua_ui_widgets{};
 };
 
 UI_container::UI_container(QWidget *parent)

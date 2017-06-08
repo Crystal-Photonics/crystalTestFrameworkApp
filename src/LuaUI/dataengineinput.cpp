@@ -22,22 +22,30 @@
 #include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-DataEngineInput::DataEngineInput(UI_container *parent, ScriptEngine *script_engine, Data_engine *data_engine, std::string field_id,
-                                 std::string extra_explanation, std::string empty_value_placeholder, std::string desired_prefix, std::string actual_prefix)
-    : parent{parent}
-    , label_extra_explanation{new QLabel(parent)}
-    , label_de_description{new QLabel(parent)}
-    , label_de_desired_value{new QLabel(parent)}
-    , label_de_actual_value{new QLabel(parent)}
-    , label_ok{new QLabel(parent)}
-    , timer{new QTimer(parent)}
-    , data_engine{data_engine}
-    , field_id{QString::fromStdString(field_id)}
-    , empty_value_placeholder{QString::fromStdString(empty_value_placeholder)}
-    , extra_explanation{QString::fromStdString(extra_explanation)}
-    , desired_prefix{QString::fromStdString(desired_prefix)}
-    , actual_prefix{QString::fromStdString(actual_prefix)}
+DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, std::string field_id_,
+                                 std::string extra_explanation_, std::string empty_value_placeholder_, std::string desired_prefix_, std::string actual_prefix_)
+    : parent{parent_}
+    , label_extra_explanation{new QLabel(parent_)}
+    , label_de_description{new QLabel(parent_)}
+    , label_de_desired_value{new QLabel(parent_)}
+    , label_de_actual_value{new QLabel(parent_)}
+    , label_ok{new QLabel(parent_)}
+    , timer{new QTimer(parent_)}
+    , data_engine{data_engine_}
+    , field_id{QString::fromStdString(field_id_)}
+    , empty_value_placeholder{QString::fromStdString(empty_value_placeholder_)}
+    , extra_explanation{QString::fromStdString(extra_explanation_)}
+    , desired_prefix{QString::fromStdString(desired_prefix_)}
+    , actual_prefix{QString::fromStdString(actual_prefix_)}
     , script_engine{script_engine} {
+#if 0
+    qDebug() << "field_id" << QString::fromStdString(field_id_);
+    qDebug() << "empty_value_placeholder_" << QString::fromStdString(empty_value_placeholder_);
+    qDebug() << "extra_explanation_" << QString::fromStdString(extra_explanation_);
+    qDebug() << "desired_prefix_" << QString::fromStdString(desired_prefix_);
+    qDebug() << "actual_prefix_" << QString::fromStdString(actual_prefix_);
+    qDebug() << "line" << __LINE__;
+#endif
     hlayout = new QHBoxLayout;
 
     hlayout->addWidget(label_extra_explanation, 0, Qt::AlignTop);
@@ -47,10 +55,12 @@ DataEngineInput::DataEngineInput(UI_container *parent, ScriptEngine *script_engi
     hlayout->addWidget(label_ok, 0, Qt::AlignTop);
     parent->add(hlayout, this);
 
-    label_extra_explanation->setText(QString::fromStdString(extra_explanation));
+    label_extra_explanation->setText(extra_explanation);
     label_extra_explanation->setWordWrap(true);
 
-    label_de_description->setText(data_engine->get_description(this->field_id));
+    assert(data_engine);
+    QString desc = data_engine->get_description(this->field_id);
+    label_de_description->setText(desc);
     label_de_description->setWordWrap(true);
     label_de_desired_value->setText(this->desired_prefix + " " + data_engine->get_desired_value_as_string(this->field_id) + " " +
                                     data_engine->get_unit(this->field_id));
@@ -83,20 +93,20 @@ DataEngineInput::DataEngineInput(UI_container *parent, ScriptEngine *script_engi
     auto *vlayout_yes = new QVBoxLayout;
     auto *vlayout_no = new QVBoxLayout;
 
-    label_next = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence, "").toString() + ")", parent);
-    button_next = new QPushButton("next", parent);
+    label_next = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence, "").toString() + ")", parent_);
+    button_next = new QPushButton("next", parent_);
     vlayout_next->addWidget(button_next);
     vlayout_next->addWidget(label_next);
     vlayout_next->addStretch();
 
-    label_yes = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence, "").toString() + ")", parent);
-    button_yes = new QPushButton("Yes", parent);
+    label_yes = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence, "").toString() + ")", parent_);
+    button_yes = new QPushButton("Yes", parent_);
     vlayout_yes->addWidget(button_yes);
     vlayout_yes->addWidget(label_yes);
     vlayout_yes->addStretch();
 
-    label_no = new QLabel("(or " + QSettings{}.value(Globals::cancel_key_sequence, "").toString() + ")", parent);
-    button_no = new QPushButton("No", parent);
+    label_no = new QLabel("(or " + QSettings{}.value(Globals::cancel_key_sequence, "").toString() + ")", parent_);
+    button_no = new QPushButton("No", parent_);
     vlayout_no->addWidget(button_no);
     vlayout_no->addWidget(label_no);
     vlayout_no->addStretch();
@@ -136,6 +146,7 @@ DataEngineInput::DataEngineInput(UI_container *parent, ScriptEngine *script_engi
     parent->scroll_to_bottom();
     init_ok = true;
     set_ui_visibility();
+    load_actual_value();
     if ((field_type == FieldType::Numeric) || (field_type == FieldType::String)) {
         lineedit->setFocus();
     }
@@ -156,12 +167,12 @@ DataEngineInput::~DataEngineInput() {
 
 void DataEngineInput::load_actual_value() {
     is_editable = false;
-    if (data_engine->value_complete(field_id)) {
+    if (data_engine->value_complete_in_instance(field_id)) {
         timer->stop();
 
         QString val = data_engine->get_actual_value(field_id);
         label_de_actual_value->setText(this->actual_prefix + " " + val + " " + data_engine->get_unit(this->field_id));
-        if (data_engine->value_in_range(field_id)) {
+        if (data_engine->value_in_range_in_instance(field_id)) {
             label_ok->setText("OK");
         } else {
             label_ok->setText("Fail");

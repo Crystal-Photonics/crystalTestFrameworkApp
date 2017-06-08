@@ -433,6 +433,8 @@ class Data_engine {
     bool all_values_in_range() const;
     bool value_in_range(const FormID &id) const;
     bool value_complete(const FormID &id) const;
+    bool value_complete_in_instance(const FormID &id) const;
+    bool value_in_range_in_instance(const FormID &id) const;
     bool is_bool(const FormID &id) const;
     bool is_number(const FormID &id) const;
     bool is_text(const FormID &id) const;
@@ -467,7 +469,7 @@ class Data_engine {
 	void fill_database(QSqlDatabase &db);
 	void generate_template(const QString &destination) const;
 
-    private:
+private:
 	void generate_pages(QXmlStreamWriter &xml) const;
 	void generate_datasourcesManager(QXmlStreamWriter &xml) const;
 	void generate_scriptContext(QXmlStreamWriter &xml) const;

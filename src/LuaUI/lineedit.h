@@ -117,6 +117,7 @@ class LineEdit: public UI_widget {
 #endif
 
     void set_visible(bool visible);
+    void set_enabled(bool enabled);
 private:
 	QLabel *label = nullptr;
     QLineEdit *edit = nullptr;

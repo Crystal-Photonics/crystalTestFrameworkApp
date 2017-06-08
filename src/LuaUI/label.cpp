@@ -12,7 +12,7 @@ Label::Label(UI_container *parent, const std::string text)
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(label, 0, Qt::AlignBottom);
     layout->addStretch(1);
-    parent->add(layout,this);
+    parent->add(layout, this);
 
     label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::MinimumExpanding);
     set_text(text);
@@ -36,6 +36,10 @@ void Label::set_text(std::string const text) {
 
 void Label::set_visible(bool visible) {
     label->setVisible(visible);
+}
+
+void Label::set_enabled(bool enabled) {
+    label->setEnabled(enabled);
 }
 
 void Label::set_font_size(bool big_font) {

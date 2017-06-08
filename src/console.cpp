@@ -25,6 +25,7 @@ Console::ConsoleProxy Console::note(std::unique_ptr<QPlainTextEdit> &console) {
 }
 
 Console::ConsoleProxy Console::error(QPlainTextEdit *console) {
+
 	return {console ? console : Console::console, {}, "Error", Qt::darkRed};
 }
 

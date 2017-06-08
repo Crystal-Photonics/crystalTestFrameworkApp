@@ -81,6 +81,7 @@ void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protoco
             MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] {
                 assert(console);
                 console->setVisible(true);
+                qDebug() << QString::fromStdString(message);
                 Console::error(console) << message;
             });
         }

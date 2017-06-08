@@ -30,7 +30,7 @@ UserInstructionLabel::UserInstructionLabel(UI_container *parent, ScriptEngine *s
     , script_engine(script_engine)
 
 {
-	hlayout = new QHBoxLayout;
+    hlayout = new QHBoxLayout;
 
     hlayout->addWidget(label_user_instruction, 0, Qt::AlignTop);
 
@@ -118,7 +118,6 @@ void UserInstructionLabel::await_event() {
 }
 
 bool UserInstructionLabel::await_yes_no() {
-    assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     is_question_mode = true;
     return run_hotkey_loop();
 }

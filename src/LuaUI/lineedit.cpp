@@ -61,6 +61,12 @@ void LineEdit::set_visible(bool visible) {
     edit->setVisible(visible);
 }
 
+void LineEdit::set_enabled(bool enabled)
+{
+    label->setEnabled(enabled);
+    edit->setEnabled(enabled);
+}
+
 std::string LineEdit::get_caption() const {
     return label->text().toStdString();
 }

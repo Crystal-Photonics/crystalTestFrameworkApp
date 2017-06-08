@@ -1110,6 +1110,24 @@ bool Data_engine::value_in_range(const FormID &id) const {
     return true;
 }
 
+bool Data_engine::value_complete_in_instance(const FormID &id) const {
+    assert_in_dummy_mode();
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    assert(data_entry);
+    bool result = data_entry->is_complete();
+    return result;
+}
+
+bool Data_engine::value_in_range_in_instance(const FormID &id) const
+{
+    assert_in_dummy_mode();
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    assert(data_entry);
+    bool result = data_entry->is_in_range();
+    return result;
+}
+
+
 bool Data_engine::value_complete(const FormID &id) const {
     assert_in_dummy_mode();
     QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id);
@@ -1287,6 +1305,7 @@ sol::table Data_engine::get_section_names(sol::state *lua) {
 uint Data_engine::get_instance_count(const std::string &section_name) const {
     return get_instance_captions(QString::fromStdString(section_name)).size();
 }
+
 
 QString Data_engine::get_actual_value(const FormID &id) const {
     assert_in_dummy_mode();

@@ -69,7 +69,7 @@ struct Lua_UI_Wrapper {
         }
     }
 
-	int id = ++id_counter;
+    int id = ++id_counter;
 
     private:
     static int id_counter;
@@ -283,7 +283,8 @@ auto non_gui_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
         //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
         //using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
         UI_class &ui = Utility::promised_thread_call(MainWindow::mw, [id = lui.id]()->UI_class & { return MainWindow::mw->get_lua_UI_class<UI_class>(id); });
-        (ui.*function)(args...);
+        return (ui.*function)(args...);
+
     };
 }
 
@@ -587,8 +588,8 @@ struct SCPIDevice {
 };
 
 ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine)
-	: lua{std::make_unique<sol::state>()}
-	, parent{parent}
+    : lua{std::make_unique<sol::state>()}
+    , parent{parent}
     , console(console)
     , data_engine(data_engine)
     , owner{owner} {}
@@ -1193,9 +1194,9 @@ void ScriptEngine::load_script(const QString &path) {
                 "set_visible", thread_call_wrapper(&DataEngineInput::set_visible), //
                 "set_enabled", thread_call_wrapper(&DataEngineInput::set_enabled), //
                 "save_to_data_engine",
-                thread_call_wrapper(&DataEngineInput::save_to_data_engine),             //
-                "set_editable", thread_call_wrapper(&DataEngineInput::set_editable),    //
-                "sleep_ms", non_gui_call_wrapper(&DataEngineInput::sleep_ms),           //
+                thread_call_wrapper(&DataEngineInput::save_to_data_engine),            //
+                "set_editable", thread_call_wrapper(&DataEngineInput::set_editable),   //
+                "sleep_ms", non_gui_call_wrapper(&DataEngineInput::sleep_ms),          //
                 "is_editable", thread_call_wrapper(&DataEngineInput::get_is_editable), //
                 "set_explanation_text", thread_call_wrapper(&DataEngineInput::set_explanation_text)
 
@@ -1247,8 +1248,8 @@ void ScriptEngine::load_script(const QString &path) {
                 sol::meta_function::construct, [parent = this->parent]() { return Lua_UI_Wrapper<IsotopeSourceSelector>{parent}; }, //
                 "set_visible",
                 thread_call_wrapper(&IsotopeSourceSelector::set_visible), //
-            "set_enabled",
-            thread_call_wrapper(&IsotopeSourceSelector::set_enabled), //
+                "set_enabled",
+                thread_call_wrapper(&IsotopeSourceSelector::set_enabled), //
                 "get_selected_activity_Bq",
                 thread_call_wrapper(&IsotopeSourceSelector::get_selected_activity_Bq),                                //
                 "get_selected_serial_number", thread_call_wrapper(&IsotopeSourceSelector::get_selected_serial_number) //
@@ -1334,6 +1335,8 @@ void ScriptEngine::load_script(const QString &path) {
                                                          }, //
                                                          "set_text",
                                                          thread_call_wrapper(&Label::set_text), //
+                                                         "set_enabled",
+                                                         thread_call_wrapper(&Label::set_enabled), //
                                                          "set_visible",
                                                          thread_call_wrapper(&Label::set_visible), //
                                                          "set_font_size",
@@ -1404,6 +1407,7 @@ void ScriptEngine::load_script(const QString &path) {
                                                             "get_number", thread_call_wrapper(&LineEdit::get_number),                           //
                                                             "get_caption", thread_call_wrapper(&LineEdit::get_caption),                         //
                                                             "set_caption", thread_call_wrapper(&LineEdit::set_caption),                         //
+                                                            "set_enabled", thread_call_wrapper(&LineEdit::set_enabled),                         //
                                                             "set_visible",
                                                             thread_call_wrapper(&LineEdit::set_visible),                  //
                                                             "await_return", non_gui_call_wrapper(&LineEdit::await_return) //

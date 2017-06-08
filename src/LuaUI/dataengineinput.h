@@ -24,8 +24,8 @@ class DataEngineInput : public UI_widget {
     enum FieldType { Bool, String, Numeric };
 
     public:
-    DataEngineInput(UI_container *parent, ScriptEngine *script_engine, Data_engine *data_engine, std::string field_id, std::string extra_explanation,
-                    std::string empty_value_placeholder, std::string desired_prefix, std::string actual_prefix);
+    DataEngineInput(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, std::string field_id_, std::string extra_explanation,
+                    std::string empty_value_placeholder, std::string desired_prefix, std::string actual_prefix_);
     ~DataEngineInput();
 
     void set_visible(bool visible);
