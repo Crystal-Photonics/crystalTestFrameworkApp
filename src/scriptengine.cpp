@@ -951,6 +951,10 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["git_info"] = [&lua = *lua, path = path ](std::string dir_path, bool allow_modified) {
                 return git_info(lua, get_absolute_file_path(path, dir_path), allow_modified);
             };
+            (*lua)["get_os_username"] = []() {
+                return get_os_username();
+            };
+
         }
 
         {

@@ -9,6 +9,7 @@
 
 #include <QApplication>
 #include <QDateTime>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
@@ -20,7 +21,12 @@
 #include <QSettings>
 #include <QTimer>
 #include <cmath>
-#include <QDebug>
+
+#if defined(Q_OS_WIN)
+#include <Lmcons.h>
+#include <windows.h>
+#endif
+
 /// @endcond
 
 /** \defgroup convenience Convenience functions
@@ -1519,6 +1525,58 @@ sol::table git_info(sol::state &lua, std::string path, bool allow_modified) {
         }
     }
     return result;
+}
+/// @endcond
+
+/// @endcond
+
+/*! \fn string get_os_username();
+    \brief Returns the operational system's username of the current account beeing logged in. Works on Linux and Windows
+
+
+    \details    \par example:
+    \code{.lua}
+        local un = get_system_username()
+        print(un)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+string get_os_username();
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+static QString handle_lower_upper_case_username(QString origun) {
+    if (origun.size() == 2) {
+        origun = origun.toUpper(); //converting e.g ak to AK
+    }
+    return origun;
+}
+
+std::string get_os_username() {
+#if defined(Q_OS_WIN)
+    WCHAR acUserName[100];
+    DWORD nUserName = sizeof(acUserName);
+    if (GetUserName(acUserName, &nUserName)) {
+        std::wstring un(acUserName);
+        auto qun = QString::fromStdString(std::string(un.begin(), un.end()));
+        return handle_lower_upper_case_username(qun).toStdString();
+    } else {
+        throw std::runtime_error("Could not get username on Windows.");
+    }
+#elif defined(Q_OS_UNIX)
+    assert(0); //not yet implemented
+    QProcess process;
+    QObject::connect(&process, &QProcess::finished, [&coreApplication, &process](int exitCode, QProcess::ExitStatus exitStatus) {
+        qDebug() << process.readAllStandardOutput();
+        coreApplication.quit();
+    });
+    process.start("whoami");
+    return coreApplication.exec();
+#else
+    throw std::runtime_error("Can't get username on this OS.");
+#endif
 }
 /// @endcond
 ///

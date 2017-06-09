@@ -42,5 +42,5 @@ double table_max_abs(sol::table input_values);
 double table_min_abs(sol::table input_values);
 std::string propose_unique_filename_by_datetime(const std::string &dir_path, const std::string &prefix, const std::string &suffix);
 sol::table git_info(sol::state &lua, std::string path, bool allow_modified);
-
+std::string get_os_username();
 #endif // LUA_FUNCTIONS_H
