@@ -1261,7 +1261,7 @@ void ScriptEngine::load_script(const QString &path) {
                 "set_enabled",
                 thread_call_wrapper(&IsotopeSourceSelector::set_enabled), //
                 "get_selected_activity_Bq",
-                thread_call_wrapper(&IsotopeSourceSelector::set_enabled), //
+                thread_call_wrapper(&IsotopeSourceSelector::get_selected_activity_Bq), //
                 "get_selected_name",
                 thread_call_wrapper(&IsotopeSourceSelector::get_selected_name),                                       //
                 "get_selected_serial_number", thread_call_wrapper(&IsotopeSourceSelector::get_selected_serial_number) //

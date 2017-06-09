@@ -234,6 +234,8 @@ void DeviceMatcher::make_treeview() {
         tv->setText(0, d.device_requirement.device_names.join("/"));
         if (d.device_requirement.device_names.join("").count() == 0) {
             tv->setText(0, d.device_requirement.protocol_name);
+        }else if (d.device_requirement.device_names.join("") == "*") {
+            tv->setText(0, d.device_requirement.protocol_name);
         }
         if ((d.match_definition != DevicesToMatchEntry::MatchDefinitionState::FullDefined) && (!first_match_error_found)) {
             first_match_error_found = true;

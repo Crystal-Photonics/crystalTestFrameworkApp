@@ -62,15 +62,19 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
     QString desc = data_engine->get_description(this->field_id);
     label_de_description->setText(desc);
     label_de_description->setWordWrap(true);
-    QString s = this->desired_prefix + " " + data_engine->get_desired_value_as_string(this->field_id) + " " +
-            data_engine->get_unit(this->field_id);
+    QString s = this->desired_prefix + " " + data_engine->get_desired_value_as_string(this->field_id) + " " + data_engine->get_unit(this->field_id);
     label_de_desired_value->setText(s);
     label_de_desired_value->setWordWrap(true);
     label_de_actual_value->setText(this->actual_prefix + " " + this->empty_value_placeholder);
     label_de_actual_value->setWordWrap(true);
     label_ok->setText("-");
     if (!data_engine->is_desired_value_set(this->field_id)) {
-        label_de_desired_value->setText("[" + data_engine->get_unit(this->field_id) + "]");
+        QString s = data_engine->get_unit(this->field_id);
+        if (s.size()) {
+            label_de_desired_value->setText("[" + s + "]");
+        } else {
+            label_de_desired_value->setText("");
+        }
     }
 
     auto entry_type = data_engine->get_entry_type(this->field_id);
