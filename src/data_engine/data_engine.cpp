@@ -1,10 +1,13 @@
 #include "data_engine.h"
+#include "lua_functions.h"
 #include "util.h"
 
+#include "vc.h"
 #include <QApplication>
 #include <QByteArray>
 #include <QDateTime>
 #include <QDebug>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -90,6 +93,15 @@ void Data_engine::set_source(std::istream &source) {
     sections.delete_unmatched_variants();
 
     sections.deref_references();
+    load_time_seconds_since_epoch = QDateTime::currentSecsSinceEpoch();
+}
+
+void Data_engine::set_script_path(QString script_path) {
+    this->script_path = script_path;
+}
+
+void Data_engine::set_source_path(QString source_path) {
+    this->source_path = source_path;
 }
 
 QStringList Data_engine::get_instance_count_names() {
@@ -101,6 +113,10 @@ QStringList Data_engine::get_instance_count_names() {
         }
     }
     return result;
+}
+
+void Data_engine::set_start_time_seconds_since_epoch(double start_seconds_since_epoch) {
+    this->load_time_seconds_since_epoch = static_cast<qint64>(start_seconds_since_epoch);
 }
 
 DataEngineSections::DataEngineSections() {}
@@ -177,9 +193,9 @@ DataEngineSection *DataEngineSections::get_section(const FormID &id) const {
     DataEngineErrorNumber error_num = DataEngineErrorNumber::ok;
     DecodecFieldID field_id = decode_field_id(id);
     DataEngineSection *result_section = get_section_raw(field_id.section_name, &error_num);
-	if (result_section == nullptr)
-		throw DataEngineError(DataEngineErrorNumber::no_section_id_found, "Section not found");
-	return result_section;
+    if (result_section == nullptr)
+        throw DataEngineError(DataEngineErrorNumber::no_section_id_found, "Section not found");
+    return result_section;
 }
 
 DecodecFieldID DataEngineSections::decode_field_id(const FormID &id) {
@@ -198,7 +214,7 @@ void DataEngineSections::set_dependancy_tags(const QMap<QString, QList<QVariant>
     dependency_tags = tags;
 }
 
-const QMap<QString, QList<QVariant>> &DataEngineSections::get_dependancy_tags() {
+const QMap<QString, QList<QVariant>> &DataEngineSections::get_dependancy_tags() const {
     return dependency_tags;
 }
 
@@ -748,8 +764,8 @@ uint VariantData::get_entry_count() const {
     return data_entries.size();
 }
 
-bool VariantData::is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count,
-                                         const QString &section_name) const {
+bool VariantData::is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count, const QString &section_name) {
+    relevant_dependencies.clear();
     bool dependency_matches = true;
     const auto &keys_to_test = dependency_tags.tags.uniqueKeys();
     std::experimental::optional<uint> length_of_first_tag_value_list;
@@ -797,8 +813,10 @@ bool VariantData::is_dependency_matching(const QMap<QString, QList<QVariant>> &t
             bool at_least_value_matches = false;
             const auto &value_list = dependency_tags.tags.values(tag_key);
             for (const auto &test_matching : value_list) {
-                if (test_matching.is_matching(tags[tag_key][instance_index])) {
+                auto val = tags[tag_key][instance_index];
+                if (test_matching.is_matching(val)) {
                     at_least_value_matches = true;
+                    relevant_dependencies.insert(tag_key, val);
                 }
             }
             if (!at_least_value_matches) {
@@ -809,7 +827,9 @@ bool VariantData::is_dependency_matching(const QMap<QString, QList<QVariant>> &t
             dependency_matches = false;
         }
     }
-
+    if (!dependency_matches) {
+        relevant_dependencies.clear();
+    }
     return dependency_matches;
 }
 
@@ -872,6 +892,10 @@ DataEngineDataEntry *VariantData::get_entry_raw(QString field_name, DataEngineEr
     }
     *errornum = DataEngineErrorNumber::no_field_id_found;
     return nullptr;
+}
+
+const QMap<QString, QVariant> &VariantData::get_relevant_dependencies() const {
+    return relevant_dependencies;
 }
 
 void DependencyTags::from_json(const QJsonValue &object) {
@@ -1118,15 +1142,13 @@ bool Data_engine::value_complete_in_instance(const FormID &id) const {
     return result;
 }
 
-bool Data_engine::value_in_range_in_instance(const FormID &id) const
-{
+bool Data_engine::value_in_range_in_instance(const FormID &id) const {
     assert_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
     bool result = data_entry->is_in_range();
     return result;
 }
-
 
 bool Data_engine::value_complete(const FormID &id) const {
     assert_in_dummy_mode();
@@ -1306,7 +1328,6 @@ uint Data_engine::get_instance_count(const std::string &section_name) const {
     return get_instance_captions(QString::fromStdString(section_name)).size();
 }
 
-
 QString Data_engine::get_actual_value(const FormID &id) const {
     assert_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
@@ -1383,57 +1404,153 @@ double Data_engine::get_si_prefix(const FormID &id) const {
 }
 
 std::unique_ptr<QWidget> Data_engine::get_preview() const {
-	LimeReport::ReportEngine re;
-	//re.dataManager()->addModel();
-	re.previewReport();
+    LimeReport::ReportEngine re;
+    //re.dataManager()->addModel();
+    re.previewReport();
     return nullptr;
 }
 
 bool Data_engine::generate_pdf(const std::string &form, const std::string &destination) const {
-	LimeReport::ReportEngine re;
-	if (re.loadFromFile(QString::fromStdString(form), false) == false) {
-		return false;
-	}
-	QStringListModel string_list_model;
-	QStringList string_list;
-	string_list_model.setStringList(string_list);
-	re.dataManager()->addModel("string_list", &string_list_model, false);
-	return re.printToPDF(QString::fromStdString(destination));
+    LimeReport::ReportEngine re;
+    if (re.loadFromFile(QString::fromStdString(form), false) == false) {
+        return false;
+    }
+    QStringListModel string_list_model;
+    QStringList string_list;
+    string_list_model.setStringList(string_list);
+    re.dataManager()->addModel("string_list", &string_list_model, false);
+    return re.printToPDF(QString::fromStdString(destination));
 }
 
 static void db_exec(QSqlDatabase &db, const QString &query) {
-	auto instance = db.exec(query);
-	if (instance.lastError().isValid()) {
-		qDebug() << instance.lastError().text();
-		throw DataEngineError(DataEngineErrorNumber::sql_error, QString{"Failed executing query: ''%1''. Error: %2"}.arg(query, instance.lastError().text()));
-	}
+    auto instance = db.exec(query);
+    if (instance.lastError().isValid()) {
+        qDebug() << instance.lastError().text();
+        throw DataEngineError(DataEngineErrorNumber::sql_error, QString{"Failed executing query: ''%1''. Error: %2"}.arg(query, instance.lastError().text()));
+    }
 }
 
 static QString get_caption(const QString &section_name, const QString &instance_caption) {
-	if (instance_caption.isEmpty()) {
-		return section_name;
-	}
-	return section_name + " " + instance_caption;
+    if (instance_caption.isEmpty()) {
+        return section_name;
+    }
+    return section_name + " " + instance_caption;
+}
+
+void Data_engine::save_to_json(QString filename) {
+    QFile saveFile(filename);
+
+    if (!saveFile.open(QIODevice::WriteOnly)) {
+        throw DataEngineError(DataEngineErrorNumber::cannot_open_file, QString{"Can not open file: \"%1\" for dumping data_engine content."}.arg(filename));
+        return;
+    }
+
+    QJsonObject jo_general;
+
+    auto script_git = git_info(QFileInfo(script_path).absolutePath(), true, false);
+    jo_general["datetime_unix"] = QDateTime::currentSecsSinceEpoch();
+    jo_general["datetime_str"] = QDateTime::currentDateTime().toString("yyyy:MM:dd HH:mm:ss");
+
+    jo_general["framework_git_hash"] = "0x" + QString::number(GITHASH, 16);
+    jo_general["script_path"] = script_path;
+    jo_general["data_source_path"] = source_path;
+
+    if (script_git.contains("hash")) {
+        jo_general["test_git_hash"] = script_git["hash"].toString();
+    }
+    if (script_git.contains("date")) {
+        jo_general["test_git_date_str"] = script_git["date"].toString();
+    }
+    if (script_git.contains("modfied")) {
+        jo_general["test_git_modified"] = script_git["modfied"].toString();
+    }
+
+    jo_general["everything_in_range"] = all_values_in_range();
+    jo_general["everything_complete"] = is_complete();
+    jo_general["exceptional_approval_exists"] = false;
+    QVariant duration{};
+    duration.setValue<qint64>(QDateTime::currentSecsSinceEpoch() - load_time_seconds_since_epoch);
+    jo_general["test_duration_seconds"] = QJsonValue::fromVariant(duration);
+    jo_general["os_username"] = QString::fromStdString(get_os_username());
+
+    QJsonObject jo_dependency;
+    const QMap<QString, QList<QVariant>> dependency_tags = sections.get_dependancy_tags();
+    for (auto k : dependency_tags.keys()) {
+        QJsonArray ja;
+        auto values = dependency_tags.values(k);
+        for (auto v : values) {
+            ja.append(QJsonValue::fromVariant(v));
+        }
+        jo_dependency[k] = ja;
+    }
+
+    QJsonObject ja_sections;
+
+    for (const DataEngineSection &section : sections.sections) {
+        QJsonObject jo_section;
+        QJsonArray ja_instances;
+
+        const auto section_name = section.get_section_name();
+
+        for (const DataEngineInstance &instance : section.instances) {
+            QJsonObject jo_instance;
+            QJsonObject jo_relevant_dependencies;
+            QJsonArray ja_fields;
+
+            const auto variant = instance.get_variant();
+            assert(variant);
+            auto relevant_dependencies = variant->get_relevant_dependencies();
+            for (auto k : relevant_dependencies.keys()) {
+                auto value = dependency_tags.value(k);
+                relevant_dependencies[k] = value;
+            }
+
+            for (const std::unique_ptr<DataEngineDataEntry> &entry : variant->data_entries) {
+                QJsonObject jo_field;
+                jo_field["name"] = entry->field_name;
+                jo_field["nice_name"] = entry->get_description();
+                jo_field["in_range"] = entry->is_in_range();
+                jo_field["is_complete"] = entry->is_complete();
+                jo_field[entry->get_specific_json_name()] = entry->get_specific_json_dump();
+                ja_fields.append(jo_field);
+            }
+
+            jo_instance["instance_caption"] = instance.instance_caption;
+            jo_instance["dependency_tags"] = jo_relevant_dependencies;
+            jo_instance["fields"] = ja_fields;
+
+            ja_instances.append(jo_instance);
+        }
+        jo_section["instances"] = ja_instances;
+        ja_sections[section_name] = jo_section;
+    }
+    QJsonObject ja_object;
+    ja_object["general"] = jo_general;
+    ja_object["dependency_tags"] = jo_dependency;
+    ja_object["sections"] = ja_sections;
+
+    QJsonDocument saveDoc(ja_object);
+    saveFile.write(saveDoc.toJson());
 }
 
 void Data_engine::fill_database(QSqlDatabase &db) {
-	//for (const auto &section : sections.sections) { //cannot use auto because Qt Creator is a PoS
-	for (const DataEngineSection &section : sections.sections) {
-		int instance_id_counter{1};
-		const auto instances_table_name = section.get_section_name() + "_instances";
-		db_exec(db, QString{R"(
+    //for (const auto &section : sections.sections) { //cannot use auto because Qt Creator is a PoS
+    for (const DataEngineSection &section : sections.sections) {
+        int instance_id_counter{1};
+        const auto instances_table_name = section.get_section_name() + "_instances";
+        db_exec(db, QString{R"(
 			CREATE TABLE %1 (
 				ID int PRIMARY KEY,
 				Caption text
 			)
 		)"}.arg(instances_table_name));
-		//for (const auto &instance : section.instances) { //cannot use auto because Qt Creator is a PoS
-		for (const DataEngineInstance &instance : section.instances) {
-			const auto &section_table_name = section.get_section_name();
-			db_exec(db, QString{"INSERT INTO %1 VALUES(%2, '%3')"}.arg(instances_table_name, QString::number(instance_id_counter),
-																	   get_caption(section.get_section_name(), instance.instance_caption)));
+        //for (const auto &instance : section.instances) { //cannot use auto because Qt Creator is a PoS
+        for (const DataEngineInstance &instance : section.instances) {
+            const auto &section_table_name = section.get_section_name();
+            db_exec(db, QString{"INSERT INTO %1 VALUES(%2, '%3')"}.arg(instances_table_name, QString::number(instance_id_counter),
+                                                                       get_caption(section.get_section_name(), instance.instance_caption)));
 
-			db_exec(db, QString{R"(
+            db_exec(db, QString{R"(
 				CREATE TABLE %1 (
 					Name text PRIMARY KEY,
 					Description text,
@@ -1444,52 +1561,54 @@ void Data_engine::fill_database(QSqlDatabase &db) {
 					Unit text
 				)
 			)"}.arg(section_table_name));
-			for (const VariantData &variant : instance.variants) {
-				for (const std::unique_ptr<DataEngineDataEntry> &entry : variant.data_entries) {
-					db_exec(db, QString{"INSERT INTO %1 VALUES('%2', '%3', '%4', '%5', %6, %7, '%8')"}.arg(
-									section_table_name, section.get_section_name() + "/" + entry->field_name, entry->get_description(),
-									entry->get_desired_value_as_string(), entry->get_actual_values(), QString::number(instance_id_counter),
-									entry->is_in_range() ? "1" : "0", entry->get_unit()));
-				}
-			}
-			instance_id_counter++;
-		}
-	}
+            auto variant = instance.get_variant();
+            assert(variant);
+
+            for (const std::unique_ptr<DataEngineDataEntry> &entry : variant->data_entries) {
+                db_exec(db, QString{"INSERT INTO %1 VALUES('%2', '%3', '%4', '%5', %6, %7, '%8')"}.arg(
+                                section_table_name, section.get_section_name() + "/" + entry->field_name, entry->get_description(),
+                                entry->get_desired_value_as_string(), entry->get_actual_values(), QString::number(instance_id_counter),
+                                entry->is_in_range() ? "1" : "0", entry->get_unit()));
+            }
+
+            instance_id_counter++;
+        }
+    }
 }
 
 void Data_engine::generate_template(const QString &destination) const {
-	QFile xml_file{destination};
-	xml_file.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
-	QXmlStreamWriter xml{&xml_file};
-	xml.setAutoFormatting(true);
-	xml.writeStartDocument();
-	xml.writeStartElement("Report");
-	{
-		xml.writeStartElement("object");
-		xml.writeAttribute("Type", "Object");
-		xml.writeAttribute("ClassName", "LimeReport::ReportEnginePrivate");
-		{
-			xml.writeStartElement("pages");
-			xml.writeAttribute("Type", "Collection");
-			generate_pages(xml);
-			xml.writeEndElement(); //pages
+    QFile xml_file{destination};
+    xml_file.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
+    QXmlStreamWriter xml{&xml_file};
+    xml.setAutoFormatting(true);
+    xml.writeStartDocument();
+    xml.writeStartElement("Report");
+    {
+        xml.writeStartElement("object");
+        xml.writeAttribute("Type", "Object");
+        xml.writeAttribute("ClassName", "LimeReport::ReportEnginePrivate");
+        {
+            xml.writeStartElement("pages");
+            xml.writeAttribute("Type", "Collection");
+            generate_pages(xml);
+            xml.writeEndElement(); //pages
 
-			xml.writeStartElement("datasourcesManager");
-			xml.writeAttribute("Type", "Object");
-			xml.writeAttribute("ClassName", "LimeReport::DataSourceManager");
-			generate_datasourcesManager(xml);
-			xml.writeEndElement(); //datasourcesManager
+            xml.writeStartElement("datasourcesManager");
+            xml.writeAttribute("Type", "Object");
+            xml.writeAttribute("ClassName", "LimeReport::DataSourceManager");
+            generate_datasourcesManager(xml);
+            xml.writeEndElement(); //datasourcesManager
 
-			xml.writeStartElement("scriptContext");
-			xml.writeAttribute("Type", "Object");
-			xml.writeAttribute("ClassName", "LimeReport::ScriptEngineContext");
-			generate_scriptContext(xml);
-			xml.writeEndElement(); //scriptContext
-		}
-		xml.writeEndElement(); //"object"
-	}
-	xml.writeEndElement(); //Report
-	xml.writeEndDocument();
+            xml.writeStartElement("scriptContext");
+            xml.writeAttribute("Type", "Object");
+            xml.writeAttribute("ClassName", "LimeReport::ScriptEngineContext");
+            generate_scriptContext(xml);
+            xml.writeEndElement(); //scriptContext
+        }
+        xml.writeEndElement(); //"object"
+    }
+    xml.writeEndElement(); //Report
+    xml.writeEndDocument();
 }
 
 void Data_engine::generate_pages(QXmlStreamWriter &xml) const {}
@@ -1508,6 +1627,45 @@ bool Data_engine::entry_compare(const FormIdWrapper &lhs, const FormIdWrapper &r
     return lhs.value < rhs.value;
 }
 
+double NumericTolerance::get_absolute_limit_beneath(const double desired) const {
+    if (open_range_beneath) {
+        return std::numeric_limits<double>::lowest();
+    }
+    switch (tolerance_type) {
+        case ToleranceType::Absolute: {
+            return desired - deviation_limit_beneath;
+        } break;
+        case ToleranceType::Percent: {
+            return desired - desired * deviation_limit_beneath / 100.0;
+        }
+
+        break;
+    }
+    assert(0);
+    return 0;
+}
+
+double NumericTolerance::get_absolute_limit_above(const double desired) const {
+    if (open_range_above) {
+        return std::numeric_limits<double>::max();
+    }
+
+    switch (tolerance_type) {
+        case ToleranceType::Absolute: {
+            return desired + deviation_limit_above;
+
+        } break;
+        case ToleranceType::Percent: {
+            return desired + desired * deviation_limit_above / 100.0;
+
+        }
+
+        break;
+    }
+    assert(0);
+    return 0;
+}
+
 bool NumericTolerance::test_in_range(const double desired, const std::experimental::optional<double> &measured) const {
     double min_value_absolute = 0;
     double max_value_absolute = 0;
@@ -1520,25 +1678,8 @@ bool NumericTolerance::test_in_range(const double desired, const std::experiment
         return false;
     }
 
-    switch (tolerance_type) {
-        case ToleranceType::Absolute: {
-            max_value_absolute = desired + deviation_limit_above;
-            min_value_absolute = desired - deviation_limit_beneath;
-        } break;
-        case ToleranceType::Percent: {
-            max_value_absolute = desired + desired * deviation_limit_above / 100.0;
-            min_value_absolute = desired - desired * deviation_limit_beneath / 100.0;
-        }
-
-        break;
-    }
-
-    if (open_range_above) {
-        max_value_absolute = std::numeric_limits<double>::max();
-    }
-    if (open_range_beneath) {
-        min_value_absolute = std::numeric_limits<double>::lowest();
-    }
+    max_value_absolute = get_absolute_limit_above(desired);
+    min_value_absolute = get_absolute_limit_beneath(desired);
 
     return (min_value_absolute <= measured) && (measured <= max_value_absolute);
 }
@@ -1591,12 +1732,12 @@ QString NumericTolerance::to_string(const double desired_value) const {
     } else if (open_range_beneath) {
         result = "≤ " + num_to_str(desired_value, ToleranceType::Absolute);
         if (deviation_limit_above > 0.0) {
-            result += +" (+" + num_to_str(deviation_limit_above, tolerance_type) + ")";
+            result += " (+" + num_to_str(deviation_limit_above, tolerance_type) + ")";
         }
     } else if (open_range_above) {
         result = "≥ " + num_to_str(desired_value, ToleranceType::Absolute);
         if (deviation_limit_beneath > 0.0) {
-            result += +" (-" + num_to_str(deviation_limit_beneath, tolerance_type) + ")";
+            result += " (-" + num_to_str(deviation_limit_beneath, tolerance_type) + ")";
         }
 
     } else {
@@ -1614,6 +1755,23 @@ QString NumericTolerance::to_string(const double desired_value) const {
 
 bool NumericTolerance::is_defined() const {
     return !is_undefined;
+}
+
+QJsonObject NumericTolerance::get_json(double desirec_value) const {
+    QJsonObject result;
+    QJsonObject above;
+    QJsonObject beneath;
+    above["open_range"] = open_range_above;
+    if (!open_range_above) {
+        above["limit"] = get_absolute_limit_above(desirec_value);
+    }
+    beneath["open_range"] = open_range_beneath;
+    if (!open_range_beneath) {
+        beneath["limit"] = get_absolute_limit_beneath(desirec_value);
+    }
+    result["above"] = above;
+    result["beneath"] = beneath;
+    return result;
 }
 
 void NumericTolerance::str_to_num(QString str_in, double &number, ToleranceType &tol_type, bool &open, const QStringList expected_sign_strings) {
@@ -1940,6 +2098,33 @@ bool NumericDataEntry::is_desired_value_set() const {
     return (bool)desired_value;
 }
 
+QJsonObject NumericDataEntry::get_specific_json_dump() const {
+    QJsonObject result;
+    QJsonObject desired;
+    QJsonObject actual;
+    result["unit"] = get_unit();
+    desired["desired_is_set"] = (bool)desired_value;
+    if ((bool)desired_value) {
+        desired["as_text"] = get_desired_value_as_string();
+        desired["value"] = desired_value.value();
+        desired["tolerance"] = tolerance.get_json(desired_value.value());
+    }
+
+    actual["actual_is_set"] = (bool)actual_value;
+    if ((bool)actual_value) {
+        actual["value"] = actual_value.value();
+    }
+
+    result["actual"] = actual;
+
+    result["desired"] = desired;
+    return result;
+}
+
+QString NumericDataEntry::get_specific_json_name() const {
+    return "numeric";
+}
+
 void NumericDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
     NumericDataEntry *num_from = from->as<NumericDataEntry>();
     assert(num_from);
@@ -2043,6 +2228,31 @@ void TextDataEntry::set_desired_value_from_actual(DataEngineDataEntry *from) {
 
 bool TextDataEntry::is_desired_value_set() const {
     return (bool)desired_value;
+}
+
+QJsonObject TextDataEntry::get_specific_json_dump() const {
+    QJsonObject result;
+    QJsonObject desired;
+    QJsonObject actual;
+    desired["desired_is_set"] = (bool)desired_value;
+    if ((bool)desired_value) {
+        desired["as_text"] = get_desired_value_as_string();
+        desired["value"] = desired_value.value();
+    }
+
+    actual["actual_is_set"] = (bool)actual_value;
+    if ((bool)actual_value) {
+        actual["as_text"] = get_desired_value_as_string();
+        actual["value"] = actual_value.value();
+    }
+
+    result["actual"] = actual;
+    result["desired"] = desired;
+    return result;
+}
+
+QString TextDataEntry::get_specific_json_name() const {
+    return "text";
 }
 
 QString Data_engine::Statistics::to_qstring() const {
@@ -2152,6 +2362,31 @@ void BoolDataEntry::set_desired_value_from_actual(DataEngineDataEntry *from) {
 
 bool BoolDataEntry::is_desired_value_set() const {
     return (bool)desired_value;
+}
+
+QJsonObject BoolDataEntry::get_specific_json_dump() const {
+    QJsonObject result;
+    QJsonObject desired;
+    QJsonObject actual;
+    desired["desired_is_set"] = (bool)desired_value;
+    if ((bool)desired_value) {
+        desired["as_text"] = get_desired_value_as_string();
+        desired["value"] = desired_value.value();
+    }
+
+    actual["actual_is_set"] = (bool)actual_value;
+    if ((bool)actual_value) {
+        actual["as_text"] = get_desired_value_as_string();
+        actual["value"] = actual_value.value();
+    }
+
+    result["actual"] = actual;
+    result["desired"] = desired;
+    return result;
+}
+
+QString BoolDataEntry::get_specific_json_name() const {
+    return "bool";
 }
 
 ReferenceDataEntry::ReferenceDataEntry(const ReferenceDataEntry &other)
@@ -2435,4 +2670,16 @@ bool ReferenceDataEntry::is_desired_value_set() const {
     assert_that_instance_count_is_defined();
     assert(entry_target);
     return entry_target->is_desired_value_set();
+}
+
+QJsonObject ReferenceDataEntry::get_specific_json_dump() const {
+    assert_that_instance_count_is_defined();
+    assert(entry_target);
+    return entry_target->get_specific_json_dump();
+}
+
+QString ReferenceDataEntry::get_specific_json_name() const {
+    assert_that_instance_count_is_defined();
+    assert(entry_target);
+    return entry_target->get_specific_json_name();
 }

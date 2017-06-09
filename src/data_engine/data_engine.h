@@ -61,8 +61,9 @@ enum class DataEngineErrorNumber {
     instance_count_must_match_list_of_dependency_values,
     list_of_dependency_values_must_be_of_equal_length,
     reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance,
-	is_in_dummy_mode,
-	sql_error,
+    is_in_dummy_mode,
+    sql_error,
+    cannot_open_file
 };
 class DataEngineError : public std::runtime_error {
     public:
@@ -95,6 +96,8 @@ struct DataEngineDataEntry {
     virtual bool is_desired_value_set() const = 0;
     virtual bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const = 0;
     virtual EntryType get_entry_type() const = 0;
+    virtual QJsonObject get_specific_json_dump() const = 0;
+    virtual QString get_specific_json_name() const = 0;
 
     template <class T>
     T *as();
@@ -123,6 +126,7 @@ struct NumericTolerance {
     void from_string(const QString &str);
     QString to_string(const double desired_value) const;
     bool is_defined() const;
+    QJsonObject get_json(double desirec_value) const;
 
     private:
     bool is_undefined = true;
@@ -135,6 +139,9 @@ struct NumericTolerance {
 
     double deviation_limit_beneath;
     bool open_range_beneath;
+
+    double get_absolute_limit_beneath(const double desired) const;
+    double get_absolute_limit_above(const double desired) const;
 };
 
 struct NumericDataEntry : DataEngineDataEntry {
@@ -155,6 +162,9 @@ struct NumericDataEntry : DataEngineDataEntry {
     void set_actual_value(double actual_value);
     EntryType get_entry_type() const override;
     bool is_desired_value_set() const override;
+
+    QJsonObject get_specific_json_dump() const override;
+    QString get_specific_json_name() const override;
 
     std::experimental::optional<double> desired_value{};
     QString unit{};
@@ -186,6 +196,9 @@ struct TextDataEntry : DataEngineDataEntry {
     EntryType get_entry_type() const override;
     bool is_desired_value_set() const override;
 
+    QJsonObject get_specific_json_dump() const override;
+    QString get_specific_json_name() const override;
+
     std::experimental::optional<QString> desired_value{};
     QString description{};
 
@@ -211,6 +224,9 @@ struct BoolDataEntry : DataEngineDataEntry {
     void set_actual_value(bool value);
     EntryType get_entry_type() const override;
     bool is_desired_value_set() const override;
+
+    QJsonObject get_specific_json_dump() const override;
+    QString get_specific_json_name() const override;
 
     std::experimental::optional<bool> desired_value{};
     QString description{};
@@ -250,6 +266,9 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     void set_actual_value(bool val);
     void dereference(DataEngineSections *sections);
     bool is_desired_value_set() const override;
+
+    QJsonObject get_specific_json_dump() const override;
+    QString get_specific_json_name() const override;
 
     NumericTolerance tolerance;
     QString description{};
@@ -307,11 +326,16 @@ struct VariantData {
     uint get_entry_count() const;
 
     public:
-    bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count, const QString &section_name) const;
+    bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count, const QString &section_name) ;
     void from_json(const QJsonObject &object);
     bool entry_exists(QString field_name);
     DataEngineDataEntry *get_entry(QString field_name) const;
     DataEngineDataEntry *get_entry_raw(QString field_name, DataEngineErrorNumber *errornum) const;
+
+    const QMap<QString, QVariant> &get_relevant_dependencies() const;
+
+    private:
+    QMap<QString, QVariant> relevant_dependencies;
 };
 
 struct DataEngineInstance {
@@ -402,7 +426,7 @@ struct DataEngineSections {
 
     static DecodecFieldID decode_field_id(const FormID &id);
     void set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags);
-    const QMap<QString, QList<QVariant>> &get_dependancy_tags();
+    const QMap<QString, QList<QVariant>> &get_dependancy_tags() const;
     bool is_dummy_data_mode = true;
 
     private:
@@ -427,7 +451,11 @@ class Data_engine {
     Data_engine(std::istream &source); //for getting dummy data structure
     void set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags);
     void set_source(std::istream &source);
+    void set_script_path(QString script_path);
+    void set_source_path(QString source_path);
     QStringList get_instance_count_names();
+
+    void set_start_time_seconds_since_epoch(double start_seconds_since_epoch);
 
     bool is_complete() const;
     bool all_values_in_range() const;
@@ -452,12 +480,12 @@ class Data_engine {
     double get_si_prefix(const FormID &id) const;
     bool is_desired_value_set(const FormID &id) const;
 
-	QStringList get_section_names() const;
+    QStringList get_section_names() const;
     sol::table get_section_names(sol::state *lua);
     QStringList get_instance_captions(const QString &section_name) const;
-	uint get_instance_count(const std::string &section_name) const;
-	sol::table get_ids_of_section(sol::state *lua, const std::string &section_name);
-	QStringList get_ids_of_section(const QString &section_name) const;
+    uint get_instance_count(const std::string &section_name) const;
+    sol::table get_ids_of_section(sol::state *lua, const std::string &section_name);
+    QStringList get_ids_of_section(const QString &section_name) const;
 
     void fill_engine_with_dummy_data();
     Statistics get_statistics() const;
@@ -465,14 +493,16 @@ class Data_engine {
     void save_data_to_file(const QString &filename) const;
 
     std::unique_ptr<QWidget> get_preview() const;
-	bool generate_pdf(const std::string &form, const std::string &destination) const;
-	void fill_database(QSqlDatabase &db);
-	void generate_template(const QString &destination) const;
+    bool generate_pdf(const std::string &form, const std::string &destination) const;
+    void fill_database(QSqlDatabase &db);
+    void generate_template(const QString &destination) const;
 
-private:
-	void generate_pages(QXmlStreamWriter &xml) const;
-	void generate_datasourcesManager(QXmlStreamWriter &xml) const;
-	void generate_scriptContext(QXmlStreamWriter &xml) const;
+    void save_to_json(QString filename);
+
+    private:
+    void generate_pages(QXmlStreamWriter &xml) const;
+    void generate_datasourcesManager(QXmlStreamWriter &xml) const;
+    void generate_scriptContext(QXmlStreamWriter &xml) const;
 
     struct FormIdWrapper {
         FormIdWrapper(const FormID &id)
@@ -488,6 +518,9 @@ private:
     static bool entry_compare(const FormIdWrapper &lhs, const FormIdWrapper &rhs);
 
     DataEngineSections sections;
+    QString script_path;
+    QString source_path;
+    quint64 load_time_seconds_since_epoch = 0;
 };
 
 #endif // DATA_ENGINE_H

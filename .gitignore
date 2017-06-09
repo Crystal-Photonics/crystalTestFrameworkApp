@@ -47,3 +47,4 @@ libs/LimeReport/build
 *.pro.user
 
 /qTestLibRunnerConfig.qtr
+/src/vc.h

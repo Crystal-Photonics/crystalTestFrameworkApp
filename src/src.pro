@@ -138,3 +138,10 @@ SOURCES += \
     Windows/dummydatacreator.cpp \
     environmentvariables.cpp \
     LuaUI/userinstructionlabel.cpp
+
+
+
+
+SH = C:/Program Files/Git/bin/sh.exe
+
+system($$system_quote($$SH) $$PWD/../git.sh)

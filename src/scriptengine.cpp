@@ -816,7 +816,9 @@ void ScriptEngine::load_script(const QString &path) {
     this->path = path;
 
     EnvironmentVariables env_variables(QSettings{}.value(Globals::path_to_environment_variables, "").toString());
-
+    if (data_engine) {
+        data_engine->set_script_path(this->path);
+    }
     try {
         //load the standard libs if necessary
         lua->open_libraries();
@@ -1033,11 +1035,14 @@ void ScriptEngine::load_script(const QString &path) {
                     }
                     data_engine->set_dependancy_tags(tags);
                     data_engine->set_source(f);
+                    data_engine->set_source_path(QString::fromStdString(file_path));
                     *pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
                     *form_filepath = get_absolute_file_path(path, xml_file);
 
                     return Data_engine_handle{data_engine};
                 }, //
+                "set_start_time_seconds_since_epoch",
+                [](Data_engine_handle &handle, const double start_time) { return handle.data_engine->set_start_time_seconds_since_epoch(start_time); },
                 "use_instance",
                 [](Data_engine_handle &handle, const std::string &section_name, const std::string &instance_caption, const uint instance_index) {
                     handle.data_engine->use_instance(QString::fromStdString(section_name), QString::fromStdString(instance_caption), instance_index);
@@ -1061,10 +1066,18 @@ void ScriptEngine::load_script(const QString &path) {
                 [](Data_engine_handle &handle, const std::string &instance_count_name, const uint instance_count) {
                     handle.data_engine->set_instance_count(QString::fromStdString(instance_count_name), instance_count);
                 },
+                "save_to_json",
+                [path = path](Data_engine_handle &handle, const std::string &file_name) {
+                    auto fn = get_absolute_file_path(path, file_name);
+                    handle.data_engine->save_to_json(QString::fromStdString(fn));
+                },
+
                 "value_in_range",
                 [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->value_in_range(QString::fromStdString(field_id)); },
                 "value_in_range_in_instance",
-                [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->value_in_range_in_instance(QString::fromStdString(field_id)); },
+                [](Data_engine_handle &handle, const std::string &field_id) {
+                    return handle.data_engine->value_in_range_in_instance(QString::fromStdString(field_id));
+                },
                 "is_bool",
                 [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->is_bool(QString::fromStdString(field_id)); },
                 "is_text",

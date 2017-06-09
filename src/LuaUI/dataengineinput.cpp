@@ -212,7 +212,9 @@ void DataEngineInput::save_to_data_engine() {
                     double si_prefix = data_engine->get_si_prefix(field_id);
                     data_engine->set_actual_number(field_id, val * si_prefix);
                 } else {
-                    throw std::runtime_error(QString("DataEngineInput line edit does not contain a number for field-id \"%1\"").arg(field_id).toStdString());
+                    auto s = QString("DataEngineInput line edit does not contain a number for field-id \"%1\"").arg(field_id);
+                    qDebug() << s;
+                    throw std::runtime_error(s.toStdString());
                 }
             } break;
             case EntryType::String: {

@@ -1472,15 +1472,24 @@ string git_info(string path, bool allow_modified);
 #endif
 
 /// @cond HIDDEN_SYMBOLS
-sol::table git_info(sol::state &lua, std::string path, bool allow_modified) {
-    sol::table result = lua.create_table_with();
+
+QMap<QString, QVariant> git_info(QString path, bool allow_modified, bool allow_exceptions) {
+    QMap<QString, QVariant> result;
     bool modified = false;
     QString program = QSettings{}.value(Globals::git_path, "").toString();
     if (!QFile::exists(program)) {
-        throw std::runtime_error("Could not find git executable at \"" + program.toStdString() + "\"");
+        if (allow_exceptions) {
+            throw std::runtime_error("Could not find git executable at \"" + program.toStdString() + "\"");
+        } else {
+            return result;
+        }
     }
-    if (!QFile::exists(QString::fromStdString(path))) {
-        throw std::runtime_error("Could not find directory at \"" + path + "\"");
+    if (!QFile::exists(path)) {
+        if (allow_exceptions) {
+            throw std::runtime_error("Could not find directory at \"" + QString(path).toStdString() + "\"");
+        } else {
+            return result;
+        }
     }
 
     QList<QStringList> argument_list;
@@ -1491,7 +1500,7 @@ sol::table git_info(sol::state &lua, std::string path, bool allow_modified) {
     for (uint i = 0; i < argument_list.count(); i++) {
         const auto &arguments = argument_list[i];
         QProcess myProcess(nullptr);
-        myProcess.setWorkingDirectory(QString::fromStdString(path));
+        myProcess.setWorkingDirectory(path);
 
         myProcess.start(program, arguments);
         myProcess.waitForStarted();
@@ -1509,21 +1518,33 @@ sol::table git_info(sol::state &lua, std::string path, bool allow_modified) {
                         break;
                     }
                 }
-                result["modfied"] = modified;
+                result.insert("modfied", modified);
                 if ((!allow_modified) && modified) {
-                    throw std::runtime_error("Git Status: Git-Directory is modified.");
+                    if (allow_exceptions) {
+                        throw std::runtime_error("Git Status: Git-Directory is modified.");
+                    }
                 }
             } break;
             case 1: {
-                result["hash"] = out[0].toStdString();
+                result.insert("hash", out[0]);
             } break;
             case 2: {
-                result["date"] = out[0].toStdString();
+                result.insert("date", out[0]);
             } break;
             default: {
             } break; //
         }
     }
+    return result;
+}
+
+sol::table git_info(sol::state &lua, std::string path, bool allow_modified) {
+    auto map = git_info(QString::fromStdString(path), allow_modified, true);
+    sol::table result = lua.create_table_with();
+
+    result["modfied"] = map["modfied"].toBool();
+    result["hash"] = map["hash"].toString().toStdString();
+    result["date"] = map["date"].toString().toStdString();
     return result;
 }
 /// @endcond
