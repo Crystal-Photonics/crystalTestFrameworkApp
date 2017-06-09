@@ -951,10 +951,7 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["git_info"] = [&lua = *lua, path = path ](std::string dir_path, bool allow_modified) {
                 return git_info(lua, get_absolute_file_path(path, dir_path), allow_modified);
             };
-            (*lua)["get_os_username"] = []() {
-                return get_os_username();
-            };
-
+            (*lua)["get_os_username"] = []() { return get_os_username(); };
         }
 
         {
@@ -1066,6 +1063,8 @@ void ScriptEngine::load_script(const QString &path) {
                 },
                 "value_in_range",
                 [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->value_in_range(QString::fromStdString(field_id)); },
+                "value_in_range_in_instance",
+                [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->value_in_range_in_instance(QString::fromStdString(field_id)); },
                 "is_bool",
                 [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->is_bool(QString::fromStdString(field_id)); },
                 "is_text",
@@ -1440,9 +1439,9 @@ void ScriptEngine::load_script(const QString &path) {
                 "get_serial_number", [](SCPIDevice &protocol) { return protocol.get_serial_number(); },                                                     //
                 "get_manufacturer", [](SCPIDevice &protocol) { return protocol.get_manufacturer(); },                                                       //
                 "get_calibration", [](SCPIDevice &protocol) { return protocol.get_calibration(); },                                                         //
-                "is_event_received", [](SCPIDevice &protocol, std::string event_name) { return protocol.is_event_received(event_name); }, //
-                "clear_event_list", [](SCPIDevice &protocol) { return protocol.clear_event_list(); },                                     //
-                "get_event_list", [](SCPIDevice &protocol) { return protocol.get_event_list(); },                                         //
+                "is_event_received", [](SCPIDevice &protocol, std::string event_name) { return protocol.is_event_received(event_name); },                   //
+                "clear_event_list", [](SCPIDevice &protocol) { return protocol.clear_event_list(); },                                                       //
+                "get_event_list", [](SCPIDevice &protocol) { return protocol.get_event_list(); },                                                           //
                 "set_validation_max_standard_deviation",
                 [](SCPIDevice &protocoll, double max_std_dev) { return protocoll.set_validation_max_standard_deviation(max_std_dev); },          //
                 "set_validation_retries", [](SCPIDevice &protocoll, unsigned int retries) { return protocoll.set_validation_retries(retries); }, //
