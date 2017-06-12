@@ -738,8 +738,9 @@ VariantData::VariantData() {
     //
 }
 
-VariantData::VariantData(const VariantData &other) {
-    dependency_tags = other.dependency_tags;
+VariantData::VariantData(const VariantData &other)
+    : dependency_tags{other.dependency_tags}
+    , relevant_dependencies{other.relevant_dependencies} {
     for (auto &entry : other.data_entries) {
         auto entry_num = dynamic_cast<NumericDataEntry *>(entry.get());
         auto entry_bool = dynamic_cast<BoolDataEntry *>(entry.get());
@@ -828,7 +829,7 @@ bool VariantData::is_dependency_matching(const QMap<QString, QList<QVariant>> &t
         }
     }
     if (!dependency_matches) {
-        relevant_dependencies.clear();
+        //     relevant_dependencies.clear();
     }
     return dependency_matches;
 }
@@ -1494,16 +1495,11 @@ void Data_engine::save_to_json(QString filename) {
 
         for (const DataEngineInstance &instance : section.instances) {
             QJsonObject jo_instance;
-            QJsonObject jo_relevant_dependencies;
             QJsonArray ja_fields;
-
             const auto variant = instance.get_variant();
             assert(variant);
             auto relevant_dependencies = variant->get_relevant_dependencies();
-            for (auto k : relevant_dependencies.keys()) {
-                auto value = dependency_tags.value(k);
-                relevant_dependencies[k] = value;
-            }
+            auto jo_relevant_dependencies = QJsonObject::fromVariantMap(relevant_dependencies);
 
             for (const std::unique_ptr<DataEngineDataEntry> &entry : variant->data_entries) {
                 QJsonObject jo_field;
