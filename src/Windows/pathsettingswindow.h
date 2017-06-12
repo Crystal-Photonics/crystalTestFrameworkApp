@@ -30,9 +30,7 @@ class PathSettingsWindow : public QDialog {
 
 	void on_meta_path_selector_clicked();
 
-	void on_forms_path_directory_selector_clicked();
 
-	void on_forms_definitions_path_directory_selector_clicked();
 
     void on_git_path_selector_clicked();
 

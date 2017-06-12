@@ -89,8 +89,9 @@ class ScriptEngine {
     UI_container *parent{nullptr};
     QPlainTextEdit *console{nullptr};
     Data_engine *data_engine{nullptr};
-    std::unique_ptr<std::string> pdf_filepath{std::make_unique<std::string>()};
-    std::unique_ptr<std::string> form_filepath{std::make_unique<std::string>()};
+    QString data_engine_auto_dump_path;
+    QString data_engine_pdf_template_path;
+
 
     QEventLoop event_loop;
 

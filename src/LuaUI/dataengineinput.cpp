@@ -349,8 +349,11 @@ void DataEngineInput::start_timer() {
 }
 
 void DataEngineInput::resizeEvent(QResizeEvent *event) {
+    qDebug() << "resizeEvent @ DataEngineInput called";
     total_width = event->size().width();
+    qDebug() << __LINE__;
     set_ui_visibility();
+    qDebug() << "resizeEvent @ DataEngineInput end";
 }
 
 void DataEngineInput::set_total_visibilty() {

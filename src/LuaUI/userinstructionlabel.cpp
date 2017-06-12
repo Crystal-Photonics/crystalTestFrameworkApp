@@ -173,10 +173,16 @@ void UserInstructionLabel::set_enabled(bool enabled) {
 }
 
 void UserInstructionLabel::resizeEvent(QResizeEvent *event) {
+    qDebug() << "resizeEvent @ UserInstructionLabel called";
     total_width = event->size().width();
+    qDebug() << __LINE__;
     if (is_init) {
+        qDebug() << __LINE__;
         scale_columns();
+        qDebug() << __LINE__;
     }
+    qDebug() << __LINE__;
+    qDebug() << "resizeEvent @ UserInstructionLabel end";
 }
 
 ///\cond HIDDEN_SYMBOLS

@@ -317,6 +317,7 @@ QString get_absolute_file_path(const QString &script_path, const QString &file_t
     } else {
         result = file_to_open;
     }
+    create_path(result);
     return result;
 }
 
@@ -991,9 +992,12 @@ void ScriptEngine::load_script(const QString &path) {
             lua->new_usertype<Data_engine_handle>(
                 "Data_engine", //
                 sol::meta_function::construct,
-                [ data_engine = data_engine, pdf_filepath = pdf_filepath.get(), form_filepath = form_filepath.get(),
-                  path = path ](const std::string &xml_file, const std::string &json_file, const sol::table &dependency_tags) {
+                [
+                  data_engine = data_engine, path = path, this
+                ](const std::string &pdf_template_file, const std::string &json_file, const std::string &auto_json_dump_path, const sol::table &dependency_tags) {
                     auto file_path = get_absolute_file_path(path, json_file);
+                    auto xml_file = get_absolute_file_path(path, pdf_template_file);
+                    auto auto_dump_path = get_absolute_file_path(path, auto_json_dump_path);
                     std::ifstream f(file_path);
                     if (!f) {
                         throw std::runtime_error("Failed opening file " + file_path);
@@ -1036,8 +1040,10 @@ void ScriptEngine::load_script(const QString &path) {
                     data_engine->set_dependancy_tags(tags);
                     data_engine->set_source(f);
                     data_engine->set_source_path(QString::fromStdString(file_path));
-                    *pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
-                    *form_filepath = get_absolute_file_path(path, xml_file);
+                    data_engine_pdf_template_path = QString::fromStdString(xml_file);
+                    data_engine_auto_dump_path = QString::fromStdString(auto_dump_path);
+                    //*pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
+                    //*form_filepath = get_absolute_file_path(path, xml_file);
 
                     return Data_engine_handle{data_engine};
                 }, //
@@ -1067,7 +1073,7 @@ void ScriptEngine::load_script(const QString &path) {
                     handle.data_engine->set_instance_count(QString::fromStdString(instance_count_name), instance_count);
                 },
                 "save_to_json",
-                [path = path](Data_engine_handle &handle, const std::string &file_name) {
+                [path = path](Data_engine_handle & handle, const std::string &file_name) {
                     auto fn = get_absolute_file_path(path, file_name);
                     handle.data_engine->save_to_json(QString::fromStdString(fn));
                 },
@@ -1624,8 +1630,30 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
 void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices) {
     auto reset_lua_state = [this] {
         lua = std::make_unique<sol::state>();
-        if (pdf_filepath->empty() == false) {
-            data_engine->generate_pdf(*form_filepath, *pdf_filepath);
+        if ((data_engine_pdf_template_path.count()) && (data_engine_auto_dump_path.count())) {
+            QFileInfo fi(data_engine_auto_dump_path);
+            QString suffix = fi.completeSuffix();
+            if (suffix == "") {
+                QString path =  append_separator_to_path(fi.absoluteFilePath());
+                path += "report.pdf";
+                fi.setFile(path);
+            }
+            //fi.baseName("/home/abc/report.pdf") = "report"
+            //fi.absolutePath("/home/abc/report.pdf") = "/home/abc/"
+
+            std::string pdf_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
+            data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), pdf_target_filename);
+        }
+        if (data_engine_auto_dump_path.count()) {
+            QFileInfo fi(data_engine_auto_dump_path);
+            QString suffix = fi.completeSuffix();
+            if (suffix == "") {
+                QString path =  append_separator_to_path(fi.absoluteFilePath());
+                path += "dump.json";
+                fi.setFile(path);
+            }
+            std::string json_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".json");
+            data_engine->save_to_json(QString::fromStdString(json_target_filename));
         }
     };
     try {

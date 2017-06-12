@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>566</width>
-    <height>599</height>
+    <height>650</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -254,35 +254,6 @@
     </spacer>
    </item>
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout_8">
-     <item>
-      <widget class="QLabel" name="label_8">
-       <property name="text">
-        <string>Path to form layout directory</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_7">
-       <item>
-        <widget class="QLineEdit" name="forms_path_directory_text">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="forms_path_directory_selector">
-         <property name="text">
-          <string>...</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-    </layout>
-   </item>
-   <item>
     <spacer name="verticalSpacer_8">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -294,35 +265,6 @@
       </size>
      </property>
     </spacer>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="verticalLayout_9">
-     <item>
-      <widget class="QLabel" name="label_9">
-       <property name="text">
-        <string>Path to form definition directory</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_8">
-       <item>
-        <widget class="QLineEdit" name="forms_definitions_path_directory_text">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="forms_definitions_path_directory_selector">
-         <property name="text">
-          <string>...</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-    </layout>
    </item>
    <item>
     <layout class="QVBoxLayout" name="verticalLayout_5">

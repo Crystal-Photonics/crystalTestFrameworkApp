@@ -829,7 +829,7 @@ bool VariantData::is_dependency_matching(const QMap<QString, QList<QVariant>> &t
         }
     }
     if (!dependency_matches) {
-        //     relevant_dependencies.clear();
+        relevant_dependencies.clear();
     }
     return dependency_matches;
 }
@@ -1449,6 +1449,7 @@ static QString get_caption(const QString &section_name, const QString &instance_
 
 void Data_engine::save_to_json(QString filename) {
     QFile saveFile(filename);
+
 
     if (!saveFile.open(QIODevice::WriteOnly)) {
         throw DataEngineError(DataEngineErrorNumber::cannot_open_file, QString{"Can not open file: \"%1\" for dumping data_engine content."}.arg(filename));
