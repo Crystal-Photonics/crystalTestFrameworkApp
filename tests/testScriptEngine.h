@@ -17,6 +17,7 @@ class TestScriptEngine : public QObject {
     private slots:
     void basicLuaTest();
     void test_file_name_path();
+    void test_create_name_path();
 };
 
 DECLARE_TEST(TestScriptEngine)

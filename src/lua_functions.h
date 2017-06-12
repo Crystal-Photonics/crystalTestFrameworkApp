@@ -8,6 +8,8 @@
 
 class QPlainTextEdit;
 
+QString create_path(QString filename);
+QString append_separator_to_path(QString path);
 std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigned int length, const double min_val, const double max_val);
 double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const unsigned int dacs_quantity, const unsigned int max_possible_dac_value);
 void print(QPlainTextEdit *console, const sol::variadic_args &args);

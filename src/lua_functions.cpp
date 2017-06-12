@@ -1384,10 +1384,10 @@ std::string propose_unique_filename_by_datetime(const std::string &dir_path, con
     QString dir_ = QString::fromStdString(dir_path);
     QString prefix_ = QString::fromStdString(prefix);
     QString suffix_ = QString::fromStdString(suffix);
-    dir_ = QDir::toNativeSeparators(dir_);
-    if (!dir_.endsWith(QDir::separator())) {
-        dir_ += QDir::separator();
-    }
+
+    dir_ = append_separator_to_path(dir_);
+    create_path(dir_);
+
     QString result;
     QString currentDateTime = QDateTime::currentDateTime().toString("-yyyy_MM_dd-HH_mm_ss-");
     //currentDateTime = "-2017_06_01-14_50_49-";
@@ -1602,3 +1602,30 @@ std::string get_os_username() {
 /// @endcond
 ///
 /** \} */ // end of group convenience
+
+QString append_separator_to_path(QString path) {
+    path = QDir::toNativeSeparators(path);
+    if (!path.endsWith(QDir::separator())) {
+        path += QDir::separator();
+    }
+    return path;
+}
+
+QString create_path(QString filename) {
+    QFileInfo fi(filename);
+    if (fi.completeSuffix() == "") {
+        //it is a directory
+        filename = append_separator_to_path(filename);
+       // QDir d(filename);
+       // filename = d.absolutePath();
+        QFileInfo fi(filename);
+        filename = fi.absoluteFilePath();
+        filename = append_separator_to_path(filename);
+    } else {
+        filename = fi.absolutePath();
+        filename = append_separator_to_path(filename);
+    }
+    QDir d(filename);
+    d.mkpath(".");
+    return filename;
+}

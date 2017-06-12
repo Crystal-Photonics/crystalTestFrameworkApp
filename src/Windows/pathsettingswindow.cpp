@@ -40,8 +40,6 @@ std::vector<std::pair<QLineEdit *, const char *>> PathSettingsWindow::get_config
             {ui->lua_editor_path_text, Globals::lua_editor_path_settings_key},
             {ui->lua_editor_parameters_text, Globals::lua_editor_parameters_settings_key},
             {ui->meta_path_text, Globals::measurement_equipment_meta_data_path},
-            {ui->forms_path_directory_text, Globals::form_directory},
-            {ui->forms_definitions_path_directory_text, Globals::form_definitions_directory},
             {ui->git_path, Globals::git_path},
             {ui->env_var_path, Globals::path_to_environment_variables}
 
@@ -83,13 +81,6 @@ void PathSettingsWindow::on_meta_path_selector_clicked() {
     request_user_file(ui->meta_path_text, tr("Select measurement equipment meta data file"), Globals::measurement_equipment_meta_data_path, "*.json");
 }
 
-void PathSettingsWindow::on_forms_path_directory_selector_clicked() {
-    request_user_dir(ui->forms_path_directory_text, tr("Select directory for XML-forms layout files"), Globals::form_directory);
-}
-
-void PathSettingsWindow::on_forms_definitions_path_directory_selector_clicked() {
-    request_user_dir(ui->forms_definitions_path_directory_text, tr("Select directory for JSON-forms definition files"), Globals::form_definitions_directory);
-}
 
 void PathSettingsWindow::on_git_path_selector_clicked() {
     request_user_file(ui->git_path, tr("Select the location of the git executable"), Globals::git_path, "git.exe");
