@@ -494,14 +494,15 @@ class Data_engine {
 
     std::unique_ptr<QWidget> get_preview() const;
     bool generate_pdf(const std::string &form, const std::string &destination) const;
-    void fill_database(QSqlDatabase &db);
+	void fill_database(QSqlDatabase &db) const;
     void generate_template(const QString &destination) const;
 
     void save_to_json(QString filename);
 
     private:
-    void generate_pages(QXmlStreamWriter &xml) const;
-    void generate_datasourcesManager(QXmlStreamWriter &xml) const;
+	void generate_pages(QXmlStreamWriter &xml) const;
+	void generate_pages_header(QXmlStreamWriter &xml) const;
+	void generate_datasourcesManager(QXmlStreamWriter &xml) const;
     void generate_scriptContext(QXmlStreamWriter &xml) const;
 
     struct FormIdWrapper {
