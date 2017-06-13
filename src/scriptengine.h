@@ -20,6 +20,7 @@ class QPlainTextEdit;
 struct Protocol;
 class Data_engine;
 class UI_container;
+class TestRunner;
 
 QString get_absolute_file_path(const QString &script_path, const QString &file_to_open);
 std::string get_absolute_file_path(const QString &script_path, const std::string &file_to_open);
@@ -51,7 +52,7 @@ class ScriptEngine {
     friend class TestDescriptionLoader;
     friend class DeviceWorker;
 
-    ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine);
+    ScriptEngine(TestRunner *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine);
 	ScriptEngine(const ScriptEngine &) = delete;
 	ScriptEngine(ScriptEngine &&) = delete;
 	~ScriptEngine();
@@ -74,6 +75,7 @@ class ScriptEngine {
     static std::string to_string(const sol::stack_proxy &object);
     QString get_absolute_filename(QString file_to_open);
 
+    void interrupt(QString msg);
     private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
     sol::table create_table();
     QStringList get_string_list(const QString &name);
@@ -96,7 +98,7 @@ class ScriptEngine {
     QEventLoop event_loop;
 
     int event_queue_run_();
-    QObject *owner{nullptr};
+    TestRunner *owner{nullptr};
 
     QMutex timer_pause_mutex;
     QWaitCondition timer_pause;

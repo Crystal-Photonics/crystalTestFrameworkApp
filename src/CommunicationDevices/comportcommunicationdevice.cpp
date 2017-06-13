@@ -9,21 +9,20 @@
 #include <regex>
 #include <string>
 
-
 ComportCommunicationDevice::ComportCommunicationDevice() {
-	QObject::connect(&port, &QSerialPort::readyRead, [this]() {
-		if (!currently_in_waitReceived) {
-			emit waitReceived(std::chrono::seconds{0}, 0);
-		}
-	});
+    QObject::connect(&port, &QSerialPort::readyRead, [this]() {
+        if (!currently_in_waitReceived) {
+            emit waitReceived(std::chrono::seconds{0}, 0);
+        }
+    });
 }
 
 bool ComportCommunicationDevice::isConnected() {
-    return Utility::promised_thread_call(this, [this] { return port.isOpen(); });
+    return Utility::promised_thread_call(this, nullptr, [this] { return port.isOpen(); });
 }
 
-bool ComportCommunicationDevice::connect(const QMap<QString,QVariant> &portinfo) {
-    return Utility::promised_thread_call(this, [this, portinfo] {
+bool ComportCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo) {
+    return Utility::promised_thread_call(this, nullptr, [this, portinfo] {
         assert(portinfo.contains(HOST_NAME_TAG));
         assert(portinfo.contains("baudrate"));
         assert(portinfo[HOST_NAME_TAG].type() == QVariant::String);
@@ -41,7 +40,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes, bool 
     auto now = std::chrono::high_resolution_clock::now();
     int received_bytes = 0;
     auto try_read = [this, &received_bytes] {
-        auto result = Utility::promised_thread_call(this, [this] {
+        auto result = Utility::promised_thread_call(this, nullptr, [this] {
             QApplication::processEvents();
             return port.readAll();
         });
@@ -55,9 +54,9 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes, bool 
     }
     do {
         try_read();
-	} while (received_bytes < bytes &&
-			 std::chrono::high_resolution_clock::now() - now <=
-				 timeout); //we want a <= because if we poll with 0ms we still put a heavy load on cpu(100% for 1ms each 16ms)
+    } while (received_bytes < bytes &&
+             std::chrono::high_resolution_clock::now() - now <=
+                 timeout); //we want a <= because if we poll with 0ms we still put a heavy load on cpu(100% for 1ms each 16ms)
     try_read();
     if (!isPolling) {
         currently_in_waitReceived = false;
@@ -69,7 +68,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
     QByteArray inbuffer{};
 
     auto try_read = [this, &inbuffer] {
-        auto result = Utility::promised_thread_call(this, [this] {
+        auto result = Utility::promised_thread_call(this, nullptr, [this] {
             QApplication::processEvents();
             char byte_buffer = 0;
             QByteArray inbyte_buffer{};
@@ -111,7 +110,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
 
             if ((!leading_pattern_indicating_skip_line.empty()) && skipline_match > 0) {
                 //if ((!leading_pattern_indicating_skip_line.empty()) && in_str.startsWith(QString::fromStdString(leading_pattern_indicating_skip_line))){
-				now = std::chrono::high_resolution_clock::now();
+                now = std::chrono::high_resolution_clock::now();
             } else {
                 run = false;
             }
@@ -125,7 +124,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
 }
 
 void ComportCommunicationDevice::send(const QByteArray &data, const QByteArray &displayed_data) {
-    return Utility::promised_thread_call(this, [this, data, displayed_data] {
+    return Utility::promised_thread_call(this, nullptr, [this, data, displayed_data] {
         auto size = port.write(data);
         if (size == -1) {
             return;
@@ -140,7 +139,7 @@ void ComportCommunicationDevice::send(const QByteArray &data, const QByteArray &
 }
 
 void ComportCommunicationDevice::close() {
-    return Utility::promised_thread_call(this, [this] { port.close(); });
+    return Utility::promised_thread_call(this, nullptr, [this] { port.close(); });
 }
 
 QString ComportCommunicationDevice::getName() {

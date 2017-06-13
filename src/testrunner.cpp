@@ -42,7 +42,7 @@ TestRunner::~TestRunner() {
 
 void TestRunner::interrupt() {
     this->script.event_queue_interrupt();
-    MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script interrupted"; });
+    MainWindow::mw->execute_in_gui_thread(nullptr, [this] { Console::note(console) << "Script interrupted"; });
     thread.exit(-1);
     thread.exit(-1);
     thread.requestInterruption();
@@ -63,7 +63,7 @@ void TestRunner::resume_timers() {
 }
 
 sol::table TestRunner::create_table() {
-    return Utility::promised_thread_call(this, [this] { return script.create_table(); });
+    return Utility::promised_thread_call(this, nullptr, [this] { return script.create_table(); });
 }
 
 UI_container *TestRunner::get_lua_ui_container() const {
@@ -71,14 +71,14 @@ UI_container *TestRunner::get_lua_ui_container() const {
 }
 
 void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices, DeviceWorker &device_worker) {
-    Utility::thread_call(this, [ this, devices = std::move(devices), &device_worker ]() mutable {
+    Utility::thread_call(this, nullptr, [ this, devices = std::move(devices), &device_worker ]() mutable {
         for (auto &dev_prot : devices) {
             device_worker.set_currently_running_test(dev_prot.first, name);
         }
         try {
             script.run(devices);
         } catch (const std::runtime_error &e) {
-            MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] {
+            MainWindow::mw->execute_in_gui_thread(nullptr,[ this, message = std::string{e.what()} ] {
                 assert(console);
                 console->setVisible(true);
                 qDebug() << QString::fromStdString(message);
@@ -90,7 +90,7 @@ void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protoco
         }
         moveToThread(MainWindow::gui_thread);
         thread.quit();
-        MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script stopped"; });
+        MainWindow::mw->execute_in_gui_thread(nullptr,[this] { Console::note(console) << "Script stopped"; });
     });
 }
 
@@ -104,4 +104,9 @@ const QString &TestRunner::get_name() const {
 
 void TestRunner::launch_editor() const {
     script.launch_editor();
+}
+
+QObject *TestRunner::obj()
+{
+    return this;
 }

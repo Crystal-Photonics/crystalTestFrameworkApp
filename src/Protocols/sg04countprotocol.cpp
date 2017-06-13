@@ -78,6 +78,7 @@ SG04CountProtocol::~SG04CountProtocol() {
 }
 
 void SG04CountProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
+    assert(QThread::currentThread() == MainWindow::gui_thread);
     ui_entry->setText(1, "SG04 Counts");
     ui_entry->setText(2, "");
 }

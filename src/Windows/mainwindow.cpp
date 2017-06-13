@@ -104,7 +104,7 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::align_columns() {
-    Utility::thread_call(this, [this] {
+    Utility::thread_call(this, nullptr, [this] {
         for (int i = 0; i < ui->devices_list->columnCount(); i++) {
             ui->devices_list->resizeColumnToContents(i);
         }
@@ -115,11 +115,12 @@ void MainWindow::align_columns() {
 }
 
 void MainWindow::remove_device_entry(QTreeWidgetItem *item) {
-    Utility::thread_call(this, [this, item] { delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(item)); });
+    Utility::thread_call(this, nullptr, [this, item] { delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(item)); });
 }
 
 void MainWindow::load_scripts() {
-    Utility::thread_call(this, [this] {
+    Utility::thread_call(this, nullptr, [this] { //TODO: handle exception in a better way. If a script in the directory throws an exception, whole program crashes.
+                                                    //even though it doesn need to crash. It should simply not list that script.
         const auto dir = QSettings{}.value(Globals::test_script_path_settings_key, "").toString();
         QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories};
         while (dit.hasNext()) {
@@ -130,7 +131,8 @@ void MainWindow::load_scripts() {
 }
 
 void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *cummincation_device) {
-    Utility::thread_call(this, [this, item, tab_name, cummincation_device] {
+    Utility::thread_call(this, nullptr, [this, item, tab_name, cummincation_device] {
+        assert(currently_in_gui_thread());
         ui->devices_list->addTopLevelItem(item);
         align_columns();
         if (cummincation_device) {
@@ -145,7 +147,7 @@ void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name,
 }
 
 void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
-    Utility::thread_call(this, [this, text, console] {
+    Utility::thread_call(this, nullptr, [this, text, console] {
         if (console) {
             console->appendHtml(text);
         } else {
@@ -155,7 +157,7 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 }
 
 void MainWindow::show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon) {
-    Utility::thread_call(this, [this, title, message, icon] {
+    Utility::thread_call(this, nullptr, [this, title, message, icon] {
         switch (icon) {
             default:
             case QMessageBox::Critical:
@@ -179,18 +181,18 @@ void MainWindow::remove_test_runner(TestRunner *runner) {
 }
 
 void MainWindow::on_actionPaths_triggered() {
-    Utility::thread_call(this, [this] {
+    Utility::thread_call(this, nullptr, [this] {
         path_dialog = new PathSettingsWindow(this);
         path_dialog->show();
     });
 }
 
 void MainWindow::device_detect() {
-    Utility::thread_call(this, [this] { device_worker->detect_devices(); });
+    Utility::thread_call(this, nullptr,  [this] { device_worker->detect_devices(); });
 }
 
 void MainWindow::update_devices_list() {
-    Utility::thread_call(this, [this] {
+    Utility::thread_call(this, nullptr, [this] {
         assert(currently_in_gui_thread());
         device_worker->update_devices();
     });
@@ -199,6 +201,7 @@ void MainWindow::update_devices_list() {
 static void forget_by_treewidget_root(QTreeWidgetItem *root_item, DeviceWorker *device_worker, bool dut_only) {
     int j = 0;
     while (j < root_item->childCount()) {
+        assert(currently_in_gui_thread());
         QTreeWidgetItem *itemchild = root_item->child(j);
 
         forget_by_treewidget_root(itemchild, device_worker, dut_only);
@@ -214,25 +217,28 @@ static void forget_by_treewidget_root(QTreeWidgetItem *root_item, DeviceWorker *
 }
 
 void MainWindow::on_btn_refresh_all_clicked() {
-    Utility::thread_call(this, [this] {
+   // Utility::thread_call(this, nullptr, [this] {
+        assert(currently_in_gui_thread());
         QTreeWidgetItem *root = ui->devices_list->invisibleRootItem();
         forget_by_treewidget_root(root, device_worker.get(), false);
-    });
+   // });
     update_devices_list();
-	device_detect();
+    device_detect();
 }
 
 void MainWindow::on_btn_refresh_dut_clicked() {
-    Utility::thread_call(this, [this] {
+   // Utility::thread_call(this, nullptr, [this] {
+        assert(currently_in_gui_thread());
         QTreeWidgetItem *root = ui->devices_list->invisibleRootItem();
         forget_by_treewidget_root(root, device_worker.get(), true);
-    });
+    //});
     update_devices_list();
     device_detect();
 }
 
 void MainWindow::forget_device() {
-    Utility::thread_call(this, [this] {
+    Utility::thread_call(this, nullptr, [this] {
+        assert(currently_in_gui_thread());
         auto selected_device_item = ui->devices_list->currentItem();
         if (!selected_device_item) {
             return;
@@ -246,6 +252,7 @@ void MainWindow::forget_device() {
 }
 
 void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
+    assert(currently_in_gui_thread());
     auto item = ui->devices_list->itemAt(pos);
     if (item) {
         while (ui->devices_list->indexOfTopLevelItem(item) == -1) {
@@ -270,7 +277,8 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 }
 
 void MainWindow::on_console_tabs_tabCloseRequested(int index) {
-    Utility::thread_call(this, [this, index] {
+    Utility::thread_call(this, nullptr,  [this, index] {
+        assert(currently_in_gui_thread());
         if (ui->console_tabs->tabText(index) == "Console") {
             Console::note() << tr("Cannot close console window");
             return;
@@ -280,7 +288,7 @@ void MainWindow::on_console_tabs_tabCloseRequested(int index) {
 }
 
 void MainWindow::on_run_test_script_button_clicked() {
-    Utility::thread_call(this, [this] {
+    Utility::thread_call(this, nullptr,  [this] {
         auto items = ui->tests_list->selectedItems();
         for (auto &item : items) {
             auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
@@ -309,7 +317,7 @@ void MainWindow::on_run_test_script_button_clicked() {
 
 void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
     (void)column;
-    Utility::thread_call(this, [this, item] {
+    Utility::thread_call(this, nullptr, [this, item] {
         auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
         if (test == nullptr) {
             return;
@@ -320,7 +328,7 @@ void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
 }
 
 void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
-    Utility::thread_call(this, [this, pos] {
+    Utility::thread_call(this, nullptr,  [this, pos] {
         auto item = ui->tests_list->itemAt(pos);
         if (item && get_test_from_ui()) {
             while (ui->tests_list->indexOfTopLevelItem(item) == -1) {
@@ -552,6 +560,7 @@ void MainWindow::poll_sg04_counts() {
             sg04_count_device->ui_entry->setText(2, "cps: " + QString::number(cps));
         }
     }
+    assert(currently_in_gui_thread());
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
 }
 

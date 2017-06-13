@@ -159,7 +159,7 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
 }
 
 DataEngineInput::~DataEngineInput() {
-    MainWindow::mw->execute_in_gui_thread([this] { //
+    MainWindow::mw->execute_in_gui_thread(nullptr, [this] { //
         timer->stop();
         QObject::disconnect(callback_timer);
         QObject::disconnect(callback_next);
@@ -198,6 +198,7 @@ void DataEngineInput::set_editable() {
 }
 
 void DataEngineInput::save_to_data_engine() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     if (is_editable) {
         auto entry_type = data_engine->get_entry_type(field_id);
         switch (entry_type) {
@@ -208,14 +209,21 @@ void DataEngineInput::save_to_data_engine() {
                 QString t = lineedit->text();
                 bool ok;
                 double val = t.toDouble(&ok);
-                if (ok) {
-                    double si_prefix = data_engine->get_si_prefix(field_id);
-                    data_engine->set_actual_number(field_id, val * si_prefix);
-                } else {
+                double si_prefix = data_engine->get_si_prefix(field_id);
+                if (!ok) {
+                    val = QInputDialog::getDouble(parent, "Invalid value", "Der Wert \"" + t + "\" im Feld \"" + label_de_description->text() + " " +
+                                                                               label_de_desired_value->text() +
+                                                                               "\" ist keine Nummer. Bitte tragen Sie die nach.");
+
+#if 0
                     auto s = QString("DataEngineInput line edit does not contain a number for field-id \"%1\"").arg(field_id);
                     qDebug() << s;
                     throw std::runtime_error(s.toStdString());
+#endif
                 }
+
+                data_engine->set_actual_number(field_id, val * si_prefix);
+
             } break;
             case EntryType::String: {
                 data_engine->set_actual_text(field_id, lineedit->text());
@@ -229,13 +237,14 @@ void DataEngineInput::save_to_data_engine() {
                 .arg(field_id)
                 .toStdString());
     }
+
     load_actual_value();
 }
 
 void DataEngineInput::sleep_ms(uint timeout_ms) {
     assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     is_waiting = true;
-    MainWindow::mw->execute_in_gui_thread([this] { //
+    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { //
         set_ui_visibility();
 
         if (!is_editable) {
@@ -243,7 +252,7 @@ void DataEngineInput::sleep_ms(uint timeout_ms) {
         }
     });
     script_engine->timer_event_queue_run(timeout_ms);
-    MainWindow::mw->execute_in_gui_thread([this] { //
+    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { //
         timer->stop();
         is_waiting = false;
         set_ui_visibility();
@@ -253,8 +262,8 @@ void DataEngineInput::sleep_ms(uint timeout_ms) {
 void DataEngineInput::await_event() {
     //TODO: This now runs in the script thread, so we cannot call GUI functions like set_button_visibility directly anymore
     //use MainWindow::mw->execute_in_gui_thread to fix
-    assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-    MainWindow::mw->execute_in_gui_thread([this] {              //
+    assert(MainWindow::gui_thread != QThread::currentThread());   //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { //
         is_waiting = true;
         switch (field_type) {
             case FieldType::Bool: {
@@ -275,7 +284,6 @@ void DataEngineInput::await_event() {
         set_ui_visibility();
     });
     auto result = script_engine->hotkey_event_queue_run();
-
     if (is_editable && (field_type == FieldType::Bool)) {
         if (result == HotKeyEvent::HotKeyEvent::confirm_pressed) {
             bool_result = true;
@@ -284,7 +292,9 @@ void DataEngineInput::await_event() {
         }
     }
     is_waiting = false;
-    MainWindow::mw->execute_in_gui_thread([this] {
+
+    Utility::promised_thread_call(MainWindow::mw, nullptr, [this] {
+
         timer->stop();
         if (is_editable) {
             save_to_data_engine();
@@ -296,7 +306,7 @@ void DataEngineInput::await_event() {
 
 void DataEngineInput::set_explanation_text(const std::string &extra_explanation) {
     this->extra_explanation = QString().fromStdString(extra_explanation);
-    MainWindow::mw->execute_in_gui_thread([this] { label_extra_explanation->setText(this->extra_explanation); });
+    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { label_extra_explanation->setText(this->extra_explanation); });
 }
 
 bool DataEngineInput::get_is_editable() {
@@ -310,7 +320,7 @@ void DataEngineInput::set_visible(bool visible) {
 
 void DataEngineInput::set_enabled(bool enabled) {
     this->is_enabled = enabled;
-    MainWindow::mw->execute_in_gui_thread([this, enabled] { //
+    MainWindow::mw->execute_in_gui_thread(script_engine, [this, enabled] { //
         set_ui_visibility();
         if (enabled) {
             timer->start(BLINK_INTERVAL_MS);
@@ -321,7 +331,7 @@ void DataEngineInput::set_enabled(bool enabled) {
 }
 
 void DataEngineInput::clear_explanation() {
-    MainWindow::mw->execute_in_gui_thread([this] { //
+    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { //
         label_extra_explanation->setText(" ");
     });
 }
@@ -357,7 +367,7 @@ void DataEngineInput::resizeEvent(QResizeEvent *event) {
 }
 
 void DataEngineInput::set_total_visibilty() {
-    MainWindow::mw->execute_in_gui_thread([this] { //
+    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { //
         label_extra_explanation->setVisible(is_visible && is_enabled && is_waiting);
         label_de_description->setVisible(is_visible);
         label_de_desired_value->setVisible(is_visible);
@@ -368,7 +378,7 @@ void DataEngineInput::set_total_visibilty() {
 }
 
 void DataEngineInput::scale_columns() {
-    MainWindow::mw->execute_in_gui_thread([this] { //
+    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { //
         int col_size = 6;
         if (is_editable && is_enabled && is_visible) {
             switch (field_type) {
@@ -413,7 +423,7 @@ void DataEngineInput::scale_columns() {
 }
 
 void DataEngineInput::set_button_visibility(bool next, bool yes_no) {
-    MainWindow::mw->execute_in_gui_thread([this, next, yes_no] {
+    MainWindow::mw->execute_in_gui_thread(script_engine, [this, next, yes_no] {
         this->label_no->setVisible(yes_no);
         this->button_no->setVisible(yes_no);
 
@@ -441,7 +451,7 @@ void DataEngineInput::set_labels_enabled() {
 }
 
 void DataEngineInput::set_ui_visibility() {
-    MainWindow::mw->execute_in_gui_thread([this] {
+    MainWindow::mw->execute_in_gui_thread(script_engine, [this] {
         if (init_ok == false) {
             return;
         }

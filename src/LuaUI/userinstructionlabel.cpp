@@ -91,7 +91,7 @@ UserInstructionLabel::UserInstructionLabel(UI_container *parent, ScriptEngine *s
 }
 
 UserInstructionLabel::~UserInstructionLabel() {
-    MainWindow::mw->execute_in_gui_thread([this] {                  //
+    MainWindow::mw->execute_in_gui_thread(script_engine, [this] {   //
         assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
         timer->stop();
         QObject::disconnect(callback_timer);
@@ -124,7 +124,7 @@ bool UserInstructionLabel::await_yes_no() {
 
 bool UserInstructionLabel::run_hotkey_loop() {
     assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-    MainWindow::mw->execute_in_gui_thread([this] { set_enabled(true); });
+    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { set_enabled(true); });
     if (script_engine->hotkey_event_queue_run() == HotKeyEvent::HotKeyEvent::confirm_pressed) {
         return true;
     } else {
@@ -151,7 +151,7 @@ void UserInstructionLabel::set_visible(bool visible) {
 }
 
 void UserInstructionLabel::set_enabled(bool enabled) {
-    MainWindow::mw->execute_in_gui_thread([this, enabled] { //
+    MainWindow::mw->execute_in_gui_thread(script_engine, [this, enabled] { //
         label_user_instruction->setEnabled(enabled);
         label_user_instruction->setText(instruction_text);
 

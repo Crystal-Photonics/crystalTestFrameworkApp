@@ -104,7 +104,7 @@ void DeviceMetaData::parse_meta_data_file(QString file_name) {
 
     file.setFileName(file_name);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        Utility::thread_call(MainWindow::mw, [file_name] {
+        Utility::thread_call(MainWindow::mw, nullptr, [file_name] {
             QMessageBox::warning(MainWindow::mw, "Can't measurement equipment meta data file", "Can't measurement equipment meta data file: " + file_name);
         });
 
@@ -114,7 +114,7 @@ void DeviceMetaData::parse_meta_data_file(QString file_name) {
     file.close();
     QJsonDocument j_doc = QJsonDocument::fromJson(json_string.toUtf8());
     if (j_doc.isNull()) {
-        Utility::thread_call(MainWindow::mw, [file_name] {
+        Utility::thread_call(MainWindow::mw, nullptr,[file_name] {
             QMessageBox::warning(MainWindow::mw, "measurement equipment meta data parse error",
                                  "could not parse measurement equipment meta data file: " + file_name);
         });

@@ -28,7 +28,7 @@ void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
 
     file.setFileName(file_name);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        Utility::thread_call(MainWindow::mw, [file_name] {
+        Utility::thread_call(MainWindow::mw, nullptr, [file_name] {
             QMessageBox::warning(MainWindow::mw, "Can't open port settings", "Could not open device settings file: " + file_name);
         });
 
@@ -38,7 +38,7 @@ void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
     file.close();
     QJsonDocument j_doc = QJsonDocument::fromJson(json_string.toUtf8());
     if (j_doc.isNull()) {
-        Utility::thread_call(MainWindow::mw, [file_name] {
+        Utility::thread_call(MainWindow::mw, nullptr,[file_name] {
             QMessageBox::warning(MainWindow::mw, "port settings parse error", "could not parse device settings file: " + file_name);
         });
         return;
@@ -61,7 +61,7 @@ void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
             } else if (portType == "TCP") {
                 setting.type = DeviceProtocolSetting::tcp_connection;
             } else {
-                Utility::thread_call(MainWindow::mw, [file_name, portType] {
+                Utility::thread_call(MainWindow::mw,nullptr, [file_name, portType] {
                     QMessageBox::warning(MainWindow::mw, "unknown protocol in port settings",
                                          "unknown protocol \"" + portType + "\" in port settings device settings file: " + file_name);
                 });
@@ -95,7 +95,7 @@ void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
         }
     }
     if (!devices_parsed) {
-        Utility::thread_call(MainWindow::mw, [file_name] {
+        Utility::thread_call(MainWindow::mw,nullptr, [file_name] {
             QMessageBox::warning(MainWindow::mw, "no settings in port settings error", "did not find device definitions in device settings file: " + file_name);
         });
         return;

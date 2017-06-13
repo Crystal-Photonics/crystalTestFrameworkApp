@@ -18,7 +18,7 @@ EnvironmentVariables::EnvironmentVariables(QString filename) {
 
     file.setFileName(filename);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-         Utility::thread_call(MainWindow::mw, [filename] {
+         Utility::thread_call(MainWindow::mw, nullptr, [filename] {
         QMessageBox::warning(MainWindow::mw, "Can't measurement equipment meta data file", "Can't measurement equipment meta data file: " + filename);
         });
 
@@ -28,7 +28,7 @@ EnvironmentVariables::EnvironmentVariables(QString filename) {
     file.close();
     QJsonDocument j_doc = QJsonDocument::fromJson(json_string.toUtf8());
     if (j_doc.isNull()) {
-         Utility::thread_call(MainWindow::mw, [filename] {
+         Utility::thread_call(MainWindow::mw, nullptr,[filename] {
              QMessageBox::warning(MainWindow::mw, "could not parse file with environment variables",
                                   "could not parse file with environment variables. Seems the json is broken: " + filename);
          });

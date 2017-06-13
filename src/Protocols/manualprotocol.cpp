@@ -1,5 +1,6 @@
 #include "manualprotocol.h"
 #include <QTreeWidgetItem>
+#include "Windows/mainwindow.h"
 
 ManualProtocol::ManualProtocol()
     : Protocol{"manual"} {}
@@ -11,6 +12,8 @@ bool ManualProtocol::is_correct_protocol() {
 }
 
 void ManualProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
+    assert(QThread::currentThread() == MainWindow::gui_thread);
+
     ui_entry->setText(1, "Manual");
     ui_entry->setText(2, meta_data.commondata.device_name);
 
@@ -25,7 +28,6 @@ DeviceMetaDataApprovedState ManualProtocol::get_approved_state() {
         return DeviceMetaDataApprovedState::Unknown;
     }
 }
-
 
 QString ManualProtocol::get_approved_state_str() {
     if (meta_data.devices.count()) {

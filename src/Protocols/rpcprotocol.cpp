@@ -9,7 +9,7 @@
 #include "rpcruntime_encoded_function_call.h"
 #include "rpcruntime_encoder.h"
 #include "rpcruntime_protocol_description.h"
-
+#include "Windows/mainwindow.h"
 #include <QByteArray>
 #include <QDateTime>
 #include <QDebug>
@@ -192,7 +192,7 @@ std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const 
             Console::debug()
                 << QString(R"(Request for function "%1" timed out, retry %2)").arg(call.get_description()->get_function_name().c_str()).arg(try_count);
         }
-        Utility::thread_call(device,
+        Utility::thread_call(device,nullptr,
                              [ device = this->device, data = channel_codec.encode(call), display_data = call.encode() ] { device->send(data, display_data); });
         auto start = std::chrono::high_resolution_clock::now();
         auto check_received = [this, &start, &duration, &call]() -> std::unique_ptr<RPCRuntimeDecodedFunctionCall> {
@@ -231,6 +231,7 @@ QString RPCProtocol::get_device_summary() {
 }
 
 void RPCProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
+    assert(QThread::currentThread() == MainWindow::gui_thread);
     if (descriptor_answer) {
         auto data = get_description_data(*descriptor_answer);
         ui_entry->setText(1, "RPC");

@@ -42,7 +42,7 @@ class EXPORT MainWindow : public QMainWindow {
     static QThread *gui_thread;
 
     template <class Function>
-    void execute_in_gui_thread(Function &&f);
+    void execute_in_gui_thread(ScriptEngine *script_engine_to_terminate_on_exception, Function &&f );
 
     template <class Lua_UI_class, class... Args>
     void add_lua_UI_class(int id, UI_container *parent, Args &&... args);
@@ -119,8 +119,8 @@ bool operator==(const T *lhs, const std::unique_ptr<T> &rhs) {
 }
 
 template <class Function>
-void MainWindow::execute_in_gui_thread(Function &&f) {
-    Utility::thread_call(this, std::forward<Function>(f));
+void MainWindow::execute_in_gui_thread(ScriptEngine *script_engine_to_terminate_on_exception, Function &&f ) {
+    Utility::thread_call(this, script_engine_to_terminate_on_exception, std::forward<Function>(f));
 }
 
 template <class Lua_UI_class>

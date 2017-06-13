@@ -37,7 +37,7 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
             try {
                 sol::table table = runner.create_table();
                 rpc_protocol->get_lua_device_descriptor(table);
-                message = runner.call<sol::optional<std::string>>("RPC_acceptable", std::move(table));
+                message = runner.call<sol::optional<std::string>>("RPC_acceptable", std::move(table)); //TODO: If fails, the program should not crash
             } catch (const sol::error &e) {
                 const auto &message = QObject::tr("Failed to call function RPC_acceptable for device %1 \nError message: %2")
                                           .arg(QString::fromStdString(rpc_protocol->get_name()))
@@ -64,7 +64,7 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
             try {
                 sol::table table = runner.create_table();
                 scpi_protocol->get_lua_device_descriptor(table);
-                message = runner.call<sol::optional<std::string>>("SCPI_acceptable", std::move(table));
+                message = runner.call<sol::optional<std::string>>("SCPI_acceptable", std::move(table)); //TODO: If fails, the program should not crash
             } catch (const sol::error &e) {
                 const auto &message = QObject::tr("Failed to call function SCPI_acceptable for device %1 with serial number =\"%2 \"  \nError message: %3")
                                           .arg(QString::fromStdString(scpi_protocol->get_name()))
@@ -234,7 +234,7 @@ void DeviceMatcher::make_treeview() {
         tv->setText(0, d.device_requirement.device_names.join("/"));
         if (d.device_requirement.device_names.join("").count() == 0) {
             tv->setText(0, d.device_requirement.protocol_name);
-        }else if (d.device_requirement.device_names.join("") == "*") {
+        } else if (d.device_requirement.device_names.join("") == "*") {
             tv->setText(0, d.device_requirement.protocol_name);
         }
         if ((d.match_definition != DevicesToMatchEntry::MatchDefinitionState::FullDefined) && (!first_match_error_found)) {
@@ -432,5 +432,5 @@ QString ComDeviceTypeToString(CommunicationDeviceType t) {
         case CommunicationDeviceType::IP:
             return "IP";
     }
-	return "Unknown";
+    return "Unknown";
 }
