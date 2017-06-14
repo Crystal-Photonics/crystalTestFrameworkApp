@@ -1,13 +1,14 @@
 #include "checkbox.h"
 #include "ui_container.h"
 
+#include <QLabel>
 #include <QVBoxLayout>
 #include <QWidget>
-#include <QLabel>
 
 ///\cond HIDDEN_SYMBOLS
 CheckBox::CheckBox(UI_container *parent, const std::string text)
-	: checkbox(new QCheckBox(parent)) {
+    : UI_widget{parent}
+    , checkbox(new QCheckBox(parent)) {
     QVBoxLayout *layout = new QVBoxLayout;
     QLabel *label = new QLabel(parent);
     label->setText(" ");
@@ -15,7 +16,7 @@ CheckBox::CheckBox(UI_container *parent, const std::string text)
 
     layout->addWidget(checkbox, 0, Qt::AlignBottom);
     layout->addStretch(1);
-    parent->add(layout,this);
+    parent->add(layout, this);
 
     checkbox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::MinimumExpanding);
 
@@ -44,7 +45,6 @@ void CheckBox::set_text(std::string const text) {
     return checkbox->setText(QString::fromStdString(text));
 }
 
-void CheckBox::set_visible(bool visible)
-{
+void CheckBox::set_visible(bool visible) {
     checkbox->setVisible(visible);
 }

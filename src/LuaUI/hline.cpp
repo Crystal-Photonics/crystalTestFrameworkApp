@@ -10,7 +10,8 @@
 
 ///\cond HIDDEN_SYMBOLS
 HLine::HLine(UI_container *parent)
-    : line{new QFrame(parent)} {
+    : UI_widget{parent}
+    , line{new QFrame(parent)} {
     QVBoxLayout *layout = new QVBoxLayout;
 
     line->setFrameShape(QFrame::HLine);
@@ -18,8 +19,7 @@ HLine::HLine(UI_container *parent)
 
     layout->addWidget(line, 0, Qt::AlignBottom);
     layout->addStretch(1);
-    parent->add(layout,this);
-
+    parent->add(layout, this);
 
     parent->scroll_to_bottom();
 }

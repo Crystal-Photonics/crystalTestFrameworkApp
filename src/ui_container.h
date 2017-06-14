@@ -9,13 +9,16 @@ class QResizeEvent;
 class QWidget;
 class QLayout;
 struct Widget_paragraph;
+class UI_container;
 
 class UI_widget {
     public:
-    UI_widget();
+    UI_widget(UI_container *parent_);
     ~UI_widget();
 
-    virtual void resizeEvent(QResizeEvent *event);
+    virtual void resizeMe(QResizeEvent *event);
+
+    UI_container *parent;
 };
 
 class UI_container : public QScrollArea {
@@ -26,6 +29,7 @@ class UI_container : public QScrollArea {
     void add(QLayout *layout, UI_widget *lua_ui_widget);
     void set_column_count(int columns);
     void scroll_to_bottom();
+    void remove_me_from_resize_list(UI_widget *me);
 
     private:
     void resizeEvent(QResizeEvent *event) override;

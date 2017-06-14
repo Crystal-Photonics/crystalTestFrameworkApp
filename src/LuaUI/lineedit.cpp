@@ -11,14 +11,15 @@
 
 ///\cond HIDDEN_SYMBOLS
 LineEdit::LineEdit(UI_container *parent, ScriptEngine *script_engine)
-    : label{new QLabel(parent)}
+    : UI_widget{parent}
+    , label{new QLabel(parent)}
     , edit{new QLineEdit(parent)}
     , script_engine{script_engine} {
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(label);
     layout->addWidget(edit, 0, Qt::AlignBottom);
     layout->addStretch(1);
-    parent->add(layout,this);
+    parent->add(layout, this);
     label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     edit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     parent->scroll_to_bottom();
@@ -61,8 +62,7 @@ void LineEdit::set_visible(bool visible) {
     edit->setVisible(visible);
 }
 
-void LineEdit::set_enabled(bool enabled)
-{
+void LineEdit::set_enabled(bool enabled) {
     label->setEnabled(enabled);
     edit->setEnabled(enabled);
 }
@@ -72,7 +72,7 @@ std::string LineEdit::get_caption() const {
 }
 
 void LineEdit::await_return() {
-    QMetaObject::Connection callback_connection =  QObject::connect(edit, &QLineEdit::returnPressed, [this] { this->script_engine->ui_event_queue_send(); });
+    QMetaObject::Connection callback_connection = QObject::connect(edit, &QLineEdit::returnPressed, [this] { this->script_engine->ui_event_queue_send(); });
     script_engine->ui_event_queue_run();
     QObject::disconnect(callback_connection);
 }

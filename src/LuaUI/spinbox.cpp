@@ -11,18 +11,19 @@
 
 ///\cond HIDDEN_SYMBOLS
 SpinBox::SpinBox(UI_container *parent)
-    : label{new QLabel(parent)}
+    : UI_widget{parent}
+    , label{new QLabel(parent)}
     , spinbox{new QSpinBox(parent)} {
-	QVBoxLayout *layout = new QVBoxLayout;
-	label->setText(" ");
-	layout->addWidget(label);
-	layout->addWidget(spinbox, 0, Qt::AlignBottom);
-	layout->addStretch(1);
-	parent->add(layout, this);
+    QVBoxLayout *layout = new QVBoxLayout;
+    label->setText(" ");
+    layout->addWidget(label);
+    layout->addWidget(spinbox, 0, Qt::AlignBottom);
+    layout->addStretch(1);
+    parent->add(layout, this);
     label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     spinbox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
-	spinbox->setMaximum(100);
-	parent->scroll_to_bottom();
+    spinbox->setMaximum(100);
+    parent->scroll_to_bottom();
 }
 
 SpinBox::~SpinBox() {

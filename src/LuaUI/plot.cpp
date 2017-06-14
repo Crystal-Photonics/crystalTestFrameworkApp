@@ -4,6 +4,7 @@
 #include "ui_container.h"
 #include "util.h"
 
+#include "scriptengine.h"
 #include <QAction>
 #include <QDateTime>
 #include <QFileDialog>
@@ -18,7 +19,6 @@
 #include <qwt_plot_curve.h>
 #include <qwt_plot_marker.h>
 #include <qwt_plot_picker.h>
-#include "scriptengine.h"
 
 #include <chrono>
 
@@ -169,7 +169,6 @@ Curve::Curve(UI_container *, ScriptEngine *script_engine, Plot *plot)
     plot->plot->canvas()->installEventFilter(event_filter);
     curve->setRenderHint(QwtPlotItem::RenderHint::RenderAntialiased, false);
     curve->setData(new Curve_data);
-
 }
 
 Curve::~Curve() {
@@ -261,10 +260,9 @@ void Curve::set_color(const Color &color) {
 }
 
 double Curve::pick_x_coord() {
-
-  //  QMetaObject::Connection callback_connection =  QObject::connect(plot, &QLineEdit::returnPressed, [this] { this->script_engine->ui_event_queue_send(); });
-   // script_engine->ui_event_queue_run();
-   // QObject::disconnect(callback_connection);
+//  QMetaObject::Connection callback_connection =  QObject::connect(plot, &QLineEdit::returnPressed, [this] { this->script_engine->ui_event_queue_send(); });
+// script_engine->ui_event_queue_run();
+// QObject::disconnect(callback_connection);
 #if 0
     event_filter->add_callback([ this ](QEvent * event) {
         if (event->type() == QEvent::MouseButtonPress) {
@@ -283,8 +281,6 @@ double Curve::pick_x_coord() {
     return 0;
 }
 
-
-
 ///\cond HIDDEN_SYMBOLS
 void Curve::set_onetime_click_callback(std::function<void(double, double)> click_callback) {
     event_filter->add_callback([ callback = std::move(click_callback), this ](QEvent * event) {
@@ -301,8 +297,6 @@ void Curve::set_onetime_click_callback(std::function<void(double, double)> click
     });
 }
 
-
-
 void Curve::update() {
     curve_data().update();
     plot->update();
@@ -317,13 +311,14 @@ Curve_data &Curve::curve_data() {
 }
 
 Plot::Plot(UI_container *parent)
-    : plot(new QwtPlot)
+    : UI_widget{parent}
+    , plot(new QwtPlot)
     , picker(new QwtPlotPicker(plot->canvas()))
     , track_picker(new QwtPlotPicker(plot->canvas()))
     , clicker(new QwtPickerClickPointMachine)
     , tracker(new QwtPickerTrackerMachine) {
     clicker->setState(clicker->PointSelection);
-    parent->add(plot,this);
+    parent->add(plot, this);
     plot->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
     plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
     set_rightclick_action();
@@ -346,7 +341,6 @@ Plot::~Plot() {
 void Plot::clear() {
     curves.clear();
 }
-
 
 void Plot::set_x_marker(const std::string &title, double xpos, const Color &color) {
     //
@@ -384,8 +378,7 @@ void Plot::set_x_marker(const std::string &title, double xpos, const Color &colo
     update();
 }
 
-void Plot::set_visible(bool visible)
-{
+void Plot::set_visible(bool visible) {
     plot->setVisible(visible);
 }
 

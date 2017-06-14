@@ -23,7 +23,7 @@
 
 ///\cond HIDDEN_SYMBOLS
 UserInstructionLabel::UserInstructionLabel(UI_container *parent, ScriptEngine *script_engine, std::string extra_explanation)
-    : parent{parent}
+    : UI_widget{parent}
     , label_user_instruction{new QLabel(parent)}
     , timer{new QTimer(parent)}
     , instruction_text{QString::fromStdString(extra_explanation)}
@@ -172,8 +172,8 @@ void UserInstructionLabel::set_enabled(bool enabled) {
     });
 }
 
-void UserInstructionLabel::resizeEvent(QResizeEvent *event) {
-    qDebug() << "resizeEvent @ UserInstructionLabel called";
+void UserInstructionLabel::resizeMe(QResizeEvent *event) {
+    qDebug()  << "resizeEvent @ UserInstructionLabel called"<< this;
     total_width = event->size().width();
     qDebug() << __LINE__;
     if (is_init) {

@@ -1,11 +1,11 @@
 #ifndef USERINSTRUCTIONLABEL_H
 #define USERINSTRUCTIONLABEL_H
+#include "scriptengine.h"
+#include "ui_container.h"
 #include <QMetaObject>
 #include <QString>
 #include <functional>
 #include <string>
-#include "scriptengine.h"
-#include "ui_container.h"
 
 class QLabel;
 class QSplitter;
@@ -16,9 +16,7 @@ class QWidget;
 class QLineEdit;
 class QPushButton;
 class QPushButton;
-class UserInstructionLabel : public UI_widget{
-
-
+class UserInstructionLabel : public UI_widget {
     public:
     UserInstructionLabel(UI_container *parent, ScriptEngine *script_engine, std::string instruction_text);
     ~UserInstructionLabel();
@@ -30,9 +28,8 @@ class UserInstructionLabel : public UI_widget{
     bool await_yes_no();
 
     void scale_columns();
-private:
-    UI_container *parent;
 
+    private:
     QLabel *label_user_instruction = nullptr;
     QTimer *timer = nullptr;
 
@@ -62,7 +59,7 @@ private:
     QMetaObject::Connection callback_button_next = {};
     ScriptEngine *script_engine;
     int total_width = 10;
-    void resizeEvent(QResizeEvent *event) override;
+    void resizeMe(QResizeEvent *event) override;
     bool is_init = false;
 };
 

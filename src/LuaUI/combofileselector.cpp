@@ -56,7 +56,7 @@ void showInGraphicalShell(QWidget *parent, const QString &pathIn) {
 #endif
 
 ComboBoxFileSelector::ComboBoxFileSelector(UI_container *parent, const std::string &directory, const QStringList &filter)
-    : parent{parent}
+    : UI_widget{parent}
     , combobox{new QComboBox(parent)}
     , button{new QPushButton(parent)} {
     QHBoxLayout *layout = new QHBoxLayout;

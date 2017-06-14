@@ -14,7 +14,7 @@ struct Widget_paragraph {
         : layout{new QHBoxLayout}
         , lua_ui_widgets{} {
         parent->addLayout(layout);
-	}
+    }
 
     void add(QWidget *widget, UI_widget *lua_ui_widget) {
         layout->addWidget(widget, 1, Qt::AlignBottom);
@@ -29,8 +29,8 @@ struct Widget_paragraph {
     void resizeEvent(QResizeEvent *event) {
         for (auto w : lua_ui_widgets) {
             if (w) {
-                qDebug() << "resizeEvent" << w;
-				w->resizeEvent(event);
+                qDebug() << "resizeMe" << w;
+                w->resizeMe(event);
 #if 0
                 static uint i=0;
                 i++;
@@ -40,8 +40,18 @@ struct Widget_paragraph {
         }
     }
 
+    void remove_me_from_resize_list(UI_widget *me) {
+        for (auto &w : lua_ui_widgets) {
+            if (w == me) {
+                qDebug() << "removed" << w;
+                w = nullptr;
+            }
+        }
+    }
+
     QHBoxLayout *layout{};
-	private:
+
+    private:
     std::vector<UI_widget *> lua_ui_widgets{};
 };
 
@@ -68,10 +78,10 @@ void UI_container::add(QWidget *widget, UI_widget *lua_ui_widget) {
 
 void UI_container::add(QLayout *layout, UI_widget *lua_ui_widget) {
     if (paragraphs.size() < 2 || paragraphs.back().layout->count() >= column_count) {
-		paragraphs.emplace_back(this->layout);
-	}
-	paragraphs.back().add(layout, lua_ui_widget);
-	trigger_resize();
+        paragraphs.emplace_back(this->layout);
+    }
+    paragraphs.back().add(layout, lua_ui_widget);
+    trigger_resize();
 }
 
 void UI_container::set_column_count(int columns) {
@@ -82,6 +92,12 @@ void UI_container::set_column_count(int columns) {
 void UI_container::scroll_to_bottom() {
     //ensureVisible(0, height(), 0, 0);
     verticalScrollBar()->setSliderPosition(verticalScrollBar()->maximum());
+}
+
+void UI_container::remove_me_from_resize_list(UI_widget *me) {
+    for (auto &p : paragraphs) {
+        p.remove_me_from_resize_list(me);
+    }
 }
 
 void UI_container::resizeEvent(QResizeEvent *event) {
@@ -97,12 +113,12 @@ void UI_container::resizeEvent(QResizeEvent *event) {
 
 int UI_container::compute_size(int width) {
     return std::accumulate(std::begin(paragraphs), std::end(paragraphs), 0, [width](int size, const Widget_paragraph &paragraph) {
-        const auto ARTIFICIAL_MARGIN = 5;
+        const auto ARTIFICIAL_MARGIN = 10;
         if (paragraph.layout->hasHeightForWidth()) {
             auto margin_height = ARTIFICIAL_MARGIN; //TODO: figure out how to use layout's margin here
-            return size + paragraph.layout->heightForWidth(width)+margin_height;
+            return size + paragraph.layout->heightForWidth(width) + margin_height;
         }
-        return size + paragraph.layout->sizeHint().height()+ARTIFICIAL_MARGIN;
+        return size + paragraph.layout->sizeHint().height() + ARTIFICIAL_MARGIN;
         //return size + paragraph.layout->contentsRect().height();
 
     });
@@ -114,10 +130,14 @@ void UI_container::trigger_resize() {
     resizeEvent(&resize_event);
 }
 
-UI_widget::UI_widget() {}
+UI_widget::UI_widget(UI_container *parent_)
+    : parent{parent_} {}
 
-UI_widget::~UI_widget() {}
+UI_widget::~UI_widget() {
+    parent->remove_me_from_resize_list(this);
+}
 
-void UI_widget::resizeEvent(QResizeEvent *event) {
+void UI_widget::resizeMe(QResizeEvent *event) {
+    qDebug() << "resizeMe@UI_widget" << this << " type: " << typeid(this).name();
     (void)event;
 }

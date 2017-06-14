@@ -10,7 +10,8 @@
 
 ///\cond HIDDEN_SYMBOLS
 ComboBox::ComboBox(UI_container *parent, const QStringList &sl)
-    : combobox(new QComboBox(parent))
+    : UI_widget{parent}
+    , combobox(new QComboBox(parent))
     , label(new QLabel(parent)) {
     QVBoxLayout *layout = new QVBoxLayout;
     label->setText(" ");

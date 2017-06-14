@@ -40,7 +40,7 @@ class DataEngineInput : public UI_widget {
 
     bool get_is_editable();
     private:
-    UI_container *parent;
+
 
     QLabel *label_extra_explanation = nullptr;
     QLabel *label_de_description = nullptr;
@@ -78,7 +78,7 @@ class DataEngineInput : public UI_widget {
     void start_timer();
     ///\endcond
     ScriptEngine *script_engine;
-    void resizeEvent(QResizeEvent *event) override;
+    void resizeMe(QResizeEvent *event) override;
     std::experimental::optional<bool> bool_result;
 
     QMetaObject::Connection callback_timer = {};

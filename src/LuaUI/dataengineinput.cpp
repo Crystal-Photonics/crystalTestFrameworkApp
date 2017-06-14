@@ -24,7 +24,7 @@
 ///\cond HIDDEN_SYMBOLS
 DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, std::string field_id_,
                                  std::string extra_explanation_, std::string empty_value_placeholder_, std::string desired_prefix_, std::string actual_prefix_)
-    : parent{parent_}
+    : UI_widget{parent_}
     , label_extra_explanation{new QLabel(parent_)}
     , label_de_description{new QLabel(parent_)}
     , label_de_desired_value{new QLabel(parent_)}
@@ -358,8 +358,8 @@ void DataEngineInput::start_timer() {
     });
 }
 
-void DataEngineInput::resizeEvent(QResizeEvent *event) {
-    qDebug() << "resizeEvent @ DataEngineInput called";
+void DataEngineInput::resizeMe(QResizeEvent *event) {
+    qDebug() << "resizeEvent @ DataEngineInput called" << this;
     total_width = event->size().width();
     qDebug() << __LINE__;
     set_ui_visibility();

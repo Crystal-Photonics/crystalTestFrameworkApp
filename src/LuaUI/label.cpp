@@ -8,7 +8,8 @@
 
 ///\cond HIDDEN_SYMBOLS
 Label::Label(UI_container *parent, const std::string text)
-    : label{new QLabel(parent)} {
+    : UI_widget{parent}
+    , label{new QLabel(parent)} {
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(label, 0, Qt::AlignBottom);
     layout->addStretch(1);

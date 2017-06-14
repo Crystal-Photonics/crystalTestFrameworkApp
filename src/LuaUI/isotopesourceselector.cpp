@@ -14,7 +14,8 @@
 #include <sol.hpp>
 
 IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
-    : combobox{new QComboBox(parent)} {
+    : UI_widget{parent}
+    , combobox{new QComboBox(parent)} {
     combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
     QVBoxLayout *layout = new QVBoxLayout;
     QLabel *label = new QLabel(parent);
