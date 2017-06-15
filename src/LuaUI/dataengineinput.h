@@ -30,7 +30,6 @@ class DataEngineInput : public UI_widget {
 
     void set_visible(bool visible);
     void set_enabled(bool is_enabled);
-    void clear_explanation();
     void load_actual_value();
     void set_editable();
     void save_to_data_engine();

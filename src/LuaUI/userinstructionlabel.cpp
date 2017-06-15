@@ -91,15 +91,16 @@ UserInstructionLabel::UserInstructionLabel(UI_container *parent, ScriptEngine *s
 }
 
 UserInstructionLabel::~UserInstructionLabel() {
-    MainWindow::mw->execute_in_gui_thread(script_engine, [this] {   //
-        assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-        timer->stop();
-        QObject::disconnect(callback_timer);
-        QObject::disconnect(callback_button_next);
-        QObject::disconnect(callback_button_no);
-        QObject::disconnect(callback_button_yes);
-        set_enabled(false);
-    });
+    assert(MainWindow::gui_thread == QThread::currentThread());
+    //Utility::promised_thread_call(MainWindow::mw, [this] {
+    //MainWindow::mw->execute_in_gui_thread(script_engine, [this] {   //
+    timer->stop();
+    QObject::disconnect(callback_timer);
+    QObject::disconnect(callback_button_next);
+    QObject::disconnect(callback_button_no);
+    QObject::disconnect(callback_button_yes);
+    set_enabled(false);
+    // });
 }
 ///\endcond
 
@@ -124,7 +125,9 @@ bool UserInstructionLabel::await_yes_no() {
 
 bool UserInstructionLabel::run_hotkey_loop() {
     assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { set_enabled(true); });
+    Utility::promised_thread_call(MainWindow::mw, [this] {      //
+        set_enabled(true);
+    });
     if (script_engine->hotkey_event_queue_run() == HotKeyEvent::HotKeyEvent::confirm_pressed) {
         return true;
     } else {
@@ -151,25 +154,25 @@ void UserInstructionLabel::set_visible(bool visible) {
 }
 
 void UserInstructionLabel::set_enabled(bool enabled) {
-    MainWindow::mw->execute_in_gui_thread(script_engine, [this, enabled] { //
-        label_user_instruction->setEnabled(enabled);
-        label_user_instruction->setText(instruction_text);
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 
-        button_yes->setVisible(enabled && is_question_mode);
-        label_yes->setVisible(enabled && is_question_mode);
+    label_user_instruction->setEnabled(enabled);
+    label_user_instruction->setText(instruction_text);
 
-        button_no->setVisible(enabled && is_question_mode);
-        label_no->setVisible(enabled && is_question_mode);
+    button_yes->setVisible(enabled && is_question_mode);
+    label_yes->setVisible(enabled && is_question_mode);
 
-        button_next->setVisible(enabled && !is_question_mode);
-        label_next->setVisible(enabled && !is_question_mode);
+    button_no->setVisible(enabled && is_question_mode);
+    label_no->setVisible(enabled && is_question_mode);
 
-        if (enabled) {
-            timer->start(500);
-        } else {
-            timer->stop();
-        }
-    });
+    button_next->setVisible(enabled && !is_question_mode);
+    label_next->setVisible(enabled && !is_question_mode);
+
+    if (enabled) {
+        timer->start(500);
+    } else {
+        timer->stop();
+    }
 }
 
 void UserInstructionLabel::resizeMe(QResizeEvent *event) {

@@ -155,18 +155,19 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
     if ((field_type == FieldType::Numeric) || (field_type == FieldType::String)) {
         lineedit->setFocus();
     }
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+    assert(MainWindow::gui_thread == QThread::currentThread());
 }
 
 DataEngineInput::~DataEngineInput() {
-    MainWindow::mw->execute_in_gui_thread(nullptr, [this] { //
+    assert(MainWindow::gui_thread == QThread::currentThread());
+
         timer->stop();
         QObject::disconnect(callback_timer);
         QObject::disconnect(callback_next);
         QObject::disconnect(callback_bool_no);
         QObject::disconnect(callback_bool_yes);
         set_enabled(false);
-    });
+
 }
 ///\endcond
 
@@ -244,26 +245,25 @@ void DataEngineInput::save_to_data_engine() {
 void DataEngineInput::sleep_ms(uint timeout_ms) {
     assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     is_waiting = true;
-    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { //
-        set_ui_visibility();
+    set_ui_visibility();
+    Utility::promised_thread_call(MainWindow::mw, [this] {
 
         if (!is_editable) {
             timer->start(BLINK_INTERVAL_MS);
         }
     });
     script_engine->timer_event_queue_run(timeout_ms);
-    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { //
+    Utility::promised_thread_call(MainWindow::mw, [this] {
         timer->stop();
         is_waiting = false;
-        set_ui_visibility();
     });
+    set_ui_visibility();
 }
 
 void DataEngineInput::await_event() {
-    //TODO: This now runs in the script thread, so we cannot call GUI functions like set_button_visibility directly anymore
-    //use MainWindow::mw->execute_in_gui_thread to fix
-    assert(MainWindow::gui_thread != QThread::currentThread());   //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { //
+
+    assert(MainWindow::gui_thread != QThread::currentThread());
+    Utility::promised_thread_call(MainWindow::mw, [this] {
         is_waiting = true;
         switch (field_type) {
             case FieldType::Bool: {
@@ -293,7 +293,7 @@ void DataEngineInput::await_event() {
     }
     is_waiting = false;
 
-    Utility::promised_thread_call(MainWindow::mw,  [this] {
+    Utility::promised_thread_call(MainWindow::mw, [this] {
 
         timer->stop();
         if (is_editable) {
@@ -305,8 +305,9 @@ void DataEngineInput::await_event() {
 }
 
 void DataEngineInput::set_explanation_text(const std::string &extra_explanation) {
+    assert(MainWindow::gui_thread == QThread::currentThread());
     this->extra_explanation = QString().fromStdString(extra_explanation);
-    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { label_extra_explanation->setText(this->extra_explanation); });
+    label_extra_explanation->setText(this->extra_explanation);
 }
 
 bool DataEngineInput::get_is_editable() {
@@ -319,22 +320,18 @@ void DataEngineInput::set_visible(bool visible) {
 }
 
 void DataEngineInput::set_enabled(bool enabled) {
+    assert(MainWindow::gui_thread == QThread::currentThread());
     this->is_enabled = enabled;
-    MainWindow::mw->execute_in_gui_thread(script_engine, [this, enabled] { //
-        set_ui_visibility();
-        if (enabled) {
-            timer->start(BLINK_INTERVAL_MS);
-        } else {
-            timer->stop();
-        }
-    });
+
+    set_ui_visibility();
+    if (enabled) {
+        timer->start(BLINK_INTERVAL_MS);
+    } else {
+        timer->stop();
+    }
+
 }
 
-void DataEngineInput::clear_explanation() {
-    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { //
-        label_extra_explanation->setText(" ");
-    });
-}
 ///\cond HIDDEN_SYMBOLS
 void DataEngineInput::start_timer() {
     callback_timer = QObject::connect(timer, &QTimer::timeout, [this]() {
@@ -364,72 +361,74 @@ void DataEngineInput::resizeMe(QResizeEvent *event) {
 }
 
 void DataEngineInput::set_total_visibilty() {
-    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { //
-        label_extra_explanation->setVisible(is_visible && is_enabled && is_waiting);
-        label_de_description->setVisible(is_visible);
-        label_de_desired_value->setVisible(is_visible);
-        label_de_actual_value->setVisible(is_visible && (is_editable == false));
-        label_ok->setVisible(is_visible && ((is_editable == false) || (is_enabled == false)));
-        lineedit->setVisible(is_visible && is_editable && is_enabled);
-    });
+    assert(MainWindow::gui_thread == QThread::currentThread());
+
+    label_extra_explanation->setVisible(is_visible && is_enabled && is_waiting);
+    label_de_description->setVisible(is_visible);
+    label_de_desired_value->setVisible(is_visible);
+    label_de_actual_value->setVisible(is_visible && (is_editable == false));
+    label_ok->setVisible(is_visible && ((is_editable == false) || (is_enabled == false)));
+    lineedit->setVisible(is_visible && is_editable && is_enabled);
+    //    });
 }
 
 void DataEngineInput::scale_columns() {
-    MainWindow::mw->execute_in_gui_thread(script_engine, [this] { //
-        int col_size = 6;
-        if (is_editable && is_enabled && is_visible) {
-            switch (field_type) {
-                case FieldType::Numeric: {
-                    lineedit->setFixedWidth((total_width / col_size));
-                    button_next->setFixedWidth((total_width / col_size));
-                } break;
-                case FieldType::Bool: {
-                    button_yes->setFixedWidth((total_width / (col_size * 2)));
-                    button_no->setFixedWidth((total_width / (col_size * 2)));
-                } break;
-                case FieldType::String: {
-                    lineedit->setFixedWidth((total_width / col_size));
-                    button_next->setFixedWidth((total_width / col_size));
-                } break;
-                default:
-                    break;
-            }
-            label_extra_explanation->setFixedWidth((total_width / col_size));
-            //label_de_description->setFixedWidth((total_width / col_size));
-            label_de_desired_value->setFixedWidth((total_width / col_size));
+    assert(MainWindow::gui_thread == QThread::currentThread());
 
-        } else if (is_enabled && is_visible) {
-            label_extra_explanation->setFixedWidth((total_width / col_size));
-            //label_de_description->setFixedWidth((total_width / col_size));
-            label_de_desired_value->setFixedWidth((total_width / col_size));
-            label_de_actual_value->setFixedWidth((total_width / col_size));
-            label_ok->setFixedWidth((total_width / col_size));
-            button_next->setFixedWidth((total_width / col_size));
-
-        } else if ((is_enabled == false) && is_visible) {
-            label_extra_explanation->setFixedWidth((total_width / col_size));
-            //label_de_description->setFixedWidth((total_width / col_size));
-            label_de_desired_value->setFixedWidth((total_width / col_size));
-            label_de_actual_value->setFixedWidth((total_width / col_size));
-            label_ok->setFixedWidth((total_width / col_size));
-            button_next->setFixedWidth((total_width / col_size));
-
-        } else if (!is_visible) {
+    int col_size = 6;
+    if (is_editable && is_enabled && is_visible) {
+        switch (field_type) {
+            case FieldType::Numeric: {
+                lineedit->setFixedWidth((total_width / col_size));
+                button_next->setFixedWidth((total_width / col_size));
+            } break;
+            case FieldType::Bool: {
+                button_yes->setFixedWidth((total_width / (col_size * 2)));
+                button_no->setFixedWidth((total_width / (col_size * 2)));
+            } break;
+            case FieldType::String: {
+                lineedit->setFixedWidth((total_width / col_size));
+                button_next->setFixedWidth((total_width / col_size));
+            } break;
+            default:
+                break;
         }
-    });
+        label_extra_explanation->setFixedWidth((total_width / col_size));
+        //label_de_description->setFixedWidth((total_width / col_size));
+        label_de_desired_value->setFixedWidth((total_width / col_size));
+
+    } else if (is_enabled && is_visible) {
+        label_extra_explanation->setFixedWidth((total_width / col_size));
+        //label_de_description->setFixedWidth((total_width / col_size));
+        label_de_desired_value->setFixedWidth((total_width / col_size));
+        label_de_actual_value->setFixedWidth((total_width / col_size));
+        label_ok->setFixedWidth((total_width / col_size));
+        button_next->setFixedWidth((total_width / col_size));
+
+    } else if ((is_enabled == false) && is_visible) {
+        label_extra_explanation->setFixedWidth((total_width / col_size));
+        //label_de_description->setFixedWidth((total_width / col_size));
+        label_de_desired_value->setFixedWidth((total_width / col_size));
+        label_de_actual_value->setFixedWidth((total_width / col_size));
+        label_ok->setFixedWidth((total_width / col_size));
+        button_next->setFixedWidth((total_width / col_size));
+
+    } else if (!is_visible) {
+    }
 }
 
 void DataEngineInput::set_button_visibility(bool next, bool yes_no) {
-    MainWindow::mw->execute_in_gui_thread(script_engine, [this, next, yes_no] {
-        this->label_no->setVisible(yes_no);
-        this->button_no->setVisible(yes_no);
+    assert(MainWindow::gui_thread == QThread::currentThread());
 
-        this->label_yes->setVisible(yes_no);
-        this->button_yes->setVisible(yes_no);
+    this->label_no->setVisible(yes_no);
+    this->button_no->setVisible(yes_no);
 
-        this->label_next->setVisible(next);
-        this->button_next->setVisible(next);
-    });
+    this->label_yes->setVisible(yes_no);
+    this->button_yes->setVisible(yes_no);
+
+    this->label_next->setVisible(next);
+    this->button_next->setVisible(next);
+
 }
 
 void DataEngineInput::set_labels_enabled() {
@@ -448,7 +447,8 @@ void DataEngineInput::set_labels_enabled() {
 }
 
 void DataEngineInput::set_ui_visibility() {
-    MainWindow::mw->execute_in_gui_thread(script_engine, [this] {
+    Utility::promised_thread_call(MainWindow::mw, [this] {
+
         if (init_ok == false) {
             return;
         }
