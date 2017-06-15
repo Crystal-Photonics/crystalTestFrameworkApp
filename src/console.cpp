@@ -53,6 +53,12 @@ Console::ConsoleProxy Console::debug(std::unique_ptr<QPlainTextEdit> &console) {
 }
 
 Console::ConsoleProxy Console::script(QPlainTextEdit *console) {
+    if (console) {
+        if (console->parent()) {
+            //qDebug() << "Console::error parent:" << ;
+            console->setVisible(true);
+        }
+    }
     return {console, {}, "Script", Qt::black, true};
 }
 

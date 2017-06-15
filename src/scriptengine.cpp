@@ -657,8 +657,8 @@ TimerEvent::TimerEvent ScriptEngine::timer_event_queue_run(int timeout_ms) {
         });
 
     });
-
-    MainWindow::mw->execute_in_gui_thread(this, [this, &timer, timeout_ms, &callback_timer] {
+    Utility::promised_thread_call(MainWindow::mw, [this, &timer, timeout_ms, &callback_timer] { //
+        //    MainWindow::mw->execute_in_gui_thread(this, [this, &timer, timeout_ms, &callback_timer] {
 
         timer = std::make_unique<QTimer>();
 
@@ -704,7 +704,9 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
         });
     });
 
-    MainWindow::mw->execute_in_gui_thread(this, [this, &shortcuts] {
+    Utility::promised_thread_call(MainWindow::mw, [this, &shortcuts] { //
+
+//    MainWindow::mw->execute_in_gui_thread(this, [this, &shortcuts] {
         const char *settings_keys[] = {Globals::confirm_key_sequence, Globals::skip_key_sequence, Globals::cancel_key_sequence};
         for (std::size_t i = 0; i < shortcuts.size(); i++) {
             shortcuts[i] = std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
@@ -1497,9 +1499,6 @@ void ScriptEngine::set_error_line(const sol::error &error) {
 
 void ScriptEngine::interrupt(QString msg) {
     Utility::thread_call(MainWindow::mw, nullptr, [this, msg] {
-        if (console) {
-            console->setVisible(true);
-        }
         Console::error(console) << msg;
     });
     qDebug() << "script interrupted";

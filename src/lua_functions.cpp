@@ -498,9 +498,6 @@ void print(QPlainTextEdit *console, const sol::variadic_args &args) {
         text += ScriptEngine::to_string(object);
     }
     Utility::thread_call(MainWindow::mw, nullptr, [ console = console, text = std::move(text) ] {
-        if (console) {
-            console->setVisible(true);
-        }
         qDebug() << QString::fromStdString(text);
         Console::script(console) << text;
     });
