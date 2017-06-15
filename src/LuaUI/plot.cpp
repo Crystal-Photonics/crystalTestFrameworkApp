@@ -45,6 +45,8 @@ struct Curve_data : QwtSeriesData<QPointF> {
     unsigned int median_kernel_size{3};
 
     private:
+    void update_bounding_rect_height();
+    void update_bounding_rect_height(double new_yvalue);
     bool use_interpolated_values() const;
 
     std::vector<double> xvalues{};
@@ -75,9 +77,10 @@ void Curve_data::append(double x, double y) {
         bounding_rect.setHeight(0);
     }
     bounding_rect.setRight(x);
-    bounding_rect.setHeight(std::max(y - bounding_rect.y(), bounding_rect.height()));
+    //bounding_rect.setHeight(std::max(y - bounding_rect.y(), bounding_rect.height()));
     xvalues.push_back(x);
     yvalues_orig.push_back(y);
+    update_bounding_rect_height(y);
 }
 
 void Curve_data::resize(std::size_t size) {
@@ -100,6 +103,7 @@ void Curve_data::resize(std::size_t size) {
 void Curve_data::add(const std::vector<double> &data) {
     resize(data.size());
     std::transform(std::begin(data), std::end(data), std::begin(yvalues_orig), std::begin(yvalues_orig), std::plus<>());
+    update_bounding_rect_height();
 }
 
 void Curve_data::add_spectrum(int spectrum_start_channel, const std::vector<double> &data) {
@@ -107,6 +111,7 @@ void Curve_data::add_spectrum(int spectrum_start_channel, const std::vector<doub
     resize(s);
     std::transform(std::begin(data), std::end(data), std::begin(yvalues_orig) + spectrum_start_channel, std::begin(yvalues_orig) + spectrum_start_channel,
                    std::plus<>());
+    update_bounding_rect_height();
 }
 
 void Curve_data::clear() {
@@ -149,6 +154,27 @@ void Curve_data::update() {
             yvalues_plot[i] = kernel[HALF_KERNEL_SIZE];
         }
     }
+}
+
+void Curve_data::update_bounding_rect_height() {
+    qDebug() << "old top:" << bounding_rect.top() << "old bot: "<<bounding_rect.bottom();
+    auto max_iter = std::max_element(std::begin(yvalues_orig), std::end(yvalues_orig));
+    double max_value = *max_iter;
+    auto min_iter = std::min_element(std::begin(yvalues_orig), std::end(yvalues_orig));
+    double min_value = *min_iter;
+    bounding_rect.setBottom(max_value); //top and bottom are swapped in QRect for some reason
+    bounding_rect.setTop(min_value);
+    qDebug() << "top:" << bounding_rect.top() << "bot: "<<bounding_rect.bottom();
+}
+
+void Curve_data::update_bounding_rect_height(double new_yvalue) {
+    qDebug() << "old nv top:" << bounding_rect.top() << "old nv bot: "<<bounding_rect.bottom();
+    if (bounding_rect.top() > new_yvalue) { //top and bottom are swapped in QRect for some reason
+        bounding_rect.setTop(new_yvalue);
+    } else if (bounding_rect.bottom() < new_yvalue) {
+        bounding_rect.setBottom(new_yvalue);
+    }
+    qDebug() << "nv top:" << bounding_rect.top() << "nv bot: "<<bounding_rect.bottom();
 }
 
 const std::vector<double> &Curve_data::get_plot_data() {

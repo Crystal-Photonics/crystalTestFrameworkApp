@@ -63,7 +63,7 @@ void TestRunner::resume_timers() {
 }
 
 sol::table TestRunner::create_table() {
-    return Utility::promised_thread_call(this, nullptr, [this] { return script.create_table(); });
+    return Utility::promised_thread_call(this,  [this] { return script.create_table(); });
 }
 
 UI_container *TestRunner::get_lua_ui_container() const {
@@ -71,6 +71,7 @@ UI_container *TestRunner::get_lua_ui_container() const {
 }
 
 void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices, DeviceWorker &device_worker) {
+    qDebug() << "run_script called@TestRunner";
     Utility::thread_call(this, nullptr, [ this, devices = std::move(devices), &device_worker ]() mutable {
         for (auto &dev_prot : devices) {
             device_worker.set_currently_running_test(dev_prot.first, name);
@@ -78,7 +79,8 @@ void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protoco
         try {
             script.run(devices);
         } catch (const std::runtime_error &e) {
-            MainWindow::mw->execute_in_gui_thread(nullptr,[ this, message = std::string{e.what()} ] {
+            qDebug() << "runtime_error caught @TestRunner::run_script";
+            MainWindow::mw->execute_in_gui_thread(nullptr, [ this, message = std::string{e.what()} ] {
                 assert(console);
                 console->setVisible(true);
                 qDebug() << QString::fromStdString(message);
@@ -90,7 +92,7 @@ void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protoco
         }
         moveToThread(MainWindow::gui_thread);
         thread.quit();
-        MainWindow::mw->execute_in_gui_thread(nullptr,[this] { Console::note(console) << "Script stopped"; });
+        MainWindow::mw->execute_in_gui_thread(nullptr, [this] { Console::note(console) << "Script stopped"; });
     });
 }
 
@@ -106,7 +108,6 @@ void TestRunner::launch_editor() const {
     script.launch_editor();
 }
 
-QObject *TestRunner::obj()
-{
+QObject *TestRunner::obj() {
     return this;
 }

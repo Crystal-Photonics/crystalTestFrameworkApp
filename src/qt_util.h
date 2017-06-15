@@ -33,7 +33,7 @@ namespace Utility {
     struct ValueSetter;
 
     template <class Fun>
-    auto promised_thread_call(QObject *object, ScriptEngine *script_engine_to_terminate_on_exception, Fun &&f)
+    auto promised_thread_call(QObject *object, Fun &&f)
         -> decltype(f()); //calls f in the thread that owns obj and waits for the function to get processed
 
     QWidget *replace_tab_widget(QTabWidget *tabs, int index, QWidget *new_widget, const QString &title);
@@ -78,7 +78,7 @@ namespace Utility {
                 try {
                     fun();
                 } catch (const std::exception &e) {
-                    qDebug() << e.what();
+                    //qDebug() << e.what();
                     if (script_engine_to_terminate_on_exception__) {
                         script_engine_to_terminate_on_exception__->interrupt(QString::fromStdString(e.what()));
                         //assert(!"Must not leak exceptions to qt message queue");
@@ -108,10 +108,10 @@ namespace Utility {
     };
 
     template <class Fun>
-    auto promised_thread_call(QObject *object, ScriptEngine *script_engine_to_terminate_on_exception, Fun &&f) -> decltype(f()) {
+    auto promised_thread_call(QObject *object, Fun &&f) -> decltype(f()) {
         std::promise<decltype(f())> promise;
         auto future = promise.get_future();
-        thread_call(object, script_engine_to_terminate_on_exception, [&f, &promise] {
+        thread_call(object, nullptr, [&f, &promise] {
             try {
                 Utility::ValueSetter<decltype(f()), Fun>::set_value(promise, std::forward<Fun>(f));
             } catch (...) {

@@ -1,6 +1,6 @@
 #include "combobox.h"
+#include "Windows/mainwindow.h"
 #include "ui_container.h"
-
 #include <QComboBox>
 #include <QInputDialog>
 #include <QSplitter>
@@ -29,6 +29,7 @@ ComboBox::ComboBox(UI_container *parent, const QStringList &sl)
 ComboBox::~ComboBox() {
     combobox->setEnabled(false);
 }
+
 ///\endcond
 void ComboBox::set_items(const sol::table &items) {
     combobox->clear();

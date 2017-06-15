@@ -161,7 +161,7 @@ void SCPIProtocol::set_scpi_meta_data(DeviceMetaDataGroup scpi_meta_data) {
         scpi_device_detail = scpi_meta_data.devices[0];
 
     } else if (scpi_meta_data.devices.count() == 0) {
-        Utility::promised_thread_call(MainWindow::mw,nullptr,
+        Utility::promised_thread_call(MainWindow::mw,
                                       [ comportname = device->getName(), serial_number = device_data.serial_number, device_name = device_data.name ] {
                                           QMessageBox::warning(MainWindow::mw, "Unknown SCPI device",
                                                                QString("Could not find SCPI-Device in meta data table. Serialnumber: \"%1\" name: \"%2\" @%3 .")
@@ -172,7 +172,7 @@ void SCPIProtocol::set_scpi_meta_data(DeviceMetaDataGroup scpi_meta_data) {
                                       });
 
     } else {
-        Utility::promised_thread_call(MainWindow::mw, nullptr, [ comportname = device->getName(), &scpi_meta_data ]() mutable {
+        Utility::promised_thread_call(MainWindow::mw,  [ comportname = device->getName(), &scpi_meta_data ]() mutable {
             SCPIMetaDataDeviceSelector meta_data_selector(MainWindow::mw);
             meta_data_selector.load_devices(comportname, scpi_meta_data);
             meta_data_selector.exec();
@@ -218,7 +218,7 @@ bool SCPIProtocol::is_correct_protocol() {
 }
 
 void SCPIProtocol::send_string(std::string data) {
-    Utility::promised_thread_call(device, nullptr, [ device = this->device, data = data ] {
+    Utility::promised_thread_call(device,  [ device = this->device, data = data ] {
         std::string display_data = QString::fromStdString(data).trimmed().toStdString();
         std::vector<unsigned char> data_vec{data.begin(), data.end()};
         std::vector<unsigned char> disp_vec{display_data.begin(), display_data.end()};

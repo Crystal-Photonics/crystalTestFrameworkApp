@@ -83,7 +83,7 @@ class ScriptEngine {
     void run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices);
     template <class ReturnType, class... Arguments>
     ReturnType call(const char *function_name, Arguments &&... args);
-    void set_error(const sol::error &error);
+    void set_error_line(const sol::error &error);
 
     std::unique_ptr<sol::state> lua{};
     QString path{};
@@ -107,13 +107,16 @@ class ScriptEngine {
 
 template <class ReturnType, class... Arguments>
 ReturnType ScriptEngine::call(const char *function_name, Arguments &&... args) {
+    qDebug() << "ScriptEngine::call" << function_name;
     sol::protected_function f = (*lua)[function_name];
     auto call_res = f(std::forward<Arguments>(args)...);
     if (call_res.valid()) {
+        qDebug() << "ScriptEngine::call success";
         return call_res;
     }
     sol::error error = call_res;
-    set_error(error);
+    qDebug() << "error:" << error.what();
+    set_error_line(error);
     throw error;
 }
 

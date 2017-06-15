@@ -29,13 +29,7 @@ struct Widget_paragraph {
     void resizeEvent(QResizeEvent *event) {
         for (auto w : lua_ui_widgets) {
             if (w) {
-                qDebug() << "resizeMe" << w;
                 w->resizeMe(event);
-#if 0
-                static uint i=0;
-                i++;
-                qDebug() << "resize" << i;
-#endif
             }
         }
     }
@@ -43,7 +37,7 @@ struct Widget_paragraph {
     void remove_me_from_resize_list(UI_widget *me) {
         for (auto &w : lua_ui_widgets) {
             if (w == me) {
-                qDebug() << "removed" << w;
+               // qDebug() << "removed" << w;
                 w = nullptr;
             }
         }
@@ -138,6 +132,5 @@ UI_widget::~UI_widget() {
 }
 
 void UI_widget::resizeMe(QResizeEvent *event) {
-    qDebug() << "resizeMe@UI_widget" << this << " type: " << typeid(this).name();
     (void)event;
 }

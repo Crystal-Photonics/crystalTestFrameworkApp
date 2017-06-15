@@ -249,7 +249,7 @@ std::string show_file_save_dialog(const std::string &title, const std::string &p
     }
 
     QString filter = sl.join(";");
-    QString result = Utility::promised_thread_call(MainWindow::mw, nullptr, [&title, &path, &filter]() {
+    QString result = Utility::promised_thread_call(MainWindow::mw, [&title, &path, &filter]() {
         return QFileDialog::getSaveFileName(MainWindow::mw, QString::fromStdString(title), QString::fromStdString(path), filter);
     });
 
@@ -351,7 +351,7 @@ std::string show_question(const QString &path, const sol::optional<std::string> 
     }
 #endif
     int result = 0;
-    result = Utility::promised_thread_call(MainWindow::mw, nullptr, [&path, &title, &message, buttons]() {
+    result = Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message, buttons]() {
         return QMessageBox::question(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path,
                                      QString::fromStdString(message.value_or("nil")), buttons);
     });
@@ -422,7 +422,7 @@ show_info(string title, string message);
 
 /// @cond HIDDEN_SYMBOLS
 void show_info(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
-    Utility::promised_thread_call(MainWindow::mw, nullptr,[&path, &title, &message]() {
+    Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message]() {
         QMessageBox::information(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path,
                                  QString::fromStdString(message.value_or("nil")));
     });
@@ -453,7 +453,7 @@ show_warning(string title, string message);
 
 /// @cond HIDDEN_SYMBOLS
 void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
-    Utility::promised_thread_call(MainWindow::mw, nullptr,[&path, &title, &message]() {
+    Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message]() {
         QMessageBox::warning(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path, QString::fromStdString(message.value_or("nil")));
     });
 }
@@ -645,7 +645,7 @@ void lua_object_to_string(QPlainTextEdit *console, sol::object &obj, QString &v,
         t = "s";
     } else {
         const auto &message = QObject::tr("Failed to save table to file. Unsupported table field type.");
-        Utility::thread_call(MainWindow::mw, nullptr,[ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
         throw sol::error("Unsupported table field type");
     }
 }
@@ -677,7 +677,7 @@ void table_save_to_file(QPlainTextEdit *console, const std::string file_name, so
     QString fn = QString::fromStdString(file_name);
     if (!over_write_file && QFile::exists(fn)) {
         const auto &message = QObject::tr("File for saving table already exists and must not be overwritten: %1").arg(fn);
-        Utility::thread_call(MainWindow::mw, nullptr,[ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
         throw sol::error("File already exists");
         return;
     }
@@ -685,7 +685,7 @@ void table_save_to_file(QPlainTextEdit *console, const std::string file_name, so
 
     if (!saveFile.open(QIODevice::WriteOnly)) {
         const auto &message = QObject::tr("Failed open file for saving table: %1").arg(fn);
-        Utility::thread_call(MainWindow::mw, nullptr,[ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
         throw sol::error("could not open file");
         return;
     }
@@ -713,13 +713,13 @@ sol::object sol_object_from_type_string(QPlainTextEdit *console, sol::state &lua
         double index_d = v.toFloat(&ok);
         if (!ok) {
             const auto &message = QObject::tr("Could not convert string value to number while loading file to table. Failed string: \"%1\"").arg(v);
-            Utility::thread_call(MainWindow::mw, nullptr,[ console = console, message = std::move(message) ] { Console::error(console) << message; });
+            Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
             throw sol::error("Conversion Error");
         }
         return sol::make_object(lua, index_d);
     } else {
         const auto &message = QObject::tr("Unknown value type in file to be loaded into table. Type: \"%1\"").arg(value_type);
-        Utility::thread_call(MainWindow::mw, nullptr,[ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
         throw sol::error("unknown type");
     }
 }
@@ -754,13 +754,13 @@ sol::table jsonarray_to_table(QPlainTextEdit *console, sol::state &lua, const QJ
             double index_d = index.toFloat(&ok);
             if (!ok) {
                 const auto &message = QObject::tr("Could not convert string index to number while loading file to table. Failed string: \"%1\"").arg(index);
-                Utility::thread_call(MainWindow::mw,nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+                Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
                 throw sol::error("Conversion Error");
             }
             result[index_d] = val;
         } else {
             const auto &message = QObject::tr("Unknown index type in file to be loaded into table. Type: \"%1\"").arg(index_type);
-            Utility::thread_call(MainWindow::mw, nullptr,[ console = console, message = std::move(message) ] { Console::error(console) << message; });
+            Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
             throw sol::error("unknown type");
         }
     }
@@ -774,7 +774,7 @@ sol::table table_load_from_file(QPlainTextEdit *console, sol::state &lua, const 
 
     if (!loadFile.open(QIODevice::ReadOnly)) {
         const auto &message = QObject::tr("Can not open file for reading: \"%1\"").arg(fn);
-        Utility::thread_call(MainWindow::mw, nullptr,[ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
         throw sol::error("cant open file");
     }
 

@@ -293,7 +293,7 @@ void DataEngineInput::await_event() {
     }
     is_waiting = false;
 
-    Utility::promised_thread_call(MainWindow::mw, nullptr, [this] {
+    Utility::promised_thread_call(MainWindow::mw,  [this] {
 
         timer->stop();
         if (is_editable) {
@@ -359,11 +359,8 @@ void DataEngineInput::start_timer() {
 }
 
 void DataEngineInput::resizeMe(QResizeEvent *event) {
-    qDebug() << "resizeEvent @ DataEngineInput called" << this;
     total_width = event->size().width();
-    qDebug() << __LINE__;
     set_ui_visibility();
-    qDebug() << "resizeEvent @ DataEngineInput end";
 }
 
 void DataEngineInput::set_total_visibilty() {

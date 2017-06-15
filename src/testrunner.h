@@ -1,12 +1,13 @@
 #ifndef TESTRUNNER_H
 #define TESTRUNNER_H
 
+#include "Windows/mainwindow.h"
 #include "data_engine/data_engine.h"
 #include "qt_util.h"
 #include "scriptengine.h"
 #include "sol.hpp"
-
 #include <QObject>
+#include <QPlainTextEdit>
 #include <QThread>
 #include <future>
 
@@ -41,7 +42,8 @@ class TestRunner : QObject {
 
     QPlainTextEdit *console{nullptr};
 
-    QObject* obj();
+    QObject *obj();
+
     private:
     QThread thread{};
     UI_container *lua_ui_container{nullptr};
@@ -52,11 +54,13 @@ class TestRunner : QObject {
 
 template <class ReturnType, class... Arguments>
 ReturnType TestRunner::call(const char *function_name, Arguments &&... args) {
-    std::promise<ReturnType> p;
-    auto f = p.get_future();
-    Utility::thread_call(this, &this->script,
-                         [this, function_name, &p, &args...] { p.set_value(script.call<ReturnType>(function_name, std::forward<Arguments>(args)...)); });
-    return f.get();
+    ReturnType p = Utility::promised_thread_call(this,
+                                                 [this, function_name, &p, &args...] { //
+                                                     auto result = script.call<ReturnType>(function_name, std::forward<Arguments>(args)...);
+                                                     return result;
+                                                 } //
+                                                 );
+    return p;
 }
 
 #endif // TESTRUNNER_H
