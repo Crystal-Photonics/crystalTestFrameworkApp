@@ -504,6 +504,7 @@ class Data_engine {
 	void generate_pages_header(QXmlStreamWriter &xml) const;
 	void generate_datasourcesManager(QXmlStreamWriter &xml) const;
     void generate_scriptContext(QXmlStreamWriter &xml) const;
+	void generate_tables(QXmlStreamWriter &xml) const;
 
     struct FormIdWrapper {
         FormIdWrapper(const FormID &id)
