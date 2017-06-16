@@ -231,7 +231,7 @@ void MainWindow::get_devices_to_forget_by_root_treewidget_recursion(QList<QTreeW
         QTreeWidgetItem *itemchild = root_item->child(j);
 
         get_devices_to_forget_by_root_treewidget_recursion(list, itemchild);
-        if (!list.contains(itemchild)) { //we want the children first in the list because of deletion order
+        if (!list.contains(itemchild)) { //we want the children in the list first because of deletion order
             list.append(itemchild);
         }
         j++;
@@ -538,7 +538,10 @@ void MainWindow::on_actionHotkey_triggered() {
 }
 
 void MainWindow::poll_sg04_counts() {
+#if 1
+    assert(currently_in_gui_thread());
     QString sg04_prot_string = "SG04Count";
+
     auto sg04_count_devices = device_worker.get()->get_devices_with_protocol(sg04_prot_string, QStringList{""});
     for (auto &sg04_count_device : sg04_count_devices) {
         auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(sg04_count_device->protocol.get());
@@ -547,8 +550,9 @@ void MainWindow::poll_sg04_counts() {
             sg04_count_device->ui_entry->setText(2, "cps: " + QString::number(cps));
         }
     }
-    assert(currently_in_gui_thread());
+
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
+#endif
 }
 
 void MainWindow::on_close_finished_tests_button_clicked() {

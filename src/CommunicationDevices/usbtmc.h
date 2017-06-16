@@ -9,7 +9,7 @@ class USBTMC {
     USBTMC();
     ~USBTMC();
 
-    void open(QString id);
+    bool open(QString id);
     void close();
     void send_buffer(const QByteArray &data);
     QByteArray read_answer();

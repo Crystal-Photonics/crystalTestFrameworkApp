@@ -23,9 +23,9 @@ bool USBTMCCommunicationDevice::isConnected() {
 }
 
 bool USBTMCCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo) {
-    usbtmc.open(portinfo[HOST_NAME_TAG].toString());
-    is_connected = true;
-    return true;
+    is_connected = usbtmc.open(portinfo[HOST_NAME_TAG].toString());
+    this->portinfo = portinfo;
+    return is_connected;
 }
 
 bool USBTMCCommunicationDevice::waitReceived(CommunicationDevice::Duration timeout, int bytes, bool isPolling) {
@@ -41,14 +41,12 @@ bool USBTMCCommunicationDevice::waitReceived(CommunicationDevice::Duration timeo
     if (response.size()) {
         emit received(response);
         return true;
-    }else{
+    } else {
         return false;
     }
-
 }
 
 void USBTMCCommunicationDevice::send(const QByteArray &data, const QByteArray &displayed_data) {
-
     usbtmc.send_buffer(data);
     emit decoded_sent(displayed_data.isEmpty() ? data : displayed_data);
 }

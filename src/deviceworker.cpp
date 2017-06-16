@@ -15,7 +15,6 @@
 #include "util.h"
 
 #include <QSettings>
-//#include <QTimer>
 #include <QTreeWidgetItem>
 #include <functional>
 #include <initializer_list>
@@ -77,7 +76,6 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             }
             auto protocol = std::make_unique<RPCProtocol>(*device.device, rpc_device);
             if (protocol->is_correct_protocol()) {
-                // Utility::promised_thread_call(MainWindow::mw, [ protocol = protocol.get(), ui_entry = device.ui_entry.get() ] { //
                 MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
                     if (MainWindow::mw->device_item_exists(ui_entry)) {
                         protocol->set_ui_description(ui_entry);
@@ -118,7 +116,6 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
                 if (protocol->is_correct_protocol()) {
                     protocol->set_scpi_meta_data(
                         device_meta_data.query(QString().fromStdString(protocol->get_serial_number()), QString().fromStdString(protocol->get_name())));
-                    // Utility::promised_thread_call(MainWindow::mw, [ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
                     MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
 
                         if (MainWindow::mw->device_item_exists(ui_entry)) {
@@ -160,7 +157,6 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             auto protocol = std::make_unique<SG04CountProtocol>(*device.device, sg04_count_device);
             if (protocol) {
                 if (protocol->is_correct_protocol()) {
-                    // Utility::promised_thread_call(MainWindow::mw, [ protocol = protocol.get(), ui_entry = device.ui_entry.get() ] { //
                     MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
                         if (MainWindow::mw->device_item_exists(ui_entry)) {
                             protocol->set_ui_description(ui_entry);
@@ -192,7 +188,6 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             if (protocol->is_correct_protocol()) {
                 protocol->set_meta_data(
                     device_meta_data.query(device.port_info[DEVICE_MANUAL_SN_TAG].toString(), device.port_info[DEVICE_MANUAL_NAME_TAG].toString()));
-                //Utility::promised_thread_call(MainWindow::mw, [ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
                 Utility::thread_call(MainWindow::mw, nullptr, [ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
                     if (MainWindow::mw->device_item_exists(ui_entry)) {
                         protocol->set_ui_description(ui_entry);
@@ -218,17 +213,13 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             protocol_check_function(*device);
         }
         if (device->device->isConnected() == false) { //out of protocols and still not connected
-#if 1
             auto display_string = device->device->get_identifier_display_string();
             Utility::thread_call(MainWindow::mw, nullptr, [display_string] {
-
                 assert(currently_in_gui_thread() == true);
                 Console::note() << tr("No protocol found for %1").arg(display_string);
             });
-#endif
         }
     }
-    // qDebug() << "detect_devices finished";
 }
 
 DeviceWorker::DeviceWorker() {}
@@ -236,12 +227,7 @@ DeviceWorker::DeviceWorker() {}
 DeviceWorker::~DeviceWorker() {}
 
 void DeviceWorker::refresh_devices(QTreeWidgetItem *root, bool dut_only) {
-    assert(currently_in_gui_thread() == true);
-    qDebug() << "DeviceWorker::refresh_devices"
-             << "locking..";
     refresh_semaphore.acquire();
-    qDebug() << "DeviceWorker::refresh_devices"
-             << "locked";
     QList<QTreeWidgetItem *> device_items = MainWindow::mw->get_devices_to_forget_by_root_treewidget(root);
 
     int j = 0;
@@ -259,21 +245,14 @@ void DeviceWorker::refresh_devices(QTreeWidgetItem *root, bool dut_only) {
     }
 
     Utility::thread_call(this, nullptr, [this, device_items, dut_only] {
-        // refresh_mnutex.lock();
-        //refresh_wait_condition.wait(&refresh_mnutex);
         for (auto item : device_items) {
             forget_device_(item);
         }
         device_meta_data.reload(QSettings{}.value(Globals::measurement_equipment_meta_data_path, "").toString());
         update_devices();
         detect_devices();
-        qDebug() << "DeviceWorker::refresh_devices"
-                 << "finished";
         emit device_discrovery_done();
-
         refresh_semaphore.release();
-        qDebug() << "DeviceWorker::refresh_devices"
-                 << "unlocked";
     });
 }
 
@@ -328,18 +307,8 @@ void DeviceWorker::forget_device_(QTreeWidgetItem *item) {
     }
 }
 
-#if 0
-void DeviceWorker::forget_device(QTreeWidgetItem *item) {
-    Utility::thread_call(this, nullptr, [this, item] {
-        // Utility::promised_thread_call(this, [this, item] {
-        assert(currently_in_gui_thread() == false);
-        forget_device_(item);
-    });
-}
-#endif
+
 void DeviceWorker::update_devices() {
-    // Utility::thread_call(this, nullptr, [this] {
-    //return Utility::promised_thread_call(this, [this] {
     assert(currently_in_gui_thread() == false);
     auto portlist = QSerialPortInfo::availablePorts();
     for (auto &port : portlist) {
@@ -408,8 +377,6 @@ void DeviceWorker::update_devices() {
 }
 
 void DeviceWorker::detect_devices() {
-    // Utility::thread_call(this, nullptr, [this] {
-    //Utility::promised_thread_call(this, [this] {
     assert(currently_in_gui_thread() == false);
     std::vector<PortDescription *> descriptions;
     descriptions.reserve(communication_devices.size());
@@ -421,7 +388,6 @@ void DeviceWorker::detect_devices() {
 }
 
 void DeviceWorker::detect_device(QTreeWidgetItem *item) {
-    //   Utility::thread_call(this, nullptr, [this, item] {
     Utility::promised_thread_call(this, [this, item] {
         assert(currently_in_gui_thread() == false);
         for (auto &comport : communication_devices) {

@@ -15,7 +15,7 @@ Console::ConsoleProxy Console::warning(QPlainTextEdit *console) {
             console->setVisible(true);
         }
     }
-    return {console ? console : Console::console, QStringList{}, "Warning", Qt::darkYellow};
+    return {console ? console : Console::console, QStringList{}, "Warning", QColor("orangered")};
 }
 
 Console::ConsoleProxy Console::warning(std::unique_ptr<QPlainTextEdit> &console) {

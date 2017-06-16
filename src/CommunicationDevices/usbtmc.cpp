@@ -2,6 +2,7 @@
 
 #include "libusb-1.0/libusb.h"
 #include <QDebug>
+#include <assert.h>
 
 USBTMC::USBTMC() {
     int r = libusb_init(&uscpi.ctx);
@@ -14,9 +15,10 @@ USBTMC::~USBTMC() {
     libusb_exit(uscpi.ctx);
 }
 
-void USBTMC::open(QString id) {
+bool USBTMC::open(QString id) {
     scpi_usbtmc_libusb_dev_inst_new(&uscpi, id);
     scpi_usbtmc_libusb_open(&uscpi);
+    return uscpi.usb.devhdl;
 }
 
 void USBTMC::close() {
@@ -24,6 +26,7 @@ void USBTMC::close() {
 }
 
 void USBTMC::send_buffer(const QByteArray &data) {
+    assert(uscpi.usb.devhdl);
     scpi_usbtmc_libusb_send(&uscpi, data);
 }
 
@@ -62,6 +65,7 @@ int USBTMC::sr_scpi_read_response(QByteArray &response, std::chrono::high_resolu
 }
 
 QByteArray USBTMC::read_answer() {
+    assert(uscpi.usb.devhdl);
     int ret;
     QByteArray response;
 
