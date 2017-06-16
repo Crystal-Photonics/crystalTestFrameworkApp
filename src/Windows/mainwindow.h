@@ -42,7 +42,7 @@ class EXPORT MainWindow : public QMainWindow {
     static QThread *gui_thread;
 
     template <class Function>
-    void execute_in_gui_thread(Function &&f );
+    void execute_in_gui_thread(Function &&f);
 
     template <class Lua_UI_class, class... Args>
     void add_lua_UI_class(int id, UI_container *parent, Args &&... args);
@@ -54,26 +54,28 @@ class EXPORT MainWindow : public QMainWindow {
     void show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon);
     void remove_test_runner(TestRunner *runner);
 
-    void device_detect();
-    void update_devices_list();
-
+    //void forget_device_by_treewidget_root(QTreeWidgetItem *root_item, DeviceWorker *device_worker, bool dut_only);
+    QList<QTreeWidgetItem *> get_devices_to_forget_by_root_treewidget(QTreeWidgetItem *root_item);
+    void remove_device_item(QTreeWidgetItem *root_item);
+    bool device_item_exists(QTreeWidgetItem *child);
     public slots:
     void align_columns();
-    void remove_device_entry(QTreeWidgetItem *item);
+    //void remove_device_entry(QTreeWidgetItem *item);
     void add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *cummincation_device);
     void append_html_to_console(QString text, QPlainTextEdit *console);
 
     private slots:
-    void forget_device();
+    void slot_device_discovery_done();
+    //void forget_device();
     void load_scripts();
 
     void on_actionPaths_triggered();
 
-    void on_console_tabs_tabCloseRequested(int index);
+    // void on_console_tabs_tabCloseRequested(int index);
     void on_run_test_script_button_clicked();
     void on_tests_list_itemClicked(QTreeWidgetItem *item, int column);
     void on_tests_list_customContextMenuRequested(const QPoint &pos);
-    void on_devices_list_customContextMenuRequested(const QPoint &pos);
+    //void on_devices_list_customContextMenuRequested(const QPoint &pos);
     void on_test_tabs_tabCloseRequested(int index);
 
     void on_test_tabs_customContextMenuRequested(const QPoint &pos);
@@ -90,9 +92,13 @@ class EXPORT MainWindow : public QMainWindow {
     void on_actionDummy_Data_Creator_for_print_templates_triggered();
     void on_btn_refresh_dut_clicked();
     void on_btn_refresh_all_clicked();
+
     void closeEvent(QCloseEvent *event) override;
 
     private:
+    void refresh_devices(bool only_duts);
+    //void device_detect();
+    //void update_devices_list();
     std::vector<TestDescriptionLoader> test_descriptions;
     std::vector<std::unique_ptr<TestRunner>> test_runners;
 
@@ -106,6 +112,8 @@ class EXPORT MainWindow : public QMainWindow {
     TestRunner *get_runner_from_tab_index(int index);
 
     static void close_finished_tests();
+    void get_devices_to_forget_by_root_treewidget_recursion(QList<QTreeWidgetItem *> &list, QTreeWidgetItem *root_item);
+    bool remove_device_item_recursion(QTreeWidgetItem *root_item, QTreeWidgetItem *child_to_remove, bool remove_if_existing);
 };
 
 template <class T>
@@ -119,7 +127,7 @@ bool operator==(const T *lhs, const std::unique_ptr<T> &rhs) {
 }
 
 template <class Function>
-void MainWindow::execute_in_gui_thread(Function &&f ) {
+void MainWindow::execute_in_gui_thread(Function &&f) {
     Utility::thread_call(this, nullptr, std::forward<Function>(f));
 }
 

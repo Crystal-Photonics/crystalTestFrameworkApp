@@ -21,6 +21,8 @@ DeviceMatcher::~DeviceMatcher() {
     delete ui;
 }
 
+
+
 std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::vector<PortDescription *> candidates, TestRunner &runner) {
     std::vector<std::pair<CommunicationDevice *, Protocol *>> devices;
     for (auto device : candidates) {

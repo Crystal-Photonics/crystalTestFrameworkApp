@@ -13,26 +13,31 @@
 #include <QList>
 #include <vector>
 
-enum class CommunicationDeviceType {COM, TMC, Manual, TCP, UDP, IP} ;
+
+enum class CommunicationDeviceType { COM, TMC, Manual, TCP, UDP, IP };
 
 QString ComDeviceTypeToString(CommunicationDeviceType t);
 
 struct PortDescription {
+    PortDescription(PortDescription &&other) = default;
+    PortDescription &operator=(PortDescription &&other) = default;
+
     std::unique_ptr<CommunicationDevice> device;
-    QMap<QString,QVariant> port_info;
-    QTreeWidgetItem *ui_entry;
+    QMap<QString, QVariant> port_info;
+    QTreeWidgetItem* ui_entry;
     std::unique_ptr<Protocol> protocol;
     CommunicationDeviceType communication_type; //COM, TMC, Manual, TCP, UDP, IP
 
     void set_is_in_use(bool in_use);
     bool get_is_in_use(void);
-
 };
 
-class CandidateEntry{
-public:
-    CommunicationDevice * communication_device;
-    Protocol * protocol;
+
+
+class CandidateEntry {
+    public:
+    CommunicationDevice *communication_device;
+    Protocol *protocol;
     bool selected = false;
 };
 
@@ -72,7 +77,8 @@ class DeviceMatcher : public QDialog {
     void on_btn_uncheck_all_clicked();
 
     void poll_sg04_counts();
-private:
+
+    private:
     Ui::DeviceMatcher *ui;
     void make_treeview();
     void calc_gui_match_definition();

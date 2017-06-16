@@ -829,8 +829,8 @@ struct Data_engine_handle {
 };
 
 void ScriptEngine::load_script(const QString &path) {
-    qDebug() << "load_script ";
-    qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
+    //qDebug() << "load_script ";
+    //qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
 
     this->path = path;
 

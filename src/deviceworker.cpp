@@ -68,12 +68,21 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             }
             device.port_info.insert("baudrate", baudrate);
             if (device.device->connect(device.port_info) == false) {
-                Console::warning() << tr("Failed opening") << device.device->get_identifier_display_string();
+                auto display_string = device.device->get_identifier_display_string();
+                Utility::thread_call(MainWindow::mw, nullptr,
+                                     [display_string] { //
+                                         Console::warning() << tr("Failed opening") << display_string;
+                                     });
                 return;
             }
             auto protocol = std::make_unique<RPCProtocol>(*device.device, rpc_device);
             if (protocol->is_correct_protocol()) {
-                MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { protocol->set_ui_description(ui_entry); });
+                // Utility::promised_thread_call(MainWindow::mw, [ protocol = protocol.get(), ui_entry = device.ui_entry.get() ] { //
+                MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
+                    if (MainWindow::mw->device_item_exists(ui_entry)) {
+                        protocol->set_ui_description(ui_entry);
+                    }
+                });
                 device.protocol = std::move(protocol);
             } else {
                 device.device->close();
@@ -98,7 +107,10 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
                 device.port_info.insert("baudrate", baudrate);
             }
             if (device.device->connect(device.port_info) == false) {
-                Console::warning() << tr("Failed opening") << device.device->get_identifier_display_string();
+                auto display_string = device.device->get_identifier_display_string();
+                MainWindow::mw->execute_in_gui_thread([display_string] { //
+                    Console::warning() << tr("Failed opening") << display_string;
+                });
                 return;
             }
             auto protocol = std::make_unique<SCPIProtocol>(*device.device, scpi_device);
@@ -106,8 +118,14 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
                 if (protocol->is_correct_protocol()) {
                     protocol->set_scpi_meta_data(
                         device_meta_data.query(QString().fromStdString(protocol->get_serial_number()), QString().fromStdString(protocol->get_name())));
-                    MainWindow::mw->execute_in_gui_thread(
-                        [ protocol = protocol.get(), ui_entry = device.ui_entry ] { protocol->set_ui_description(ui_entry); });
+                    // Utility::promised_thread_call(MainWindow::mw, [ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
+                    MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
+
+                        if (MainWindow::mw->device_item_exists(ui_entry)) {
+                            protocol->set_ui_description(ui_entry);
+                        }
+
+                    });
                     device.protocol = std::move(protocol);
 
                 } else {
@@ -132,14 +150,22 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             }
             device.port_info.insert("baudrate", baudrate);
             if (device.device->connect(device.port_info) == false) {
-                Console::warning() << tr("Failed opening") << device.device->get_identifier_display_string();
+                auto display_string = device.device->get_identifier_display_string();
+                Utility::thread_call(MainWindow::mw, nullptr,
+                                     [display_string] { //
+                                         Console::warning() << tr("Failed opening") << display_string;
+                                     });
                 return;
             }
             auto protocol = std::make_unique<SG04CountProtocol>(*device.device, sg04_count_device);
             if (protocol) {
                 if (protocol->is_correct_protocol()) {
-                    MainWindow::mw->execute_in_gui_thread(
-                        [ protocol = protocol.get(), ui_entry = device.ui_entry ] { protocol->set_ui_description(ui_entry); });
+                    // Utility::promised_thread_call(MainWindow::mw, [ protocol = protocol.get(), ui_entry = device.ui_entry.get() ] { //
+                    MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
+                        if (MainWindow::mw->device_item_exists(ui_entry)) {
+                            protocol->set_ui_description(ui_entry);
+                        }
+                    });
                     device.protocol = std::move(protocol);
 
                 } else {
@@ -154,7 +180,11 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             return;
         }
         if (device.device->connect(device.port_info) == false) {
-            Console::warning() << tr("Failed opening") << device.device->get_identifier_display_string();
+            auto display_string = device.device->get_identifier_display_string();
+            Utility::thread_call(MainWindow::mw, nullptr,
+                                 [display_string] { //
+                                     Console::warning() << tr("Failed opening") << display_string;
+                                 });
             return;
         }
         auto protocol = std::make_unique<ManualProtocol>();
@@ -162,7 +192,12 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             if (protocol->is_correct_protocol()) {
                 protocol->set_meta_data(
                     device_meta_data.query(device.port_info[DEVICE_MANUAL_SN_TAG].toString(), device.port_info[DEVICE_MANUAL_NAME_TAG].toString()));
-                MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { protocol->set_ui_description(ui_entry); });
+                //Utility::promised_thread_call(MainWindow::mw, [ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
+                Utility::thread_call(MainWindow::mw, nullptr, [ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
+                    if (MainWindow::mw->device_item_exists(ui_entry)) {
+                        protocol->set_ui_description(ui_entry);
+                    } //
+                });
                 device.protocol = std::move(protocol);
 
             } else {
@@ -183,143 +218,211 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             protocol_check_function(*device);
         }
         if (device->device->isConnected() == false) { //out of protocols and still not connected
-            Console::note() << tr("No protocol found for %1").arg(device->device->get_identifier_display_string());
+#if 1
+            auto display_string = device->device->get_identifier_display_string();
+            Utility::thread_call(MainWindow::mw, nullptr, [display_string] {
+
+                assert(currently_in_gui_thread() == true);
+                Console::note() << tr("No protocol found for %1").arg(display_string);
+            });
+#endif
         }
     }
+    // qDebug() << "detect_devices finished";
 }
 
 DeviceWorker::DeviceWorker() {}
 
 DeviceWorker::~DeviceWorker() {}
 
-void DeviceWorker::forget_device(QTreeWidgetItem *item) {
-    Utility::thread_call(this, nullptr, [this, item] {
-        assert(currently_in_gui_thread() == false);
-        for (auto device_it = std::begin(communication_devices); device_it != std::end(communication_devices); ++device_it) {
-            if (device_it->ui_entry == item) {
-                device_it = communication_devices.erase(device_it);
-                break;
+void DeviceWorker::refresh_devices(QTreeWidgetItem *root, bool dut_only) {
+    assert(currently_in_gui_thread() == true);
+    qDebug() << "DeviceWorker::refresh_devices"
+             << "locking..";
+    refresh_semaphore.acquire();
+    qDebug() << "DeviceWorker::refresh_devices"
+             << "locked";
+    QList<QTreeWidgetItem *> device_items = MainWindow::mw->get_devices_to_forget_by_root_treewidget(root);
+
+    int j = 0;
+    while (j < device_items.count()) {
+        auto item = device_items[j];
+        if (!is_device_in_use(item)) {
+            if (dut_only && !is_dut_device(item)) {
+                device_items.removeAt(j);
+                j--;
+            } else {
+                MainWindow::mw->remove_device_item(item);
             }
         }
+        j++;
+    }
+
+    Utility::thread_call(this, nullptr, [this, device_items, dut_only] {
+        // refresh_mnutex.lock();
+        //refresh_wait_condition.wait(&refresh_mnutex);
+        for (auto item : device_items) {
+            forget_device_(item);
+        }
+        device_meta_data.reload(QSettings{}.value(Globals::measurement_equipment_meta_data_path, "").toString());
+        update_devices();
+        detect_devices();
+        qDebug() << "DeviceWorker::refresh_devices"
+                 << "finished";
+        emit device_discrovery_done();
+
+        refresh_semaphore.release();
+        qDebug() << "DeviceWorker::refresh_devices"
+                 << "unlocked";
     });
+}
+
+bool DeviceWorker::is_dut_device_(QTreeWidgetItem *item) {
+    assert(currently_in_gui_thread() == false);
+    for (auto device_it = std::begin(communication_devices); device_it != std::end(communication_devices); ++device_it) {
+        if (device_it->ui_entry == item) {
+            auto rpc_protocol = dynamic_cast<RPCProtocol *>(device_it->protocol.get());
+            auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device_it->protocol.get());
+            if (rpc_protocol) {
+                return true;
+            } else if (sg04_count_protocol) {
+                return true;
+            }
+            break;
+        }
+    }
+    return false;
 }
 
 bool DeviceWorker::is_dut_device(QTreeWidgetItem *item) {
     return Utility::promised_thread_call(this, [this, item] {
         assert(currently_in_gui_thread() == false);
-        for (auto device_it = std::begin(communication_devices); device_it != std::end(communication_devices); ++device_it) {
-            if (device_it->ui_entry == item) {
-                auto rpc_protocol = dynamic_cast<RPCProtocol *>(device_it->protocol.get());
-                auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device_it->protocol.get());
-                if (rpc_protocol) {
-                    return true;
-                } else if (sg04_count_protocol) {
-                    return true;
-                }
-                break;
-            }
-        }
-        return false;
+        return is_dut_device_(item);
     });
+}
+
+bool DeviceWorker::is_device_in_use_(QTreeWidgetItem *item) {
+    assert(currently_in_gui_thread() == false);
+    for (auto device_it = std::begin(communication_devices); device_it != std::end(communication_devices); ++device_it) {
+        if (device_it->ui_entry == item) {
+            return device_it->get_is_in_use();
+        }
+    }
+    return false;
 }
 
 bool DeviceWorker::is_device_in_use(QTreeWidgetItem *item) {
     return Utility::promised_thread_call(this, [this, item] {
         assert(currently_in_gui_thread() == false);
-        for (auto device_it = std::begin(communication_devices); device_it != std::end(communication_devices); ++device_it) {
-            if (device_it->ui_entry == item) {
-                return device_it->get_is_in_use();
-            }
-        }
-        return false;
+        return is_device_in_use_(item);
     });
 }
 
-void DeviceWorker::update_devices() {
-    device_meta_data.reload(QSettings{}.value(Globals::measurement_equipment_meta_data_path, "").toString());
-    Utility::thread_call(this, nullptr, [this] {
-        assert(currently_in_gui_thread() == false);
-        auto portlist = QSerialPortInfo::availablePorts();
-        for (auto &port : portlist) {
-            QMap<QString, QVariant> port_info;
-            port_info.insert(HOST_NAME_TAG, QString(port.portName()));
-
-            if (contains_port(port_info)) {
-                continue;
-            }
-
-            auto item = std::make_unique<QTreeWidgetItem>(QStringList{} << port.portName() + " " + port.description());
-
-            communication_devices.push_back(
-                PortDescription{std::make_unique<ComportCommunicationDevice>(), port_info, item.get(), nullptr, CommunicationDeviceType::COM});
-            PortDescription *port_desc = &communication_devices.back();
-            CommunicationDevice *device = port_desc->device.get();
-            MainWindow::mw->add_device_item(item.release(), port.portName() + " " + port.description(), device);
+void DeviceWorker::forget_device_(QTreeWidgetItem *item) {
+    assert(currently_in_gui_thread() == false);
+    for (auto device_it = std::begin(communication_devices); device_it != std::end(communication_devices); ++device_it) {
+        if (device_it->ui_entry == item) {
+            device_it = communication_devices.erase(device_it);
+            break;
         }
-        std::unique_ptr<QTreeWidgetItem> manual_parent_item;
+    }
+}
 
-        for (auto manual_device : device_meta_data.get_manual_devices()) {
-            QMap<QString, QVariant> port_info;
-            port_info.insert(HOST_NAME_TAG, QString("manual"));
-            port_info.insert(DEVICE_MANUAL_NAME_TAG, manual_device.commondata.device_name);
-            port_info.insert(DEVICE_MANUAL_SN_TAG, manual_device.detail.serial_number);
+#if 0
+void DeviceWorker::forget_device(QTreeWidgetItem *item) {
+    Utility::thread_call(this, nullptr, [this, item] {
+        // Utility::promised_thread_call(this, [this, item] {
+        assert(currently_in_gui_thread() == false);
+        forget_device_(item);
+    });
+}
+#endif
+void DeviceWorker::update_devices() {
+    // Utility::thread_call(this, nullptr, [this] {
+    //return Utility::promised_thread_call(this, [this] {
+    assert(currently_in_gui_thread() == false);
+    auto portlist = QSerialPortInfo::availablePorts();
+    for (auto &port : portlist) {
+        QMap<QString, QVariant> port_info;
+        port_info.insert(HOST_NAME_TAG, QString(port.portName()));
 
-            if (contains_port(port_info)) {
-                continue;
+        if (contains_port(port_info)) {
+            continue;
+        }
+
+        communication_devices.push_back(PortDescription{
+            std::make_unique<ComportCommunicationDevice>(), port_info,
+            std::make_unique<QTreeWidgetItem>(QStringList{} << port.portName() + " " + port.description()).release(), nullptr, CommunicationDeviceType::COM});
+        PortDescription *port_desc = &communication_devices.back();
+        CommunicationDevice *device = port_desc->device.get();
+        MainWindow::mw->add_device_item(port_desc->ui_entry, port.portName() + " " + port.description(), device);
+    }
+    std::unique_ptr<QTreeWidgetItem> manual_parent_item;
+
+    for (auto manual_device : device_meta_data.get_manual_devices()) {
+        QMap<QString, QVariant> port_info;
+        port_info.insert(HOST_NAME_TAG, QString("manual"));
+        port_info.insert(DEVICE_MANUAL_NAME_TAG, manual_device.commondata.device_name);
+        port_info.insert(DEVICE_MANUAL_SN_TAG, manual_device.detail.serial_number);
+
+        if (contains_port(port_info)) {
+            continue;
+        }
+
+        if (manual_parent_item.get() == nullptr) {
+            if (device_meta_data.get_manual_devices().count()) {
+                manual_parent_item = std::make_unique<QTreeWidgetItem>(QStringList{} << "Manual Devices");
             }
-
-            if (manual_parent_item.get() == nullptr) {
-                if (device_meta_data.get_manual_devices().count()) {
-                    manual_parent_item = std::make_unique<QTreeWidgetItem>(QStringList{} << "Manual Devices");
-                }
-            }
+        }
+        {
             auto item = std::make_unique<QTreeWidgetItem>(manual_parent_item.get(), QStringList{} << manual_device.commondata.device_name + " (" +
                                                                                                          manual_device.detail.serial_number + ")");
-
             communication_devices.push_back(
                 PortDescription{std::make_unique<DummyCommunicationDevice>(), port_info, item.release(), nullptr, CommunicationDeviceType::Manual});
         }
+    }
 
-        if (manual_parent_item.get()) {
-            MainWindow::mw->add_device_item(manual_parent_item.release(), "test", nullptr);
+    if (manual_parent_item.get()) {
+        MainWindow::mw->add_device_item(manual_parent_item.release(), "test", nullptr);
+    }
+
+    auto tmc_devices = LIBUSBScan::scan();
+
+    for (auto &port : tmc_devices) {
+        QMap<QString, QVariant> port_info;
+        port_info.insert(HOST_NAME_TAG, QString(port));
+
+        if (contains_port(port_info)) {
+            continue;
         }
 
-        auto tmc_devices = LIBUSBScan::scan();
+        communication_devices.push_back(PortDescription{std::make_unique<USBTMCCommunicationDevice>(), port_info,
+                                                        std::make_unique<QTreeWidgetItem>(QStringList{} << port).release(), nullptr,
+                                                        CommunicationDeviceType::TMC});
+        PortDescription *port_desc = &communication_devices.back();
+        CommunicationDevice *device = port_desc->device.get();
+        MainWindow::mw->add_device_item(port_desc->ui_entry, port, device);
+    }
 
-        for (auto &port : tmc_devices) {
-            QMap<QString, QVariant> port_info;
-            port_info.insert(HOST_NAME_TAG, QString(port));
-
-            if (contains_port(port_info)) {
-                continue;
-            }
-
-            auto item = std::make_unique<QTreeWidgetItem>(QStringList{} << port);
-
-            communication_devices.push_back(
-                PortDescription{std::make_unique<USBTMCCommunicationDevice>(), port_info, item.get(), nullptr, CommunicationDeviceType::TMC});
-            PortDescription *port_desc = &communication_devices.back();
-            CommunicationDevice *device = port_desc->device.get();
-            MainWindow::mw->add_device_item(item.release(), port, device);
-        }
-
-    });
+    //});
 }
 
 void DeviceWorker::detect_devices() {
-    Utility::thread_call(this, nullptr, [this] {
-        assert(currently_in_gui_thread() == false);
-        std::vector<PortDescription *> descriptions;
-        descriptions.reserve(communication_devices.size());
-        for (auto &comport : communication_devices) {
-            descriptions.push_back(&comport);
-        }
-        detect_devices(descriptions);
-    });
+    // Utility::thread_call(this, nullptr, [this] {
+    //Utility::promised_thread_call(this, [this] {
+    assert(currently_in_gui_thread() == false);
+    std::vector<PortDescription *> descriptions;
+    descriptions.reserve(communication_devices.size());
+    for (auto &comport : communication_devices) {
+        descriptions.push_back(&comport);
+    }
+    detect_devices(descriptions);
+    //  });
 }
 
 void DeviceWorker::detect_device(QTreeWidgetItem *item) {
-    Utility::thread_call(this, nullptr, [this, item] {
+    //   Utility::thread_call(this, nullptr, [this, item] {
+    Utility::promised_thread_call(this, [this, item] {
         assert(currently_in_gui_thread() == false);
         for (auto &comport : communication_devices) {
             if (comport.ui_entry == item) {

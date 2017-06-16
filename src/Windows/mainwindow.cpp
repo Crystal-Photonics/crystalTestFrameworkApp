@@ -28,6 +28,7 @@
 #include <QListView>
 #include <QMessageBox>
 #include <QSettings>
+#include <QStatusBar>
 #include <QStringList>
 #include <QTimer>
 #include <QTreeWidgetItem>
@@ -80,7 +81,10 @@ MainWindow::MainWindow(QWidget *parent)
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
     Console::console = ui->console_edit;
     Console::mw = this;
+    // connect(&action_run, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
+
     devices_thread.start();
+    connect(device_worker.get(), DeviceWorker::device_discrovery_done, this, slot_device_discovery_done);
     ui->btn_refresh_all->click();
     load_scripts();
 }
@@ -104,33 +108,34 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::align_columns() {
-    Utility::thread_call(this, nullptr, [this] {
-        for (int i = 0; i < ui->devices_list->columnCount(); i++) {
-            ui->devices_list->resizeColumnToContents(i);
-        }
-        for (int i = 0; i < ui->tests_list->columnCount(); i++) {
-            ui->tests_list->resizeColumnToContents(i);
-        }
-    });
-}
-
-void MainWindow::remove_device_entry(QTreeWidgetItem *item) {
-    Utility::thread_call(this, nullptr, [this, item] { delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(item)); });
+    assert(currently_in_gui_thread());
+    //Utility::thread_call(this, nullptr, [this] {
+    for (int i = 0; i < ui->devices_list->columnCount(); i++) {
+        ui->devices_list->resizeColumnToContents(i);
+    }
+    for (int i = 0; i < ui->tests_list->columnCount(); i++) {
+        ui->tests_list->resizeColumnToContents(i);
+    }
+    //});
 }
 
 void MainWindow::load_scripts() {
-    Utility::thread_call(this, nullptr, [this] { //TODO: handle exception in a better way. If a script in the directory throws an exception, whole program crashes.
-                                                    //even though it doesn need to crash. It should simply not list that script.
-        const auto dir = QSettings{}.value(Globals::test_script_path_settings_key, "").toString();
-        QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories};
-        while (dit.hasNext()) {
-            const auto &file_path = dit.next();
-            test_descriptions.push_back({ui->tests_list, file_path, QDir{dir}.relativeFilePath(file_path)});
-        }
-    });
+    assert(currently_in_gui_thread());
+    // Utility::thread_call(this, nullptr,
+    //                     [this] {
+    //TODO: handle exception in a better way. If a script in the directory throws an exception, whole program crashes.
+    //even though it doesn need to crash. It should simply not list that script.
+    const auto dir = QSettings{}.value(Globals::test_script_path_settings_key, "").toString();
+    QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories};
+    while (dit.hasNext()) {
+        const auto &file_path = dit.next();
+        test_descriptions.push_back({ui->tests_list, file_path, QDir{dir}.relativeFilePath(file_path)});
+    }
+    //   });
 }
 
 void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *cummincation_device) {
+    //called from device worker
     Utility::thread_call(this, nullptr, [this, item, tab_name, cummincation_device] {
         assert(currently_in_gui_thread());
         ui->devices_list->addTopLevelItem(item);
@@ -147,7 +152,9 @@ void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name,
 }
 
 void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
+    //is called from other threads
     Utility::thread_call(this, nullptr, [this, text, console] {
+        assert(currently_in_gui_thread());
         if (console) {
             console->appendHtml(text);
         } else {
@@ -157,6 +164,7 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 }
 
 void MainWindow::show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon) {
+    //is called from other threads
     Utility::thread_call(this, nullptr, [this, title, message, icon] {
         switch (icon) {
             default:
@@ -181,192 +189,171 @@ void MainWindow::remove_test_runner(TestRunner *runner) {
 }
 
 void MainWindow::on_actionPaths_triggered() {
-    Utility::thread_call(this, nullptr, [this] {
-        path_dialog = new PathSettingsWindow(this);
-        path_dialog->show();
-    });
+    assert(currently_in_gui_thread());
+    //  Utility::thread_call(this, nullptr, [this] {
+    path_dialog = new PathSettingsWindow(this);
+    path_dialog->show();
+    //   / });
 }
 
-void MainWindow::device_detect() {
-    Utility::thread_call(this, nullptr,  [this] { device_worker->detect_devices(); });
-}
-
-void MainWindow::update_devices_list() {
-    Utility::thread_call(this, nullptr, [this] {
-        assert(currently_in_gui_thread());
-        device_worker->update_devices();
-    });
-}
-
-static void forget_by_treewidget_root(QTreeWidgetItem *root_item, DeviceWorker *device_worker, bool dut_only) {
+bool MainWindow::remove_device_item_recursion(QTreeWidgetItem *root_item, QTreeWidgetItem *child_to_remove, bool remove_if_existing) {
     int j = 0;
     while (j < root_item->childCount()) {
-        assert(currently_in_gui_thread());
+        QTreeWidgetItem *itemchild = root_item->child(j);
+        if (itemchild == child_to_remove) {
+            if (remove_if_existing) {
+                root_item->removeChild(child_to_remove);
+            }
+            return true;
+        } else {
+            if (remove_device_item_recursion(itemchild, child_to_remove, remove_if_existing)) {
+                return true;
+            }
+        }
+        j++;
+    }
+    return false;
+}
+
+void MainWindow::remove_device_item(QTreeWidgetItem *child_to_remove) {
+    assert(currently_in_gui_thread());
+    remove_device_item_recursion(ui->devices_list->invisibleRootItem(), child_to_remove, true);
+}
+
+bool MainWindow::device_item_exists(QTreeWidgetItem *child) {
+    assert(currently_in_gui_thread());
+    return remove_device_item_recursion(ui->devices_list->invisibleRootItem(), child, false);
+}
+
+void MainWindow::get_devices_to_forget_by_root_treewidget_recursion(QList<QTreeWidgetItem *> &list, QTreeWidgetItem *root_item) {
+    int j = 0;
+    while (j < root_item->childCount()) {
         QTreeWidgetItem *itemchild = root_item->child(j);
 
-        forget_by_treewidget_root(itemchild, device_worker, dut_only);
-        if (device_worker->is_dut_device(itemchild) || !dut_only) {
-            if (!device_worker->is_device_in_use(itemchild)) {
-                device_worker->forget_device(itemchild);
-                delete root_item->takeChild(j);
-                j--;
-            }
+        get_devices_to_forget_by_root_treewidget_recursion(list, itemchild);
+        if (!list.contains(itemchild)) { //we want the children first in the list because of deletion order
+            list.append(itemchild);
         }
         j++;
     }
 }
 
+QList<QTreeWidgetItem *> MainWindow::get_devices_to_forget_by_root_treewidget(QTreeWidgetItem *root_item) {
+    assert(currently_in_gui_thread());
+    QList<QTreeWidgetItem *> result;
+    get_devices_to_forget_by_root_treewidget_recursion(result, root_item);
+    return result;
+}
+
+void MainWindow::refresh_devices(bool only_duts) {
+    assert(currently_in_gui_thread());
+
+    statusBar()->showMessage(tr("Refreshing devices.."));
+    ui->btn_refresh_all->setEnabled(false);
+    ui->btn_refresh_dut->setEnabled(false);
+
+    QTreeWidgetItem *root = ui->devices_list->invisibleRootItem();
+
+    device_worker->refresh_devices(root, only_duts);
+}
+
+void MainWindow::slot_device_discovery_done() {
+    ui->btn_refresh_all->setEnabled(true);
+    ui->btn_refresh_dut->setEnabled(true);
+    statusBar()->showMessage(tr(""));
+}
+
 void MainWindow::on_btn_refresh_all_clicked() {
-   // Utility::thread_call(this, nullptr, [this] {
-        assert(currently_in_gui_thread());
-        QTreeWidgetItem *root = ui->devices_list->invisibleRootItem();
-        forget_by_treewidget_root(root, device_worker.get(), false);
-   // });
-    update_devices_list();
-    device_detect();
+    refresh_devices(false);
 }
 
 void MainWindow::on_btn_refresh_dut_clicked() {
-   // Utility::thread_call(this, nullptr, [this] {
-        assert(currently_in_gui_thread());
-        QTreeWidgetItem *root = ui->devices_list->invisibleRootItem();
-        forget_by_treewidget_root(root, device_worker.get(), true);
-    //});
-    update_devices_list();
-    device_detect();
-}
-
-void MainWindow::forget_device() {
-    Utility::thread_call(this, nullptr, [this] {
-        assert(currently_in_gui_thread());
-        auto selected_device_item = ui->devices_list->currentItem();
-        if (!selected_device_item) {
-            return;
-        }
-        while (ui->devices_list->indexOfTopLevelItem(selected_device_item) == -1) {
-            selected_device_item = selected_device_item->parent();
-        }
-        device_worker->forget_device(selected_device_item);
-        delete ui->devices_list->takeTopLevelItem(ui->devices_list->indexOfTopLevelItem(selected_device_item));
-    });
-}
-
-void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
-    assert(currently_in_gui_thread());
-    auto item = ui->devices_list->itemAt(pos);
-    if (item) {
-        while (ui->devices_list->indexOfTopLevelItem(item) == -1) {
-            item = item->parent();
-        }
-        QMenu menu(this);
-
-        QAction action_detect(tr("Detect"), nullptr);
-        connect(&action_detect, &QAction::triggered, [this, item] { device_worker->detect_device(item); });
-        menu.addAction(&action_detect);
-
-        QAction action_forget(tr("Forget"), nullptr);
-        if (item->text(3).isEmpty() == false) {
-            action_forget.setDisabled(true);
-        } else {
-            connect(&action_forget, &QAction::triggered, this, &MainWindow::forget_device);
-        }
-        menu.addAction(&action_forget);
-
-        menu.exec(ui->devices_list->mapToGlobal(pos));
-    }
-}
-
-void MainWindow::on_console_tabs_tabCloseRequested(int index) {
-    Utility::thread_call(this, nullptr,  [this, index] {
-        assert(currently_in_gui_thread());
-        if (ui->console_tabs->tabText(index) == "Console") {
-            Console::note() << tr("Cannot close console window");
-            return;
-        }
-        ui->console_tabs->removeTab(index);
-    });
+    refresh_devices(true);
 }
 
 void MainWindow::on_run_test_script_button_clicked() {
-    Utility::thread_call(this, nullptr,  [this] {
-        auto items = ui->tests_list->selectedItems();
-        for (auto &item : items) {
-            auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
-            if (test == nullptr) {
-                continue;
-            }
-            try {
-                test_runners.push_back(std::make_unique<TestRunner>(*test));
-            } catch (const std::runtime_error &e) {
-                Console::error(test->console) << "Failed running test: " << e.what();
-                continue;
-            }
-            auto &runner = *test_runners.back();
-            ui->test_tabs->setCurrentIndex(ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name()));
-            DeviceMatcher device_matcher(this);
-            device_matcher.match_devices(*device_worker, runner, *test);
-            auto devices = device_matcher.get_matched_devices();
-            if (device_matcher.was_successful()) {
-                runner.run_script(devices, *device_worker);
-            } else {
-                runner.interrupt();
-            }
+    assert(currently_in_gui_thread());
+    //Utility::thread_call(this, nullptr, [this] {
+    auto items = ui->tests_list->selectedItems();
+    for (auto &item : items) {
+        auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
+        if (test == nullptr) {
+            continue;
         }
-    });
+        try {
+            test_runners.push_back(std::make_unique<TestRunner>(*test));
+        } catch (const std::runtime_error &e) {
+            Console::error(test->console) << "Failed running test: " << e.what();
+            continue;
+        }
+        auto &runner = *test_runners.back();
+        ui->test_tabs->setCurrentIndex(ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name()));
+        DeviceMatcher device_matcher(this);
+        device_matcher.match_devices(*device_worker, runner, *test);
+        auto devices = device_matcher.get_matched_devices();
+        if (device_matcher.was_successful()) {
+            runner.run_script(devices, *device_worker);
+        } else {
+            runner.interrupt();
+        }
+    }
+    // });
 }
 
 void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
+    assert(currently_in_gui_thread());
     (void)column;
-    Utility::thread_call(this, nullptr, [this, item] {
-        auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
-        if (test == nullptr) {
-            return;
-        }
-        Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
-        ui->test_tabs->setCurrentIndex(0);
-    });
+    //Utility::thread_call(this, nullptr, [this, item] {
+    auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
+    if (test == nullptr) {
+        return;
+    }
+    Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
+    ui->test_tabs->setCurrentIndex(0);
+    // });
 }
 
 void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
-    Utility::thread_call(this, nullptr,  [this, pos] {
-        auto item = ui->tests_list->itemAt(pos);
-        if (item && get_test_from_ui()) {
-            while (ui->tests_list->indexOfTopLevelItem(item) == -1) {
-                item = item->parent();
-            }
-
-            emit on_tests_list_itemClicked(item, 0);
-
-            auto test = get_test_from_ui();
-
-            QMenu menu(this);
-
-            QAction action_run(tr("Run"), nullptr);
-            connect(&action_run, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
-            menu.addAction(&action_run);
-
-            QAction action_reload(tr("Reload"), nullptr);
-            connect(&action_reload, &QAction::triggered, [test] { test->reload(); });
-            menu.addAction(&action_reload);
-
-            QAction action_editor(tr("Open in Editor"), nullptr);
-            connect(&action_editor, &QAction::triggered, [test] { test->launch_editor(); });
-            menu.addAction(&action_editor);
-
-            menu.exec(ui->tests_list->mapToGlobal(pos));
-        } else {
-            QMenu menu(this);
-
-            QAction action(tr("Reload all scripts"), nullptr);
-            connect(&action, &QAction::triggered, [this] {
-                test_descriptions.clear();
-                load_scripts();
-            });
-            menu.addAction(&action);
-
-            menu.exec(ui->tests_list->mapToGlobal(pos));
+    assert(currently_in_gui_thread());
+    // Utility::thread_call(this, nullptr, [this, pos] {
+    auto item = ui->tests_list->itemAt(pos);
+    if (item && get_test_from_ui()) {
+        while (ui->tests_list->indexOfTopLevelItem(item) == -1) {
+            item = item->parent();
         }
-    });
+
+        emit on_tests_list_itemClicked(item, 0);
+
+        auto test = get_test_from_ui();
+
+        QMenu menu(this);
+
+        QAction action_run(tr("Run"), nullptr);
+        connect(&action_run, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
+        menu.addAction(&action_run);
+
+        QAction action_reload(tr("Reload"), nullptr);
+        connect(&action_reload, &QAction::triggered, [test] { test->reload(); });
+        menu.addAction(&action_reload);
+
+        QAction action_editor(tr("Open in Editor"), nullptr);
+        connect(&action_editor, &QAction::triggered, [test] { test->launch_editor(); });
+        menu.addAction(&action_editor);
+
+        menu.exec(ui->tests_list->mapToGlobal(pos));
+    } else {
+        QMenu menu(this);
+
+        QAction action(tr("Reload all scripts"), nullptr);
+        connect(&action, &QAction::triggered, [this] {
+            test_descriptions.clear();
+            load_scripts();
+        });
+        menu.addAction(&action);
+
+        menu.exec(ui->tests_list->mapToGlobal(pos));
+    }
+    //  });
 }
 
 TestDescriptionLoader *MainWindow::get_test_from_ui(const QTreeWidgetItem *item) {
