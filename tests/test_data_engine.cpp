@@ -2506,7 +2506,7 @@ void Test_Data_engine::test_references_if_fails_when_mismatch_in_unit() {
 #include <QSqlRecord>
 
 void Test_Data_engine::test_preview() {
-#if !DISABLE_ALL || 0
+#if !DISABLE_ALL || 1
     std::stringstream input{R"(
 		{
 			"testA":{
@@ -2550,16 +2550,15 @@ void Test_Data_engine::test_preview() {
     de.set_actual_number("testB/idB4", 100);
     //QVERIFY(de.all_values_in_range());
     QVERIFY(de.is_complete());
-
-    de.fill_database(db);
-
+	de.fill_database(db);
+	de.generate_template("testreport.lrxml");
     QVERIFY(de.generate_pdf("testreport.lrxml", QDir::current().absoluteFilePath("test.pdf").toStdString()));
 
 #endif
 }
 
 void Test_Data_engine::test_form_creation() {
-#if !DISABLE_ALL || 1
+#if !DISABLE_ALL || 0
     std::stringstream input{R"(
 		{
 			"testA":{
