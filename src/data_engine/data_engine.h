@@ -326,7 +326,7 @@ struct VariantData {
     uint get_entry_count() const;
 
     public:
-    bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count, const QString &section_name) ;
+	bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count, const QString &section_name);
     void from_json(const QJsonObject &object);
     bool entry_exists(QString field_name);
     DataEngineDataEntry *get_entry(QString field_name) const;
@@ -369,6 +369,8 @@ struct DataEngineSection {
     void from_json(const QJsonValue &object, const QString &key_name);
     QString get_section_name() const;
     QString get_instance_count_name() const;
+	QString get_sql_section_name() const;
+	QString get_sql_instance_name() const;
     QStringList get_all_ids_of_selected_instance(const QString &prefix) const;
     QStringList get_instance_captions() const;
     bool is_section_instance_defined() const;
@@ -502,9 +504,9 @@ class Data_engine {
     private:
 	void generate_pages(QXmlStreamWriter &xml) const;
 	void generate_pages_header(QXmlStreamWriter &xml) const;
-	void generate_datasourcesManager(QXmlStreamWriter &xml) const;
-    void generate_scriptContext(QXmlStreamWriter &xml) const;
-	void generate_tables(QXmlStreamWriter &xml) const;
+	void generate_tables() const;
+	void generate_sourced_form(const std::string &source_path, const std::string &destination_path, const std::string &database_path) const;
+	void add_sources_to_form(const std::string &data_base_path) const;
 
     struct FormIdWrapper {
         FormIdWrapper(const FormID &id)
