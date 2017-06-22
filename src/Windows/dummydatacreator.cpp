@@ -3,6 +3,7 @@
 #include <QFileDialog>
 #include <QLabel>
 #include <fstream>
+#include <QSqlDatabase>
 
 DummyDataCreator::DummyDataCreator(QWidget *parent)
     : QDialog(parent)
@@ -44,11 +45,19 @@ void DummyDataCreator::on_pushButton_clicked() {
     dialog.setNameFilter(tr("Data Engine Input files (*.json)"));
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     if (dialog.exec()) {
-        data_engine.save_data_to_file(dialog.selectedFiles()[0]);
+        data_engine.generate_template(dialog.selectedFiles()[0] + ".lrxml");
+        { //TODO: put into data_engine
+            auto db = QSqlDatabase::addDatabase("QSQLITE");
+            const auto db_name = dialog.selectedFiles()[0] + ".db";
+            //QFile::remove(db_name);
+            //QFile{db_name}.exists() == false;
+            db.setDatabaseName(db_name);
+            db.open();
+            data_engine.fill_database(db);
+        }
     }
 }
 
-void DummyDataCreator::on_pushButton_2_clicked()
-{
+void DummyDataCreator::on_pushButton_2_clicked() {
     close();
 }

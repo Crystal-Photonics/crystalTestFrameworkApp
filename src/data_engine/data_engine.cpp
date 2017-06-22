@@ -1436,7 +1436,11 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
     return re.printToPDF(QString::fromStdString(destination));
 }
 
-static void db_exec(QSqlDatabase &db, const QString &query) {
+static void db_exec(QSqlDatabase &db, QString query) {
+ //   query = query.replace("ä","ae");
+ //   query = query.replace("ö","oe");
+ //   query = query.replace("ü","ue");
+ //   query = query.replace("ß","sz");
     auto instance = db.exec(query);
     if (instance.lastError().isValid()) {
         qDebug() << instance.lastError().text();
