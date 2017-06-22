@@ -109,36 +109,51 @@ MainWindow::~MainWindow() {
 
 void MainWindow::align_columns() {
     assert(currently_in_gui_thread());
-    //Utility::thread_call(this, nullptr, [this] {
     for (int i = 0; i < ui->devices_list->columnCount(); i++) {
         ui->devices_list->resizeColumnToContents(i);
     }
     for (int i = 0; i < ui->tests_list->columnCount(); i++) {
         ui->tests_list->resizeColumnToContents(i);
     }
-    //});
+}
+
+//void MainWindow::set_manual_devices_parent_item(std::unique_ptr<QTreeWidgetItem> manual_devices_parent_item) {
+//  manual_devices_parent_item_mutex.lock();
+//this->manual_devices_parent_item = manual_devices_parent_item;
+// manual_devices_parent_item_mutex.unlock();
+//}
+
+std::unique_ptr<QTreeWidgetItem> *MainWindow::create_manual_devices_parent_item() {
+    manual_devices_parent_item = std::make_unique<QTreeWidgetItem>(QStringList{} << "Manual Devices");
+    //if (manual_parent_item->get()) {
+    add_device_item(manual_devices_parent_item.get(), "test", nullptr);
+    //}
+    return &manual_devices_parent_item;
+}
+
+std::unique_ptr<QTreeWidgetItem> *MainWindow::MainWindow::get_manual_devices_parent_item() {
+    return &manual_devices_parent_item;
 }
 
 void MainWindow::load_scripts() {
     assert(currently_in_gui_thread());
-    // Utility::thread_call(this, nullptr,
-    //                     [this] {
-    //TODO: handle exception in a better way. If a script in the directory throws an exception, whole program crashes.
-    //even though it doesn need to crash. It should simply not list that script.
     const auto dir = QSettings{}.value(Globals::test_script_path_settings_key, "").toString();
     QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories};
     while (dit.hasNext()) {
         const auto &file_path = dit.next();
         test_descriptions.push_back({ui->tests_list, file_path, QDir{dir}.relativeFilePath(file_path)});
     }
-    //   });
 }
 
-void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *cummincation_device) {
+void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *cummincation_device) {
     //called from device worker
-    Utility::thread_call(this, nullptr, [this, item, tab_name, cummincation_device] {
+    Utility::thread_call(this, nullptr, [this, parent, child, tab_name, cummincation_device] {
         assert(currently_in_gui_thread());
-        ui->devices_list->addTopLevelItem(item);
+        if (parent) {
+            parent->addChild(child);
+        } else {
+            ui->devices_list->addTopLevelItem(child);
+        }
         align_columns();
         if (cummincation_device) {
             auto console = new QPlainTextEdit(ui->console_tabs);
@@ -149,6 +164,11 @@ void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name,
             device_worker->connect_to_device_console(console, cummincation_device);
         }
     });
+}
+
+void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *cummincation_device) {
+    //called from device worker
+    add_device_child_item(nullptr, item, tab_name, cummincation_device);
 }
 
 void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {

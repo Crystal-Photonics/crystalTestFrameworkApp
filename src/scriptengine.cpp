@@ -705,8 +705,6 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
     });
 
     Utility::promised_thread_call(MainWindow::mw, [this, &shortcuts] { //
-
-//    MainWindow::mw->execute_in_gui_thread(this, [this, &shortcuts] {
         const char *settings_keys[] = {Globals::confirm_key_sequence, Globals::skip_key_sequence, Globals::cancel_key_sequence};
         for (std::size_t i = 0; i < shortcuts.size(); i++) {
             shortcuts[i] = std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
@@ -747,22 +745,22 @@ void ScriptEngine::hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent event)
 }
 
 void ScriptEngine::event_queue_interrupt() {
-    qDebug() << "event_queue_interrupt called";
+    //qDebug() << "event_queue_interrupt called";
     Utility::thread_call(this->owner->obj(), this, [this]() { //
 #if 0
         qDebug() << "interrupting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "by event"
                  << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
                  << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-        qDebug() << "event_queue_interrupt entered thread_call"
-                 << "eventloop running:" << event_loop.isRunning();
+       // qDebug() << "event_queue_interrupt entered thread_call"
+       //          << "eventloop running:" << event_loop.isRunning();
         if (event_loop.isRunning()) {
-            qDebug() << "event_queue_interrupt exit calling..";
+          //  qDebug() << "event_queue_interrupt exit calling..";
             event_loop.exit(-1);
-            qDebug() << "event_queue_interrupt called.";
+           // qDebug() << "event_queue_interrupt called.";
         }
     }); //calls fun in the thread that owns obj
-    qDebug() << "event_queue_interrupt finished";
+  //  qDebug() << "event_queue_interrupt finished";
 }
 
 std::string ScriptEngine::to_string(double d) {
