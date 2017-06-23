@@ -32,6 +32,7 @@ class DeviceRequirements {
     int quantity_min = 0;
     int quantity_max = INT_MAX;
     QString get_description() const;
+    QString alias;
 };
 
 namespace HotKeyEvent {

@@ -1599,6 +1599,8 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
                     item.quantity_min = get_quantity_num(protocol_entry_field.second);
                 } else if (protocol_entry_field.first.as<std::string>() == "quantity_max") {
                     item.quantity_max = get_quantity_num(protocol_entry_field.second);
+                } else if (protocol_entry_field.first.as<std::string>() == "alias") {
+                    item.alias = get_quantity_num(protocol_entry_field.second);
                 }
             }
             if (protocol_does_not_provide_name) {
@@ -1653,6 +1655,7 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
         {
             auto device_list = lua->create_table_with();
             for (auto &device_protocol : devices) {
+               // QString alias =
                 if (auto rpcp = dynamic_cast<RPCProtocol *>(device_protocol.second)) {
                     device_list.add(RPCDevice{&*lua, rpcp, device_protocol.first, this});
 
