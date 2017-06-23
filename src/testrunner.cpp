@@ -5,6 +5,7 @@
 #include "scriptengine.h"
 #include "testdescriptionloader.h"
 #include "ui_container.h"
+#include "Windows/devicematcher.h"
 
 #include <QApplication>
 #include <QDebug>
@@ -70,11 +71,11 @@ UI_container *TestRunner::get_lua_ui_container() const {
     return lua_ui_container;
 }
 
-void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protocol *>> devices, DeviceWorker &device_worker) {
-    qDebug() << "run_script called@TestRunner";
+void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &device_worker) {
+//    qDebug() << "run_script called@TestRunner";
     Utility::thread_call(this, nullptr, [ this, devices = std::move(devices), &device_worker ]() mutable {
         for (auto &dev_prot : devices) {
-            device_worker.set_currently_running_test(dev_prot.first, name);
+            device_worker.set_currently_running_test(dev_prot.device, name);
         }
         try {
             script.run(devices);
@@ -82,12 +83,11 @@ void TestRunner::run_script(std::vector<std::pair<CommunicationDevice *, Protoco
             qDebug() << "runtime_error caught @TestRunner::run_script";
             MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] {
                 assert(console);
-//                qDebug() << QString::fromStdString(message);
                 Console::error(console) << message;
             });
         }
         for (auto &dev_prot : devices) {
-            device_worker.set_currently_running_test(dev_prot.first, "");
+            device_worker.set_currently_running_test(dev_prot.device, "");
         }
         moveToThread(MainWindow::gui_thread);
         thread.quit();

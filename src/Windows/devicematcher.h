@@ -53,6 +53,12 @@ namespace Ui {
     class DeviceMatcher;
 }
 
+struct MatchedDevice{
+    CommunicationDevice * device=nullptr;
+    Protocol * protocol = nullptr;
+    QString proposed_alias;
+};
+
 class DeviceMatcher : public QDialog {
     Q_OBJECT
 
@@ -62,7 +68,7 @@ class DeviceMatcher : public QDialog {
 
     void match_devices(DeviceWorker &device_worker, TestRunner &runner, TestDescriptionLoader &test);
 
-    std::vector<std::pair<CommunicationDevice *, Protocol *>> get_matched_devices();
+    std::vector<MatchedDevice> get_matched_devices();
     bool was_successful();
 
     private slots:

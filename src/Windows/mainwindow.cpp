@@ -141,7 +141,7 @@ void MainWindow::load_scripts() {
     QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories};
     while (dit.hasNext()) {
         const auto &file_path = dit.next();
-        test_descriptions.push_back({ui->tests_list, file_path, QDir{dir}.relativeFilePath(file_path)});
+        test_descriptions.push_back(TestDescriptionLoader{ui->tests_list, file_path, QDir{dir}.relativeFilePath(file_path)});
     }
 }
 
@@ -293,10 +293,11 @@ void MainWindow::on_btn_refresh_dut_clicked() {
 
 void MainWindow::on_run_test_script_button_clicked() {
     assert(currently_in_gui_thread());
-    //Utility::thread_call(this, nullptr, [this] {
+
     auto items = ui->tests_list->selectedItems();
     for (auto &item : items) {
-        auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
+        auto data = item->data(0, Qt::UserRole);
+        auto test = Utility::from_qvariant<TestDescriptionLoader>(data);
         if (test == nullptr) {
             continue;
         }
@@ -317,7 +318,7 @@ void MainWindow::on_run_test_script_button_clicked() {
             runner.interrupt();
         }
     }
-    // });
+
 }
 
 void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {

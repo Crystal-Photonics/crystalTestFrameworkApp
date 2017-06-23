@@ -2,8 +2,9 @@
 #include "ui_dummydatacreator.h"
 #include <QFileDialog>
 #include <QLabel>
-#include <fstream>
+#include <QMessageBox>
 #include <QSqlDatabase>
+#include <fstream>
 
 DummyDataCreator::DummyDataCreator(QWidget *parent)
     : QDialog(parent)
@@ -42,21 +43,29 @@ void DummyDataCreator::on_pushButton_clicked() {
     data_engine.fill_engine_with_dummy_data();
     QFileDialog dialog(this);
     dialog.setFileMode(QFileDialog::AnyFile);
-    dialog.setNameFilter(tr("Data Engine Input files (*.json)"));
+    dialog.setNameFilter(tr("Report Template (*.lrxml)"));
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     if (dialog.exec()) {
         const auto db_name = dialog.selectedFiles()[0] + ".db";
+        if (QFile::exists(db_name)) {
+            auto result =
+                QMessageBox::question(this, QString("File already exists"), QString("The file %1 already exists. Do you want to overwrite this file?").arg(db_name));
+            if (result == QMessageBox::No) {
+                return;
+            }
+        }
 
-        data_engine.generate_template(dialog.selectedFiles()[0] + ".lrxml",db_name);
+        data_engine.generate_template(dialog.selectedFiles()[0], db_name);
         { //TODO: put into data_engine
+
             auto db = QSqlDatabase::addDatabase("QSQLITE");
-            //QFile::remove(db_name);
-            //QFile{db_name}.exists() == false;
+            QFile::remove(db_name);
             db.setDatabaseName(db_name);
             db.open();
             data_engine.fill_database(db);
         }
     }
+    close();
 }
 
 void DummyDataCreator::on_pushButton_2_clicked() {

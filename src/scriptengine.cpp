@@ -18,6 +18,7 @@
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
 #include "Protocols/sg04countprotocol.h"
+#include "Windows/devicematcher.h"
 #include "Windows/mainwindow.h"
 #include "chargecounter.h"
 #include "config.h"
@@ -752,15 +753,15 @@ void ScriptEngine::event_queue_interrupt() {
                  << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
                  << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-       // qDebug() << "event_queue_interrupt entered thread_call"
-       //          << "eventloop running:" << event_loop.isRunning();
+        // qDebug() << "event_queue_interrupt entered thread_call"
+        //          << "eventloop running:" << event_loop.isRunning();
         if (event_loop.isRunning()) {
-          //  qDebug() << "event_queue_interrupt exit calling..";
+            //  qDebug() << "event_queue_interrupt exit calling..";
             event_loop.exit(-1);
-           // qDebug() << "event_queue_interrupt called.";
+            // qDebug() << "event_queue_interrupt called.";
         }
     }); //calls fun in the thread that owns obj
-  //  qDebug() << "event_queue_interrupt finished";
+        //  qDebug() << "event_queue_interrupt finished";
 }
 
 std::string ScriptEngine::to_string(double d) {
@@ -1496,9 +1497,7 @@ void ScriptEngine::set_error_line(const sol::error &error) {
 }
 
 void ScriptEngine::interrupt(QString msg) {
-    Utility::thread_call(MainWindow::mw, nullptr, [this, msg] {
-        Console::error(console) << msg;
-    });
+    Utility::thread_call(MainWindow::mw, nullptr, [this, msg] { Console::error(console) << msg; });
     qDebug() << "script interrupted";
     if (owner) {
         owner->interrupt();
@@ -1600,7 +1599,7 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
                 } else if (protocol_entry_field.first.as<std::string>() == "quantity_max") {
                     item.quantity_max = get_quantity_num(protocol_entry_field.second);
                 } else if (protocol_entry_field.first.as<std::string>() == "alias") {
-                    item.alias = get_quantity_num(protocol_entry_field.second);
+                    item.alias = QString::fromStdString(protocol_entry_field.second.as<std::string>());
                 }
             }
             if (protocol_does_not_provide_name) {
@@ -1619,7 +1618,7 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
     return result;
 }
 
-void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices) {
+void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
     qDebug() << "ScriptEngine::run";
     qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
 
@@ -1653,11 +1652,25 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
     };
     try {
         {
+            int index = 1;
             auto device_list = lua->create_table_with();
+            QStringList used_indexes{};
             for (auto &device_protocol : devices) {
-               // QString alias =
-                if (auto rpcp = dynamic_cast<RPCProtocol *>(device_protocol.second)) {
-                    device_list.add(RPCDevice{&*lua, rpcp, device_protocol.first, this});
+                QString alias = device_protocol.proposed_alias;
+                if (alias == ""){
+                    alias = QString::number(index);
+                }
+                QString alias_temp = alias;
+                int i=1;
+                while (used_indexes.contains(alias_temp)){
+                    alias_temp = alias+"_"+QString::number(i);
+                    i++;
+                }
+                alias = alias_temp;
+                used_indexes.append(alias);
+                std::string alias_std = alias.toStdString();
+                if (auto rpcp = dynamic_cast<RPCProtocol *>(device_protocol.protocol)) {
+                    device_list[alias_std] = RPCDevice{&*lua, rpcp, device_protocol.device, this};
 
                     auto type_reg = lua->create_simple_usertype<RPCDevice>();
                     for (auto &function : rpcp->get_description().get_functions()) {
@@ -1669,22 +1682,23 @@ void ScriptEngine::run(std::vector<std::pair<CommunicationDevice *, Protocol *>>
                     type_reg.set("get_protocol_name", [](RPCDevice &device) { return device.get_protocol_name(); });
                     const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
                     lua->set_usertype(type_name, type_reg);
-                    while (device_protocol.first->waitReceived(CommunicationDevice::Duration{0}, 1)) {
+                    while (device_protocol.device->waitReceived(CommunicationDevice::Duration{0}, 1)) {
                         //ignore leftover data in the receive buffer
                     }
                     rpcp->clear();
 
-                } else if (auto scpip = dynamic_cast<SCPIProtocol *>(device_protocol.second)) {
-                    device_list.add(SCPIDevice{&*lua, scpip, device_protocol.first, this});
+                } else if (auto scpip = dynamic_cast<SCPIProtocol *>(device_protocol.protocol)) {
+                    device_list[alias_std] = SCPIDevice{&*lua, scpip, device_protocol.device, this};
                     scpip->clear();
-                } else if (auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device_protocol.second)) {
-                    device_list.add(SG04CountDevice{&*lua, sg04_count_protocol, device_protocol.first, this});
-                } else if (auto manual_protocol = dynamic_cast<ManualProtocol *>(device_protocol.second)) {
-                    device_list.add(ManualDevice{&*lua, manual_protocol, device_protocol.first, this});
+                } else if (auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device_protocol.protocol)) {
+                    device_list[alias_std] = SG04CountDevice{&*lua, sg04_count_protocol, device_protocol.device, this};
+                } else if (auto manual_protocol = dynamic_cast<ManualProtocol *>(device_protocol.protocol)) {
+                    device_list[alias_std] = ManualDevice{&*lua, manual_protocol, device_protocol.device, this};
                 } else {
                     //TODO: other protocols
-                    throw std::runtime_error("invalid protocol: " + device_protocol.second->type.toStdString());
+                    throw std::runtime_error("invalid protocol: " + device_protocol.protocol->type.toStdString());
                 }
+                index++;
             }
             (*lua)["run"](device_list);
         }

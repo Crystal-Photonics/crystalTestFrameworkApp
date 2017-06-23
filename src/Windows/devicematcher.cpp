@@ -21,8 +21,6 @@ DeviceMatcher::~DeviceMatcher() {
     delete ui;
 }
 
-
-
 std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::vector<PortDescription *> candidates, TestRunner &runner) {
     std::vector<std::pair<CommunicationDevice *, Protocol *>> devices;
     for (auto device : candidates) {
@@ -180,13 +178,14 @@ void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runne
     }
 }
 
-std::vector<std::pair<CommunicationDevice *, Protocol *>> DeviceMatcher::get_matched_devices() {
-    std::vector<std::pair<CommunicationDevice *, Protocol *>> device_matching_result;
+std::vector<MatchedDevice> DeviceMatcher::get_matched_devices() {
+    std::vector<MatchedDevice> device_matching_result;
     for (auto d : devices_to_match) {
         if (d.match_definition == DevicesToMatchEntry::MatchDefinitionState::FullDefined) {
+            //qDebug() << "get_matched_devices" << d.device_requirement.alias;
             for (auto &ac : d.accepted_candidates) {
                 if (ac.selected) {
-                    std::pair<CommunicationDevice *, Protocol *> p{ac.communication_device, ac.protocol};
+                    MatchedDevice p{ac.communication_device, ac.protocol, d.device_requirement.alias};
                     device_matching_result.push_back(p);
                 }
             }
