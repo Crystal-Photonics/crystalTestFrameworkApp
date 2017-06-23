@@ -7,6 +7,7 @@
 #include <QByteArray>
 #include <QDateTime>
 #include <QDebug>
+#include <QDir>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -26,7 +27,6 @@
 #include <lrdatasourcemanagerintf.h>
 #include <lrreportengine.h>
 #include <type_traits>
-#include <QDir>
 
 template <class T>
 typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type almost_equal(T x, T y, int ulp) {
@@ -643,14 +643,13 @@ QString DataEngineSection::get_instance_count_name() const {
 
 static QString adjust_sql_table_name(QString old_table_name) {
     old_table_name = old_table_name.toLower();
-    old_table_name = old_table_name.replace("-","_");
-    old_table_name = old_table_name.replace("ü","ue");
-    old_table_name = old_table_name.replace("ö","oe");
-    old_table_name = old_table_name.replace("ä","ae");
-    old_table_name = old_table_name.replace("ß","sz");
+	old_table_name = old_table_name.replace("-", "_");
+	old_table_name = old_table_name.replace("ü", "ue");
+	old_table_name = old_table_name.replace("ö", "oe");
+	old_table_name = old_table_name.replace("ä", "ae");
+	old_table_name = old_table_name.replace("ß", "sz");
     return old_table_name;
 }
-
 
 QString DataEngineSection::get_sql_section_name() const {
     return adjust_sql_table_name(get_section_name());
@@ -1551,9 +1550,6 @@ void Data_engine::save_to_json(QString filename) {
     saveFile.write(saveDoc.toJson());
 }
 
-
-
-
 void Data_engine::fill_database(QSqlDatabase &db) const {
     //for (const auto &section : sections.sections) { //cannot use auto because Qt Creator is a PoS
     for (const DataEngineSection &section : sections.sections) {
@@ -1662,14 +1658,13 @@ void Data_engine::generate_template(const QString &destination, const QString &d
             xml.writeStartElement("datasourcesManager");
             xml.writeAttribute("Type", "Object");
             xml.writeAttribute("ClassName", "LimeReport::DataSourceManager");
+			add_sources_to_form(db_filename);
             xml.writeEndElement(); //datasourcesManager
 
             xml.writeStartElement("scriptContext");
             xml.writeAttribute("Type", "Object");
             xml.writeAttribute("ClassName", "LimeReport::ScriptEngineContext");
             xml.writeEndElement(); //scriptContext
-
-            add_sources_to_form(db_filename);
         }
         xml.writeEndElement(); //"object"
     }
@@ -1844,7 +1839,30 @@ void Data_engine::generate_sourced_form(const std::string &source_path, const st
             }
         }
         xml_out.writeCurrentToken(xml_in);
-    }
+	}
+}
+
+void Data_engine::replace_database_filename(const std::string &source_form_path, const std::string &destination_form_path, const std::string &database_path) {
+	QFile xml_file_in{source_form_path.c_str()};
+	xml_file_in.open(QFile::OpenModeFlag::ReadOnly);
+	assert(xml_file_in.isOpen());
+	QXmlStreamReader xml_in{&xml_file_in};
+	QFile xml_file_out{destination_form_path.c_str()};
+	xml_file_out.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
+	assert(xml_file_out.isOpen());
+	QXmlStreamWriter xml_out{&xml_file_out};
+	while (xml_in.readNext() != QXmlStreamReader::Invalid) {
+		if (xml_in.isStartElement()) {
+			if (xml_in.name() == "databaseName") {
+				xml_out.writeCurrentToken(xml_in);
+				xml_in.skipCurrentElement();
+				xml_out.writeCharacters(QString::fromStdString(database_path));
+				xml_out.writeCurrentToken(xml_in);
+				continue;
+			}
+		}
+		xml_out.writeCurrentToken(xml_in);
+	}
 }
 
 void Data_engine::add_sources_to_form(QString data_base_path) const {

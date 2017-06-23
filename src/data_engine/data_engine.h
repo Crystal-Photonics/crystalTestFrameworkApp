@@ -492,13 +492,13 @@ class Data_engine {
     void fill_engine_with_dummy_data();
     Statistics get_statistics() const;
 
-
     std::unique_ptr<QWidget> get_preview() const;
     bool generate_pdf(const std::string &form, const std::string &destination) const;
 	void fill_database(QSqlDatabase &db) const;
     void generate_template(const QString &destination, const QString &db_filename) const;
 
     void save_to_json(QString filename);
+	static void replace_database_filename(const std::string &source_form_path, const std::string &destination_form_path, const std::string &database_path);
 
     private:
 	void generate_pages(QXmlStreamWriter &xml) const;
