@@ -45,10 +45,11 @@ void DummyDataCreator::on_pushButton_clicked() {
     dialog.setNameFilter(tr("Data Engine Input files (*.json)"));
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     if (dialog.exec()) {
-        data_engine.generate_template(dialog.selectedFiles()[0] + ".lrxml");
+        const auto db_name = dialog.selectedFiles()[0] + ".db";
+
+        data_engine.generate_template(dialog.selectedFiles()[0] + ".lrxml",db_name);
         { //TODO: put into data_engine
             auto db = QSqlDatabase::addDatabase("QSQLITE");
-            const auto db_name = dialog.selectedFiles()[0] + ".db";
             //QFile::remove(db_name);
             //QFile{db_name}.exists() == false;
             db.setDatabaseName(db_name);

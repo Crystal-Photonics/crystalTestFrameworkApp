@@ -492,12 +492,11 @@ class Data_engine {
     void fill_engine_with_dummy_data();
     Statistics get_statistics() const;
 
-    void save_data_to_file(const QString &filename) const;
 
     std::unique_ptr<QWidget> get_preview() const;
     bool generate_pdf(const std::string &form, const std::string &destination) const;
 	void fill_database(QSqlDatabase &db) const;
-    void generate_template(const QString &destination) const;
+    void generate_template(const QString &destination, const QString &db_filename) const;
 
     void save_to_json(QString filename);
 
@@ -506,7 +505,7 @@ class Data_engine {
 	void generate_pages_header(QXmlStreamWriter &xml) const;
 	void generate_tables() const;
 	void generate_sourced_form(const std::string &source_path, const std::string &destination_path, const std::string &database_path) const;
-	void add_sources_to_form(const std::string &data_base_path) const;
+    void add_sources_to_form(QString data_base_path) const;
 
     struct FormIdWrapper {
         FormIdWrapper(const FormID &id)
