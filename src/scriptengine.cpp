@@ -1652,55 +1652,82 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
     };
     try {
         {
-            int index = 1;
-            auto device_list = lua->create_table_with();
-            QStringList used_indexes{};
+
+            QMultiMap<QString, MatchedDevice> aliased_devices;
             for (auto &device_protocol : devices) {
-                QString alias = device_protocol.proposed_alias;
-                if (alias == ""){
-                    alias = QString::number(index);
-                }
-                QString alias_temp = alias;
-                int i=1;
-                while (used_indexes.contains(alias_temp)){
-                    alias_temp = alias+"_"+QString::number(i);
-                    i++;
-                }
-                alias = alias_temp;
-                used_indexes.append(alias);
-                std::string alias_std = alias.toStdString();
-                if (auto rpcp = dynamic_cast<RPCProtocol *>(device_protocol.protocol)) {
-                    device_list[alias_std] = RPCDevice{&*lua, rpcp, device_protocol.device, this};
-
-                    auto type_reg = lua->create_simple_usertype<RPCDevice>();
-                    for (auto &function : rpcp->get_description().get_functions()) {
-                        const auto &function_name = function.get_function_name();
-                        type_reg.set(function_name,
-                                     [function_name](RPCDevice &device, const sol::variadic_args &va) { return device.call_rpc_function(function_name, va); });
-                        add_enum_types(function, *lua);
-                    }
-                    type_reg.set("get_protocol_name", [](RPCDevice &device) { return device.get_protocol_name(); });
-                    const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
-                    lua->set_usertype(type_name, type_reg);
-                    while (device_protocol.device->waitReceived(CommunicationDevice::Duration{0}, 1)) {
-                        //ignore leftover data in the receive buffer
-                    }
-                    rpcp->clear();
-
-                } else if (auto scpip = dynamic_cast<SCPIProtocol *>(device_protocol.protocol)) {
-                    device_list[alias_std] = SCPIDevice{&*lua, scpip, device_protocol.device, this};
-                    scpip->clear();
-                } else if (auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device_protocol.protocol)) {
-                    device_list[alias_std] = SG04CountDevice{&*lua, sg04_count_protocol, device_protocol.device, this};
-                } else if (auto manual_protocol = dynamic_cast<ManualProtocol *>(device_protocol.protocol)) {
-                    device_list[alias_std] = ManualDevice{&*lua, manual_protocol, device_protocol.device, this};
-                } else {
-                    //TODO: other protocols
-                    throw std::runtime_error("invalid protocol: " + device_protocol.protocol->type.toStdString());
-                }
-                index++;
+                aliased_devices.insertMulti(device_protocol.proposed_alias, device_protocol);
             }
-            (*lua)["run"](device_list);
+            std::vector<sol::object> no_alias_device_list;
+            std::map<QString, std::vector<sol::object>> aliased_devices_result;
+
+
+            //creating devices..
+            auto aliases = aliased_devices.keys();
+            for (auto alias : aliases) {
+                auto values = aliased_devices.values(alias);
+                std::vector<sol::object> device_list;
+                for (const auto &device_protocol : values) {
+                    if (auto rpcp = dynamic_cast<RPCProtocol *>(device_protocol.protocol)) {
+                        sol::object rpc_device_sol = sol::make_object(*lua, RPCDevice{&*lua, rpcp, device_protocol.device, this});
+                        device_list.push_back(rpc_device_sol);
+
+                        auto type_reg = lua->create_simple_usertype<RPCDevice>();
+                        for (auto &function : rpcp->get_description().get_functions()) {
+                            const auto &function_name = function.get_function_name();
+                            type_reg.set(function_name, [function_name](RPCDevice &device, const sol::variadic_args &va) {
+                                return device.call_rpc_function(function_name, va);
+                            });
+                            add_enum_types(function, *lua);
+                        }
+                        type_reg.set("get_protocol_name", [](RPCDevice &device) { return device.get_protocol_name(); });
+                        const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
+                        lua->set_usertype(type_name, type_reg);
+                        while (device_protocol.device->waitReceived(CommunicationDevice::Duration{0}, 1)) {
+                            //ignore leftover data in the receive buffer
+                        }
+                        rpcp->clear();
+
+                    } else if (auto scpip = dynamic_cast<SCPIProtocol *>(device_protocol.protocol)) {
+                        sol::object scpip_device_sol = sol::make_object(*lua, SCPIDevice{&*lua, scpip, device_protocol.device, this});
+
+                        device_list.push_back(scpip_device_sol);
+                        scpip->clear();
+                    } else if (auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device_protocol.protocol)) {
+                        sol::object sg04_device_sol = sol::make_object(*lua, SG04CountDevice{&*lua, sg04_count_protocol, device_protocol.device, this});
+                        device_list.push_back(sg04_device_sol);
+                    } else if (auto manual_protocol = dynamic_cast<ManualProtocol *>(device_protocol.protocol)) {
+                        sol::object manual_device_sol = sol::make_object(*lua, ManualDevice{&*lua, manual_protocol, device_protocol.device, this});
+                        device_list.push_back(manual_device_sol);
+                    } else {
+                        //TODO: other protocols
+                        throw std::runtime_error("invalid protocol: " + device_protocol.protocol->type.toStdString());
+                    }
+                }
+                if (alias == "") {
+                    no_alias_device_list.insert(no_alias_device_list.end(), device_list.begin(), device_list.end());
+                } else {
+                    aliased_devices_result[alias] = device_list;
+                }
+            }
+
+            //ordering/grouping devices..
+            auto device_list_sol = lua->create_table_with();
+            for (auto sol_device : no_alias_device_list) {
+                device_list_sol.add(sol_device);
+            }
+            for (const auto alias : aliased_devices_result) {
+                auto values = alias.second;
+                if (values.size() == 1) {
+                    device_list_sol[alias.first.toStdString()] = values[0];
+                } else {
+                    auto devices_with_same_alias = lua->create_table_with();
+                    for (const auto &value : values) {
+                        devices_with_same_alias.add(value);
+                    }
+                    device_list_sol[alias.first.toStdString()] = devices_with_same_alias;
+                }
+            }
+            (*lua)["run"](device_list_sol);
         }
         reset_lua_state();
     } catch (const sol::error &e) {
