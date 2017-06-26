@@ -368,6 +368,7 @@ struct DataEngineSection {
 
     void from_json(const QJsonValue &object, const QString &key_name);
     QString get_section_name() const;
+
     QString get_instance_count_name() const;
 	QString get_sql_section_name() const;
 	QString get_sql_instance_name() const;
@@ -388,9 +389,11 @@ struct DataEngineSection {
 
     uint get_actual_instance_index();
 
+    QString get_section_title() const;
     private:
     std::experimental::optional<uint> instance_count;
 
+    QString section_title;
     QString instance_count_name;
     QString section_name;
     void append_variant_from_json(const QJsonObject &object);
@@ -480,6 +483,7 @@ class Data_engine {
     QString get_unit(const FormID &id) const;
     EntryType get_entry_type(const FormID &id) const;
     double get_si_prefix(const FormID &id) const;
+    QString get_section_title(const QString section_name) const;
     bool is_desired_value_set(const FormID &id) const;
 
     QStringList get_section_names() const;
@@ -495,14 +499,14 @@ class Data_engine {
     std::unique_ptr<QWidget> get_preview() const;
     bool generate_pdf(const std::string &form, const std::string &destination) const;
 	void fill_database(QSqlDatabase &db) const;
-    void generate_template(const QString &destination, const QString &db_filename) const;
+    void generate_template(const QString &destination, const QString &db_filename, QString report_title) const;
 
     void save_to_json(QString filename);
 	static void replace_database_filename(const std::string &source_form_path, const std::string &destination_form_path, const std::string &database_path);
 
     private:
-	void generate_pages(QXmlStreamWriter &xml) const;
-	void generate_pages_header(QXmlStreamWriter &xml) const;
+    void generate_pages(QXmlStreamWriter &xml, QString report_title) const;
+    void generate_pages_header(QXmlStreamWriter &xml, QString report_title) const;
 	void generate_tables() const;
 	void generate_sourced_form(const std::string &source_path, const std::string &destination_path, const std::string &database_path) const;
     void add_sources_to_form(QString data_base_path) const;

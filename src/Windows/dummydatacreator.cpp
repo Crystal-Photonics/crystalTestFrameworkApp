@@ -1,6 +1,8 @@
 #include "dummydatacreator.h"
 #include "ui_dummydatacreator.h"
 #include <QFileDialog>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QLabel>
 #include <QMessageBox>
 #include <QSqlDatabase>
@@ -29,6 +31,8 @@ DummyDataCreator::DummyDataCreator(QWidget *parent)
             ui->gridLayout_2->addWidget(sb, i, 1);
             i++;
         }
+        template_config_filename = dialog.selectedFiles()[0] + ".template_conf";
+        load_gui_from_json();
     }
 }
 
@@ -48,14 +52,14 @@ void DummyDataCreator::on_pushButton_clicked() {
     if (dialog.exec()) {
         const auto db_name = dialog.selectedFiles()[0] + ".db";
         if (QFile::exists(db_name)) {
-            auto result =
-                QMessageBox::question(this, QString("File already exists"), QString("The file %1 already exists. Do you want to overwrite this file?").arg(db_name));
+            auto result = QMessageBox::question(this, QString("File already exists"),
+                                                QString("The file %1 already exists. Do you want to overwrite this file?").arg(db_name));
             if (result == QMessageBox::No) {
                 return;
             }
         }
-
-        data_engine.generate_template(dialog.selectedFiles()[0], db_name);
+        save_gui_to_json();
+        data_engine.generate_template(dialog.selectedFiles()[0], db_name, ui->edt_title->text());
         { //TODO: put into data_engine
 
             auto db = QSqlDatabase::addDatabase("QSQLITE");
@@ -70,4 +74,35 @@ void DummyDataCreator::on_pushButton_clicked() {
 
 void DummyDataCreator::on_pushButton_2_clicked() {
     close();
+}
+
+void DummyDataCreator::load_gui_from_json() {
+    QFile loadFile(template_config_filename);
+
+    if (!loadFile.open(QIODevice::ReadOnly)) {
+        return;
+    }
+
+    QByteArray saveData = loadFile.readAll();
+
+    QJsonDocument loadDoc(QJsonDocument::fromJson(saveData));
+
+    QJsonObject obj = loadDoc.object();
+
+    QString report_title = obj["report_title"].toString().trimmed();
+    ui->edt_title->setText(report_title);
+}
+
+void DummyDataCreator::save_gui_to_json() {
+    if (template_config_filename == "") {
+        return;
+    }
+    QFile saveFile(template_config_filename);
+    if (!saveFile.open(QIODevice::WriteOnly)) {
+        return;
+    }
+    QJsonObject obj;
+    obj["report_title"] = ui->edt_title->text();
+    QJsonDocument saveDoc(obj);
+    saveFile.write(saveDoc.toJson());
 }

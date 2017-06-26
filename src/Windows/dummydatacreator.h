@@ -22,7 +22,11 @@ private slots:
 
     void on_pushButton_2_clicked();
 
+
 private:
+    void load_gui_from_json();
+    void save_gui_to_json();
+    QString template_config_filename{};
     Ui::DummyDataCreator *ui;
     Data_engine data_engine;
     QList<QSpinBox*> spinboxes;
