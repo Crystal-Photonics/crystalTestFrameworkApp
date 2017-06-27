@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>492</width>
-    <height>439</height>
+    <width>800</width>
+    <height>532</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -41,79 +41,96 @@
     </widget>
    </item>
    <item row="1" column="0" colspan="2">
-    <widget class="QGroupBox" name="groupBox_2">
+    <widget class="QGroupBox" name="group_template_presets">
      <property name="title">
       <string>Template presets:</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
-      <item row="5" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Pagefooter Image Path:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="0">
-       <spacer name="verticalSpacer_3">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
       <item row="0" column="0">
-       <spacer name="verticalSpacer">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>40</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item row="1" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
          <string>Report Title:</string>
         </property>
        </widget>
       </item>
-      <item row="2" column="0" colspan="2">
-       <widget class="QLineEdit" name="edt_title"/>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLineEdit" name="edt_image_header"/>
-      </item>
-      <item row="6" column="0">
-       <widget class="QLineEdit" name="edt_image_footer"/>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_2">
+      <item row="5" column="1">
+       <widget class="QToolButton" name="btn_image_footer">
         <property name="text">
-         <string>Pageheader Image Path:</string>
+         <string>...</string>
         </property>
        </widget>
       </item>
-      <item row="4" column="2">
+      <item row="3" column="1">
        <widget class="QToolButton" name="btn_image_header">
         <property name="text">
          <string>...</string>
         </property>
        </widget>
       </item>
-      <item row="6" column="2">
-       <widget class="QToolButton" name="btn_image_footer">
+      <item row="1" column="0" colspan="3">
+       <widget class="QLineEdit" name="edt_title"/>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLineEdit" name="edt_image_footer"/>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_2">
         <property name="text">
-         <string>...</string>
+         <string>Pageheader Image Path:</string>
         </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLineEdit" name="edt_image_header"/>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>Section-Order</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Pagefooter Image Path:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="0" colspan="2">
+       <widget class="QTreeWidget" name="section_list">
+        <property name="dragEnabled">
+         <bool>true</bool>
+        </property>
+        <property name="dragDropMode">
+         <enum>QAbstractItemView::InternalMove</enum>
+        </property>
+        <property name="defaultDropAction">
+         <enum>Qt::TargetMoveAction</enum>
+        </property>
+        <property name="alternatingRowColors">
+         <bool>true</bool>
+        </property>
+        <column>
+         <property name="text">
+          <string>Print</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Section Name</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>As Textfield</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Textfield Column count</string>
+         </property>
+        </column>
        </widget>
       </item>
      </layout>

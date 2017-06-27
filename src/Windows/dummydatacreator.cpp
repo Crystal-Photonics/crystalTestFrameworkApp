@@ -1,11 +1,14 @@
 #include "dummydatacreator.h"
 #include "ui_dummydatacreator.h"
 #include <QFileDialog>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
 #include <QMessageBox>
 #include <QSqlDatabase>
+#include <QTableWidgetItem>
+#include <QTreeWidgetItem>
 #include <fstream>
 
 DummyDataCreator::DummyDataCreator(QWidget *parent)
@@ -31,6 +34,7 @@ DummyDataCreator::DummyDataCreator(QWidget *parent)
             ui->gridLayout_2->addWidget(sb, i, 1);
             i++;
         }
+
         template_config_filename = dialog.selectedFiles()[0] + ".template_conf";
         load_gui_from_json();
     }
@@ -62,7 +66,17 @@ void DummyDataCreator::on_pushButton_clicked() {
         const auto report_title = ui->edt_title->text();
         const auto image_footer_path = ui->edt_image_footer->text();
         const auto image_header_path = ui->edt_image_header->text();
-        data_engine.generate_template(dialog.selectedFiles()[0], db_name, report_title, image_footer_path, image_header_path);
+        QList<PrintOrderItem> print_order;
+        for (int i = 0; i < ui->section_list->topLevelItemCount(); i++) {
+            PrintOrderItem item{};
+            QTreeWidgetItem *tree_item = ui->section_list->topLevelItem(i);
+            item.print_enabled = tree_item->checkState(0) == Qt::Checked;
+            item.section_name = tree_item->text(1);
+            item.print_as_text_field = tree_item->checkState(2) == Qt::Checked;
+            print_order.append(item);
+        }
+
+        data_engine.generate_template(dialog.selectedFiles()[0], db_name, report_title, image_footer_path, image_header_path, print_order);
         { //TODO: put into data_engine
 
             auto db = QSqlDatabase::addDatabase("QSQLITE");
@@ -87,15 +101,63 @@ void DummyDataCreator::load_gui_from_json() {
     }
 
     QByteArray saveData = loadFile.readAll();
-
     QJsonDocument loadDoc(QJsonDocument::fromJson(saveData));
-
     QJsonObject obj = loadDoc.object();
 
     QString report_title = obj["report_title"].toString().trimmed();
     ui->edt_title->setText(report_title);
     ui->edt_image_footer->setText(obj["image_footer"].toString().trimmed());
     ui->edt_image_header->setText(obj["image_header"].toString().trimmed());
+    ui->section_list->clear();
+    QJsonArray section_order = obj["section_order"].toArray();
+    auto sections = data_engine.get_section_names();
+    for (auto jitem : section_order) {
+        QJsonObject obj = jitem.toObject();
+        auto sn = obj["name"].toString();
+        if (sections.contains(sn)) {
+            sections.removeAll(sn);
+            QStringList sl;
+            sl.append("");
+            sl.append(sn);
+            sl.append("");
+            sl.append("");
+            QTreeWidgetItem *item = new QTreeWidgetItem(sl);
+            item->setFlags(Qt::ItemIsDragEnabled | Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable);
+            if (obj["print"].toBool()) {
+                item->setCheckState(0, Qt::Checked);
+            } else {
+                item->setCheckState(0, Qt::Unchecked);
+            }
+
+            if (data_engine.section_uses_variants(sn)) {
+                //  item->setCheckState(2, Qt::);
+            } else {
+                if (obj["as_text_field"].toBool()) {
+                    item->setCheckState(2, Qt::Checked);
+                } else {
+                    item->setCheckState(2, Qt::Unchecked);
+                }
+            }
+
+            ui->section_list->addTopLevelItem(item);
+        }
+    }
+    for (auto sn : sections) {
+        QStringList sl;
+        sl.append("");
+        sl.append(sn);
+        sl.append("");
+        sl.append("");
+        QTreeWidgetItem *item = new QTreeWidgetItem(sl);
+        item->setCheckState(0, Qt::Checked);
+        if (data_engine.section_uses_variants(sn)) {
+            //  item->setCheckState(2, Qt::);
+        } else {
+            item->setCheckState(2, Qt::Unchecked);
+        }
+        item->setFlags(Qt::ItemIsDragEnabled | Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable);
+        ui->section_list->addTopLevelItem(item);
+    }
 }
 
 void DummyDataCreator::save_gui_to_json() {
@@ -111,6 +173,25 @@ void DummyDataCreator::save_gui_to_json() {
     obj["image_footer"] = ui->edt_image_footer->text();
     obj["image_header"] = ui->edt_image_header->text();
 
+    QJsonArray section_order;
+    for (int i = 0; i < ui->section_list->topLevelItemCount(); i++) {
+        QJsonObject obj;
+        QTreeWidgetItem *item = ui->section_list->topLevelItem(i);
+        if (item->checkState(0) == Qt::Checked) {
+            obj["print"] = true;
+        } else {
+            obj["print"] = false;
+        }
+
+        obj["name"] = item->text(1);
+        if (item->checkState(2) == Qt::Checked) {
+            obj["as_text_field"] = true;
+        } else {
+            obj["as_text_field"] = false;
+        }
+        section_order.append(obj);
+    }
+    obj["section_order"] = section_order;
     QJsonDocument saveDoc(obj);
     saveFile.write(saveDoc.toJson());
 }
