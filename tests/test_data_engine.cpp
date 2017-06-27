@@ -575,7 +575,7 @@ void Test_Data_engine::check_value_matching_by_name() {
                             )"};
     QMap<QString, QList<QVariant>> tags;
     const Data_engine de{input, tags};
-    QCOMPARE(de.get_desired_value_as_string("supply-voltage/voltage"), QString({"5000 (±200)"}));
+    QCOMPARE(de.get_desired_value_as_string("supply-voltage/voltage"), QString({"5000 (±200) mV"}));
 #endif
 }
 
@@ -601,7 +601,7 @@ void Test_Data_engine::single_numeric_property_test() {
     QVERIFY(!de.all_values_in_range());
     QVERIFY(!de.value_in_range("supply/voltage"));
 
-    QCOMPARE(de.get_desired_value_as_string("supply/voltage"), QString("5000 (±200)"));
+    QCOMPARE(de.get_desired_value_as_string("supply/voltage"), QString("5000 (±200) mV"));
     QCOMPARE(de.get_unit("supply/voltage"), QString{"mV"});
 
     de.set_actual_number("supply/voltage", 5.201);
@@ -916,11 +916,11 @@ void Test_Data_engine::test_instances() {
     de.set_actual_number("supply_2_object/voltage", 5.0);
 
     de.use_instance("supply_probe_count", "", 1);
-    QCOMPARE(de.get_actual_value("supply_probe_count/voltage"), QString("4900"));
+    QCOMPARE(de.get_actual_value("supply_probe_count/voltage"), QString("4900 mV"));
     de.use_instance("supply_probe_count", "", 2);
-    QCOMPARE(de.get_actual_value("supply_probe_count/voltage"), QString("5100"));
+    QCOMPARE(de.get_actual_value("supply_probe_count/voltage"), QString("5100 mV"));
     de.use_instance("supply_probe_count", "", 3);
-    QCOMPARE(de.get_actual_value("supply_probe_count/voltage"), QString("5000"));
+    QCOMPARE(de.get_actual_value("supply_probe_count/voltage"), QString("5000 mV"));
 
     de.use_instance("supply_2_object", "Probe B", 2);
     de.set_actual_number("supply_2_object/voltage", 5.0);
@@ -1057,9 +1057,9 @@ void Test_Data_engine::test_instances_with_different_variants() {
     de.set_actual_number("supply_variants/voltage", 3.0);
 
     de.use_instance("supply_variants", "Probe B", 1);
-    QCOMPARE(de.get_actual_value("supply_variants/voltage"), QString("4000"));
+    QCOMPARE(de.get_actual_value("supply_variants/voltage"), QString("4000 mV"));
     de.use_instance("supply_variants", "Probe B", 2);
-    QCOMPARE(de.get_actual_value("supply_variants/voltage"), QString("3000"));
+    QCOMPARE(de.get_actual_value("supply_variants/voltage"), QString("3000 mV"));
 
     QVERIFY(de.is_complete());
     QVERIFY(!de.all_values_in_range());
@@ -1177,11 +1177,11 @@ void Test_Data_engine::test_instances_with_different_variants_and_references_and
 
     QVERIFY_EXCEPTION_THROWN_error_number(de.get_actual_value("supply_variants/voltageA"), DataEngineErrorNumber::no_field_id_found);
     de.use_instance("supply_variants", "", 1);
-    QCOMPARE(de.get_actual_value("supply_variants/voltageA"), QString("4000"));
+    QCOMPARE(de.get_actual_value("supply_variants/voltageA"), QString("4000 mV"));
 
     QVERIFY_EXCEPTION_THROWN_error_number(de.get_actual_value("supply_variants/voltageB"), DataEngineErrorNumber::no_field_id_found);
     de.use_instance("supply_variants", "", 2);
-    QCOMPARE(de.get_actual_value("supply_variants/voltageB"), QString("5000"));
+    QCOMPARE(de.get_actual_value("supply_variants/voltageB"), QString("5000 mV"));
 
     QVERIFY(de.all_values_in_range());
 
@@ -1241,12 +1241,12 @@ void Test_Data_engine::test_instances_with_different_variants_and_references_and
     de.set_actual_number("supply_variants/voltageB", 5);
 
     de.use_instance("supply_variants", "Probe B", 1);
-    QCOMPARE(de.get_actual_value("supply_variants/voltageA"), QString("4000"));
+    QCOMPARE(de.get_actual_value("supply_variants/voltageA"), QString("4000 mV"));
 
     QVERIFY_EXCEPTION_THROWN_error_number(de.get_actual_value("supply_variants/voltageB");, DataEngineErrorNumber::no_field_id_found);
 
     de.use_instance("supply_variants", "Probe B", 2);
-    QCOMPARE(de.get_actual_value("supply_variants/voltageB"), QString("5000"));
+    QCOMPARE(de.get_actual_value("supply_variants/voltageB"), QString("5000 mV"));
 
     QVERIFY(de.all_values_in_range());
 
@@ -2067,9 +2067,9 @@ void Test_Data_engine::test_references_get_actual_value_description_desired_valu
     de.set_actual_text("test_valuesA/test_string", "TEST321");
     de.set_actual_text("referenzen/test_string_ref", "TEST123");
 
-    QCOMPARE(de.get_actual_value("test_valuesA/test_number"), QString("101"));
+    QCOMPARE(de.get_actual_value("test_valuesA/test_number"), QString("101 mA"));
     QCOMPARE(de.get_description("test_valuesA/test_number"), QString("Original number"));
-    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_number"), QString("100 (±1)"));
+    QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_number"), QString("100 (±1) mA"));
     QCOMPARE(de.get_unit("test_valuesA/test_number"), QString("mA"));
 
     QCOMPARE(de.get_entry_type("test_valuesA/test_number"), EntryType::Numeric);
@@ -2095,9 +2095,9 @@ void Test_Data_engine::test_references_get_actual_value_description_desired_valu
     QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_string"), QString("test_string"));
     QCOMPARE(de.get_unit("test_valuesA/test_string"), QString(""));
 
-    QCOMPARE(de.get_actual_value("referenzen/test_number_ref"), QString("102"));
+    QCOMPARE(de.get_actual_value("referenzen/test_number_ref"), QString("102 mA"));
     QCOMPARE(de.get_description("referenzen/test_number_ref"), QString("Referenz zum numer soll"));
-    QCOMPARE(de.get_desired_value_as_string("referenzen/test_number_ref"), QString("100 (±2)"));
+    QCOMPARE(de.get_desired_value_as_string("referenzen/test_number_ref"), QString("100 (±2) mA"));
     QCOMPARE(de.get_unit("referenzen/test_number_ref"), QString("mA"));
 
     QCOMPARE(de.get_actual_value("referenzen/test_bool_ref"), QString("Yes"));
@@ -2553,7 +2553,9 @@ void Test_Data_engine::test_preview() {
     QVERIFY(de.is_complete());
     de.fill_database(db);
     const QString report_title = "Report Title";
-    de.generate_template("testreport.lrxml", db_name, report_title);
+    const QString image_footer_path = "";
+    const QString image_header_path = "";
+    de.generate_template("testreport.lrxml", db_name, report_title, image_footer_path, image_header_path);
     QVERIFY(de.generate_pdf("testreport.lrxml", QDir::current().absoluteFilePath("test.pdf").toStdString()));
 
 #endif
@@ -2583,6 +2585,9 @@ void Test_Data_engine::test_form_creation() {
     QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
     const QString report_title = "Report Title";
-    de.generate_template("data engine test form autogenerated.lrxml", "db_name.db", report_title);
+    const QString image_footer_path = "";
+    const QString image_header_path = "";
+
+    de.generate_template("data engine test form autogenerated.lrxml", "db_name.db", report_title, image_footer_path, image_header_path);
 #endif
 }

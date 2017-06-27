@@ -59,7 +59,10 @@ void DummyDataCreator::on_pushButton_clicked() {
             }
         }
         save_gui_to_json();
-        data_engine.generate_template(dialog.selectedFiles()[0], db_name, ui->edt_title->text());
+        const auto report_title = ui->edt_title->text();
+        const auto image_footer_path = ui->edt_image_footer->text();
+        const auto image_header_path = ui->edt_image_header->text();
+        data_engine.generate_template(dialog.selectedFiles()[0], db_name, report_title, image_footer_path, image_header_path);
         { //TODO: put into data_engine
 
             auto db = QSqlDatabase::addDatabase("QSQLITE");
@@ -91,6 +94,8 @@ void DummyDataCreator::load_gui_from_json() {
 
     QString report_title = obj["report_title"].toString().trimmed();
     ui->edt_title->setText(report_title);
+    ui->edt_image_footer->setText(obj["image_footer"].toString().trimmed());
+    ui->edt_image_header->setText(obj["image_header"].toString().trimmed());
 }
 
 void DummyDataCreator::save_gui_to_json() {
@@ -103,6 +108,19 @@ void DummyDataCreator::save_gui_to_json() {
     }
     QJsonObject obj;
     obj["report_title"] = ui->edt_title->text();
+    obj["image_footer"] = ui->edt_image_footer->text();
+    obj["image_header"] = ui->edt_image_header->text();
+
     QJsonDocument saveDoc(obj);
     saveFile.write(saveDoc.toJson());
+}
+
+void DummyDataCreator::on_btn_image_header_clicked() {
+    auto fileName = QFileDialog::getOpenFileName(this, tr("Open Header Image"), "", tr("Image Files (*.png *.jpg *.bmp)"));
+    ui->edt_image_header->setText(fileName);
+}
+
+void DummyDataCreator::on_btn_image_footer_clicked() {
+    auto fileName = QFileDialog::getOpenFileName(this, tr("Open Footer Image"), "", tr("Image Files (*.png *.jpg *.bmp)"));
+    ui->edt_image_footer->setText(fileName);
 }

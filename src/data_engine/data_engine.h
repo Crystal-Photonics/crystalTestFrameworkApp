@@ -326,7 +326,7 @@ struct VariantData {
     uint get_entry_count() const;
 
     public:
-	bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count, const QString &section_name);
+    bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count, const QString &section_name);
     void from_json(const QJsonObject &object);
     bool entry_exists(QString field_name);
     DataEngineDataEntry *get_entry(QString field_name) const;
@@ -370,8 +370,8 @@ struct DataEngineSection {
     QString get_section_name() const;
 
     QString get_instance_count_name() const;
-	QString get_sql_section_name() const;
-	QString get_sql_instance_name() const;
+    QString get_sql_section_name() const;
+    QString get_sql_instance_name() const;
     QStringList get_all_ids_of_selected_instance(const QString &prefix) const;
     QStringList get_instance_captions() const;
     bool is_section_instance_defined() const;
@@ -390,6 +390,7 @@ struct DataEngineSection {
     uint get_actual_instance_index();
 
     QString get_section_title() const;
+
     private:
     std::experimental::optional<uint> instance_count;
 
@@ -498,17 +499,18 @@ class Data_engine {
 
     std::unique_ptr<QWidget> get_preview() const;
     bool generate_pdf(const std::string &form, const std::string &destination) const;
-	void fill_database(QSqlDatabase &db) const;
-    void generate_template(const QString &destination, const QString &db_filename, QString report_title) const;
+    void fill_database(QSqlDatabase &db) const;
+    void generate_template(const QString &destination, const QString &db_filename, QString report_title, QString image_footer_path,
+                           QString image_header_path) const;
 
     void save_to_json(QString filename);
-	static void replace_database_filename(const std::string &source_form_path, const std::string &destination_form_path, const std::string &database_path);
+    static void replace_database_filename(const std::string &source_form_path, const std::string &destination_form_path, const std::string &database_path);
 
     private:
-    void generate_pages(QXmlStreamWriter &xml, QString report_title) const;
-    void generate_pages_header(QXmlStreamWriter &xml, QString report_title) const;
-	void generate_tables() const;
-	void generate_sourced_form(const std::string &source_path, const std::string &destination_path, const std::string &database_path) const;
+    void generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path) const;
+    void generate_pages_header(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path) const;
+    void generate_tables() const;
+    void generate_sourced_form(const std::string &source_path, const std::string &destination_path, const std::string &database_path) const;
     void add_sources_to_form(QString data_base_path) const;
 
     struct FormIdWrapper {
@@ -528,6 +530,7 @@ class Data_engine {
     QString script_path;
     QString source_path;
     quint64 load_time_seconds_since_epoch = 0;
+    void generate_image(QXmlStreamWriter &xml, QString image_path, QString parent_name) const;
 };
 
 #endif // DATA_ENGINE_H

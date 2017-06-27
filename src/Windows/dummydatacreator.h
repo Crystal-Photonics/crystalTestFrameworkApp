@@ -23,6 +23,10 @@ private slots:
     void on_pushButton_2_clicked();
 
 
+    void on_btn_image_header_clicked();
+
+    void on_btn_image_footer_clicked();
+
 private:
     void load_gui_from_json();
     void save_gui_to_json();
