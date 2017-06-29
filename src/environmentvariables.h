@@ -4,7 +4,7 @@
 #include "sol.hpp"
 #include <QString>
 #include <QVariant>
-#include <Map>
+#include <QMap>
 
 class EnvironmentVariables {
     public:

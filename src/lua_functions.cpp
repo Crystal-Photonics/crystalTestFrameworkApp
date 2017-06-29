@@ -1584,14 +1584,16 @@ std::string get_os_username() {
         throw std::runtime_error("Could not get username on Windows.");
     }
 #elif defined(Q_OS_UNIX)
-    assert(0); //not yet implemented
+
     QProcess process;
-    QObject::connect(&process, &QProcess::finished, [&coreApplication, &process](int exitCode, QProcess::ExitStatus exitStatus) {
-        qDebug() << process.readAllStandardOutput();
-        coreApplication.quit();
-    });
     process.start("whoami");
-    return coreApplication.exec();
+    process.waitForStarted();
+    process.waitForFinished();
+    auto out = QString(process.readAll());
+    if (process.exitCode() != 0) {
+        throw std::runtime_error(process.readAllStandardError().toStdString());
+    }
+    return out.toStdString();
 #else
     throw std::runtime_error("Can't get username on this OS.");
 #endif

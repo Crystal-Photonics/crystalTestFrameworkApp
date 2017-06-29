@@ -4,11 +4,13 @@
 
 #include <QList>
 #include <QString>
+#include <QVariant>
 #include <experimental/optional>
 #include <istream>
 #include <memory>
 #include <string>
 #include <vector>
+#include <QJsonValue>
 
 class QJsonObject;
 class QWidget;

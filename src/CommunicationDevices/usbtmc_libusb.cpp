@@ -207,15 +207,15 @@ int scpi_usbtmc_libusb_dev_inst_new(struct scpi_usbtmc_libusb *uscpi, QString pa
     return SR_OK;
 }
 
-static int check_usbtmc_blacklist(struct usbtmc_blacklist *blacklist, uint16_t vid, uint16_t pid) {
+static bool check_usbtmc_blacklist(struct usbtmc_blacklist *blacklist, uint16_t vid, uint16_t pid) {
     int i;
 
     for (i = 0; blacklist[i].vid; i++) {
         if ((blacklist[i].vid == vid && blacklist[i].pid == 0xFFFF) || (blacklist[i].vid == vid && blacklist[i].pid == pid))
-            return TRUE;
+            return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 static int scpi_usbtmc_remote(struct scpi_usbtmc_libusb *uscpi) {
