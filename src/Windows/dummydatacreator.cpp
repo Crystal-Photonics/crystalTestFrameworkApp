@@ -190,10 +190,10 @@ void DummyDataCreator::on_pushButton_clicked() {
         { //TODO: put into data_engine
 
             QSqlDatabase db;
-            if (QSqlDatabase::contains("sql_lite_connection")) {
-                db = QSqlDatabase::database("QSQLITE", "sql_lite_connection");
+            if (QSqlDatabase::contains()) {
+                db = QSqlDatabase::database();
             } else {
-                db = QSqlDatabase::addDatabase("QSQLITE", "sql_lite_connection");
+                db = QSqlDatabase::addDatabase("QSQLITE");
             }
 
             QFile::remove(db_name);

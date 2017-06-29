@@ -201,8 +201,18 @@ DataEngineSection *DataEngineSections::get_section(const FormID &id) const {
     return result_section;
 }
 
-DecodecFieldID DataEngineSections::decode_field_id(const FormID &id) {
+DataEngineSection *DataEngineSections::get_section_no_exception(const FormID &id) const {
+    DataEngineErrorNumber error_num = DataEngineErrorNumber::ok;
+    DecodecFieldID field_id = decode_field_id(id);
+    DataEngineSection *result_section = get_section_raw(field_id.section_name, &error_num);
+    return result_section;
+}
+
+DecodecFieldID DataEngineSections::decode_field_id(FormID id) {
     DecodecFieldID result;
+    if (!id.contains("/")){
+        id += "/dummy";
+    }
     auto names = id.split("/");
     if (names.count() != 2) {
         throw DataEngineError(DataEngineErrorNumber::faulty_field_id, QString("field id needs to be in format \"section-name/field-name\" but is %1").arg(id));
@@ -1468,10 +1478,10 @@ std::unique_ptr<QWidget> Data_engine::get_preview() const {
 
 bool Data_engine::generate_pdf(const std::string &form, const std::string &destination) const {
     QSqlDatabase db;
-    if (QSqlDatabase::contains("sql_lite_connection")) {
-        db = QSqlDatabase::database("QSQLITE", "sql_lite_connection");
+    if (QSqlDatabase::contains()) {
+        db = QSqlDatabase::database();
     } else {
-        db = QSqlDatabase::addDatabase("QSQLITE", "sql_lite_connection");
+        db = QSqlDatabase::addDatabase("QSQLITE");
     }
 
     const auto db_name = "report_temp_data.db"; //TODO: find a better temporary name
@@ -1480,7 +1490,7 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
     db.setDatabaseName(db_name);
     bool opend = db.open();
     if (!opend){
-        qDebug() << db.lastError().text();
+        qDebug() << "SQLConnection error: " << db.lastError().text();
 
     }
     assert(opend);
@@ -2068,7 +2078,7 @@ void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_ti
                 }
                 xml.writeEndElement(); //item
 
-                auto section_with_approved_by = sections.get_section(approved_by_field_id);
+                auto section_with_approved_by = sections.get_section_no_exception(approved_by_field_id);
                 QString approved_query = "";
                 if (section_with_approved_by) {
                     approved_query = "$D{" + section_with_approved_by->get_sql_section_name() + "_" + adjust_sql_table_name(approved_by_field_id.split("/")[1]) + "_automatic.Actual}";
@@ -2366,10 +2376,9 @@ void Data_engine::replace_database_filename(const std::string &source_form_path,
     QXmlStreamWriter xml_out{&xml_file_out};
     xml_out.setDevice(&xml_file_out);
     while ((xml_in.readNext() != QXmlStreamReader::Invalid) &&  (!xml_in.atEnd())) {
-   // while (!xml_in.atEnd()){
         xml_in.readNext();
         if (xml_in.isStartElement()) {
-            qDebug() << xml_in.name();
+            //qDebug() << xml_in.name();
             if (xml_in.name() == "databaseName") {
                 xml_out.writeCurrentToken(xml_in);
                 xml_in.skipCurrentElement();
@@ -2413,7 +2422,7 @@ void Data_engine::add_sources_to_form(QString data_base_path, const QList<PrintO
         QList<PrintOrderSectionItem> textfield_print_order = get_print_order(print_order, true, TextFieldDataBandPlace::all);
 
         PrintOrderSectionItem approved_id;
-        DataEngineSection *approved_section = sections.get_section(approved_by_field_id);
+        DataEngineSection *approved_section = sections.get_section_no_exception(approved_by_field_id);
         if (approved_section) {
             approved_id.section = approved_section;
             approved_id.field_name = adjust_sql_table_name(approved_by_field_id.split("/")[1]);
