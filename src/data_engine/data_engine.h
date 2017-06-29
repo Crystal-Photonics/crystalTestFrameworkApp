@@ -80,16 +80,20 @@ class DataEngineError : public std::runtime_error {
     DataEngineErrorNumber error_number;
 };
 
+enum class TextFieldDataBandPlace { report_header, report_footer, page_header, page_footer, none, all };
 struct PrintOrderItem {
     QString section_name;
     bool print_enabled = true;
     bool print_as_text_field = false;
-    bool text_field_column_count = 2;
+    uint text_field_column_count = 2;
+    TextFieldDataBandPlace text_field_place{TextFieldDataBandPlace::report_header};
 };
 
 struct PrintOrderSectionItem {
     PrintOrderItem print_order_item;
     DataEngineSection *section{};
+    QString field_name{};
+    QString suffix{};
 };
 
 struct DataEngineDataEntry {
@@ -517,19 +521,22 @@ class Data_engine {
     std::unique_ptr<QWidget> get_preview() const;
     bool generate_pdf(const std::string &form, const std::string &destination) const;
     void fill_database(QSqlDatabase &db) const;
-    void generate_template(const QString &destination, const QString &db_filename, QString report_title, QString image_footer_path, QString image_header_path,
+    void generate_template(const QString &destination, const QString &db_filename, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
                            const QList<PrintOrderItem> &print_order) const;
 
     void save_to_json(QString filename);
     static void replace_database_filename(const std::string &source_form_path, const std::string &destination_form_path, const std::string &database_path);
 
+    bool section_uses_instances(QString section_name) const;
+
     private:
-    void generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path,
+    void generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
                         const QList<PrintOrderItem> &print_order) const;
-    void generate_pages_header(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, const QList<PrintOrderItem> &print_order) const;
+    void generate_pages_header(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
+                               const QList<PrintOrderItem> &print_order) const;
     void generate_tables(const QList<PrintOrderItem> &print_order) const;
     void generate_sourced_form(const std::string &source_path, const std::string &destination_path, const std::string &database_path) const;
-    void add_sources_to_form(QString data_base_path) const;
+    void add_sources_to_form(QString data_base_path, const QList<PrintOrderItem> &print_order, QString approved_by_field_id) const;
 
     struct FormIdWrapper {
         FormIdWrapper(const FormID &id)
@@ -548,9 +555,10 @@ class Data_engine {
     QString script_path;
     QString source_path;
     quint64 load_time_seconds_since_epoch = 0;
-    void generate_image(QXmlStreamWriter &xml, QString image_path, QString parent_name) const;
+    int generate_image(QXmlStreamWriter &xml, QString image_path, int y_position, QString parent_name) const;
     void generate_table(const DataEngineSection *section) const;
-    QList<PrintOrderSectionItem> get_print_order(const QList<PrintOrderItem> &orig_print_order, bool used_for_textfields) const;
+    QList<PrintOrderSectionItem> get_print_order(const QList<PrintOrderItem> &orig_print_order, bool used_for_textfields, TextFieldDataBandPlace actual_band_position) const;
+    int generate_textfields(QXmlStreamWriter &xml, int y_start, const QList<PrintOrderItem> &print_order, TextFieldDataBandPlace actual_band_position) const;
 };
 
 #endif // DATA_ENGINE_H
