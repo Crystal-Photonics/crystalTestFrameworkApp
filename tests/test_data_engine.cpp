@@ -6,7 +6,7 @@
 #include <QString>
 #include <sstream>
 
-#define DISABLE_ALL 0
+#define DISABLE_ALL 1
 //
 #define QVERIFY_EXCEPTION_THROWN_error_number(expression, error_number)                                                                                        \
     do {                                                                                                                                                       \
@@ -262,7 +262,7 @@ void Test_Data_engine::check_duplicate_name_error_B() {
 }
 
 void Test_Data_engine::check_non_faulty_field_id() {
-#if !DISABLE_ALL || 0
+#if !DISABLE_ALL || 1
     std::stringstream input{R"(
 {
     "supply-voltage":{

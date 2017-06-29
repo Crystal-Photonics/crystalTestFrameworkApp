@@ -201,18 +201,19 @@ DataEngineSection *DataEngineSections::get_section(const FormID &id) const {
     return result_section;
 }
 
-DataEngineSection *DataEngineSections::get_section_no_exception(const FormID &id) const {
+DataEngineSection *DataEngineSections::get_section_no_exception(FormID id) const {
     DataEngineErrorNumber error_num = DataEngineErrorNumber::ok;
+    if (!id.contains("/")){
+        id += "/dummy";
+    }
     DecodecFieldID field_id = decode_field_id(id);
     DataEngineSection *result_section = get_section_raw(field_id.section_name, &error_num);
     return result_section;
 }
 
-DecodecFieldID DataEngineSections::decode_field_id(FormID id) {
+DecodecFieldID DataEngineSections::decode_field_id(const FormID &id) {
     DecodecFieldID result;
-    if (!id.contains("/")){
-        id += "/dummy";
-    }
+
     auto names = id.split("/");
     if (names.count() != 2) {
         throw DataEngineError(DataEngineErrorNumber::faulty_field_id, QString("field id needs to be in format \"section-name/field-name\" but is %1").arg(id));
@@ -2389,8 +2390,10 @@ void Data_engine::replace_database_filename(const std::string &source_form_path,
         }
         xml_out.writeCurrentToken(xml_in);
     }
+    if (xml_in.hasError()){
+        qDebug() << "XML Error:" << xml_in.errorString();
+    }
     assert(!xml_in.hasError());
-    qDebug() << xml_in.errorString();
 }
 
 void Data_engine::add_sources_to_form(QString data_base_path, const QList<PrintOrderItem> &print_order, QString approved_by_field_id) const {

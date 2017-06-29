@@ -450,12 +450,12 @@ struct DataEngineSections {
     void create_already_defined_instances();
     DataEngineSection *get_section(const FormID &id) const;
 
-    static DecodecFieldID decode_field_id(FormID id);
+    static DecodecFieldID decode_field_id(const FormID &id);
     void set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags);
     const QMap<QString, QList<QVariant>> &get_dependancy_tags() const;
     bool is_dummy_data_mode = true;
 
-    DataEngineSection *get_section_no_exception(const FormID &id) const;
+    DataEngineSection *get_section_no_exception(FormID id) const;
 private:
     QList<const DataEngineDataEntry *> get_entries_raw(const FormID &id, DataEngineErrorNumber *error_num, DecodecFieldID &decoded_field_name,
                                                        bool using_instance_index) const;
