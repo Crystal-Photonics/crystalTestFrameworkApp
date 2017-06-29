@@ -1485,7 +1485,7 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
         db = QSqlDatabase::addDatabase("QSQLITE");
     }
 
-    const auto db_name = "report_temp_data.db"; //TODO: find a better temporary name
+    const auto db_name = "report_temp_data"+QString::number(QDateTime::currentMSecsSinceEpoch())+".db"; //TODO: find a better temporary name
     QFile::remove(db_name);
     assert(QFile{db_name}.exists() == false);
     db.setDatabaseName(db_name);
@@ -1497,7 +1497,6 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
 
     fill_database(db);
     const auto sourced_form = form + ".tmp.lrxml";
-    //generate_sourced_form(form, sourced_form, QFileInfo{db_name}.absoluteFilePath().toStdString());
     replace_database_filename(form, sourced_form, QFileInfo{db_name}.absoluteFilePath().toStdString());
 
     LimeReport::ReportEngine re;
@@ -1519,10 +1518,11 @@ static void db_exec(QSqlDatabase &db, QString query) {
 }
 
 static QString get_caption(const QString &section_name, const QString &instance_caption) {
+    (void)section_name;
     if (instance_caption.isEmpty()) {
-        return section_name;
+        return "";
     }
-    return section_name + " " + instance_caption;
+    return instance_caption;
 }
 
 void Data_engine::save_to_json(QString filename) {
@@ -2240,6 +2240,7 @@ void Data_engine::generate_table(const DataEngineSection *section) const {
         XML{"datasource"}.attribute("Type", "QString").value(section->get_sql_instance_name());
         XML{"splittable"}.attributes({{"Value", "0"}, {"Type", "bool"}});
         XML{"keepBottomSpace"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"printIfEmpty"}.attributes({{"Value", "1"}, {"Type", "bool"}});
         XML{"keepFooterTogether"}.attributes({{"Value", "0"}, {"Type", "bool"}});
         XML{"keepSubdetailTogether"}.attributes({{"Value", "0"}, {"Type", "bool"}});
         {
@@ -2334,34 +2335,6 @@ void Data_engine::generate_table(const DataEngineSection *section) const {
         XML{"printAlways"}.attributes({{"Value", "1"}, {"Type", "bool"}});
     }
 }
-
-#if 0
-void Data_engine::generate_sourced_form(const std::string &source_path, const std::string &destination_path, const std::string &database_path) const {
-    QFile xml_file_in{source_path.c_str()};
-    xml_file_in.open(QFile::OpenModeFlag::ReadOnly);
-    assert(xml_file_in.isOpen());
-    QXmlStreamReader xml_in{&xml_file_in};
-    QFile xml_file_out{destination_path.c_str()};
-    xml_file_out.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
-    assert(xml_file_out.isOpen());
-    qDebug() << xml_file_out.fileName();
-    QXmlStreamWriter &xml_out = XML::state.xml;
-    xml_out.setDevice(&xml_file_out);
-
-    while (xml_in.readNext() != QXmlStreamReader::Invalid) {
-        if (xml_in.isStartElement()) {
-            if (xml_in.name() == "datasourcesManager") {
-                xml_out.writeCurrentToken(xml_in);
-                xml_in.skipCurrentElement();
-                add_sources_to_form(QString::fromStdString(database_path));
-                xml_out.writeCurrentToken(xml_in);
-                continue;
-            }
-        }
-        xml_out.writeCurrentToken(xml_in);
-    }
-}
-#endif
 
 void Data_engine::replace_database_filename(const std::string &source_form_path, const std::string &destination_form_path, const std::string &database_path) {
     QFile xml_file_in{source_form_path.c_str()};
@@ -2859,7 +2832,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
     throw DataEngineError(DataEngineErrorNumber::invalid_json_object, "invalid JSON object");
 }
 
-#if 1
+
 NumericDataEntry::NumericDataEntry(const NumericDataEntry &other)
     : DataEngineDataEntry(other.field_name)
     , desired_value{other.desired_value}
@@ -2868,7 +2841,7 @@ NumericDataEntry::NumericDataEntry(const NumericDataEntry &other)
     , si_prefix{other.si_prefix}
     , tolerance{other.tolerance}
     , actual_value{other.actual_value} {}
-#endif
+
 
 NumericDataEntry::NumericDataEntry(FormID field_name, std::experimental::optional<double> desired_value, NumericTolerance tolerance, QString unit,
                                    std::experimental::optional<double> si_prefix, QString description)
