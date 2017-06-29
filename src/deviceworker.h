@@ -35,7 +35,8 @@ class DeviceWorker : public QObject {
     bool is_dut_device(QTreeWidgetItem *item);
     bool is_device_in_use(QTreeWidgetItem *item);
 
-    private:
+    bool is_connected_to_device(QTreeWidgetItem *item);
+private:
     void forget_device(QTreeWidgetItem *item);
     void detect_device(QTreeWidgetItem *item);
     void update_devices();
@@ -52,7 +53,8 @@ class DeviceWorker : public QObject {
     bool is_device_in_use_(QTreeWidgetItem *item);
     void forget_device_(QTreeWidgetItem *item);
 
-    signals:
+    bool is_connected_to_device_(QTreeWidgetItem *item);
+signals:
     void device_discrovery_done();
 };
 

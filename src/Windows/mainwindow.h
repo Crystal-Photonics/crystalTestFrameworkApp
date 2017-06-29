@@ -8,6 +8,7 @@
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QThread>
+#include <QTreeWidgetItem>
 #include <QtSerialPort/QSerialPortInfo>
 #include <map>
 #include <memory>
@@ -20,7 +21,6 @@ class QPlainTextEdit;
 class QSplitter;
 class QString;
 class QTreeWidget;
-class QTreeWidgetItem;
 class TestDescriptionLoader;
 class TestRunner;
 class UI_container;
@@ -54,28 +54,27 @@ class EXPORT MainWindow : public QMainWindow {
     void show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon);
     void remove_test_runner(TestRunner *runner);
 
-    //void forget_device_by_treewidget_root(QTreeWidgetItem *root_item, DeviceWorker *device_worker, bool dut_only);
     QList<QTreeWidgetItem *> get_devices_to_forget_by_root_treewidget(QTreeWidgetItem *root_item);
     void remove_device_item(QTreeWidgetItem *root_item);
     bool device_item_exists(QTreeWidgetItem *child);
-    public slots:
+    std::unique_ptr<QTreeWidgetItem> *get_manual_devices_parent_item();
+    std::unique_ptr<QTreeWidgetItem> *create_manual_devices_parent_item();
+    void add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *cummincation_device);
+public slots:
     void align_columns();
-    //void remove_device_entry(QTreeWidgetItem *item);
+
     void add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *cummincation_device);
     void append_html_to_console(QString text, QPlainTextEdit *console);
 
     private slots:
     void slot_device_discovery_done();
-    //void forget_device();
     void load_scripts();
 
     void on_actionPaths_triggered();
 
-    // void on_console_tabs_tabCloseRequested(int index);
     void on_run_test_script_button_clicked();
     void on_tests_list_itemClicked(QTreeWidgetItem *item, int column);
     void on_tests_list_customContextMenuRequested(const QPoint &pos);
-    //void on_devices_list_customContextMenuRequested(const QPoint &pos);
     void on_test_tabs_tabCloseRequested(int index);
 
     void on_test_tabs_customContextMenuRequested(const QPoint &pos);
@@ -114,6 +113,8 @@ class EXPORT MainWindow : public QMainWindow {
     static void close_finished_tests();
     void get_devices_to_forget_by_root_treewidget_recursion(QList<QTreeWidgetItem *> &list, QTreeWidgetItem *root_item);
     bool remove_device_item_recursion(QTreeWidgetItem *root_item, QTreeWidgetItem *child_to_remove, bool remove_if_existing);
+    std::unique_ptr<QTreeWidgetItem> manual_devices_parent_item;
+    QMutex manual_devices_parent_item_mutex;
 };
 
 template <class T>

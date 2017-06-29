@@ -18,6 +18,7 @@ class QVariant;
 struct DataEngineSections;
 class QSqlDatabase;
 class QXmlStreamWriter;
+class DataEngineSection;
 
 using FormID = QString;
 enum class EntryType { Unspecified, Bool, String, Reference, Numeric };
@@ -79,6 +80,22 @@ class DataEngineError : public std::runtime_error {
 
     private:
     DataEngineErrorNumber error_number;
+};
+
+enum class TextFieldDataBandPlace { report_header, report_footer, page_header, page_footer, none, all };
+struct PrintOrderItem {
+    QString section_name;
+    bool print_enabled = true;
+    bool print_as_text_field = false;
+    uint text_field_column_count = 2;
+    TextFieldDataBandPlace text_field_place{TextFieldDataBandPlace::report_header};
+};
+
+struct PrintOrderSectionItem {
+    PrintOrderItem print_order_item;
+    DataEngineSection *section{};
+    QString field_name{};
+    QString suffix{};
 };
 
 struct DataEngineDataEntry {
@@ -328,7 +345,8 @@ struct VariantData {
     uint get_entry_count() const;
 
     public:
-    bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count, const QString &section_name) ;
+    bool uses_dependency() const;
+    bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count, const QString &section_name);
     void from_json(const QJsonObject &object);
     bool entry_exists(QString field_name);
     DataEngineDataEntry *get_entry(QString field_name) const;
@@ -370,7 +388,10 @@ struct DataEngineSection {
 
     void from_json(const QJsonValue &object, const QString &key_name);
     QString get_section_name() const;
+
     QString get_instance_count_name() const;
+    QString get_sql_section_name() const;
+    QString get_sql_instance_name() const;
     QStringList get_all_ids_of_selected_instance(const QString &prefix) const;
     QStringList get_instance_captions() const;
     bool is_section_instance_defined() const;
@@ -388,9 +409,14 @@ struct DataEngineSection {
 
     uint get_actual_instance_index();
 
+    QString get_section_title() const;
+
+    bool section_uses_variants() const;
+
     private:
     std::experimental::optional<uint> instance_count;
 
+    QString section_title;
     QString instance_count_name;
     QString section_name;
     void append_variant_from_json(const QJsonObject &object);
@@ -431,7 +457,8 @@ struct DataEngineSections {
     const QMap<QString, QList<QVariant>> &get_dependancy_tags() const;
     bool is_dummy_data_mode = true;
 
-    private:
+    DataEngineSection *get_section_no_exception(FormID id) const;
+private:
     QList<const DataEngineDataEntry *> get_entries_raw(const FormID &id, DataEngineErrorNumber *error_num, DecodecFieldID &decoded_field_name,
                                                        bool using_instance_index) const;
     DataEngineSection *get_section_raw(const QString &section_name, DataEngineErrorNumber *error_num) const;
@@ -480,10 +507,12 @@ class Data_engine {
     QString get_unit(const FormID &id) const;
     EntryType get_entry_type(const FormID &id) const;
     double get_si_prefix(const FormID &id) const;
+    QString get_section_title(const QString section_name) const;
     bool is_desired_value_set(const FormID &id) const;
 
     QStringList get_section_names() const;
     sol::table get_section_names(sol::state *lua);
+    bool section_uses_variants(QString section_name) const;
     QStringList get_instance_captions(const QString &section_name) const;
     uint get_instance_count(const std::string &section_name) const;
     sol::table get_ids_of_section(sol::state *lua, const std::string &section_name);
@@ -492,21 +521,25 @@ class Data_engine {
     void fill_engine_with_dummy_data();
     Statistics get_statistics() const;
 
-    void save_data_to_file(const QString &filename) const;
-
     std::unique_ptr<QWidget> get_preview() const;
     bool generate_pdf(const std::string &form, const std::string &destination) const;
-	void fill_database(QSqlDatabase &db) const;
-    void generate_template(const QString &destination) const;
+    void fill_database(QSqlDatabase &db) const;
+    void generate_template(const QString &destination, const QString &db_filename, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
+                           const QList<PrintOrderItem> &print_order) const;
 
     void save_to_json(QString filename);
+    static void replace_database_filename(const std::string &source_form_path, const std::string &destination_form_path, const std::string &database_path);
+
+    bool section_uses_instances(QString section_name) const;
 
     private:
-	void generate_pages(QXmlStreamWriter &xml) const;
-	void generate_pages_header(QXmlStreamWriter &xml) const;
-	void generate_datasourcesManager(QXmlStreamWriter &xml) const;
-    void generate_scriptContext(QXmlStreamWriter &xml) const;
-	void generate_tables(QXmlStreamWriter &xml) const;
+    void generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
+                        const QList<PrintOrderItem> &print_order) const;
+    void generate_pages_header(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
+                               const QList<PrintOrderItem> &print_order) const;
+    void generate_tables(const QList<PrintOrderItem> &print_order) const;
+    void generate_sourced_form(const std::string &source_path, const std::string &destination_path, const std::string &database_path) const;
+    void add_sources_to_form(QString data_base_path, const QList<PrintOrderItem> &print_order, QString approved_by_field_id) const;
 
     struct FormIdWrapper {
         FormIdWrapper(const FormID &id)
@@ -525,6 +558,10 @@ class Data_engine {
     QString script_path;
     QString source_path;
     quint64 load_time_seconds_since_epoch = 0;
+    int generate_image(QXmlStreamWriter &xml, QString image_path, int y_position, QString parent_name) const;
+    void generate_table(const DataEngineSection *section) const;
+    QList<PrintOrderSectionItem> get_print_order(const QList<PrintOrderItem> &orig_print_order, bool used_for_textfields, TextFieldDataBandPlace actual_band_position) const;
+    int generate_textfields(QXmlStreamWriter &xml, int y_start, const QList<PrintOrderItem> &print_order, TextFieldDataBandPlace actual_band_position) const;
 };
 
 #endif // DATA_ENGINE_H

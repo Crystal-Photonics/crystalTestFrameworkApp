@@ -22,7 +22,7 @@ void DummyCommunicationDevice::send(const QByteArray &data, const QByteArray &di
 
 bool DummyCommunicationDevice::isConnected() {
 
-    return true;
+    return is_connected;
 }
 
 bool DummyCommunicationDevice::waitReceived(Duration timeout, int bytes, bool isPolling) {

@@ -82,7 +82,8 @@ HEADERS += \
     LuaUI/hline.h \
     Windows/dummydatacreator.h \
     environmentvariables.h \
-    LuaUI/userinstructionlabel.h
+    LuaUI/userinstructionlabel.h \
+    data_engine/exceptionalapproval.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -137,7 +138,8 @@ SOURCES += \
     LuaUI/hline.cpp \
     Windows/dummydatacreator.cpp \
     environmentvariables.cpp \
-    LuaUI/userinstructionlabel.cpp
+    LuaUI/userinstructionlabel.cpp \
+    data_engine/exceptionalapproval.cpp
 
 
 

@@ -4,13 +4,16 @@
 #include "vc.h"
 
 #include <QApplication>
+#include <QBuffer>
 #include <QByteArray>
 #include <QDateTime>
 #include <QDebug>
+#include <QDir>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QObject>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -198,8 +201,19 @@ DataEngineSection *DataEngineSections::get_section(const FormID &id) const {
     return result_section;
 }
 
+DataEngineSection *DataEngineSections::get_section_no_exception(FormID id) const {
+    DataEngineErrorNumber error_num = DataEngineErrorNumber::ok;
+    if (!id.contains("/")) {
+        id += "/dummy";
+    }
+    DecodecFieldID field_id = decode_field_id(id);
+    DataEngineSection *result_section = get_section_raw(field_id.section_name, &error_num);
+    return result_section;
+}
+
 DecodecFieldID DataEngineSections::decode_field_id(const FormID &id) {
     DecodecFieldID result;
+
     auto names = id.split("/");
     if (names.count() != 2) {
         throw DataEngineError(DataEngineErrorNumber::faulty_field_id, QString("field id needs to be in format \"section-name/field-name\" but is %1").arg(id));
@@ -613,6 +627,11 @@ void DataEngineSection::from_json(const QJsonValue &object, const QString &key_n
                                       QString("\"Allow_empty_section\" -tag of section \"%1\" must be boolean. But is not.").arg(get_section_name()));
             }
         }
+        if (obj.contains("title")) {
+            section_title = obj["title"].toString();
+        } else {
+            section_title = section_name;
+        }
         if (obj.contains("variants")) {
             QJsonValue var_val = obj["variants"];
             if (var_val.isArray()) {
@@ -638,6 +657,24 @@ QString DataEngineSection::get_section_name() const {
 
 QString DataEngineSection::get_instance_count_name() const {
     return instance_count_name;
+}
+
+static QString adjust_sql_table_name(QString old_table_name) {
+    old_table_name = old_table_name.toLower();
+    old_table_name = old_table_name.replace("-", "_");
+    old_table_name = old_table_name.replace("ü", "ue");
+    old_table_name = old_table_name.replace("ö", "oe");
+    old_table_name = old_table_name.replace("ä", "ae");
+    old_table_name = old_table_name.replace("ß", "sz");
+    return old_table_name;
+}
+
+QString DataEngineSection::get_sql_section_name() const {
+    return adjust_sql_table_name(get_section_name());
+}
+
+QString DataEngineSection::get_sql_instance_name() const {
+    return get_sql_section_name() + "_instance";
 }
 
 QStringList DataEngineSection::get_all_ids_of_selected_instance(const QString &prefix) const {
@@ -763,6 +800,10 @@ VariantData::VariantData(const VariantData &other)
 
 uint VariantData::get_entry_count() const {
     return data_entries.size();
+}
+
+bool VariantData::uses_dependency() const {
+    return !dependency_tags.tags.isEmpty();
 }
 
 bool VariantData::is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count, const QString &section_name) {
@@ -1238,6 +1279,18 @@ uint DataEngineSection::get_actual_instance_index() {
     return actual_instance_index;
 }
 
+QString DataEngineSection::get_section_title() const {
+    return section_title;
+}
+
+bool DataEngineSection::section_uses_variants() const {
+    if (prototype_instance.variants.size() > 1)
+        return true;
+    const VariantData *variant = prototype_instance.get_variant();
+    assert(variant);
+    return variant->uses_dependency();
+}
+
 void Data_engine::set_actual_number(const FormID &id, double number) {
     auto section = sections.get_section(id);
     section->set_actual_number(id, number);
@@ -1267,6 +1320,18 @@ QStringList Data_engine::get_instance_captions(const QString &section_name) cons
     return the_section->get_instance_captions();
 }
 
+bool Data_engine::section_uses_variants(QString section_name) const {
+    DataEngineSection *the_section = sections.get_section(section_name + "/dummy");
+    assert(the_section);
+    return the_section->section_uses_variants();
+}
+
+bool Data_engine::section_uses_instances(QString section_name) const {
+    DataEngineSection *the_section = sections.get_section(section_name + "/dummy");
+    assert(the_section);
+    return the_section->get_instance_count_name().size() || the_section->get_instance_captions().count() > 1;
+}
+
 QStringList Data_engine::get_ids_of_section(const QString &section_name) const {
     DataEngineSection *the_section = sections.get_section(section_name + "/dummy");
     assert(the_section);
@@ -1293,10 +1358,6 @@ void Data_engine::fill_engine_with_dummy_data() {
             }
         }
     }
-}
-
-void Data_engine::save_data_to_file(const QString &filename) const {
-    //
 }
 
 QStringList Data_engine::get_section_names() const {
@@ -1404,6 +1465,11 @@ double Data_engine::get_si_prefix(const FormID &id) const {
     return data_entry->get_si_prefix();
 }
 
+QString Data_engine::get_section_title(const QString section_name) const {
+    auto section = sections.get_section(section_name + "/dummy");
+    return section->get_section_title();
+}
+
 std::unique_ptr<QWidget> Data_engine::get_preview() const {
     LimeReport::ReportEngine re;
     //re.dataManager()->addModel();
@@ -1412,27 +1478,38 @@ std::unique_ptr<QWidget> Data_engine::get_preview() const {
 }
 
 bool Data_engine::generate_pdf(const std::string &form, const std::string &destination) const {
+    const auto db_name = "report_temp_data.db"; //TODO: find a better temporary name
+    QFile::remove(db_name);
+    assert(QFile{db_name}.exists() == false);
+    QSqlDatabase db;
+    if (QSqlDatabase::contains()) {
+        db = QSqlDatabase::database();
+    } else {
+        db = QSqlDatabase::addDatabase("QSQLITE");
+    }
+
+    db.setDatabaseName(db_name);
+    bool opend = db.open();
+    if (!opend) {
+        qDebug() << "SQLConnection error: " << db.lastError().text();
+    }
+    assert(opend);
+
+    fill_database(db);
+    const auto sourced_form = form + ".tmp.lrxml";
+    replace_database_filename(form, sourced_form, QFileInfo{db_name}.absoluteFilePath().toStdString());
+
     LimeReport::ReportEngine re;
-    if (re.loadFromFile(QString::fromStdString(form), false) == false) {
+    if (re.loadFromFile(QString::fromStdString(sourced_form), false) == false) {
         return false;
     }
-	auto db = QSqlDatabase::addDatabase("QSQLITE");
-	const auto db_name = "data engine test database autogenerated for pdf.db"; //TODO: find a better temporary name
-	QFile::remove(db_name);
-	assert(QFile{db_name}.exists() == false);
-	db.setDatabaseName(db_name);
-	assert(db.open());
-	fill_database(db);
-
-	for (const DataEngineSection &section : sections.sections) {
-		QSqlQueryModel *sql_query_model = new QSqlQueryModel();
-		sql_query_model->setQuery(QString{"SELECT * FROM %1"}.arg(section.get_section_name()), db);
-		re.dataManager()->addModel(section.get_section_name(), sql_query_model, true);
-	}
-    return re.printToPDF(QString::fromStdString(destination));
+    bool result = re.printToPDF(QString::fromStdString(destination));
+    db.close();
+    return result;
 }
 
-static void db_exec(QSqlDatabase &db, const QString &query) {
+static void db_exec(QSqlDatabase &db, QString query) {
+    //    qDebug() << query;
     auto instance = db.exec(query);
     if (instance.lastError().isValid()) {
         qDebug() << instance.lastError().text();
@@ -1441,10 +1518,11 @@ static void db_exec(QSqlDatabase &db, const QString &query) {
 }
 
 static QString get_caption(const QString &section_name, const QString &instance_caption) {
+    (void)section_name;
     if (instance_caption.isEmpty()) {
-        return section_name;
+        return "";
     }
-    return section_name + " " + instance_caption;
+    return instance_caption;
 }
 
 void Data_engine::save_to_json(QString filename) {
@@ -1542,38 +1620,40 @@ void Data_engine::fill_database(QSqlDatabase &db) const {
     //for (const auto &section : sections.sections) { //cannot use auto because Qt Creator is a PoS
     for (const DataEngineSection &section : sections.sections) {
         int instance_id_counter{1};
-        const auto instances_table_name = section.get_section_name() + "_instances";
+        const auto instances_table_name = section.get_sql_instance_name();
         db_exec(db, QString{R"(
 			CREATE TABLE %1 (
-				ID int PRIMARY KEY,
+				InstanceID int PRIMARY KEY,
 				Caption text
 			)
 		)"}.arg(instances_table_name));
-        //for (const auto &instance : section.instances) { //cannot use auto because Qt Creator is a PoS
-        for (const DataEngineInstance &instance : section.instances) {
-            const auto &section_table_name = section.get_section_name();
-            db_exec(db, QString{"INSERT INTO %1 VALUES(%2, '%3')"}.arg(instances_table_name, QString::number(instance_id_counter),
-                                                                       get_caption(section.get_section_name(), instance.instance_caption)));
 
-            db_exec(db, QString{R"(
-				CREATE TABLE %1 (
-					Name text PRIMARY KEY,
-					Description text,
-					Desired text,
-					Actual text,
-					Instance_id int KEY,
-					Inrange flag,
-					Unit text
-				)
-			)"}.arg(section_table_name));
+        const auto &section_table_name = section.get_sql_section_name();
+        db_exec(db, QString{R"(
+            CREATE TABLE %1 (
+                ID int PRIMARY KEY,
+                Name text,
+                Description text,
+                Desired text,
+                Actual text,
+                InstanceID int KEY,
+                Inrange flag,
+                Unit text
+            )
+        )"}.arg(section_table_name));
+        int id = 0;
+        for (const DataEngineInstance &instance : section.instances) {
+            db_exec(db, QString{"INSERT INTO %1 VALUES(%2, '%3')"}.arg(instances_table_name, QString::number(instance_id_counter),
+                                                                       get_caption(section_table_name, instance.instance_caption)));
             auto variant = instance.get_variant();
             assert(variant);
 
             for (const std::unique_ptr<DataEngineDataEntry> &entry : variant->data_entries) {
-                db_exec(db, QString{"INSERT INTO %1 VALUES('%2', '%3', '%4', '%5', %6, %7, '%8')"}.arg(
-                                section_table_name, section.get_section_name() + "/" + entry->field_name, entry->get_description(),
+                db_exec(db, QString{"INSERT INTO %1 VALUES(%2, '%3', '%4', '%5', '%6', %7, %8, '%9')"}.arg(
+                                section_table_name, QString::number(id), section.get_section_name() + "/" + entry->field_name, entry->get_description(),
                                 entry->get_desired_value_as_string(), entry->get_actual_values(), QString::number(instance_id_counter),
                                 entry->is_in_range() ? "1" : "0", entry->get_unit()));
+                id++;
             }
 
             instance_id_counter++;
@@ -1582,51 +1662,52 @@ void Data_engine::fill_database(QSqlDatabase &db) const {
 }
 
 struct XML_state {
-	QXmlStreamWriter xml{};
-	int y{};
-	int band_index{};
+    QXmlStreamWriter xml{};
+    int y{};
+    int band_index{};
 };
 
 struct XML {
-	XML(const QString &name) {
-		state.xml.writeStartElement(name);
-	}
-	XML &attribute(const QString &name, const QString &value) {
-		state.xml.writeAttribute(name, value);
-		return *this;
-	}
-	XML &attributes(const std::initializer_list<std::pair<QString, QString>> &list) {
-		for (auto &item : list) {
-			attribute(item.first, item.second);
-		}
-		return *this;
-	}
-	XML &value(const QString &value) {
-		state.xml.writeCharacters(value);
-		return *this;
-	}
-	~XML() {
-		state.xml.writeEndElement();
-	}
-	XML &add_band_index_element() {
-		XML("bandIndex").attributes({{"Type", "int"}, {"Value", QString::number(state.band_index++)}});
-		return *this;
-	}
+    XML(const QString &name) {
+        state.xml.writeStartElement(name);
+    }
+    XML &attribute(const QString &name, const QString &value) {
+        state.xml.writeAttribute(name, value);
+        return *this;
+    }
+    XML &attributes(const std::initializer_list<std::pair<QString, QString>> &list) {
+        for (auto &item : list) {
+            attribute(item.first, item.second);
+        }
+        return *this;
+    }
+    XML &value(const QString &value) {
+        state.xml.writeCharacters(value);
+        return *this;
+    }
+    ~XML() {
+        state.xml.writeEndElement();
+    }
+    XML &add_band_index_element() {
+        XML("bandIndex").attributes({{"Type", "int"}, {"Value", QString::number(state.band_index++)}});
+        return *this;
+    }
 
-	static auto &y() {
-		return state.y;
-	}
+    static auto &y() {
+        return state.y;
+    }
 
-	static XML_state state;
+    static XML_state state;
 };
 
 XML_state XML::state;
 
-void Data_engine::generate_template(const QString &destination) const {
+void Data_engine::generate_template(const QString &destination, const QString &db_filename, QString report_title, QString image_footer_path,
+                                    QString image_header_path, QString approved_by_field_id, const QList<PrintOrderItem> &print_order) const {
     QFile xml_file{destination};
     xml_file.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
-	XML::state.xml.setDevice(&xml_file);
-	auto &xml = XML::state.xml;
+    XML::state.xml.setDevice(&xml_file);
+    auto &xml = XML::state.xml;
 
     xml.setAutoFormatting(true);
     xml.writeStartDocument();
@@ -1638,19 +1719,18 @@ void Data_engine::generate_template(const QString &destination) const {
         {
             xml.writeStartElement("pages");
             xml.writeAttribute("Type", "Collection");
-            generate_pages(xml);
+            generate_pages(xml, report_title, image_footer_path, image_header_path, approved_by_field_id, print_order);
             xml.writeEndElement(); //pages
 
             xml.writeStartElement("datasourcesManager");
             xml.writeAttribute("Type", "Object");
             xml.writeAttribute("ClassName", "LimeReport::DataSourceManager");
-            generate_datasourcesManager(xml);
+            add_sources_to_form(db_filename, print_order, approved_by_field_id);
             xml.writeEndElement(); //datasourcesManager
 
             xml.writeStartElement("scriptContext");
             xml.writeAttribute("Type", "Object");
             xml.writeAttribute("ClassName", "LimeReport::ScriptEngineContext");
-            generate_scriptContext(xml);
             xml.writeEndElement(); //scriptContext
         }
         xml.writeEndElement(); //"object"
@@ -1659,140 +1739,713 @@ void Data_engine::generate_template(const QString &destination) const {
     xml.writeEndDocument();
 }
 
-void Data_engine::generate_pages(QXmlStreamWriter &xml) const {
-	XML pages{"item"};
-	pages.attributes({{"Type", "Object"}, {"ClassName", "LimeReport::PageDesignIntf"}});
-	{
-		XML page_item{"pageItem"};
-		page_item.attributes({{"Type", "Object"}, {"ClassName", "PageItem"}});
-		XML{"objectName"}.attribute("Type", "QString").value("ReportPage");
-		{
-			XML children{"children"};
-			children.attribute("Type", "Collection");
-			generate_pages_header(xml);
-			generate_tables(xml);
-		}
-	}
+void Data_engine::generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path,
+                                 QString approved_by_field_id, const QList<PrintOrderItem> &print_order) const {
+    XML pages{"item"};
+    pages.attributes({{"Type", "Object"}, {"ClassName", "LimeReport::PageDesignIntf"}});
+    {
+        XML page_item{"pageItem"};
+        page_item.attributes({{"Type", "Object"}, {"ClassName", "PageItem"}});
+        XML{"objectName"}.attribute("Type", "QString").value("ReportPage");
+        {
+            XML children{"children"};
+            children.attribute("Type", "Collection");
+            generate_pages_header(xml, report_title, image_footer_path, image_header_path, approved_by_field_id, print_order);
+            generate_tables(print_order);
+        }
+    }
 }
 
-void Data_engine::generate_pages_header(QXmlStreamWriter &xml) const {
-	XML report_header{"item"};
-	report_header.attributes({{"Type", "Object"}, {"ClassName", "ReportHeader"}});
-	report_header.add_band_index_element();
-	XML{"objectName"}.attribute("Type", "QString").value("ReportHeader");
-	xml.writeStartElement("children");
-	xml.writeAttribute("Type", "Collection");
-	{
-		xml.writeStartElement("item");
-		xml.writeAttribute("Type", "Object");
-		xml.writeAttribute("ClassName", "TextItem");
+int Data_engine::generate_image(QXmlStreamWriter &xml, QString image_path, int y_position, QString parent_name) const {
+    QString image_hex_string;
+    const int desired_width = 2000;
+    int aspect_ratio_height = 0;
+    if (!QFile::exists(image_path)) {
+        return y_position;
+    }
+    QImage image{image_path};
+    bool image_valid = image.width() > 0;
+    if (image_valid) {
+        QByteArray ba;
+        QBuffer buff(&ba);
+        buff.open(QIODevice::WriteOnly);
+        image.save(&buff, "PNG");
+        image_hex_string = ba.toHex();
+        aspect_ratio_height = image.height() * desired_width / image.width();
 
-		{
-			XML{"geometry"}.attributes({{"width", "2000"}, {"height", "100"}, {"x", "0"}, {"y", "0"}, {"Type", "QRect"}});
-			XML{"font"}.attributes(
-				{{"pointSize", "16"}, {"family", "Arial"}, {"weight", "50"}, {"italic", "0"}, {"Type", "QFont"}, {"stylename", ""}, {"underline", "0"}});
-			XML{"alignment"}.attributes({{"Value", "132"}, {"Type", "enumAndFlags"}});
-			XML{"content"}.attribute("Type", "QString").value("Report");
-			xml.writeStartElement("objectName");
-			xml.writeAttribute("Type", "QString");
-			xml.writeCharacters("ReportTitle");
-			{
-				// <objectName Type="QString">TextItem1</objectName>
-			}
-			xml.writeEndElement(); //objectName
-		}
-		xml.writeEndElement(); //item
-	}
-	xml.writeEndElement(); //children
+        XML image_item{"item"};
+        image_item.attributes({{"Type", "Object"}, {"ClassName", "ImageItem"}});
+        XML{"geometry"}.attributes({{"width", QString::number(desired_width)},
+                                    {"height", QString::number(aspect_ratio_height)},
+                                    {"x", "0"},
+                                    {"y", QString::number(y_position)},
+                                    {"Type", "QRect"}});
+
+        xml.writeStartElement("parentName");
+        {
+            xml.writeAttribute("Type", "QString");
+            xml.writeCharacters(parent_name);
+        }
+        xml.writeEndElement(); //objectName
+
+        xml.writeStartElement("objectName");
+        {
+            xml.writeAttribute("Type", "QString");
+            xml.writeCharacters("header_image");
+        }
+        xml.writeEndElement(); //objectName
+
+        xml.writeStartElement("image");
+        {
+            xml.writeAttribute("Type", "QImage");
+            xml.writeCharacters(image_hex_string);
+        }
+        xml.writeEndElement(); //objectName
+
+        XML{"center"}.attributes({{"Type", "bool"}, {"Value", "1"}});
+        XML{"scale"}.attributes({{"Type", "bool"}, {"Value", "1"}});
+        XML{"keepAspectRatio"}.attributes({{"Type", "bool"}, {"Value", "1"}});
+    }
+    return aspect_ratio_height + y_position;
 }
 
-void Data_engine::generate_datasourcesManager(QXmlStreamWriter &xml) const {}
+int Data_engine::generate_textfields(QXmlStreamWriter &xml, int y_start, const QList<PrintOrderItem> &print_order,
+                                     TextFieldDataBandPlace actual_band_position) const {
+    int y = y_start;
+    int text_field_height = 50;
+    int font_size = 10;
+    QString font_color = "#000000";
+    if ((actual_band_position == TextFieldDataBandPlace::page_footer) || (actual_band_position == TextFieldDataBandPlace::page_header)) {
+        text_field_height = 30;
+        font_size = 6;
+        font_color = "#a8a8a8";
+    }
 
-void Data_engine::generate_scriptContext(QXmlStreamWriter &xml) const {}
+    QList<PrintOrderSectionItem> textfield_print_order = get_print_order(print_order, true, actual_band_position);
+    for (auto section_order : textfield_print_order) {
+        assert(section_order.section->instances.size() == 1);
+        auto variant = section_order.section->instances[0].get_variant();
+        assert(variant);
+        const int text_field_width = 2000 / section_order.print_order_item.text_field_column_count;
+        int col = 0;
+        for (const auto &fields : variant->data_entries) {
+            const int x_position = col * text_field_width;
+            DataEngineDataEntry *field = fields.get();
+            xml.writeStartElement("item");
+            {
+                xml.writeAttribute("Type", "Object");
+                xml.writeAttribute("ClassName", "TextItem");
+                XML{"geometry"}.attributes({{"width", QString::number(text_field_width)},
+                                            {"height", QString::number(text_field_height)},
+                                            {"x", QString::number(x_position)},
+                                            {"y", QString::number(y)},
+                                            {"Type", "QRect"}});
+                XML{"font"}.attributes({{"pointSize", QString::number(font_size)},
+                                        {"family", "Arial"},
+                                        {"weight", "50"},
+                                        {"italic", "0"},
+                                        {"Type", "QFont"},
+                                        {"stylename", ""},
+                                        {"bold", "0"},
+                                        {"underline", "0"}});
+                XML{"fontColor"}.attributes({{"Value", font_color}, {"Type", "QColor"}});
 
-void Data_engine::generate_tables(QXmlStreamWriter &xml) const {
-	const auto &headers = {"Name", "Target Value", "Actual Value", "Success"};
-	const auto &sql_fields = {"Description", "Desired", "Actual", "Inrange"};
-	for (auto &section : sections.sections) {
-		//Data Band
-		{
-			XML data_band{"item"};
-			data_band.attributes({{"Type", "Object"}, {"ClassName", "Data"}});
-			data_band.add_band_index_element();
-			XML{"geometry"}.attributes({{"width", "2000"}, {"height", "50"}, {"x", "0"}, {"y", QString::number(XML::y() += 100)}, {"Type", "QRect"}});
-			XML{"objectName"}.attribute("Type", "QString").value(QString{"DataBand%1"}.arg(section.get_section_name()));
-			{
-				XML children{"children"};
-				children.attribute("Type", "Collection");
-				for (std::size_t i = 0; i < headers.size(); i++) {
-					XML column{"item"};
-					column.attribute("Type", "Object");
-					column.attribute("ClassName", "TextItem");
-					const auto &header = headers.begin()[i];
-					XML{"geometry"}.attributes({{"width", QString::number(2000 / headers.size())},
-												{"height", "50"},
-												{"x", QString::number(i * 2000 / headers.size())},
-												{"y", "0"},
-												{"Type", "QRect"}});
-					XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
-					XML{"content"}.attribute("Type", "QString").value(QString{"$D{%1.%2}"}.arg(section.get_section_name(), sql_fields.begin()[i]));
-					XML{"objectName"}.attribute("Type", "QString").value(QString{} + "DataHeaderColumn" + header + section.get_section_name());
-				}
-			}
-		}
-		//Data Band Header
-		{
-			XML data_band_header{"item"};
-			data_band_header.attributes({{"Type", "Object"}, {"ClassName", "DataHeader"}});
-			data_band_header.add_band_index_element();
-			XML{"parentBand"}.attribute("Type", "QString").value(QString{"DataBand%1"}.arg(section.get_section_name()));
-			XML{"geometry"}.attributes({{"width", "2000"}, {"height", "100"}, {"x", "0"}, {"y", QString::number(XML::y() += 100)}, {"Type", "QRect"}});
-			XML{"objectName"}.attribute("Type", "QString").value(QString{"DataBandHeader%1"}.arg(section.get_section_name()));
-			{
-				XML children{"children"};
-				children.attribute("Type", "Collection");
-				{
-					{
-						XML title{"item"};
-						title.attribute("Type", "Object");
-						title.attribute("ClassName", "TextItem");
-						XML{"geometry"}.attributes({{"width", "2000"}, {"height", "50"}, {"x", "0"}, {"y", "0"}, {"Type", "QRect"}});
-						XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
-						XML{"content"}.attribute("Type", "QString").value(section.get_section_name());
-						XML{"objectName"}.attribute("Type", "QString").value("DataHeaderTitle" + section.get_section_name());
-					}
-					for (std::size_t i = 0; i < headers.size(); i++) {
-						XML column_header{"item"};
-						column_header.attribute("Type", "Object");
-						column_header.attribute("ClassName", "TextItem");
-						const auto &header = headers.begin()[i];
-						XML{"geometry"}.attributes({{"width", QString::number(2000 / headers.size())},
-													{"height", "50"},
-													{"x", QString::number(i * 2000 / headers.size())},
-													{"y", "50"},
-													{"Type", "QRect"}});
-						XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
-						XML{"content"}.attribute("Type", "QString").value(header);
-						XML{"objectName"}.attribute("Type", "QString").value(QString{} + "DataHeaderColumnHeader" + header + section.get_section_name());
-					}
-				}
-			}
-		}
-		//Data Band Subdetail
-		{
-			XML data_subdetail_header{"item"};
-			data_subdetail_header.attributes({{"Type", "Object"}, {"ClassName", "SubDetail"}});
-			data_subdetail_header.add_band_index_element();
-			XML{"parentBand"}.attribute("Type", "QString").value(QString{"DataBand%1"}.arg(section.get_section_name()));
-			XML{"geometry"}.attributes({{"width", "2000"}, {"height", "100"}, {"x", "0"}, {"y", QString::number(XML::y() += 100)}, {"Type", "QRect"}});
-			XML{"objectName"}.attribute("Type", "QString").value(QString{"SubDetail%1"}.arg(section.get_section_name()));
-			if (0) {
-				xml.writeStartElement("children");
-				xml.writeAttribute("Type", "Collection");
-				xml.writeEndElement(); //children
-			}
-		}
-	}
+                XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
+                XML{"allowHTML"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+                XML{"autoHeight"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+                XML{"backgroundMode"}.attributes({{"Value", "0"}, {"Type", "enumAndFlags"}});
+                XML{"content"}
+                    .attribute("Type", "QString")
+                    .value("<b>" + field->get_description() + "</b>: $D{" + section_order.section->get_sql_section_name() + "_" + field->field_name +
+                           ".Actual}");
+
+                xml.writeStartElement("objectName");
+                {
+                    xml.writeAttribute("Type", "QString");
+                    xml.writeCharacters("field_" + field->field_name);
+                }
+                xml.writeEndElement(); //objectName
+            }
+            xml.writeEndElement(); //item
+            col++;
+            if (col >= section_order.print_order_item.text_field_column_count) {
+                col = 0;
+                y += text_field_height;
+                y_start += text_field_height;
+            }
+        }
+        if (col != 0) {
+            y_start += text_field_height;
+        }
+    }
+    return y_start;
+}
+
+void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path,
+                                        QString approved_by_field_id, const QList<PrintOrderItem> &print_order) const {
+    {
+        int y_position = 100;
+        XML report_header{"item"};
+        {
+            report_header.attributes({{"Type", "Object"}, {"ClassName", "ReportHeader"}});
+            report_header.add_band_index_element();
+            XML{"objectName"}.attribute("Type", "QString").value("report_title");
+            xml.writeStartElement("children");
+            {
+                xml.writeAttribute("Type", "Collection");
+                xml.writeStartElement("item");
+                {
+                    xml.writeAttribute("Type", "Object");
+                    xml.writeAttribute("ClassName", "TextItem");
+                    XML{"geometry"}.attributes({{"width", "2000"}, {"height", QString::number(y_position)}, {"x", "0"}, {"y", "0"}, {"Type", "QRect"}});
+                    XML{"font"}.attributes({{"pointSize", "20"},
+                                            {"family", "Arial"},
+                                            {"weight", "50"},
+                                            {"italic", "0"},
+                                            {"Type", "QFont"},
+                                            {"stylename", ""},
+                                            {"bold", "1"},
+                                            {"underline", "0"}});
+                    XML{"alignment"}.attributes({{"Value", "132"}, {"Type", "enumAndFlags"}});
+                    XML{"content"}.attribute("Type", "QString").value(report_title);
+                    xml.writeStartElement("objectName");
+                    {
+                        xml.writeAttribute("Type", "QString");
+                        xml.writeCharacters("report_title");
+                    }
+                    xml.writeEndElement(); //objectName
+                }
+                xml.writeEndElement(); //item
+                y_position += 100;
+                y_position = generate_textfields(xml, y_position, print_order, TextFieldDataBandPlace::report_header);
+            }
+            xml.writeEndElement(); //children
+            XML{"geometry"}.attributes({{"width", "2000"}, {"height", QString::number(y_position)}, {"Type", "QRect"}});
+            XML{"autoHeight"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        }
+    }
+    {
+        XML paget_Header{"item"};
+        const QString header_name = "PageHeader_Band";
+        {
+            int y_position = 0;
+            paget_Header.attributes({{"Type", "Object"}, {"ClassName", "PageHeader"}});
+            paget_Header.add_band_index_element();
+            xml.writeStartElement("objectName");
+            {
+                xml.writeAttribute("Type", "QString");
+                xml.writeCharacters("PageFooter_Band");
+            }
+            xml.writeEndElement(); //objectName
+            xml.writeStartElement("children");
+            { //
+                xml.writeAttribute("Type", "Collection");
+                y_position = generate_image(xml, image_header_path, y_position, header_name);
+                y_position = generate_textfields(xml, y_position, print_order, TextFieldDataBandPlace::page_header);
+            }
+            xml.writeEndElement(); //children
+            XML{"geometry"}.attributes({{"height", QString::number(y_position + 30)}, {"Type", "QRect"}, {"width", "2000"}});
+            XML{"autoHeight"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        }
+    }
+    {
+        XML paget_footer{"item"};
+        {
+            int y_position = 0;
+            const QString footer_name = "PageFooter_Band";
+            paget_footer.attributes({{"Type", "Object"}, {"ClassName", "PageFooter"}});
+            paget_footer.add_band_index_element();
+            xml.writeStartElement("objectName");
+            {
+                xml.writeAttribute("Type", "QString");
+                xml.writeCharacters("PageFooter_Band");
+            }
+            xml.writeEndElement(); //objectName
+            xml.writeStartElement("children");
+            {
+                xml.writeAttribute("Type", "Collection");
+                const int page_number_height = 50;
+
+                y_position = generate_textfields(xml, y_position, print_order, TextFieldDataBandPlace::page_footer);
+
+                xml.writeStartElement("item");
+                {
+                    xml.writeAttribute("ClassName", "TextItem");
+                    {
+                        XML{"geometry"}.attributes({{"width", "2000"},
+                                                    {"height", QString::number(page_number_height)},
+                                                    {"x", "0"},
+                                                    {"y", QString::number(y_position)},
+                                                    {"Type", "QRect"}});
+                        XML{"font"}.attributes({{"pointSize", "10"},
+                                                {"family", "Arial"},
+                                                {"weight", "50"},
+                                                {"italic", "0"},
+                                                {"Type", "QFont"},
+                                                {"stylename", ""},
+                                                {"underline", "0"}});
+                        XML{"alignment"}.attributes({{"Value", "36"}, {"Type", "enumAndFlags"}});
+                        XML{"content"}.attribute("Type", "QString").value("$V{#PAGE}/$V{#PAGE_COUNT}");
+                        XML{"backgroundMode"}.attributes({{"Value", "0"}, {"Type", "enumAndFlags"}});
+                        xml.writeStartElement("objectName");
+                        {
+                            xml.writeAttribute("Type", "QString");
+                            xml.writeCharacters("Pagenumber");
+                        }
+                        xml.writeEndElement(); //objectName
+                    }
+                }
+                xml.writeEndElement(); //item
+                y_position += page_number_height;
+                y_position = generate_image(xml, image_footer_path, y_position, footer_name);
+            }
+            xml.writeEndElement(); //children
+            XML{"geometry"}.attributes({{"height", QString::number(y_position)}, {"Type", "QRect"}, {"width", "2000"}});
+            XML{"autoHeight"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        }
+    }
+    {
+        XML report_header{"item"};
+        {
+            int y_position = 0;
+            report_header.attributes({{"Type", "Object"}, {"ClassName", "ReportFooter"}});
+            report_header.add_band_index_element();
+            XML{"objectName"}.attribute("Type", "QString").value("report_footer");
+            xml.writeStartElement("children");
+            {
+                xml.writeAttribute("Type", "Collection");
+                y_position = generate_textfields(xml, y_position, print_order, TextFieldDataBandPlace::report_footer);
+
+                y_position += 300;
+
+                xml.writeStartElement("item");
+                {
+                    xml.writeAttribute("ClassName", "ShapeItem");
+                    { XML{"geometry"}.attributes({{"width", "1000"}, {"height", "50"}, {"x", "500"}, {"y", QString::number(y_position)}, {"Type", "QRect"}}); }
+                }
+                xml.writeEndElement(); //ShapeItem
+
+                xml.writeStartElement("item");
+                {
+                    xml.writeAttribute("ClassName", "TextItem");
+                    {
+                        XML{"geometry"}.attributes(
+                            {{"width", "200"}, {"height", "50"}, {"x", "1300"}, {"y", QString::number(y_position + 25)}, {"Type", "QRect"}});
+                        XML{"font"}.attributes({{"pointSize", "10"},
+                                                {"family", "Arial"},
+                                                {"weight", "50"},
+                                                {"italic", "0"},
+                                                {"Type", "QFont"},
+                                                {"stylename", ""},
+                                                {"underline", "0"}});
+                        XML{"alignment"}.attributes({{"Value", "34"}, {"Type", "enumAndFlags"}});
+                        XML{"content"}.attribute("Type", "QString").value(QObject::tr("Signature"));
+                        XML{"backgroundMode"}.attributes({{"Value", "0"}, {"Type", "enumAndFlags"}});
+                        XML{"autoHeight"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+                        xml.writeStartElement("objectName");
+                        {
+                            xml.writeAttribute("Type", "QString");
+                            xml.writeCharacters("text_signature");
+                        }
+                        xml.writeEndElement(); //objectName
+                    }
+                }
+                xml.writeEndElement(); //item
+
+                xml.writeStartElement("item");
+                {
+                    xml.writeAttribute("ClassName", "TextItem");
+                    {
+                        XML{"geometry"}.attributes({{"width", "200"}, {"height", "50"}, {"x", "40"}, {"y", QString::number(y_position)}, {"Type", "QRect"}});
+                        XML{"font"}.attributes({{"pointSize", "10"},
+                                                {"family", "Arial"},
+                                                {"weight", "50"},
+                                                {"italic", "0"},
+                                                {"Type", "QFont"},
+                                                {"stylename", ""},
+                                                {"underline", "0"}});
+                        XML{"alignment"}.attributes({{"Value", "36"}, {"Type", "enumAndFlags"}});
+                        XML{"content"}.attribute("Type", "QString").value("$S{dateFormat(now())}");
+                        XML{"backgroundMode"}.attributes({{"Value", "0"}, {"Type", "enumAndFlags"}});
+                        XML{"autoHeight"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+                        xml.writeStartElement("objectName");
+                        {
+                            xml.writeAttribute("Type", "QString");
+                            xml.writeCharacters("text_signature_date");
+                        }
+                        xml.writeEndElement(); //objectName
+                    }
+                }
+                xml.writeEndElement(); //item
+
+                auto section_with_approved_by = sections.get_section_no_exception(approved_by_field_id);
+                QString approved_query = "";
+                if (section_with_approved_by) {
+                    approved_query = "$D{" + section_with_approved_by->get_sql_section_name() + "_" +
+                                     adjust_sql_table_name(approved_by_field_id.split("/")[1]) + "_automatic.Actual}";
+                }
+                xml.writeStartElement("item");
+                {
+                    xml.writeAttribute("ClassName", "TextItem");
+                    {
+                        XML{"geometry"}.attributes({{"width", "250"}, {"height", "50"}, {"x", "250"}, {"y", QString::number(y_position)}, {"Type", "QRect"}});
+                        XML{"font"}.attributes({{"pointSize", "10"},
+                                                {"family", "Arial"},
+                                                {"weight", "50"},
+                                                {"italic", "0"},
+                                                {"Type", "QFont"},
+                                                {"stylename", ""},
+                                                {"underline", "0"}});
+                        XML{"alignment"}.attributes({{"Value", "36"}, {"Type", "enumAndFlags"}});
+                        XML{"content"}.attribute("Type", "QString").value(QObject::tr("Test operated by: ") + approved_query);
+                        XML{"backgroundMode"}.attributes({{"Value", "0"}, {"Type", "enumAndFlags"}});
+                        XML{"autoHeight"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+                        xml.writeStartElement("objectName");
+                        {
+                            xml.writeAttribute("Type", "QString");
+                            xml.writeCharacters("text_tester");
+                        }
+                        xml.writeEndElement(); //objectName
+                    }
+                }
+                xml.writeEndElement(); //item
+
+                y_position += 50 + 25;
+            }
+
+            xml.writeEndElement(); //children
+            XML{"geometry"}.attributes({{"width", "2000"}, {"height", QString::number(y_position)}, {"Type", "QRect"}});
+            XML{"autoHeight"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        }
+    }
+}
+
+QList<PrintOrderSectionItem> Data_engine::get_print_order(const QList<PrintOrderItem> &orig_print_order, bool used_for_textfields,
+                                                          TextFieldDataBandPlace actual_band_position) const {
+    QList<PrintOrderItem> print_order_items;
+    QStringList section_names_in_engine = get_section_names();
+    for (auto order_item : orig_print_order) {
+        if (order_item.print_enabled) {
+            if ((used_for_textfields || order_item.print_as_text_field) == false) {
+                print_order_items.append(order_item);
+            } else if (used_for_textfields && order_item.print_as_text_field) {
+                if ((actual_band_position == order_item.text_field_place) || (actual_band_position == TextFieldDataBandPlace::all)) {
+                    print_order_items.append(order_item);
+                }
+            }
+        }
+        section_names_in_engine.removeAll(order_item.section_name);
+    }
+
+    if (used_for_textfields == false) {
+        for (auto name : section_names_in_engine) {
+            PrintOrderItem item{};
+            item.print_enabled = true;
+            item.section_name = name;
+            item.print_as_text_field = false;
+            print_order_items.append(item);
+        }
+    }
+
+    QList<PrintOrderSectionItem> result;
+    for (auto print_order_item : print_order_items) {
+        DataEngineSection *section = sections.get_section(print_order_item.section_name + "/dummy");
+        assert(section);
+        PrintOrderSectionItem item;
+        item.print_order_item = print_order_item;
+        item.section = section;
+        result.append(item);
+    }
+    return result;
+}
+
+void Data_engine::generate_tables(const QList<PrintOrderItem> &print_order) const {
+    auto section_print_order = get_print_order(print_order, false, TextFieldDataBandPlace::none);
+
+    for (auto section_print_order_item : section_print_order) {
+        generate_table(section_print_order_item.section);
+    }
+}
+
+void Data_engine::generate_table(const DataEngineSection *section) const {
+    const auto &headers = {"Name", "Target Value", "Actual Value", "Success"};
+    const int column_widths[4] = {40, 20, 20, 20};
+    const auto &sql_fields = {"Description", "Desired", "Actual", "Inrange"};
+    //Data Band Header
+    {
+        XML data_band_header{"item"};
+        data_band_header.attributes({{"Type", "Object"}, {"ClassName", "DataHeader"}});
+        data_band_header.add_band_index_element();
+        XML{"parentBand"}.attribute("Type", "QString").value(QString{"DataBand%1"}.arg(section->get_sql_section_name()));
+        XML{"geometry"}.attributes({{"width", "2000"}, {"height", "170"}, {"x", "0"}, {"y", QString::number(XML::y() += 100)}, {"Type", "QRect"}});
+        XML{"objectName"}.attribute("Type", "QString").value(QString{"DataBandHeader_%1"}.arg(section->get_sql_section_name()));
+        XML{"printAlways"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+        XML{"splittable"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        {
+            XML children{"children"};
+            children.attribute("Type", "Collection");
+            {
+                {
+                    XML title{"item"};
+                    title.attribute("Type", "Object");
+                    title.attribute("ClassName", "TextItem");
+                    XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
+                    XML{"font"}.attributes({{"Value", "129"},
+                                            {"Type", "QFont"},
+                                            {"stylename", ""},
+                                            {"weight", "50"},
+                                            {"family", "Arial"},
+                                            {"pointSize", "16"},
+                                            {"underline", "0"},
+                                            {"italic", "0"},
+                                            {"bold", "1"}});
+                    XML{"geometry"}.attributes({{"width", "2000"}, {"height", "100"}, {"x", "0"}, {"y", "50"}, {"Type", "QRect"}});
+                    XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
+                    XML{"content"}.attribute("Type", "QString").value(section->get_section_title());
+                    XML{"objectName"}.attribute("Type", "QString").value(QString{"DataHeaderTitle_%1"}.arg(section->get_sql_section_name()));
+                }
+                int x_position = 0;
+                for (std::size_t i = 0; i < headers.size(); i++) {
+                    const int field_width = 2000 * column_widths[i] / 100;
+                    XML column_header{"item"};
+                    column_header.attribute("Type", "Object");
+                    column_header.attribute("ClassName", "TextItem");
+                    const auto &header = headers.begin()[i];
+                    XML{"geometry"}.attributes(
+                        {{"width", QString::number(field_width)}, {"height", "50"}, {"x", QString::number(x_position)}, {"y", "130"}, {"Type", "QRect"}});
+                    XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
+                    XML{"font"}.attributes({{"Value", "129"},
+                                            {"Type", "QFont"},
+                                            {"stylename", ""},
+                                            {"weight", "50"},
+                                            {"family", "Arial"},
+                                            {"pointSize", "10"},
+                                            {"underline", "0"},
+                                            {"italic", "0"},
+                                            {"bold", "1"}});
+                    XML{"content"}.attribute("Type", "QString").value(header);
+                    XML{"objectName"}.attribute("Type", "QString").value(QString{"DataHeaderColumnHeader_%1_%2"}.arg(header, section->get_sql_instance_name()));
+                    x_position += field_width;
+                }
+            }
+        }
+    }
+    //Data Band
+    {
+        XML data_band{"item"};
+        data_band.attributes({{"Type", "Object"}, {"ClassName", "Data"}});
+        data_band.add_band_index_element();
+        XML{"geometry"}.attributes({{"width", "2000"}, {"height", "80"}, {"x", "0"}, {"y", QString::number(XML::y() += 100)}, {"Type", "QRect"}});
+        XML{"objectName"}.attribute("Type", "QString").value(QString{"DataBand%1"}.arg(section->get_sql_section_name()));
+        XML{"datasource"}.attribute("Type", "QString").value(section->get_sql_instance_name());
+        XML{"splittable"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"keepBottomSpace"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"printIfEmpty"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+        XML{"keepFooterTogether"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"keepSubdetailTogether"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        {
+            XML children{"children"};
+            children.attribute("Type", "Collection");
+            {
+                XML column{"item"};
+                column.attribute("Type", "Object");
+                column.attribute("ClassName", "TextItem");
+                XML{"geometry"}.attributes({{"width", "2000"}, {"height", "50"}, {"x", "0"}, {"y", "20"}, {"Type", "QRect"}});
+                XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
+                XML{"font"}.attributes({{"Value", "129"},
+                                        {"Type", "QFont"},
+                                        {"stylename", ""},
+                                        {"weight", "50"},
+                                        {"family", "Arial"},
+                                        {"pointSize", "10"},
+                                        {"underline", "0"},
+                                        {"italic", "1"},
+                                        {"bold", "0"}});
+                XML{"content"}.attribute("Type", "QString").value(QString{"$D{%1.%2}"}.arg(section->get_sql_instance_name(), "Caption"));
+                XML{"objectName"}.attribute("Type", "QString").value("DataSectionName_" + section->get_sql_section_name());
+            }
+        }
+    }
+    //Data Band Subdetail
+    {
+        XML data_subdetail_header{"item"};
+        data_subdetail_header.attributes({{"Type", "Object"}, {"ClassName", "SubDetail"}});
+        data_subdetail_header.add_band_index_element();
+        XML{"parentBand"}.attribute("Type", "QString").value(QString{"DataBand%1"}.arg(section->get_sql_section_name()));
+        XML{"geometry"}.attributes({{"width", "2000"}, {"height", "50"}, {"x", "0"}, {"y", QString::number(XML::y() += 100)}, {"Type", "QRect"}});
+        XML{"objectName"}.attribute("Type", "QString").value(QString{"SubDetail%1"}.arg(section->get_sql_section_name()));
+        XML{"datasource"}.attribute("Type", "QString").value(section->get_sql_section_name());
+        XML{"splittable"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"alternateBackgroundColor"}.attributes({{"Value", "#F2F2F2"}, {"Type", "QColor"}});
+        XML{"keepBottomSpace"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"keepFooterTogether"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+
+        {
+            XML children{"children"};
+            children.attribute("Type", "Collection");
+            int x_position = 0;
+            for (std::size_t i = 0; i < headers.size(); i++) {
+                const int field_width = 2000 * column_widths[i] / 100;
+                XML column{"item"};
+                column.attribute("Type", "Object");
+                column.attribute("ClassName", "TextItem");
+                const auto &header = headers.begin()[i];
+
+                XML{"geometry"}.attributes(
+                    {{"width", QString::number(field_width)}, {"height", "50"}, {"x", QString::number(x_position)}, {"y", "0"}, {"Type", "QRect"}});
+                XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
+                XML{"autoHeight"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+                XML{"backgroundMode"}.attributes({{"Value", "0"}, {"Type", "enumAndFlags"}});
+                XML{"content"}.attribute("Type", "QString").value(QString{"$D{%1.%2}"}.arg(section->get_sql_section_name(), sql_fields.begin()[i]));
+                XML{"objectName"}.attribute("Type", "QString").value(QString{} + "DataHeaderColumn" + header + section->get_sql_section_name());
+                x_position += field_width;
+            }
+        }
+    }
+    //Sub Data Band Footer
+    {
+        XML data_footer{"item"};
+        data_footer.attributes({{"Type", "Object"}, {"ClassName", "SubDetailFooter"}});
+        data_footer.add_band_index_element();
+        XML{"parentBand"}.attribute("Type", "QString").value(QString{"SubDetail%1"}.arg(section->get_sql_section_name()));
+        XML{"geometry"}.attributes({{"width", "2000"}, {"height", "25"}, {"x", "0"}, {"y", QString::number(XML::y() += 100)}, {"Type", "QRect"}});
+        XML{"objectName"}.attribute("Type", "QString").value(QString{"SubDetailFooter%1"}.arg(section->get_sql_section_name()));
+        XML{"splittable"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"keepBottomSpace"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+
+        XML{"keepFooterTogether"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+        XML{"autoHeight"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"printIfEmpty"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+        XML{"printAlways"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+    }
+    //Data Band Footer
+    {
+        XML data_footer{"item"};
+        data_footer.attributes({{"Type", "Object"}, {"ClassName", "DataFooter"}});
+        data_footer.add_band_index_element();
+        XML{"parentBand"}.attribute("Type", "QString").value(QString{"DataBand%1"}.arg(section->get_sql_section_name()));
+        XML{"geometry"}.attributes({{"width", "2000"}, {"height", "50"}, {"x", "0"}, {"y", QString::number(XML::y() += 100)}, {"Type", "QRect"}});
+        XML{"objectName"}.attribute("Type", "QString").value(QString{"DataFooter%1"}.arg(section->get_sql_section_name()));
+        XML{"splittable"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"keepBottomSpace"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+
+        XML{"keepFooterTogether"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+        XML{"autoHeight"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"printIfEmpty"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+        XML{"printAlways"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+    }
+}
+
+void Data_engine::replace_database_filename(const std::string &source_form_path, const std::string &destination_form_path, const std::string &database_path) {
+    QFile xml_file_in{source_form_path.c_str()};
+    xml_file_in.open(QFile::OpenModeFlag::ReadOnly);
+    assert(xml_file_in.isOpen());
+    QXmlStreamReader xml_in{&xml_file_in};
+    QFile xml_file_out{destination_form_path.c_str()};
+    xml_file_out.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
+    assert(xml_file_out.isOpen());
+    qDebug() << "xml_file_in" << xml_file_in.fileName();
+    qDebug() << "xml_file_out" << xml_file_out.fileName();
+    QXmlStreamWriter &xml_out = XML::state.xml;
+    xml_out.setDevice(&xml_file_out);
+    while ((!xml_in.atEnd())) {
+        xml_in.readNext();
+
+        if (xml_in.isStartElement()) {
+            if (xml_in.name() == "databaseName") {
+                XML{"databaseName"}.attribute("Type", "QString").value(QString::fromStdString(database_path));
+                xml_in.skipCurrentElement();
+                continue;
+            }
+        }
+        xml_out.writeCurrentToken(xml_in);
+    }
+    if (xml_in.hasError()) {
+        qDebug() << "XML Error:" << xml_in.errorString();
+    }
+    // assert(!xml_in.hasError());
+}
+
+void Data_engine::add_sources_to_form(QString data_base_path, const QList<PrintOrderItem> &print_order, QString approved_by_field_id) const {
+    XML{"objectName"}.attribute("Type", "QString").value("datasources");
+    //connections
+    data_base_path = QDir::toNativeSeparators(data_base_path);
+    const auto connection_name = "default_connection";
+    {
+        XML connections{"connections"};
+        connections.attribute("Type", "Collection");
+        XML item{"item"};
+        item.attributes({{"ClassName", "LimeReport::ConnectionDesc"}, {"Type", "Object"}});
+        XML{"name"}.attribute("Type", "QString").value(connection_name);
+        XML{"driver"}.attribute("Type", "QString").value("QSQLITE");
+        XML{"databaseName"}.attribute("Type", "QString").value(data_base_path);
+    }
+    //queries
+    {
+        XML queries{"queries"};
+        queries.attribute("Type", "Collection");
+        for (const auto &section : sections.sections) {
+            XML item{"item"};
+            item.attributes({{"ClassName", "LimeReport::QueryDesc"}, {"Type", "Object"}});
+            XML{"queryName"}.attribute("Type", "QString").value(section.get_sql_instance_name());
+            XML{"queryText"}.attribute("Type", "QString").value(QString{"SELECT * FROM %1"}.arg(section.get_sql_instance_name()));
+            XML{"connectionName"}.attribute("Type", "QString").value(connection_name);
+        }
+
+        QList<PrintOrderSectionItem> textfield_print_order = get_print_order(print_order, true, TextFieldDataBandPlace::all);
+
+        PrintOrderSectionItem approved_id;
+        DataEngineSection *approved_section = sections.get_section_no_exception(approved_by_field_id);
+        if (approved_section) {
+            approved_id.section = approved_section;
+            approved_id.field_name = adjust_sql_table_name(approved_by_field_id.split("/")[1]);
+            approved_id.suffix = "_automatic";
+            textfield_print_order.append(approved_id);
+        }
+        for (const auto &section_item : textfield_print_order) {
+            assert(section_item.section->instances.size() == 1);
+            const DataEngineInstance &instance = section_item.section->instances[0];
+            auto variant = instance.get_variant();
+            assert(variant);
+
+            QStringList field_names;
+            if (section_item.field_name.count()) {
+                field_names.append(section_item.field_name);
+            } else {
+                for (const std::unique_ptr<DataEngineDataEntry> &entry : variant->data_entries) {
+                    field_names.append(entry->field_name);
+                }
+            }
+            for (auto &field_name : field_names) {
+                XML item{"item"};
+                item.attributes({{"ClassName", "LimeReport::QueryDesc"}, {"Type", "Object"}});
+
+                XML{"queryName"}.attribute("Type", "QString").value(section_item.section->get_sql_section_name() + "_" + field_name + section_item.suffix);
+                XML{"queryText"}
+                    .attribute("Type", "QString")
+                    .value(QString{"SELECT * FROM %1 WHERE Name = \"%2\""}
+                               .arg(section_item.section->get_sql_section_name())
+                               .arg(section_item.section->get_section_name() + "/" + field_name));
+                XML{"connectionName"}.attribute("Type", "QString").value(connection_name);
+            }
+        }
+    }
+
+    //subqueries
+    {
+        XML subqueries{"subqueries"};
+        subqueries.attribute("Type", "Collection");
+        for (const auto &section : sections.sections) {
+            XML item{"item"};
+            item.attributes({{"ClassName", "LimeReport::SubQueryDesc"}, {"Type", "Object"}});
+            XML{"queryName"}.attribute("Type", "QString").value(section.get_sql_section_name());
+            XML{"queryText"}
+                .attribute("Type", "QString")
+                .value(QString{"SELECT * FROM %1 WHERE InstanceID = $D{%2.InstanceID}"}.arg(section.get_sql_section_name(), section.get_sql_instance_name()));
+            XML{"connectionName"}.attribute("Type", "QString").value(connection_name);
+            XML{"master"}.attribute("Type", "QString").value(section.get_sql_instance_name());
+        }
+    }
 }
 
 void Data_engine::assert_in_dummy_mode() const {
@@ -2179,7 +2832,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
     throw DataEngineError(DataEngineErrorNumber::invalid_json_object, "invalid JSON object");
 }
 
-#if 1
+
 NumericDataEntry::NumericDataEntry(const NumericDataEntry &other)
     : DataEngineDataEntry(other.field_name)
     , desired_value{other.desired_value}
@@ -2188,7 +2841,7 @@ NumericDataEntry::NumericDataEntry(const NumericDataEntry &other)
     , si_prefix{other.si_prefix}
     , tolerance{other.tolerance}
     , actual_value{other.actual_value} {}
-#endif
+
 
 NumericDataEntry::NumericDataEntry(FormID field_name, std::experimental::optional<double> desired_value, NumericTolerance tolerance, QString unit,
                                    std::experimental::optional<double> si_prefix, QString description)
@@ -2221,7 +2874,8 @@ bool NumericDataEntry::is_in_range() const {
 
 QString NumericDataEntry::get_desired_value_as_string() const {
     if ((bool)desired_value) {
-        return tolerance.to_string(desired_value.value());
+        QString val = tolerance.to_string(desired_value.value()) + " " + unit;
+        return val.trimmed();
     } else {
         return "";
     }
@@ -2229,7 +2883,8 @@ QString NumericDataEntry::get_desired_value_as_string() const {
 
 QString NumericDataEntry::get_actual_values() const {
     if ((bool)actual_value) {
-        return QString::number(actual_value.value());
+        QString val = QString::number(actual_value.value()) + " " + unit;
+        return val.trimmed();
     } else {
         return unavailable_value;
     }
@@ -2787,12 +3442,11 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
     }
     if (!num_entry) {
         if (tolerance.is_defined()) {
-            throw DataEngineError(
-                DataEngineErrorNumber::reference_is_not_number_but_has_tolerance,
-                QString(
-                    "reference \"%1\" pointing to \"%2\", is not a number but has a tolerance defined. A tolerance is only allowed to be applied on numbers.")
-                    .arg(field_name)
-                    .arg(reference_links[0].link));
+            throw DataEngineError(DataEngineErrorNumber::reference_is_not_number_but_has_tolerance,
+                                  QString("reference \"%1\" pointing to \"%2\", is not a number but has a tolerance defined. A tolerance is only allowed "
+                                          "to be applied on numbers.")
+                                      .arg(field_name)
+                                      .arg(reference_links[0].link));
         }
     }
 }

@@ -304,7 +304,7 @@
   </action>
   <action name="actionDummy_Data_Creator_for_print_templates">
    <property name="text">
-    <string>Dummy Data Creator</string>
+    <string>Generate report template</string>
    </property>
   </action>
  </widget>

@@ -21,6 +21,7 @@ struct Protocol;
 class Data_engine;
 class UI_container;
 class TestRunner;
+struct MatchedDevice;
 
 QString get_absolute_file_path(const QString &script_path, const QString &file_to_open);
 std::string get_absolute_file_path(const QString &script_path, const std::string &file_to_open);
@@ -32,6 +33,7 @@ class DeviceRequirements {
     int quantity_min = 0;
     int quantity_max = INT_MAX;
     QString get_description() const;
+    QString alias;
 };
 
 namespace HotKeyEvent {
@@ -80,7 +82,7 @@ class ScriptEngine {
     sol::table create_table();
     QStringList get_string_list(const QString &name);
     std::vector<DeviceRequirements> get_device_requirement_list(const QString &name);
-    void run(std::vector<std::pair<CommunicationDevice *, Protocol *>> &devices);
+    void run(std::vector<MatchedDevice> &devices);
     template <class ReturnType, class... Arguments>
     ReturnType call(const char *function_name, Arguments &&... args);
     void set_error_line(const sol::error &error);
@@ -107,15 +109,12 @@ class ScriptEngine {
 
 template <class ReturnType, class... Arguments>
 ReturnType ScriptEngine::call(const char *function_name, Arguments &&... args) {
-    qDebug() << "ScriptEngine::call" << function_name;
     sol::protected_function f = (*lua)[function_name];
     auto call_res = f(std::forward<Arguments>(args)...);
     if (call_res.valid()) {
-        qDebug() << "ScriptEngine::call success";
         return call_res;
     }
     sol::error error = call_res;
-    qDebug() << "error:" << error.what();
     set_error_line(error);
     throw error;
 }
