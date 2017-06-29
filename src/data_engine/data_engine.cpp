@@ -2365,7 +2365,7 @@ void Data_engine::replace_database_filename(const std::string &source_form_path,
     qDebug() << xml_file_out.fileName();
     QXmlStreamWriter xml_out{&xml_file_out};
     xml_out.setDevice(&xml_file_out);
-    while (xml_in.readNext() != QXmlStreamReader::Invalid) {
+    while ((xml_in.readNext() != QXmlStreamReader::Invalid) &&  (!xml_in.atEnd())) {
    // while (!xml_in.atEnd()){
         xml_in.readNext();
         if (xml_in.isStartElement()) {
