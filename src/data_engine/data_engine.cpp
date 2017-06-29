@@ -203,7 +203,7 @@ DataEngineSection *DataEngineSections::get_section(const FormID &id) const {
 
 DataEngineSection *DataEngineSections::get_section_no_exception(FormID id) const {
     DataEngineErrorNumber error_num = DataEngineErrorNumber::ok;
-    if (!id.contains("/")){
+    if (!id.contains("/")) {
         id += "/dummy";
     }
     DecodecFieldID field_id = decode_field_id(id);
@@ -1490,9 +1490,8 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
     assert(QFile{db_name}.exists() == false);
     db.setDatabaseName(db_name);
     bool opend = db.open();
-    if (!opend){
+    if (!opend) {
         qDebug() << "SQLConnection error: " << db.lastError().text();
-
     }
     assert(opend);
 
@@ -1704,7 +1703,7 @@ struct XML {
 XML_state XML::state;
 
 void Data_engine::generate_template(const QString &destination, const QString &db_filename, QString report_title, QString image_footer_path,
-                                     QString image_header_path, QString approved_by_field_id, const QList<PrintOrderItem> &print_order) const {
+                                    QString image_header_path, QString approved_by_field_id, const QList<PrintOrderItem> &print_order) const {
     QFile xml_file{destination};
     xml_file.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
     XML::state.xml.setDevice(&xml_file);
@@ -1945,7 +1944,7 @@ void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_ti
                 y_position = generate_textfields(xml, y_position, print_order, TextFieldDataBandPlace::page_header);
             }
             xml.writeEndElement(); //children
-            XML{"geometry"}.attributes({{"height", QString::number(y_position + 30)},  {"Type", "QRect"}, {"width", "2000"}});
+            XML{"geometry"}.attributes({{"height", QString::number(y_position + 30)}, {"Type", "QRect"}, {"width", "2000"}});
             XML{"autoHeight"}.attributes({{"Value", "0"}, {"Type", "bool"}});
         }
     }
@@ -2001,7 +2000,7 @@ void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_ti
                 y_position = generate_image(xml, image_footer_path, y_position, footer_name);
             }
             xml.writeEndElement(); //children
-            XML{"geometry"}.attributes({{"height", QString::number(y_position)},  {"Type", "QRect"}, {"width", "2000"}});
+            XML{"geometry"}.attributes({{"height", QString::number(y_position)}, {"Type", "QRect"}, {"width", "2000"}});
             XML{"autoHeight"}.attributes({{"Value", "0"}, {"Type", "bool"}});
         }
     }
@@ -2082,7 +2081,8 @@ void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_ti
                 auto section_with_approved_by = sections.get_section_no_exception(approved_by_field_id);
                 QString approved_query = "";
                 if (section_with_approved_by) {
-                    approved_query = "$D{" + section_with_approved_by->get_sql_section_name() + "_" + adjust_sql_table_name(approved_by_field_id.split("/")[1]) + "_automatic.Actual}";
+                    approved_query = "$D{" + section_with_approved_by->get_sql_section_name() + "_" +
+                                     adjust_sql_table_name(approved_by_field_id.split("/")[1]) + "_automatic.Actual}";
                 }
                 xml.writeStartElement("item");
                 {
@@ -2097,9 +2097,7 @@ void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_ti
                                                 {"stylename", ""},
                                                 {"underline", "0"}});
                         XML{"alignment"}.attributes({{"Value", "36"}, {"Type", "enumAndFlags"}});
-                        XML{"content"}
-                            .attribute("Type", "QString")
-                            .value(QObject::tr("Test operated by: ") +approved_query);
+                        XML{"content"}.attribute("Type", "QString").value(QObject::tr("Test operated by: ") + approved_query);
                         XML{"backgroundMode"}.attributes({{"Value", "0"}, {"Type", "enumAndFlags"}});
                         XML{"autoHeight"}.attributes({{"Value", "1"}, {"Type", "bool"}});
                         xml.writeStartElement("objectName");
@@ -2373,27 +2371,26 @@ void Data_engine::replace_database_filename(const std::string &source_form_path,
     QFile xml_file_out{destination_form_path.c_str()};
     xml_file_out.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
     assert(xml_file_out.isOpen());
-    qDebug() << xml_file_out.fileName();
-    QXmlStreamWriter xml_out{&xml_file_out};
+    qDebug() << "xml_file_in" << xml_file_in.fileName();
+    qDebug() << "xml_file_out" << xml_file_out.fileName();
+    QXmlStreamWriter &xml_out = XML::state.xml;
     xml_out.setDevice(&xml_file_out);
-    while ((xml_in.readNext() != QXmlStreamReader::Invalid) &&  (!xml_in.atEnd())) {
+    while ((!xml_in.atEnd())) {
         xml_in.readNext();
+
         if (xml_in.isStartElement()) {
-            //qDebug() << xml_in.name();
             if (xml_in.name() == "databaseName") {
-                xml_out.writeCurrentToken(xml_in);
+                XML{"databaseName"}.attribute("Type", "QString").value(QString::fromStdString(database_path));
                 xml_in.skipCurrentElement();
-                xml_out.writeCharacters(QString::fromStdString(database_path));
-                xml_out.writeCurrentToken(xml_in);
                 continue;
             }
         }
         xml_out.writeCurrentToken(xml_in);
     }
-    if (xml_in.hasError()){
+    if (xml_in.hasError()) {
         qDebug() << "XML Error:" << xml_in.errorString();
     }
-    assert(!xml_in.hasError());
+    // assert(!xml_in.hasError());
 }
 
 void Data_engine::add_sources_to_form(QString data_base_path, const QList<PrintOrderItem> &print_order, QString approved_by_field_id) const {
