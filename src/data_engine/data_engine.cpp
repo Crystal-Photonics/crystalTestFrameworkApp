@@ -1478,6 +1478,9 @@ std::unique_ptr<QWidget> Data_engine::get_preview() const {
 }
 
 bool Data_engine::generate_pdf(const std::string &form, const std::string &destination) const {
+    const auto db_name = "report_temp_data.db"; //TODO: find a better temporary name
+    QFile::remove(db_name);
+    assert(QFile{db_name}.exists() == false);
     QSqlDatabase db;
     if (QSqlDatabase::contains()) {
         db = QSqlDatabase::database();
@@ -1485,9 +1488,6 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
         db = QSqlDatabase::addDatabase("QSQLITE");
     }
 
-    const auto db_name = "report_temp_data"+QString::number(QDateTime::currentMSecsSinceEpoch())+".db"; //TODO: find a better temporary name
-    QFile::remove(db_name);
-    assert(QFile{db_name}.exists() == false);
     db.setDatabaseName(db_name);
     bool opend = db.open();
     if (!opend) {

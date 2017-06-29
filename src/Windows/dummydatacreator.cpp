@@ -189,6 +189,7 @@ void DummyDataCreator::on_pushButton_clicked() {
                                       print_order);
         { //TODO: put into data_engine
 
+            QFile::remove(db_name);
             QSqlDatabase db;
             if (QSqlDatabase::contains()) {
                 db = QSqlDatabase::database();
@@ -196,7 +197,6 @@ void DummyDataCreator::on_pushButton_clicked() {
                 db = QSqlDatabase::addDatabase("QSQLITE");
             }
 
-            QFile::remove(db_name);
             db.setDatabaseName(db_name);
             db.open();
             data_engine.fill_database(db);
