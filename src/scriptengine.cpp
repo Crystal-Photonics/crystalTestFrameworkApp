@@ -1093,7 +1093,16 @@ void ScriptEngine::load_script(const QString &path) {
                     auto fn = get_absolute_file_path(path, file_name);
                     handle.data_engine->save_to_json(QString::fromStdString(fn));
                 },
-
+                "add_extra_pdf_path", [ path = path, this ](Data_engine_handle & handle, const std::string &file_name) {
+                    (void)handle;
+                    // data_engine_auto_dump_path = QString::fromStdString(auto_dump_path);
+                    additional_pdf_path = QString::fromStdString(get_absolute_file_path(path, file_name));
+                    //  handle.data_engine->save_to_json(QString::fromStdString(fn));
+                },
+                "set_open_pdf_on_pdf_creation",
+                [path = path](Data_engine_handle & handle, bool auto_open_on_pdf_creation) {
+                    handle.data_engine->set_enable_auto_open_pdf(auto_open_on_pdf_creation);
+                },
                 "value_in_range",
                 [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->value_in_range(QString::fromStdString(field_id)); },
                 "value_in_range_in_instance",
@@ -1637,6 +1646,9 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
 
             std::string pdf_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
             data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), pdf_target_filename);
+            if (additional_pdf_path.count()) {
+                QFile::copy(QString::fromStdString(pdf_target_filename), additional_pdf_path);
+            }
         }
         if (data_engine_auto_dump_path.count()) {
             QFileInfo fi(data_engine_auto_dump_path);
@@ -1652,14 +1664,12 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
     };
     try {
         {
-
             QMultiMap<QString, MatchedDevice> aliased_devices;
             for (auto &device_protocol : devices) {
                 aliased_devices.insertMulti(device_protocol.proposed_alias, device_protocol);
             }
             std::vector<sol::object> no_alias_device_list;
             std::map<QString, std::vector<sol::object>> aliased_devices_result;
-
 
             //creating devices..
             auto aliases = aliased_devices.keys();

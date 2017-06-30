@@ -36,6 +36,6 @@ int main(int argc, char *argv[]) {
     old_handler = qInstallMessageHandler(message_handler);
     QApplication a(argc, argv);
     MainWindow w;
-    w.show();
+    w.showMaximized();
     return a.exec();
 }

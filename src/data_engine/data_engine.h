@@ -532,6 +532,7 @@ class Data_engine {
 
     bool section_uses_instances(QString section_name) const;
 
+    void set_enable_auto_open_pdf(bool auto_open_pdf);
     private:
     void generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
                         const QList<PrintOrderItem> &print_order) const;
@@ -562,6 +563,7 @@ class Data_engine {
     void generate_table(const DataEngineSection *section) const;
     QList<PrintOrderSectionItem> get_print_order(const QList<PrintOrderItem> &orig_print_order, bool used_for_textfields, TextFieldDataBandPlace actual_band_position) const;
     int generate_textfields(QXmlStreamWriter &xml, int y_start, const QList<PrintOrderItem> &print_order, TextFieldDataBandPlace actual_band_position) const;
+    bool auto_open_pdf = false;
 };
 
 #endif // DATA_ENGINE_H

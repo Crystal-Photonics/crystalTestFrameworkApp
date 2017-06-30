@@ -22,6 +22,7 @@
 #include <QAction>
 #include <QByteArray>
 #include <QDebug>
+#include <QDesktopServices>
 #include <QDir>
 #include <QDirIterator>
 #include <QGroupBox>
@@ -109,9 +110,16 @@ MainWindow::~MainWindow() {
 
 void MainWindow::align_columns() {
     assert(currently_in_gui_thread());
+    int dev_min_size = 0;
     for (int i = 0; i < ui->devices_list->columnCount(); i++) {
         ui->devices_list->resizeColumnToContents(i);
+        dev_min_size += ui->devices_list->columnWidth(i);
     }
+    dev_min_size -= dev_min_size % 50;
+    dev_min_size += 50;
+    ui->splitter_devices->setStretchFactor(0, 3);
+    ui->splitter_devices->setStretchFactor(1, 1);
+    ui->devices_list->setMinimumWidth(dev_min_size);
     for (int i = 0; i < ui->tests_list->columnCount(); i++) {
         ui->tests_list->resizeColumnToContents(i);
     }
@@ -284,6 +292,9 @@ void MainWindow::slot_device_discovery_done() {
 }
 
 void MainWindow::on_btn_refresh_all_clicked() {
+    //  std::string destination = "X:/Alle/CrystalTestFramework/scripts/sg04/test.pdf";
+    //  std::string destination = "//amelie/austausch/Alle/CrystalTestFramework/dumps/SG04/1234/report-2017_06_30-12_25_12-001.pdf";
+    // QDesktopServices::openUrl(QUrl("file://" + QString::fromStdString(destination)));
     refresh_devices(false);
 }
 
@@ -318,7 +329,6 @@ void MainWindow::on_run_test_script_button_clicked() {
             runner.interrupt();
         }
     }
-
 }
 
 void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {

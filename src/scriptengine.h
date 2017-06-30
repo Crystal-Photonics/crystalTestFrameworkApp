@@ -94,6 +94,7 @@ class ScriptEngine {
     QPlainTextEdit *console{nullptr};
     Data_engine *data_engine{nullptr};
     QString data_engine_auto_dump_path;
+    QString additional_pdf_path;
     QString data_engine_pdf_template_path;
 
 

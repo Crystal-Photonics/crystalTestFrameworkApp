@@ -8,6 +8,7 @@
 #include <QByteArray>
 #include <QDateTime>
 #include <QDebug>
+#include <QDesktopServices>
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -29,7 +30,6 @@
 #include <lrdatasourcemanagerintf.h>
 #include <lrreportengine.h>
 #include <type_traits>
-
 template <class T>
 typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type almost_equal(T x, T y, int ulp) {
     // the machine epsilon has to be scaled to the magnitude of the values used
@@ -96,7 +96,7 @@ void Data_engine::set_source(std::istream &source) {
     sections.delete_unmatched_variants();
 
     sections.deref_references();
-    load_time_seconds_since_epoch = QDateTime::currentMSecsSinceEpoch()/1000;
+    load_time_seconds_since_epoch = QDateTime::currentMSecsSinceEpoch() / 1000;
 }
 
 void Data_engine::set_script_path(QString script_path) {
@@ -1332,6 +1332,10 @@ bool Data_engine::section_uses_instances(QString section_name) const {
     return the_section->get_instance_count_name().size() || the_section->get_instance_captions().count() > 1;
 }
 
+void Data_engine::set_enable_auto_open_pdf(bool auto_open_pdf) {
+    this->auto_open_pdf = auto_open_pdf;
+}
+
 QStringList Data_engine::get_ids_of_section(const QString &section_name) const {
     DataEngineSection *the_section = sections.get_section(section_name + "/dummy");
     assert(the_section);
@@ -1472,7 +1476,6 @@ QString Data_engine::get_section_title(const QString section_name) const {
 
 std::unique_ptr<QWidget> Data_engine::get_preview() const {
     LimeReport::ReportEngine re;
-    //re.dataManager()->addModel();
     re.previewReport();
     return nullptr;
 }
@@ -1505,6 +1508,14 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
     }
     bool result = re.printToPDF(QString::fromStdString(destination));
     db.close();
+    if (auto_open_pdf) {
+        QFileInfo fi{QString::fromStdString(destination)};
+        auto p = fi.absoluteFilePath();
+        if (!p.startsWith("/")) {
+            p = "/" + p;
+        }
+        QDesktopServices::openUrl(QUrl("file://" + p));
+    }
     return result;
 }
 
@@ -1536,7 +1547,7 @@ void Data_engine::save_to_json(QString filename) {
     QJsonObject jo_general;
 
     auto script_git = git_info(QFileInfo(script_path).absolutePath(), true, false);
-    jo_general["datetime_unix"] = QDateTime::currentMSecsSinceEpoch()/1000;
+    jo_general["datetime_unix"] = QDateTime::currentMSecsSinceEpoch() / 1000;
     jo_general["datetime_str"] = QDateTime::currentDateTime().toString("yyyy:MM:dd HH:mm:ss");
 
     jo_general["framework_git_hash"] = "0x" + QString::number(GITHASH, 16);
@@ -1557,7 +1568,7 @@ void Data_engine::save_to_json(QString filename) {
     jo_general["everything_complete"] = is_complete();
     jo_general["exceptional_approval_exists"] = false;
     QVariant duration{};
-    duration.setValue<qint64>(QDateTime::currentMSecsSinceEpoch()/1000 - load_time_seconds_since_epoch);
+    duration.setValue<qint64>(QDateTime::currentMSecsSinceEpoch() / 1000 - load_time_seconds_since_epoch);
     jo_general["test_duration_seconds"] = QJsonValue::fromVariant(duration);
     jo_general["os_username"] = QString::fromStdString(get_os_username());
 
@@ -2832,7 +2843,6 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
     throw DataEngineError(DataEngineErrorNumber::invalid_json_object, "invalid JSON object");
 }
 
-
 NumericDataEntry::NumericDataEntry(const NumericDataEntry &other)
     : DataEngineDataEntry(other.field_name)
     , desired_value{other.desired_value}
@@ -2841,7 +2851,6 @@ NumericDataEntry::NumericDataEntry(const NumericDataEntry &other)
     , si_prefix{other.si_prefix}
     , tolerance{other.tolerance}
     , actual_value{other.actual_value} {}
-
 
 NumericDataEntry::NumericDataEntry(FormID field_name, std::experimental::optional<double> desired_value, NumericTolerance tolerance, QString unit,
                                    std::experimental::optional<double> si_prefix, QString description)
