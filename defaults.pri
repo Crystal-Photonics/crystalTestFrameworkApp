@@ -14,20 +14,25 @@ win32 {
     QWT_DIR = $$PWD/libs/qwt
     INCLUDEPATH += $$QWT_DIR/include
     LIBS += -L$$QWT_DIR/lib
-    Debug:LIBS += -lqwtd
-    Release:LIBS += -lqwt
+    debug:LIBS += -lqwtd
+    release:LIBS += -lqwt
 
     LIBS += -L$$PWD/libs/luasol
     LIBS += -llua53
 
-	Debug:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/win32/debug/lib
-	Release:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/win32/release/lib
+        debug:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/win32/debug/lib
+        release:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/win32/release/lib
+
 }else{
     CONFIG += qwt
     LIBS += -llua5.3
-	error("fill in the correct path for linux")
-	Debug:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux/debug/lib
-	Release:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux/release/lib
+        #error("fill in the correct path for linux")
+        debug:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux64/debug/lib
+        debug:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux/debug/lib
+        release:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux64/release/lib
+        release:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux/release/lib
+        message($$LIBS)
+#libs/LimeReport/build/5.5.1/linux64/debug/lib/
 }
 
 win32 {
@@ -36,7 +41,7 @@ win32 {
     LIBS += -L$$PWD/libs/libusb-1.0.21/MinGW32/static/
     LIBS += -llibusb-1.0
 }else{
-    LIBS += -llibusb-1.0
+    LIBS +=  -lusb-1.0
 }
 
 INCLUDEPATH += $$PWD/libs/LimeReport/include
@@ -54,10 +59,10 @@ QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer
 
 CONFIG(debug, debug|release) {
     BINSUB_DIR = bin/debug
-    BINDIR = $$OUT_PWD/../$$BINSUB_DIR
-	BINDIR_ZINT = $$OUT_PWD/../../../$$BINSUB_DIR
+    BINDIR = $$OUT_PWD/../$$BINSUB_DIR#
+   BINDIR_ZINT = $$OUT_PWD/../../../$$BINSUB_DIR
 } else {
     BINSUB_DIR = bin/release
     BINDIR = $$OUT_PWD/../$$BINSUB_DIR
-	BINDIR_ZINT = $$OUT_PWD/../../../$$BINSUB_DIR
+        BINDIR_ZINT = $$OUT_PWD/../../../$$BINSUB_DIR
 }

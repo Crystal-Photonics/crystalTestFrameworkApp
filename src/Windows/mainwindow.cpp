@@ -84,7 +84,7 @@ MainWindow::MainWindow(QWidget *parent)
     // connect(&action_run, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
 
     devices_thread.start();
-    connect(device_worker.get(), DeviceWorker::device_discrovery_done, this, slot_device_discovery_done);
+    connect(device_worker.get(), SIGNAL(device_discrovery_done()), this, SLOT(slot_device_discovery_done()));
     ui->btn_refresh_all->click();
     load_scripts();
 }

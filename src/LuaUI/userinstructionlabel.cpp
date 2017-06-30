@@ -5,6 +5,7 @@
 #include "ui_container.h"
 #include "util.h"
 
+#include <QResizeEvent>
 #include <QCheckBox>
 #include <QDoubleValidator>
 #include <QHBoxLayout>

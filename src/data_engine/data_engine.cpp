@@ -96,7 +96,7 @@ void Data_engine::set_source(std::istream &source) {
     sections.delete_unmatched_variants();
 
     sections.deref_references();
-    load_time_seconds_since_epoch = QDateTime::currentSecsSinceEpoch();
+    load_time_seconds_since_epoch = QDateTime::currentMSecsSinceEpoch()/1000;
 }
 
 void Data_engine::set_script_path(QString script_path) {
@@ -1536,7 +1536,7 @@ void Data_engine::save_to_json(QString filename) {
     QJsonObject jo_general;
 
     auto script_git = git_info(QFileInfo(script_path).absolutePath(), true, false);
-    jo_general["datetime_unix"] = QDateTime::currentSecsSinceEpoch();
+    jo_general["datetime_unix"] = QDateTime::currentMSecsSinceEpoch()/1000;
     jo_general["datetime_str"] = QDateTime::currentDateTime().toString("yyyy:MM:dd HH:mm:ss");
 
     jo_general["framework_git_hash"] = "0x" + QString::number(GITHASH, 16);
@@ -1557,7 +1557,7 @@ void Data_engine::save_to_json(QString filename) {
     jo_general["everything_complete"] = is_complete();
     jo_general["exceptional_approval_exists"] = false;
     QVariant duration{};
-    duration.setValue<qint64>(QDateTime::currentSecsSinceEpoch() - load_time_seconds_since_epoch);
+    duration.setValue<qint64>(QDateTime::currentMSecsSinceEpoch()/1000 - load_time_seconds_since_epoch);
     jo_general["test_duration_seconds"] = QJsonValue::fromVariant(duration);
     jo_general["os_username"] = QString::fromStdString(get_os_username());
 
@@ -2614,7 +2614,7 @@ void NumericTolerance::str_to_num(QString str_in, double &number, ToleranceType 
     bool sign_error = true;
 
     for (auto &sign : expected_sign_strings) {
-        if ((sign == "") && ((str_in[0].isDigit()) || (str_in[0] == "*"))) {
+        if ((sign == "") && ((str_in[0].isDigit()) || (str_in[0] == '*'))) {
             sign_error = false;
             break;
         } else if (str_in.startsWith(sign) && (sign != "")) {

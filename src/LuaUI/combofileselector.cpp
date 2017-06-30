@@ -39,6 +39,7 @@ void showInGraphicalShell(QWidget *parent, const QString &pathIn) {
     QProcess::execute("/usr/bin/osascript", scriptArgs);
 #else
     // we cannot select a file here, because no file browser really supports it...
+#if 0
     const QFileInfo fileInfo(pathIn);
     const QString folder = fileInfo.absoluteFilePath();
     const QString app = Utils::UnixUtils::fileBrowser(Core::ICore::instance()->settings());
@@ -51,6 +52,7 @@ void showInGraphicalShell(QWidget *parent, const QString &pathIn) {
     success = success && error.isEmpty();
     if (!success)
         showGraphicalShellError(parent, app, error);
+#endif
 #endif
 }
 #endif
