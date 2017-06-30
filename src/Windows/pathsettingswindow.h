@@ -36,6 +36,8 @@ class PathSettingsWindow : public QDialog {
 
     void on_env_var_path_button_clicked();
 
+    void on_exceptional_approval_path_clicked();
+
 private:
 	Ui::PathSettingsWindow *ui;
 

@@ -3,6 +3,7 @@
 #include "util.h"
 #include "vc.h"
 
+#include "exceptionalapproval.h"
 #include <QApplication>
 #include <QBuffer>
 #include <QByteArray>
@@ -30,6 +31,7 @@
 #include <lrdatasourcemanagerintf.h>
 #include <lrreportengine.h>
 #include <type_traits>
+
 template <class T>
 typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type almost_equal(T x, T y, int ulp) {
     // the machine epsilon has to be scaled to the magnitude of the values used
@@ -1648,7 +1650,7 @@ void Data_engine::fill_database(QSqlDatabase &db) const {
                 Desired text,
                 Actual text,
                 InstanceID int KEY,
-                Inrange flag,
+                Inrange text,
                 Unit text
             )
         )"}.arg(section_table_name));
@@ -1660,16 +1662,43 @@ void Data_engine::fill_database(QSqlDatabase &db) const {
             assert(variant);
 
             for (const std::unique_ptr<DataEngineDataEntry> &entry : variant->data_entries) {
-                db_exec(db, QString{"INSERT INTO %1 VALUES(%2, '%3', '%4', '%5', '%6', %7, %8, '%9')"}.arg(
+                db_exec(db, QString{"INSERT INTO %1 VALUES(%2, '%3', '%4', '%5', '%6', %7, '%8', '%9')"}.arg(
                                 section_table_name, QString::number(id), section.get_section_name() + "/" + entry->field_name, entry->get_description(),
                                 entry->get_desired_value_as_string(), entry->get_actual_values(), QString::number(instance_id_counter),
-                                entry->is_in_range() ? "1" : "0", entry->get_unit()));
+                                entry->is_in_range() ? QObject::tr("Ok") : QObject::tr("Failed"), entry->get_unit()));
                 id++;
             }
 
             instance_id_counter++;
         }
     }
+}
+
+void Data_engine::do_exceptional_approvals(ExceptionalApprovalDB &ea_db, QWidget *parent) {
+    QList<FailedField> failed_fields;
+    int instance_id_counter = 1;
+    for (const DataEngineSection &section : sections.sections) {
+        for (const DataEngineInstance &instance : section.instances) {
+            auto variant = instance.get_variant();
+            assert(variant);
+
+            for (const std::unique_ptr<DataEngineDataEntry> &entry : variant->data_entries) {
+                if (((entry->is_in_range() == false) || (entry->is_complete() == false)) == true) {
+                    FailedField failed_field{};
+                    failed_field.actual_value = entry->get_actual_values();
+                    failed_field.description = entry->get_description();
+                    failed_field.desired_value = entry->get_desired_value_as_string();
+                    failed_field.id = section.get_section_name() + "/" + entry->field_name;
+                    failed_field.instance_caption = instance.instance_caption;
+                    failed_field.instance_index = instance_id_counter;
+                    failed_fields.append(failed_field);
+                }
+            }
+
+            instance_id_counter++;
+        }
+    }
+    auto approvals = ea_db.select_exceptional_approval(failed_fields,parent);
 }
 
 struct XML_state {
@@ -2179,7 +2208,7 @@ void Data_engine::generate_tables(const QList<PrintOrderItem> &print_order) cons
 }
 
 void Data_engine::generate_table(const DataEngineSection *section) const {
-    const auto &headers = {"Name", "Target Value", "Actual Value", "Success"};
+    const auto &headers = {QObject::tr("Name"), QObject::tr("Target Value"), QObject::tr("Actual Value"), QObject::tr("Result")};
     const int column_widths[4] = {40, 20, 20, 20};
     const auto &sql_fields = {"Description", "Desired", "Actual", "Inrange"};
     //Data Band Header

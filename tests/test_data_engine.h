@@ -66,7 +66,8 @@ public:
     void test_iterate_entries();
     void test_iterate_entries_instance();
     void test_get_possible_variant_tag_values();
-	void test_form_creation();
+    void test_form_creation();
+    void test_exceptional_approval();
 };
 
 DECLARE_TEST(Test_Data_engine)

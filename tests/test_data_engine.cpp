@@ -1,12 +1,16 @@
 #include "test_data_engine.h"
 #include "data_engine/data_engine.h"
+#include "data_engine/exceptionalapproval.h"
+
+#include "config.h"
 
 #include <QList>
 #include <QPair>
+#include <QSettings>
 #include <QString>
 #include <sstream>
 
-#define DISABLE_ALL 0
+#define DISABLE_ALL 1
 //
 #define QVERIFY_EXCEPTION_THROWN_error_number(expression, error_number)                                                                                        \
     do {                                                                                                                                                       \
@@ -1009,6 +1013,64 @@ void Test_Data_engine::test_instances_with_different_variants_and_wrong_instance
 
     QVERIFY_EXCEPTION_THROWN_error_number(de.set_instance_count("probe_count", 2);, DataEngineErrorNumber::list_of_dependency_values_must_be_of_equal_length);
 
+#endif
+}
+
+void Test_Data_engine::test_exceptional_approval() {
+#if !DISABLE_ALL || 1
+
+    std::stringstream input{R"(
+{
+
+    "supply_variants":{
+        "instance_count": "probe_count",
+        "variants":[
+            {
+                "apply_if": {
+                    "is_good_variant": true
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 4000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen"	}
+                ]
+            },
+            {
+                "apply_if": {
+                    "is_good_variant": false
+                },
+                "data":[
+                    {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Variable Instances. Two Variants. This variant is chosen aswell"	}
+                ]
+            }
+        ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    tags.insert("is_good_variant", {true, false});
+    tags.insert("dummy", {true});
+    Data_engine de{input, tags};
+
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+
+    de.set_instance_count("probe_count", 2);
+    de.set_actual_number("supply_variants/voltage", 5.0);
+    de.use_instance("supply_variants", "Probe B", 2);
+    de.set_actual_number("supply_variants/voltage", 6.0);
+
+    de.use_instance("supply_variants", "Probe A", 1);
+    de.use_instance("supply_variants", "Probe B", 2);
+
+    QVERIFY(de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+
+   // auto filename = QSettings{}.value(Globals::path_to_excpetional_approval_db, "").toString();
+    QString filename = QString{"../../tests/scripts/sonderfreigaben.json"};
+    qDebug() << QDir::currentPath();
+    ExceptionalApprovalDB ea = ExceptionalApprovalDB{filename};
+    de.do_exceptional_approvals(ea,nullptr);
+    auto ff = ea.get_failed_fields();
+    QCOMPARE(ff.count(),2);
 #endif
 }
 

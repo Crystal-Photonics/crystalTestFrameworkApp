@@ -32,26 +32,6 @@ static TextFieldDataBandPlace str_to_textfield_place_enum(QString str) {
     return TextFieldDataBandPlace::none;
 }
 
-class NoEditDelegate : public QStyledItemDelegate {
-    public:
-    NoEditDelegate(QObject *parent = 0)
-        : QStyledItemDelegate(parent) {}
-    virtual QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const {
-        return 0;
-    }
-};
-
-class SpinBoxDelegate : public QStyledItemDelegate {
-    public:
-    SpinBoxDelegate(QObject *parent = 0)
-        : QStyledItemDelegate(parent) {}
-
-    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-    void setEditorData(QWidget *editor, const QModelIndex &index) const override;
-    void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override;
-    void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-};
-
 QWidget *SpinBoxDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem & /* option */, const QModelIndex & /* index */) const {
     QSpinBox *editor = new QSpinBox(parent);
     editor->setFrame(false);
@@ -77,21 +57,10 @@ void SpinBoxDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, c
     model->setData(index, value, Qt::EditRole);
 }
 
-class ComboBoxDelegate : public QStyledItemDelegate {
-    public:
-    ComboBoxDelegate(QObject *parent = 0)
-        : QStyledItemDelegate(parent) {}
-
-    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-    void setEditorData(QWidget *editor, const QModelIndex &index) const override;
-    void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override;
-    void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-};
-
 QWidget *ComboBoxDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem & /* option */, const QModelIndex & /* index */) const {
     QComboBox *editor = new QComboBox(parent);
     editor->setFrame(false);
-    editor->addItems(textfield_places);
+    editor->addItems(my_items);
     return editor;
 }
 
@@ -220,7 +189,7 @@ void DummyDataCreator::load_gui_from_json() {
     ui->section_list->setItemDelegateForColumn(1, new NoEditDelegate(this));
     ui->section_list->setItemDelegateForColumn(2, new NoEditDelegate(this));
     ui->section_list->setItemDelegateForColumn(3, new SpinBoxDelegate(this));
-    ui->section_list->setItemDelegateForColumn(4, new ComboBoxDelegate(this));
+    ui->section_list->setItemDelegateForColumn(4, new ComboBoxDelegate(textfield_places, this));
 
     if (loadFile.open(QIODevice::ReadOnly)) {
         QByteArray saveData = loadFile.readAll();

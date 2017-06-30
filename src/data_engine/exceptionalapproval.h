@@ -1,19 +1,17 @@
 #ifndef EXCEPTIONALAPPROVAL_H
 #define EXCEPTIONALAPPROVAL_H
-#include <QString>
 #include <QList>
+#include <QString>
 
-class ExceptionalApproval
-{
-public:
-    int id=1;
+class ExceptionalApproval {
+    public:
+    int id = 1;
     QString description;
-    bool hidden=false;
+    bool hidden = false;
 };
 
-class FailedField
-{
-public:
+class FailedField {
+    public:
     QString id;
     int instance_index;
     QString instance_caption;
@@ -22,26 +20,24 @@ public:
     QString actual_value;
 };
 
-class ExceptionalApprovalResult
-{
-public:
+class ExceptionalApprovalResult {
+    public:
     FailedField failed_field;
     ExceptionalApproval exceptional_approval;
     QString approving_operator_name;
-    QString dissent;
+ //   QString failure;
 };
 
+class ExceptionalApprovalDB {
+    public:
+    ExceptionalApprovalDB(const QString &file_name);
+    const QList<FailedField> &get_failed_fields() const;
+    QList<ExceptionalApprovalResult> select_exceptional_approval(QList<FailedField> failed_fields, QWidget *parent);
 
-class ExceptionalApprovalDB
-{
-public:
-    ExceptionalApprovalDB(QString filename);
-
-    QList<ExceptionalApprovalResult> select_exceptional_approval(QList<FailedField> failed_fields);
+    static     QString get_failure_text(const FailedField &ff);
 private:
     QList<ExceptionalApproval> approvals;
+    QList<FailedField> failed_fields;
 };
-
-
 
 #endif // EXCEPTIONALAPPROVAL_H

@@ -4,11 +4,47 @@
 #include "data_engine/data_engine.h"
 #include <QDialog>
 #include <QSpinBox>
+#include <QStringList>
+#include <QStyledItemDelegate>
 #include <QTreeWidget>
-
 namespace Ui {
     class DummyDataCreator;
 }
+
+class NoEditDelegate : public QStyledItemDelegate {
+    public:
+    NoEditDelegate(QObject *parent = 0)
+        : QStyledItemDelegate(parent) {}
+    virtual QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const {
+        return 0;
+    }
+};
+
+class SpinBoxDelegate : public QStyledItemDelegate {
+    public:
+    SpinBoxDelegate(QObject *parent = 0)
+        : QStyledItemDelegate(parent) {}
+
+    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    void setEditorData(QWidget *editor, const QModelIndex &index) const override;
+    void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override;
+    void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+};
+
+class ComboBoxDelegate : public QStyledItemDelegate {
+    public:
+    ComboBoxDelegate(QStringList items, QObject *parent = 0)
+        : QStyledItemDelegate(parent)
+        , my_items{items} {}
+
+    QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+    void setEditorData(QWidget *editor, const QModelIndex &index) const override;
+    void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const override;
+    void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+
+    private:
+    QStringList my_items;
+};
 
 class DummyDataCreator : public QDialog {
     Q_OBJECT

@@ -49,6 +49,7 @@
 #include <memory>
 #include <regex>
 #include <string>
+#include "data_engine/exceptionalapproval.h"
 #include <vector>
 
 template <class T>
@@ -1632,6 +1633,8 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
     qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
 
     auto reset_lua_state = [this] {
+        ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db, "").toString()};
+        data_engine->do_exceptional_approvals(ea_db, MainWindow::mw);
         lua = std::make_unique<sol::state>();
         if ((data_engine_pdf_template_path.count()) && (data_engine_auto_dump_path.count())) {
             QFileInfo fi(data_engine_auto_dump_path);
@@ -1661,6 +1664,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
             std::string json_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".json");
             data_engine->save_to_json(QString::fromStdString(json_target_filename));
         }
+
     };
     try {
         {

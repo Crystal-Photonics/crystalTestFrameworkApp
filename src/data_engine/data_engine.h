@@ -19,6 +19,7 @@ struct DataEngineSections;
 class QSqlDatabase;
 class QXmlStreamWriter;
 class DataEngineSection;
+class ExceptionalApprovalDB;
 
 using FormID = QString;
 enum class EntryType { Unspecified, Bool, String, Reference, Numeric };
@@ -518,6 +519,7 @@ class Data_engine {
     sol::table get_ids_of_section(sol::state *lua, const std::string &section_name);
     QStringList get_ids_of_section(const QString &section_name) const;
 
+    void do_exceptional_approvals(ExceptionalApprovalDB &ea_db, QWidget *parent);
     void fill_engine_with_dummy_data();
     Statistics get_statistics() const;
 
