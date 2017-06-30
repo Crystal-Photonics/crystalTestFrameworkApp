@@ -161,7 +161,7 @@ void SCPIProtocol::set_scpi_meta_data(DeviceMetaDataGroup scpi_meta_data) {
         scpi_device_detail = scpi_meta_data.devices[0];
 
     } else if (scpi_meta_data.devices.count() == 0) {
-        Utility::promised_thread_call(MainWindow::mw,
+        Utility::thread_call(MainWindow::mw,nullptr,
                                       [ comportname = device->getName(), serial_number = device_data.serial_number, device_name = device_data.name ] {
                                           QMessageBox::warning(MainWindow::mw, "Unknown SCPI device",
                                                                QString("Could not find SCPI-Device in meta data table. Serialnumber: \"%1\" name: \"%2\" @%3 .")
