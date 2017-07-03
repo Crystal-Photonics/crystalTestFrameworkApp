@@ -3,6 +3,8 @@
 #include <QList>
 #include <QString>
 
+class DataEngineDataEntry;
+
 class ExceptionalApproval {
     public:
     int id = 1;
@@ -13,11 +15,12 @@ class ExceptionalApproval {
 class FailedField {
     public:
     QString id;
-    int instance_index;
+    int instance_index=0;
     QString instance_caption;
     QString description;
     QString desired_value;
     QString actual_value;
+    DataEngineDataEntry *data_entry = nullptr;
 };
 
 class ExceptionalApprovalResult {
@@ -25,7 +28,7 @@ class ExceptionalApprovalResult {
     FailedField failed_field;
     ExceptionalApproval exceptional_approval;
     QString approving_operator_name;
- //   QString failure;
+    bool approved = false;
 };
 
 class ExceptionalApprovalDB {
@@ -34,8 +37,9 @@ class ExceptionalApprovalDB {
     const QList<FailedField> &get_failed_fields() const;
     QList<ExceptionalApprovalResult> select_exceptional_approval(QList<FailedField> failed_fields, QWidget *parent);
 
-    static     QString get_failure_text(const FailedField &ff);
-private:
+    static QString get_failure_text(const FailedField &ff);
+
+    private:
     QList<ExceptionalApproval> approvals;
     QList<FailedField> failed_fields;
 };

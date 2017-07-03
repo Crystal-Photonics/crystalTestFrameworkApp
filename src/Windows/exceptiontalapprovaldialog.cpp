@@ -46,6 +46,11 @@ ExceptiontalApprovalDialog::~ExceptiontalApprovalDialog() {
     delete ui;
 }
 
+QList<ExceptionalApprovalResult> ExceptiontalApprovalDialog::get_exceptiontal_approval_results()
+{
+    return exceptiontal_approval_results;
+}
+
 void ExceptiontalApprovalDialog::on_ExceptiontalApprovalDialog_accepted() {
     exceptiontal_approval_results.clear();
     for (int i = 0; i < ui->tree_failures->topLevelItemCount(); i++) {
@@ -55,6 +60,7 @@ void ExceptiontalApprovalDialog::on_ExceptiontalApprovalDialog_accepted() {
             ExceptionalApprovalResult r{};
             r.failed_field = failed_fields[i];
             r.approving_operator_name = ui->edt_approved_by->text();
+            r.approved = true;
             bool found = false;
             for (auto a : approvals) {
                 if (a.description == item->text(4)) {

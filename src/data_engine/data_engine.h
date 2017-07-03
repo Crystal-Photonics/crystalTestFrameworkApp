@@ -2,6 +2,8 @@
 #define DATA_ENGINE_H
 #include "sol.hpp"
 
+#include "exceptionalapproval.h"
+#include <QJsonValue>
 #include <QList>
 #include <QString>
 #include <QVariant>
@@ -10,7 +12,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <QJsonValue>
 
 class QJsonObject;
 class QWidget;
@@ -101,7 +102,8 @@ struct PrintOrderSectionItem {
 
 struct DataEngineDataEntry {
     DataEngineDataEntry(const FormID &field_name)
-        : field_name(field_name) {}
+        : field_name(field_name)
+        , exceptional_approval{} {}
     FormID field_name;
 
     virtual bool is_complete() const = 0;
@@ -118,6 +120,8 @@ struct DataEngineDataEntry {
     virtual EntryType get_entry_type() const = 0;
     virtual QJsonObject get_specific_json_dump() const = 0;
     virtual QString get_specific_json_name() const = 0;
+    void set_exceptional_approval(ExceptionalApprovalResult exceptional_approval);
+    const ExceptionalApprovalResult &get_exceptional_approval();
 
     template <class T>
     T *as();
@@ -125,6 +129,9 @@ struct DataEngineDataEntry {
     const T *as() const;
     static std::unique_ptr<DataEngineDataEntry> from_json(const QJsonObject &object);
     virtual ~DataEngineDataEntry() = default;
+
+    private:
+    ExceptionalApprovalResult exceptional_approval{};
 };
 
 template <class T>
@@ -459,7 +466,8 @@ struct DataEngineSections {
     bool is_dummy_data_mode = true;
 
     DataEngineSection *get_section_no_exception(FormID id) const;
-private:
+
+    private:
     QList<const DataEngineDataEntry *> get_entries_raw(const FormID &id, DataEngineErrorNumber *error_num, DecodecFieldID &decoded_field_name,
                                                        bool using_instance_index) const;
     DataEngineSection *get_section_raw(const QString &section_name, DataEngineErrorNumber *error_num) const;
@@ -526,8 +534,8 @@ class Data_engine {
     std::unique_ptr<QWidget> get_preview() const;
     bool generate_pdf(const std::string &form, const std::string &destination) const;
     void fill_database(QSqlDatabase &db) const;
-    void generate_template(const QString &destination, const QString &db_filename, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
-                           const QList<PrintOrderItem> &print_order) const;
+    void generate_template(const QString &destination, const QString &db_filename, QString report_title, QString image_footer_path, QString image_header_path,
+                           QString approved_by_field_id, const QList<PrintOrderItem> &print_order) const;
 
     void save_to_json(QString filename);
     static void replace_database_filename(const std::string &source_form_path, const std::string &destination_form_path, const std::string &database_path);
@@ -535,6 +543,7 @@ class Data_engine {
     bool section_uses_instances(QString section_name) const;
 
     void set_enable_auto_open_pdf(bool auto_open_pdf);
+
     private:
     void generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
                         const QList<PrintOrderItem> &print_order) const;
@@ -563,9 +572,11 @@ class Data_engine {
     quint64 load_time_seconds_since_epoch = 0;
     int generate_image(QXmlStreamWriter &xml, QString image_path, int y_position, QString parent_name) const;
     void generate_table(const DataEngineSection *section) const;
-    QList<PrintOrderSectionItem> get_print_order(const QList<PrintOrderItem> &orig_print_order, bool used_for_textfields, TextFieldDataBandPlace actual_band_position) const;
+    QList<PrintOrderSectionItem> get_print_order(const QList<PrintOrderItem> &orig_print_order, bool used_for_textfields,
+                                                 TextFieldDataBandPlace actual_band_position) const;
     int generate_textfields(QXmlStreamWriter &xml, int y_start, const QList<PrintOrderItem> &print_order, TextFieldDataBandPlace actual_band_position) const;
     bool auto_open_pdf = false;
+    void generate_exception_approval_table() const;
 };
 
 #endif // DATA_ENGINE_H

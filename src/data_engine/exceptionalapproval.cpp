@@ -40,9 +40,13 @@ QList<ExceptionalApprovalResult> ExceptionalApprovalDB::select_exceptional_appro
 
     if (parent) {
         this->failed_fields = failed_fields;
-        Utility::promised_thread_call(MainWindow::mw, [failed_fields, this, parent] {
+        return Utility::promised_thread_call(MainWindow::mw, [failed_fields, this, parent] {
             ExceptiontalApprovalDialog diag{approvals, failed_fields, parent};
-            diag.exec();
+            if (diag.exec()){
+                return diag.get_exceptiontal_approval_results();
+            }
+            QList<ExceptionalApprovalResult> empty_result;
+            return empty_result;
         });
     } else {
         auto a = approvals[0];

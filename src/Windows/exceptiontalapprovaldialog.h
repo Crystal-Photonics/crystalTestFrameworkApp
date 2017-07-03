@@ -18,6 +18,9 @@ class ExceptiontalApprovalDialog : public QDialog {
     explicit ExceptiontalApprovalDialog(const QList<ExceptionalApproval> &approvals_, const QList<FailedField> &failed_fields_, QWidget *parent = 0);
     ~ExceptiontalApprovalDialog();
 
+    QList<ExceptionalApprovalResult> get_exceptiontal_approval_results();
+
+
     private slots:
     void on_ExceptiontalApprovalDialog_accepted();
 

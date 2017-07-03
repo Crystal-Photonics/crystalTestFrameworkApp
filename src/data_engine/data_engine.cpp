@@ -32,6 +32,7 @@
 #include <lrreportengine.h>
 #include <type_traits>
 
+static const QString exceptional_approvals_table_name = "exceptional_approvals";
 template <class T>
 typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type almost_equal(T x, T y, int ulp) {
     // the machine epsilon has to be scaled to the magnitude of the values used
@@ -1630,7 +1631,8 @@ void Data_engine::save_to_json(QString filename) {
 }
 
 void Data_engine::fill_database(QSqlDatabase &db) const {
-    //for (const auto &section : sections.sections) { //cannot use auto because Qt Creator is a PoS
+    QList<ExceptionalApprovalResult> exceptional_approvals;
+
     for (const DataEngineSection &section : sections.sections) {
         int instance_id_counter{1};
         const auto instances_table_name = section.get_sql_instance_name();
@@ -1662,15 +1664,44 @@ void Data_engine::fill_database(QSqlDatabase &db) const {
             assert(variant);
 
             for (const std::unique_ptr<DataEngineDataEntry> &entry : variant->data_entries) {
+                QString failed_string = QObject::tr("Failed");
+                const ExceptionalApprovalResult &ea = entry->get_exceptional_approval();
+                if (ea.approved) {
+                    failed_string += "(" + QString::number(ea.exceptional_approval.id) + ")";
+                    if (!entry->is_in_range()) {
+                        bool found = false;
+                        for (const auto &ea_item : exceptional_approvals) { //grouping approvals
+                            if (ea_item.exceptional_approval.id == ea.exceptional_approval.id) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found == false) {
+                            exceptional_approvals.append(ea);
+                        }
+                    }
+                }
                 db_exec(db, QString{"INSERT INTO %1 VALUES(%2, '%3', '%4', '%5', '%6', %7, '%8', '%9')"}.arg(
                                 section_table_name, QString::number(id), section.get_section_name() + "/" + entry->field_name, entry->get_description(),
                                 entry->get_desired_value_as_string(), entry->get_actual_values(), QString::number(instance_id_counter),
-                                entry->is_in_range() ? QObject::tr("Ok") : QObject::tr("Failed"), entry->get_unit()));
+                                entry->is_in_range() ? QObject::tr("Ok") : failed_string, entry->get_unit()));
                 id++;
             }
 
             instance_id_counter++;
         }
+    }
+
+    db_exec(db, QString{R"(
+        CREATE TABLE %1 (
+            ID int PRIMARY KEY,
+            Description text,
+            approving_person text
+        )
+    )"}.arg(exceptional_approvals_table_name));
+    for (const auto &ea : exceptional_approvals) {
+        db_exec(db, QString{"INSERT INTO %1 VALUES(%2, '%3', '%4')"}.arg(exceptional_approvals_table_name, QString::number(ea.exceptional_approval.id),
+                                                                         ea.exceptional_approval.description, ea.approving_operator_name));
     }
 }
 
@@ -1691,6 +1722,7 @@ void Data_engine::do_exceptional_approvals(ExceptionalApprovalDB &ea_db, QWidget
                     failed_field.id = section.get_section_name() + "/" + entry->field_name;
                     failed_field.instance_caption = instance.instance_caption;
                     failed_field.instance_index = instance_id_counter;
+                    failed_field.data_entry = entry.get();
                     failed_fields.append(failed_field);
                 }
             }
@@ -1698,7 +1730,10 @@ void Data_engine::do_exceptional_approvals(ExceptionalApprovalDB &ea_db, QWidget
             instance_id_counter++;
         }
     }
-    auto approvals = ea_db.select_exceptional_approval(failed_fields,parent);
+    auto approvals = ea_db.select_exceptional_approval(failed_fields, parent);
+    for (auto approval : approvals) {
+        approval.failed_field.data_entry->set_exceptional_approval(approval);
+    }
 }
 
 struct XML_state {
@@ -2205,6 +2240,144 @@ void Data_engine::generate_tables(const QList<PrintOrderItem> &print_order) cons
     for (auto section_print_order_item : section_print_order) {
         generate_table(section_print_order_item.section);
     }
+    generate_exception_approval_table();
+}
+
+void Data_engine::generate_exception_approval_table() const {
+    const auto &headers = {QObject::tr("ID"), QObject::tr("Description"), QObject::tr("Approved by"), QObject::tr("Signature")};
+    const int column_widths[4] = {5, 40, 25, 30};
+    const auto &sql_fields = {"ID", "Description", "approving_person", ""};
+    //Data Band Header
+    {
+        XML data_band_header{"item"};
+        data_band_header.attributes({{"Type", "Object"}, {"ClassName", "DataHeader"}});
+        data_band_header.add_band_index_element();
+        XML{"parentBand"}.attribute("Type", "QString").value(QString{"DataBand%1"}.arg(exceptional_approvals_table_name));
+        XML{"geometry"}.attributes({{"width", "2000"}, {"height", "170"}, {"x", "0"}, {"y", QString::number(XML::y() += 100)}, {"Type", "QRect"}});
+        XML{"objectName"}.attribute("Type", "QString").value(QString{"DataBandHeader_exceptional_approval"});
+        XML{"printAlways"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"splittable"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        {
+            XML children{"children"};
+            children.attribute("Type", "Collection");
+            {
+                {
+                    XML title{"item"};
+                    title.attribute("Type", "Object");
+                    title.attribute("ClassName", "TextItem");
+                    XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
+                    XML{"font"}.attributes({{"Value", "129"},
+                                            {"Type", "QFont"},
+                                            {"stylename", ""},
+                                            {"weight", "50"},
+                                            {"family", "Arial"},
+                                            {"pointSize", "16"},
+                                            {"underline", "0"},
+                                            {"italic", "0"},
+                                            {"bold", "1"}});
+                    XML{"geometry"}.attributes({{"width", "2000"}, {"height", "100"}, {"x", "0"}, {"y", "50"}, {"Type", "QRect"}});
+                    XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
+                    XML{"content"}.attribute("Type", "QString").value(QObject::tr("Exceptional Approvals"));
+                    XML{"objectName"}.attribute("Type", "QString").value(QString{"DataHeaderTitle_exceptional_approval"});
+                }
+                int x_position = 0;
+                for (std::size_t i = 0; i < headers.size(); i++) {
+                    const int field_width = 2000 * column_widths[i] / 100;
+                    XML column_header{"item"};
+                    column_header.attribute("Type", "Object");
+                    column_header.attribute("ClassName", "TextItem");
+                    const auto &header = headers.begin()[i];
+                    XML{"geometry"}.attributes(
+                        {{"width", QString::number(field_width)}, {"height", "50"}, {"x", QString::number(x_position)}, {"y", "130"}, {"Type", "QRect"}});
+                    XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
+                    XML{"font"}.attributes({{"Value", "129"},
+                                            {"Type", "QFont"},
+                                            {"stylename", ""},
+                                            {"weight", "50"},
+                                            {"family", "Arial"},
+                                            {"pointSize", "10"},
+                                            {"underline", "0"},
+                                            {"italic", "0"},
+                                            {"bold", "1"}});
+                    XML{"content"}.attribute("Type", "QString").value(header);
+                    XML{"objectName"}.attribute("Type", "QString").value(QString{"DataHeaderColumnHeader_%1_exceptional_approval"}.arg(header));
+                    x_position += field_width;
+                }
+            }
+        }
+    }
+    //Data Band
+    {
+        XML data_band{"item"};
+        data_band.attributes({{"Type", "Object"}, {"ClassName", "Data"}});
+        data_band.add_band_index_element();
+        XML{"geometry"}.attributes({{"width", "2000"}, {"height", "80"}, {"x", "0"}, {"y", QString::number(XML::y() += 100)}, {"Type", "QRect"}});
+        XML{"objectName"}.attribute("Type", "QString").value(QString{"DataBand%1"}.arg(exceptional_approvals_table_name));
+        XML{"datasource"}.attribute("Type", "QString").value(exceptional_approvals_table_name);
+        XML{"splittable"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"keepBottomSpace"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"printIfEmpty"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"keepFooterTogether"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+
+        {
+            int x_position = 0;
+            const int row_height = 70;
+            {
+                XML children{"children"};
+                children.attribute("Type", "Collection");
+                for (std::size_t i = 0; i < headers.size() - 1; i++) {
+                    const int field_width = 2000 * column_widths[i] / 100;
+                    XML column{"item"};
+                    column.attribute("Type", "Object");
+                    column.attribute("ClassName", "TextItem");
+                    const auto &header = headers.begin()[i];
+
+                    XML{"geometry"}.attributes({{"width", QString::number(field_width)},
+                                                {"height", QString::number(row_height)},
+                                                {"x", QString::number(x_position)},
+                                                {"y", "0"},
+                                                {"Type", "QRect"}});
+                    XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
+                    XML{"autoHeight"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+                    XML{"backgroundMode"}.attributes({{"Value", "0"}, {"Type", "enumAndFlags"}});
+                    XML{"content"}.attribute("Type", "QString").value(QString{"$D{%1.%2}"}.arg(exceptional_approvals_table_name, sql_fields.begin()[i]));
+                    XML{"objectName"}.attribute("Type", "QString").value(QString{} + "DataHeaderColumn" + header + exceptional_approvals_table_name);
+                    x_position += field_width;
+                }
+                const int field_width = 2000 * column_widths[3] / 100;
+                {
+                    XML item{"item"};
+                    {
+                        item.attribute("ClassName", "ShapeItem");
+                        {
+                            XML{"geometry"}.attributes({{"width", QString::number(field_width)},
+                                                        {"height", "-1"},
+                                                        {"x", QString::number(x_position)},
+                                                        {"y", QString::number(row_height - 1)},
+                                                        {"Type", "QRect"}});
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    //Data Band Footer
+    {
+        XML data_footer{"item"};
+        data_footer.attributes({{"Type", "Object"}, {"ClassName", "DataFooter"}});
+        data_footer.add_band_index_element();
+        XML{"parentBand"}.attribute("Type", "QString").value(QString{"DataBand%1"}.arg(exceptional_approvals_table_name));
+        XML{"geometry"}.attributes({{"width", "2000"}, {"height", "50"}, {"x", "0"}, {"y", QString::number(XML::y() += 100)}, {"Type", "QRect"}});
+        XML{"objectName"}.attribute("Type", "QString").value(QString{"DataFooter%1"}.arg(exceptional_approvals_table_name));
+        XML{"splittable"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"keepBottomSpace"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+
+        XML{"keepFooterTogether"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+        XML{"autoHeight"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"printIfEmpty"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+        XML{"printAlways"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+    }
 }
 
 void Data_engine::generate_table(const DataEngineSection *section) const {
@@ -2442,6 +2615,7 @@ void Data_engine::add_sources_to_form(QString data_base_path, const QList<PrintO
             approved_id.suffix = "_automatic";
             textfield_print_order.append(approved_id);
         }
+
         for (const auto &section_item : textfield_print_order) {
             assert(section_item.section->instances.size() == 1);
             const DataEngineInstance &instance = section_item.section->instances[0];
@@ -2468,6 +2642,14 @@ void Data_engine::add_sources_to_form(QString data_base_path, const QList<PrintO
                                .arg(section_item.section->get_section_name() + "/" + field_name));
                 XML{"connectionName"}.attribute("Type", "QString").value(connection_name);
             }
+        }
+        {
+            XML item{"item"};
+            item.attributes({{"ClassName", "LimeReport::QueryDesc"}, {"Type", "Object"}});
+
+            XML{"queryName"}.attribute("Type", "QString").value(exceptional_approvals_table_name);
+            XML{"queryText"}.attribute("Type", "QString").value(QString{"SELECT * FROM %1 ORDER BY ID"}.arg(exceptional_approvals_table_name));
+            XML{"connectionName"}.attribute("Type", "QString").value(connection_name);
         }
     }
 
@@ -2700,6 +2882,14 @@ QString NumericTolerance::num_to_str(double number, ToleranceType tol_type) cons
     }
 
     return numStr;
+}
+
+void DataEngineDataEntry::set_exceptional_approval(ExceptionalApprovalResult exceptional_approval) {
+    this->exceptional_approval = exceptional_approval;
+}
+
+const ExceptionalApprovalResult &DataEngineDataEntry::get_exceptional_approval() {
+    return exceptional_approval;
 }
 
 std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonObject &object) {
