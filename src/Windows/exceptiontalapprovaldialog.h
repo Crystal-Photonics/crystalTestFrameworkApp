@@ -24,7 +24,9 @@ class ExceptiontalApprovalDialog : public QDialog {
     private slots:
     void on_ExceptiontalApprovalDialog_accepted();
 
-    private:
+    void on_buttonBox_accepted();
+
+private:
     Ui::ExceptiontalApprovalDialog *ui;
     QList<ExceptionalApprovalResult> exceptiontal_approval_results;
     QList<FailedField> failed_fields;

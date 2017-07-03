@@ -2,6 +2,7 @@
 #define EXCEPTIONALAPPROVAL_H
 #include <QList>
 #include <QString>
+#include <QJsonObject>
 
 class DataEngineDataEntry;
 
@@ -29,6 +30,7 @@ class ExceptionalApprovalResult {
     ExceptionalApproval exceptional_approval;
     QString approving_operator_name;
     bool approved = false;
+    QJsonObject get_json_dump() const;
 };
 
 class ExceptionalApprovalDB {

@@ -61,3 +61,13 @@ QList<ExceptionalApprovalResult> ExceptionalApprovalDB::select_exceptional_appro
     }
     return result;
 }
+
+QJsonObject ExceptionalApprovalResult::get_json_dump() const
+{
+    QJsonObject result;
+    result["approved"] = approved;
+    result["approved_by"] = approving_operator_name;
+    result["id"] = exceptional_approval.id;
+    result["description"] = exceptional_approval.description;
+    return result;
+}

@@ -1547,6 +1547,7 @@ void Data_engine::save_to_json(QString filename) {
         return;
     }
 
+    bool exceptional_approval_exists = false;
     QJsonObject jo_general;
 
     auto script_git = git_info(QFileInfo(script_path).absolutePath(), true, false);
@@ -1569,7 +1570,7 @@ void Data_engine::save_to_json(QString filename) {
 
     jo_general["everything_in_range"] = all_values_in_range();
     jo_general["everything_complete"] = is_complete();
-    jo_general["exceptional_approval_exists"] = false;
+
     QVariant duration{};
     duration.setValue<qint64>(QDateTime::currentMSecsSinceEpoch() / 1000 - load_time_seconds_since_epoch);
     jo_general["test_duration_seconds"] = QJsonValue::fromVariant(duration);
@@ -1608,6 +1609,10 @@ void Data_engine::save_to_json(QString filename) {
                 jo_field["nice_name"] = entry->get_description();
                 jo_field["in_range"] = entry->is_in_range();
                 jo_field["is_complete"] = entry->is_complete();
+                if (entry->get_exceptional_approval().approved) {
+                    jo_field["exceptional_approval"] = entry->get_exceptional_approval().get_json_dump();
+                    exceptional_approval_exists = true;
+                }
                 jo_field[entry->get_specific_json_name()] = entry->get_specific_json_dump();
                 ja_fields.append(jo_field);
             }
@@ -1621,6 +1626,7 @@ void Data_engine::save_to_json(QString filename) {
         jo_section["instances"] = ja_instances;
         ja_sections[section_name] = jo_section;
     }
+    jo_general["exceptional_approval_exists"] = exceptional_approval_exists;
     QJsonObject ja_object;
     ja_object["general"] = jo_general;
     ja_object["dependency_tags"] = jo_dependency;
