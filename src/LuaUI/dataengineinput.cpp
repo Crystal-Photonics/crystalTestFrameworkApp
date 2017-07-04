@@ -5,7 +5,6 @@
 #include "ui_container.h"
 #include "util.h"
 
-#include <QResizeEvent>
 #include <QCheckBox>
 #include <QDoubleValidator>
 #include <QHBoxLayout>
@@ -13,7 +12,9 @@
 #include <QKeySequence>
 #include <QLabel>
 #include <QLineEdit>
+#include <QObject>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QSettings>
 #include <QShortcut>
 #include <QSplitter>
@@ -63,7 +64,7 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
     QString desc = data_engine->get_description(this->field_id);
     label_de_description->setText(desc);
     label_de_description->setWordWrap(true);
-    QString s = this->desired_prefix + " " + data_engine->get_desired_value_as_string(this->field_id) + " " + data_engine->get_unit(this->field_id);
+    QString s = this->desired_prefix + " " + data_engine->get_desired_value_as_string(this->field_id);
     label_de_desired_value->setText(s);
     label_de_desired_value->setWordWrap(true);
     label_de_actual_value->setText(this->actual_prefix + " " + this->empty_value_placeholder);
@@ -98,26 +99,34 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
     auto *vlayout_next = new QVBoxLayout;
     auto *vlayout_yes = new QVBoxLayout;
     auto *vlayout_no = new QVBoxLayout;
+    auto *vlayout_ea = new QVBoxLayout;
 
     label_next = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence, "").toString() + ")", parent_);
-    button_next = new QPushButton("next", parent_);
+    button_next = new QPushButton(QObject::tr("Next"), parent_);
     vlayout_next->addWidget(button_next);
     vlayout_next->addWidget(label_next);
     vlayout_next->addStretch();
 
     label_yes = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence, "").toString() + ")", parent_);
-    button_yes = new QPushButton("Yes", parent_);
+    button_yes = new QPushButton(QObject::tr("Yes"), parent_);
     vlayout_yes->addWidget(button_yes);
     vlayout_yes->addWidget(label_yes);
     vlayout_yes->addStretch();
 
     label_no = new QLabel("(or " + QSettings{}.value(Globals::cancel_key_sequence, "").toString() + ")", parent_);
-    button_no = new QPushButton("No", parent_);
+    button_no = new QPushButton(QObject::tr("No"), parent_);
     vlayout_no->addWidget(button_no);
     vlayout_no->addWidget(label_no);
     vlayout_no->addStretch();
 
-    hlayout->addLayout(vlayout_next);
+    label_exceptional_approval = new QLabel(" ", parent_);
+    button_exceptional_approval = new QPushButton(QObject::tr("Exceptional approval"), parent_);
+    vlayout_ea->addWidget(button_exceptional_approval);
+    vlayout_ea->addWidget(label_exceptional_approval);
+    vlayout_ea->addStretch();
+
+    hlayout->insertLayout(3, vlayout_ea);
+    hlayout->insertLayout(3, vlayout_next);
     hlayout->insertLayout(3, vlayout_no);
     hlayout->insertLayout(3, vlayout_yes);
 
@@ -127,6 +136,8 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
 
     auto sp_w = QSizePolicy::Maximum;
     auto sp_h = QSizePolicy::MinimumExpanding;
+    auto sp_h_f = QSizePolicy::Fixed;
+
     label_extra_explanation->setSizePolicy(sp_w, sp_h);
     label_de_desired_value->setSizePolicy(sp_w, sp_h);
     label_de_actual_value->setSizePolicy(sp_w, sp_h);
@@ -134,7 +145,19 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
     button_yes->setSizePolicy(sp_w, sp_h);
     button_no->setSizePolicy(sp_w, sp_h);
     button_next->setSizePolicy(sp_w, sp_h);
+    button_exceptional_approval->setSizePolicy(sp_w, sp_h);
     lineedit->setSizePolicy(sp_w, sp_h);
+
+ //   label_exceptional_approval->setSizePolicy(sp_w, sp_h);
+    label_exceptional_approval->setText(" ");
+//    label_exceptional_approval->setFixedHeight(label_exceptional_approval->height());
+   // label_exceptional_approval->setText(" ");
+   // button_exceptional_approval->setSizePolicy(sp_w, sp_h_f);
+
+   // button_yes->setFixedHeight(button_exceptional_approval->height());
+  //  button_no->setFixedHeight(button_exceptional_approval->height());
+  //  button_next->setFixedHeight(button_exceptional_approval->height());
+
 
     callback_bool_no = QObject::connect(button_no, &QPushButton::clicked,
                                         [script_engine = this->script_engine]() { script_engine->hotkey_event_queue_send_event(HotKeyEvent::cancel_pressed); });
@@ -144,6 +167,19 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
 
     callback_next = QObject::connect(button_next, &QPushButton::clicked,
                                      [script_engine]() { script_engine->hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent::confirm_pressed); });
+
+    callback_exceptional_approval = QObject::connect(button_exceptional_approval, &QPushButton::clicked, [this, script_engine]() {
+        ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db, "").toString()};
+        if (data_engine->do_exceptional_approval(ea_db, field_id, MainWindow::mw)) {
+            if ((field_type == FieldType::Numeric) || (field_type == FieldType::String)) {
+                if (lineedit->text().count() == 0) {
+                    dont_save_result_to_de = true;
+                }
+            }
+
+            script_engine->hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent::skip_pressed);
+        }
+    });
 
     set_enabled(true);
 
@@ -162,13 +198,12 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
 DataEngineInput::~DataEngineInput() {
     assert(MainWindow::gui_thread == QThread::currentThread());
 
-        timer->stop();
-        QObject::disconnect(callback_timer);
-        QObject::disconnect(callback_next);
-        QObject::disconnect(callback_bool_no);
-        QObject::disconnect(callback_bool_yes);
-        set_enabled(false);
-
+    timer->stop();
+    QObject::disconnect(callback_timer);
+    QObject::disconnect(callback_next);
+    QObject::disconnect(callback_bool_no);
+    QObject::disconnect(callback_bool_yes);
+    set_enabled(false);
 }
 ///\endcond
 
@@ -178,7 +213,7 @@ void DataEngineInput::load_actual_value() {
         timer->stop();
 
         QString val = data_engine->get_actual_value(field_id);
-        label_de_actual_value->setText(this->actual_prefix + " " + val + " " + data_engine->get_unit(this->field_id));
+        label_de_actual_value->setText(this->actual_prefix + " " + val);
         if (data_engine->value_in_range_in_instance(field_id)) {
             label_ok->setText("OK");
         } else {
@@ -262,8 +297,8 @@ void DataEngineInput::sleep_ms(uint timeout_ms) {
 }
 
 void DataEngineInput::await_event() {
-
     assert(MainWindow::gui_thread != QThread::currentThread());
+    dont_save_result_to_de = false;
     Utility::promised_thread_call(MainWindow::mw, [this] {
         is_waiting = true;
         switch (field_type) {
@@ -288,8 +323,10 @@ void DataEngineInput::await_event() {
     if (is_editable && (field_type == FieldType::Bool)) {
         if (result == HotKeyEvent::HotKeyEvent::confirm_pressed) {
             bool_result = true;
-        } else {
+        } else if (result == HotKeyEvent::HotKeyEvent::cancel_pressed) {
             bool_result = false;
+        } else {
+            dont_save_result_to_de = true;
         }
     }
     is_waiting = false;
@@ -298,7 +335,9 @@ void DataEngineInput::await_event() {
 
         timer->stop();
         if (is_editable) {
-            save_to_data_engine();
+            if (dont_save_result_to_de == false) {
+                save_to_data_engine();
+            }
             load_actual_value();
         }
         set_ui_visibility();
@@ -330,7 +369,6 @@ void DataEngineInput::set_enabled(bool enabled) {
     } else {
         timer->stop();
     }
-
 }
 
 ///\cond HIDDEN_SYMBOLS
@@ -376,7 +414,7 @@ void DataEngineInput::set_total_visibilty() {
 void DataEngineInput::scale_columns() {
     assert(MainWindow::gui_thread == QThread::currentThread());
 
-    int col_size = 6;
+    int col_size = 7;
     if (is_editable && is_enabled && is_visible) {
         switch (field_type) {
             case FieldType::Numeric: {
@@ -397,7 +435,7 @@ void DataEngineInput::scale_columns() {
         label_extra_explanation->setFixedWidth((total_width / col_size));
         //label_de_description->setFixedWidth((total_width / col_size));
         label_de_desired_value->setFixedWidth((total_width / col_size));
-
+        button_exceptional_approval->setFixedWidth((total_width / col_size));
     } else if (is_enabled && is_visible) {
         label_extra_explanation->setFixedWidth((total_width / col_size));
         //label_de_description->setFixedWidth((total_width / col_size));
@@ -405,6 +443,7 @@ void DataEngineInput::scale_columns() {
         label_de_actual_value->setFixedWidth((total_width / col_size));
         label_ok->setFixedWidth((total_width / col_size));
         button_next->setFixedWidth((total_width / col_size));
+        button_exceptional_approval->setFixedWidth((total_width / col_size));
 
     } else if ((is_enabled == false) && is_visible) {
         label_extra_explanation->setFixedWidth((total_width / col_size));
@@ -414,6 +453,7 @@ void DataEngineInput::scale_columns() {
         label_ok->setFixedWidth((total_width / col_size));
         button_next->setFixedWidth((total_width / col_size));
 
+        button_exceptional_approval->setFixedWidth((total_width / col_size));
     } else if (!is_visible) {
     }
 }
@@ -430,6 +470,7 @@ void DataEngineInput::set_button_visibility(bool next, bool yes_no) {
     this->label_next->setVisible(next);
     this->button_next->setVisible(next);
 
+    this->button_exceptional_approval->setVisible(next || yes_no);
 }
 
 void DataEngineInput::set_labels_enabled() {

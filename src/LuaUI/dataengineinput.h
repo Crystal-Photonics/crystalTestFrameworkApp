@@ -56,6 +56,9 @@ class DataEngineInput : public UI_widget {
     QPushButton *button_next = nullptr;
     QLabel *label_next = nullptr;
 
+    QPushButton *button_exceptional_approval = nullptr;
+    QLabel *label_exceptional_approval = nullptr;
+
     QLineEdit *lineedit = nullptr;
     QTimer *timer = nullptr;
 
@@ -84,6 +87,7 @@ class DataEngineInput : public UI_widget {
     QMetaObject::Connection callback_bool_yes = {};
     QMetaObject::Connection callback_bool_no = {};
     QMetaObject::Connection callback_next = {};
+    QMetaObject::Connection callback_exceptional_approval = {};
     void set_ui_visibility();
     void set_button_visibility(bool next, bool yes_no);
     FieldType field_type;
@@ -93,6 +97,7 @@ class DataEngineInput : public UI_widget {
     uint total_width = 0;
     bool init_ok = false;
 
+    bool dont_save_result_to_de = false;
     void scale_columns();
 };
 

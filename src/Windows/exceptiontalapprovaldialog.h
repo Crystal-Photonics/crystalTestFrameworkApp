@@ -26,6 +26,8 @@ class ExceptiontalApprovalDialog : public QDialog {
 
     void on_buttonBox_accepted();
 
+    void on_ExceptiontalApprovalDialog_rejected();
+
 private:
     Ui::ExceptiontalApprovalDialog *ui;
     QList<ExceptionalApprovalResult> exceptiontal_approval_results;

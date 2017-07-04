@@ -36,6 +36,14 @@ ExceptiontalApprovalDialog::ExceptiontalApprovalDialog(const QList<ExceptionalAp
         QTreeWidgetItem *item = new QTreeWidgetItem(sl);
         item->setFlags(item_flags_editable);
         item->setCheckState(3, Qt::Unchecked);
+        if (ff.data_entry) {
+            auto ea_result = ff.data_entry->get_exceptional_approval();
+            if (ea_result.approved) {
+                item->setCheckState(3, Qt::Checked);
+            }
+            item->setText(4, ea_result.exceptional_approval.description);
+            ui->edt_approved_by->setText(ea_result.approving_operator_name);
+        }
         ui->tree_failures->addTopLevelItem(item);
     }
     for (int i = 0; i < ui->tree_failures->columnCount(); i++) {
@@ -96,11 +104,11 @@ void ExceptiontalApprovalDialog::on_buttonBox_accepted() {
                 }
             }
             if (found == false) {
-                errors.append(QString{QObject::tr("- There is no exceptional approval is assigned to the field %1")}.arg(r.failed_field.description + "(" +
-                                                                                                                       r.failed_field.id + ")"));
+                errors.append(QString{QObject::tr("- There is no exceptional approval is assigned to the field \"%1\"")}.arg(r.failed_field.description + "(" +
+                                                                                                                             r.failed_field.id + ")"));
             }
         } else {
-            warnings.append(QString{QObject::tr("- The field %1 is not approved")}.arg(r.failed_field.description + "(" + r.failed_field.id + ")"));
+            warnings.append(QString{QObject::tr("- The field \"%1\" is not approved")}.arg(r.failed_field.description + "(" + r.failed_field.id + ")"));
         }
     }
     if ((errors.count() == 0) && (warnings.count() == 0)) {
@@ -109,13 +117,18 @@ void ExceptiontalApprovalDialog::on_buttonBox_accepted() {
     }
     if (errors.count()) {
         QMessageBox::critical(this, tr("Exceptional approval"),
-                              tr("There are still open fields you need to fill for assigning exceptional approvals:\n") + errors.join("\n"));
+                              tr("There are still open fields you need to fill for assigning exceptional approvals:\n\n") + errors.join("\n"));
     } else if (warnings.count()) {
-        int ret = QMessageBox::warning(this, tr("Exceptional approval"), tr("There are still open fields which are not exceptionally approved:\n") +
+        int ret = QMessageBox::warning(this, tr("Exceptional approval"), tr("There are still open fields which are not exceptionally approved:\n\n") +
                                                                              warnings.join("\n") + tr("\n proceed anyway?"),
                                        QMessageBox::Yes | QMessageBox::No);
         if (ret == QMessageBox::Yes) {
             accept();
         }
     }
+}
+
+void ExceptiontalApprovalDialog::on_ExceptiontalApprovalDialog_rejected()
+{
+    exceptiontal_approval_results.clear();
 }

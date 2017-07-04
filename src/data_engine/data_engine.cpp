@@ -680,6 +680,10 @@ QString DataEngineSection::get_sql_instance_name() const {
     return get_sql_section_name() + "_instance";
 }
 
+QString DataEngineSection::get_actual_instance_caption() const {
+    return get_instance_captions()[actual_instance_index];
+}
+
 QStringList DataEngineSection::get_all_ids_of_selected_instance(const QString &prefix) const {
     QStringList result;
     auto instance = get_actual_instance();
@@ -1440,6 +1444,12 @@ bool Data_engine::is_text(const FormID &id) const {
     return data_entry->get_entry_type() == EntryType::String;
 }
 
+bool Data_engine::is_exceptionally_approved(const FormID &id) const {
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    assert(data_entry);
+    return data_entry->get_exceptional_approval().approved;
+}
+
 QString Data_engine::get_desired_value_as_string(const FormID &id) const {
     assert_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
@@ -1711,6 +1721,43 @@ void Data_engine::fill_database(QSqlDatabase &db) const {
     }
 }
 
+void Data_engine::do_exceptional_approval_(ExceptionalApprovalDB &ea_db, QList<FailedField> failed_fields, QWidget *parent) {
+    auto approvals = ea_db.select_exceptional_approval(failed_fields, parent);
+    for (auto approval : approvals) {
+        approval.failed_field.data_entry->set_exceptional_approval(approval);
+    }
+}
+
+static FailedField failed_field_from_data_entry(const DataEngineDataEntry *entry, QString field_id, QString instance_caption) {
+    FailedField failed_field{};
+    failed_field.actual_value = entry->get_actual_values();
+    failed_field.description = entry->get_description();
+    failed_field.desired_value = entry->get_desired_value_as_string();
+    failed_field.id = field_id;
+    failed_field.instance_caption = instance_caption;
+    failed_field.data_entry = const_cast<DataEngineDataEntry *>(entry);
+    return failed_field;
+}
+
+bool Data_engine::do_exceptional_approval(ExceptionalApprovalDB &ea_db, QString field_id, QWidget *parent) {
+    QList<FailedField> failed_fields;
+
+    auto entry = sections.get_actual_instance_entry_const(field_id);
+    if (((entry->is_in_range() == false) || (entry->is_complete() == false)) == true) {
+        auto section = sections.get_section(field_id);
+        assert(section);
+        auto instance_caption = section->get_actual_instance_caption();
+        FailedField failed_field = failed_field_from_data_entry(entry, field_id, instance_caption);
+        failed_fields.append(failed_field);
+    }
+
+    auto approvals = ea_db.select_exceptional_approval(failed_fields, parent);
+    for (auto approval : approvals) {
+        approval.failed_field.data_entry->set_exceptional_approval(approval);
+    }
+    return approvals.count();
+}
+
 void Data_engine::do_exceptional_approvals(ExceptionalApprovalDB &ea_db, QWidget *parent) {
     QList<FailedField> failed_fields;
     int instance_id_counter = 1;
@@ -1721,14 +1768,8 @@ void Data_engine::do_exceptional_approvals(ExceptionalApprovalDB &ea_db, QWidget
 
             for (const std::unique_ptr<DataEngineDataEntry> &entry : variant->data_entries) {
                 if (((entry->is_in_range() == false) || (entry->is_complete() == false)) == true) {
-                    FailedField failed_field{};
-                    failed_field.actual_value = entry->get_actual_values();
-                    failed_field.description = entry->get_description();
-                    failed_field.desired_value = entry->get_desired_value_as_string();
-                    failed_field.id = section.get_section_name() + "/" + entry->field_name;
-                    failed_field.instance_caption = instance.instance_caption;
-                    failed_field.instance_index = instance_id_counter;
-                    failed_field.data_entry = entry.get();
+                    FailedField failed_field =
+                        failed_field_from_data_entry(entry.get(), section.get_section_name() + "/" + entry->field_name, instance.instance_caption);
                     failed_fields.append(failed_field);
                 }
             }
@@ -1736,10 +1777,7 @@ void Data_engine::do_exceptional_approvals(ExceptionalApprovalDB &ea_db, QWidget
             instance_id_counter++;
         }
     }
-    auto approvals = ea_db.select_exceptional_approval(failed_fields, parent);
-    for (auto approval : approvals) {
-        approval.failed_field.data_entry->set_exceptional_approval(approval);
-    }
+    do_exceptional_approval_(ea_db, failed_fields, parent);
 }
 
 struct XML_state {
@@ -2894,7 +2932,7 @@ void DataEngineDataEntry::set_exceptional_approval(ExceptionalApprovalResult exc
     this->exceptional_approval = exceptional_approval;
 }
 
-const ExceptionalApprovalResult &DataEngineDataEntry::get_exceptional_approval() {
+const ExceptionalApprovalResult &DataEngineDataEntry::get_exceptional_approval() const {
     return exceptional_approval;
 }
 

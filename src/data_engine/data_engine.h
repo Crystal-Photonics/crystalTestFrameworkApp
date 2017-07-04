@@ -121,7 +121,7 @@ struct DataEngineDataEntry {
     virtual QJsonObject get_specific_json_dump() const = 0;
     virtual QString get_specific_json_name() const = 0;
     void set_exceptional_approval(ExceptionalApprovalResult exceptional_approval);
-    const ExceptionalApprovalResult &get_exceptional_approval();
+    const ExceptionalApprovalResult &get_exceptional_approval() const;
 
     template <class T>
     T *as();
@@ -129,6 +129,7 @@ struct DataEngineDataEntry {
     const T *as() const;
     static std::unique_ptr<DataEngineDataEntry> from_json(const QJsonObject &object);
     virtual ~DataEngineDataEntry() = default;
+
 
     private:
     ExceptionalApprovalResult exceptional_approval{};
@@ -400,6 +401,7 @@ struct DataEngineSection {
     QString get_instance_count_name() const;
     QString get_sql_section_name() const;
     QString get_sql_instance_name() const;
+    QString get_actual_instance_caption() const;
     QStringList get_all_ids_of_selected_instance(const QString &prefix) const;
     QStringList get_instance_captions() const;
     bool is_section_instance_defined() const;
@@ -504,6 +506,7 @@ class Data_engine {
     bool is_bool(const FormID &id) const;
     bool is_number(const FormID &id) const;
     bool is_text(const FormID &id) const;
+    bool is_exceptionally_approved(const FormID &id) const;
     void set_actual_number(const FormID &id, double number);
     void set_actual_text(const FormID &id, QString text);
     void set_actual_bool(const FormID &id, bool value);
@@ -544,7 +547,8 @@ class Data_engine {
 
     void set_enable_auto_open_pdf(bool auto_open_pdf);
 
-    private:
+    bool do_exceptional_approval(ExceptionalApprovalDB &ea_db, QString field_id, QWidget *parent);
+private:
     void generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
                         const QList<PrintOrderItem> &print_order) const;
     void generate_pages_header(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
@@ -577,6 +581,7 @@ class Data_engine {
     int generate_textfields(QXmlStreamWriter &xml, int y_start, const QList<PrintOrderItem> &print_order, TextFieldDataBandPlace actual_band_position) const;
     bool auto_open_pdf = false;
     void generate_exception_approval_table() const;
+    void do_exceptional_approval_(ExceptionalApprovalDB &ea_db, QList<FailedField> failed_fields, QWidget *parent);
 };
 
 #endif // DATA_ENGINE_H

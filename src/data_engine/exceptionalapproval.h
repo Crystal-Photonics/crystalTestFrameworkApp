@@ -16,7 +16,7 @@ class ExceptionalApproval {
 class FailedField {
     public:
     QString id;
-    int instance_index=0;
+    //int instance_index=0;
     QString instance_caption;
     QString description;
     QString desired_value;

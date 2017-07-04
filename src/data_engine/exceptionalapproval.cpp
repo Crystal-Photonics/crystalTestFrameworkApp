@@ -55,7 +55,6 @@ QList<ExceptionalApprovalResult> ExceptionalApprovalDB::select_exceptional_appro
             r.failed_field = ff;
             r.exceptional_approval = a;
             r.approving_operator_name = "Operator";
-            //  r.failure = get_failure_text(ff);
             result.append(r);
         }
     }

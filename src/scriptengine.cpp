@@ -33,6 +33,7 @@
 #include "ui_container.h"
 #include "util.h"
 
+#include "data_engine/exceptionalapproval.h"
 #include <QDebug>
 #include <QDir>
 #include <QKeyEvent>
@@ -49,7 +50,6 @@
 #include <memory>
 #include <regex>
 #include <string>
-#include "data_engine/exceptionalapproval.h"
 #include <vector>
 
 template <class T>
@@ -1116,6 +1116,10 @@ void ScriptEngine::load_script(const QString &path) {
                 [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->is_text(QString::fromStdString(field_id)); },
                 "is_number",
                 [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->is_number(QString::fromStdString(field_id)); },
+                "is_exceptionally_approved",
+                [](Data_engine_handle &handle, const std::string &field_id) {
+                    return handle.data_engine->is_exceptionally_approved(QString::fromStdString(field_id));
+                },
                 "set_actual_number", [](Data_engine_handle &handle, const std::string &field_id,
                                         double value) { handle.data_engine->set_actual_number(QString::fromStdString(field_id), value); },
                 "set_actual_bool", [](Data_engine_handle &handle, const std::string &field_id,
