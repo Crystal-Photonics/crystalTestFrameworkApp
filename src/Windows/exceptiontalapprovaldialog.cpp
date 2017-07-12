@@ -22,6 +22,9 @@ ExceptiontalApprovalDialog::ExceptiontalApprovalDialog(const QList<ExceptionalAp
     ui->tree_failures->setItemDelegateForColumn(3, new NoEditDelegate(this));
     ui->tree_failures->setItemDelegateForColumn(4, new ComboBoxDelegate(approvals_str, this));
 
+    if (failed_fields.count()==0){
+        accept();
+    }
     for (auto ff : failed_fields) {
         QStringList sl;
         sl.append(ff.id);

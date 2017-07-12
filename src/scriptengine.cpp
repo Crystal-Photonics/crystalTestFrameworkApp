@@ -1076,6 +1076,9 @@ void ScriptEngine::load_script(const QString &path) {
                 [](Data_engine_handle &handle, const std::string &id) { return handle.data_engine->get_description(QString::fromStdString(id)).toStdString(); },
                 "get_actual_value", [](Data_engine_handle &handle,
                                        const std::string &id) { return handle.data_engine->get_actual_value(QString::fromStdString(id)).toStdString(); },
+                "get_actual_number", [](Data_engine_handle &handle,
+                                        const std::string &id) { return handle.data_engine->get_actual_number(QString::fromStdString(id)); },
+
                 "get_unit",
                 [](Data_engine_handle &handle, const std::string &id) { return handle.data_engine->get_unit(QString::fromStdString(id)).toStdString(); },
                 "get_desired_value",
@@ -1320,13 +1323,14 @@ void ScriptEngine::load_script(const QString &path) {
                                                                 return Lua_UI_Wrapper<ComboBox>{parent, this, sl};
                                                             }, //
                                                             "set_items",
-                                                            thread_call_wrapper(&ComboBox::set_items),                  //
-                                                            "get_text", thread_call_wrapper(&ComboBox::get_text),       //
-                                                            "set_index", thread_call_wrapper(&ComboBox::set_index),     //
-                                                            "get_index", thread_call_wrapper(&ComboBox::get_index),     //
-                                                            "set_visible", thread_call_wrapper(&ComboBox::set_visible), //
-                                                            "set_caption", thread_call_wrapper(&ComboBox::set_caption), //
-                                                            "get_caption", thread_call_wrapper(&ComboBox::get_caption)  //
+                                                            thread_call_wrapper(&ComboBox::set_items),                   //
+                                                            "get_text", thread_call_wrapper(&ComboBox::get_text),        //
+                                                            "set_index", thread_call_wrapper(&ComboBox::set_index),      //
+                                                            "get_index", thread_call_wrapper(&ComboBox::get_index),      //
+                                                            "set_visible", thread_call_wrapper(&ComboBox::set_visible),  //
+                                                            "set_caption", thread_call_wrapper(&ComboBox::set_caption),  //
+                                                            "get_caption", thread_call_wrapper(&ComboBox::get_caption),  //
+                                                            "set_editable", thread_call_wrapper(&ComboBox::set_editable) //
                                                             );
         }
         //bind SpinBox

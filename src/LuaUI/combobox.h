@@ -21,6 +21,8 @@ class ComboBox : public UI_widget{
     void set_caption(const std::string caption);
     std::string get_caption() const;
 
+    void set_editable(bool editable);
+
     void set_visible(bool visible);
 private:
     QComboBox *combobox = nullptr;

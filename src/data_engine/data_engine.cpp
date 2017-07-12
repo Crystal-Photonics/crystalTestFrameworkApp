@@ -1410,6 +1410,14 @@ QString Data_engine::get_actual_value(const FormID &id) const {
     return result;
 }
 
+double Data_engine::get_actual_number(const FormID &id) const {
+    assert_in_dummy_mode();
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    assert(data_entry);
+    auto result = data_entry->get_actual_number();
+    return result;
+}
+
 QString Data_engine::get_description(const FormID &id) const {
     assert_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
@@ -3162,6 +3170,15 @@ QString NumericDataEntry::get_actual_values() const {
     }
 }
 
+double NumericDataEntry::get_actual_number() const {
+    if ((bool)actual_value) {
+        return actual_value.value();
+    } else {
+        throw DataEngineError(DataEngineErrorNumber::actual_value_not_set, QString("Actual value of field %1 not set").arg(field_name));
+    }
+    return 0;
+}
+
 QString NumericDataEntry::get_description() const {
     return description;
 }
@@ -3278,6 +3295,10 @@ QString TextDataEntry::get_actual_values() const {
     } else {
         return unavailable_value;
     }
+}
+
+double TextDataEntry::get_actual_number() const {
+    throw DataEngineError(DataEngineErrorNumber::actual_value_is_not_a_number, QString("Actual value of field %1 is not a number").arg(field_name));
 }
 
 QString TextDataEntry::get_description() const {
@@ -3408,6 +3429,11 @@ QString BoolDataEntry::get_actual_values() const {
     } else {
         return "No";
     }
+}
+
+double BoolDataEntry::get_actual_number() const {
+    throw DataEngineError(DataEngineErrorNumber::actual_value_is_not_a_number, QString("Actual value of field %1 is not a number").arg(field_name));
+    return 0;
 }
 
 QString BoolDataEntry::get_description() const {
@@ -3603,6 +3629,12 @@ void ReferenceDataEntry::set_actual_value(bool val) {
 QString ReferenceDataEntry::get_actual_values() const {
     assert_that_instance_count_is_defined();
     return entry->get_actual_values();
+}
+
+double ReferenceDataEntry::get_actual_number() const
+{
+    assert_that_instance_count_is_defined();
+    return entry->get_actual_number();
 }
 
 QString ReferenceDataEntry::get_description() const {

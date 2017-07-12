@@ -10,7 +10,7 @@
 #include <QString>
 #include <sstream>
 
-#define DISABLE_ALL 1
+#define DISABLE_ALL 0
 //
 #define QVERIFY_EXCEPTION_THROWN_error_number(expression, error_number)                                                                                        \
     do {                                                                                                                                                       \
@@ -1638,12 +1638,23 @@ void Test_Data_engine::test_instances_with_references() {
     QCOMPARE(de.get_actual_value("references/voltage_ref_string"), QString("test123"));
     QCOMPARE(de.get_actual_value("references/voltage_ref_number"), QString("510"));
 
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_actual_number("references/voltage_ref_bool");, DataEngineErrorNumber::actual_value_is_not_a_number);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_actual_number("references/voltage_ref_string");, DataEngineErrorNumber::actual_value_is_not_a_number);
+    QCOMPARE(de.get_actual_number("references/voltage_ref_number"), 510.0);
+
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_actual_number("values/voltage_number");, DataEngineErrorNumber::actual_value_not_set);
 
     de.set_actual_bool("values/voltage_bool", true);
     de.set_actual_text("values/voltage_string", "test123");
     de.set_actual_number("values/voltage_number", 510);
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_actual_number("values/voltage_bool");, DataEngineErrorNumber::actual_value_is_not_a_number);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_actual_number("values/voltage_string");, DataEngineErrorNumber::actual_value_is_not_a_number);
+    QCOMPARE(de.get_actual_number("values/voltage_number"), 510.0);
 
     QVERIFY(!de.is_complete());
 
@@ -1660,6 +1671,8 @@ void Test_Data_engine::test_instances_with_references() {
     QVERIFY(de.value_in_range("values/voltage_bool"));
     QVERIFY(de.value_in_range("values/voltage_string"));
     QVERIFY(de.value_in_range("values/voltage_number"));
+
+
 
     QVERIFY(de.all_values_in_range());
     QVERIFY(de.is_complete());

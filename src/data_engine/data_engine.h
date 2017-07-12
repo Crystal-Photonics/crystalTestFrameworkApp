@@ -68,7 +68,9 @@ enum class DataEngineErrorNumber {
     reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance,
     is_in_dummy_mode,
     sql_error,
-    cannot_open_file
+    cannot_open_file,
+    actual_value_not_set,
+    actual_value_is_not_a_number
 };
 class DataEngineError : public std::runtime_error {
     public:
@@ -109,6 +111,7 @@ struct DataEngineDataEntry {
     virtual bool is_complete() const = 0;
     virtual bool is_in_range() const = 0;
     virtual QString get_actual_values() const = 0;
+    virtual double get_actual_number() const = 0;
     virtual QString get_description() const = 0;
     virtual QString get_desired_value_as_string() const = 0;
     virtual QString get_unit() const = 0;
@@ -129,7 +132,6 @@ struct DataEngineDataEntry {
     const T *as() const;
     static std::unique_ptr<DataEngineDataEntry> from_json(const QJsonObject &object);
     virtual ~DataEngineDataEntry() = default;
-
 
     private:
     ExceptionalApprovalResult exceptional_approval{};
@@ -186,6 +188,7 @@ struct NumericDataEntry : DataEngineDataEntry {
     QString get_description() const override;
     QString get_unit() const override;
     double get_si_prefix() const override;
+    double get_actual_number() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
     void set_actual_value(double actual_value);
     EntryType get_entry_type() const override;
@@ -215,6 +218,7 @@ struct TextDataEntry : DataEngineDataEntry {
     bool is_complete() const override;
     bool is_in_range() const override;
     QString get_actual_values() const override;
+    double get_actual_number() const override;
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
@@ -244,6 +248,7 @@ struct BoolDataEntry : DataEngineDataEntry {
     bool is_complete() const override;
     bool is_in_range() const override;
     QString get_actual_values() const override;
+    double get_actual_number() const override;
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
@@ -283,6 +288,7 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     bool is_complete() const override;
     bool is_in_range() const override;
     QString get_actual_values() const override;
+    double get_actual_number() const override;
     QString get_description() const override;
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
@@ -514,6 +520,7 @@ class Data_engine {
     void set_instance_count(QString instance_count_name, uint instance_count);
 
     QString get_actual_value(const FormID &id) const;
+    double get_actual_number(const FormID &id) const;
     QString get_description(const FormID &id) const;
     QString get_desired_value_as_string(const FormID &id) const;
     QString get_unit(const FormID &id) const;
@@ -548,7 +555,8 @@ class Data_engine {
     void set_enable_auto_open_pdf(bool auto_open_pdf);
 
     bool do_exceptional_approval(ExceptionalApprovalDB &ea_db, QString field_id, QWidget *parent);
-private:
+
+    private:
     void generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
                         const QList<PrintOrderItem> &print_order) const;
     void generate_pages_header(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,

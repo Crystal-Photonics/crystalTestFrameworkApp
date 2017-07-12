@@ -38,8 +38,8 @@ QString ExceptionalApprovalDB::get_failure_text(const FailedField &ff) {
 QList<ExceptionalApprovalResult> ExceptionalApprovalDB::select_exceptional_approval(QList<FailedField> failed_fields, QWidget *parent) {
     QList<ExceptionalApprovalResult> result;
 
+    this->failed_fields = failed_fields;
     if (parent) {
-        this->failed_fields = failed_fields;
         return Utility::promised_thread_call(MainWindow::mw, [failed_fields, this, parent] {
             ExceptiontalApprovalDialog diag{approvals, failed_fields, parent};
             if (diag.exec()){
