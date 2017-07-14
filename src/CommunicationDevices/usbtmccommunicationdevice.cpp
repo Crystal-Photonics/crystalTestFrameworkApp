@@ -29,12 +29,17 @@ bool USBTMCCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo)
 }
 
 bool USBTMCCommunicationDevice::waitReceived(CommunicationDevice::Duration timeout, int bytes, bool isPolling) {
+    (void) timeout;
+    (void) bytes;
+    (void) isPolling;
     assert(0); //not implemented
     return true;
 }
 
 bool USBTMCCommunicationDevice::waitReceived(CommunicationDevice::Duration timeout, std::string escape_characters,
                                              std::string leading_pattern_indicating_skip_line) {
+    (void)escape_characters;
+    (void)leading_pattern_indicating_skip_line;
     usbtmc.set_timeout(timeout);
 
     QByteArray response = usbtmc.read_answer();

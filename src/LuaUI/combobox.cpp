@@ -43,7 +43,7 @@ std::string ComboBox::get_text() const {
 }
 
 void ComboBox::set_index(unsigned int index) {
-    if ((0 == index) && (index > combobox->count())) {
+    if ((0 == index) && (index > (unsigned int)combobox->count())) {
         //TODO error
     } else {
         combobox->setCurrentIndex(index - 1);

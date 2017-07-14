@@ -136,7 +136,7 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
 
     auto sp_w = QSizePolicy::Maximum;
     auto sp_h = QSizePolicy::MinimumExpanding;
-    auto sp_h_f = QSizePolicy::Fixed;
+    //auto sp_h_f = QSizePolicy::Fixed;
 
     label_extra_explanation->setSizePolicy(sp_w, sp_h);
     label_de_desired_value->setSizePolicy(sp_w, sp_h);

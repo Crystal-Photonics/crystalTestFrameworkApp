@@ -440,7 +440,6 @@ const VariantData *DataEngineInstance::get_variant() const {
 }
 
 void DataEngineInstance::delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count) {
-    uint i = 0;
     std::vector<VariantData> variants_new;
 
     for (auto &variant : variants) {
@@ -821,7 +820,7 @@ bool VariantData::is_dependency_matching(const QMap<QString, QList<QVariant>> &t
     if (keys_to_test.count()) {
         for (const auto &tag_key : keys_to_test) {
             if (tags.contains(tag_key)) {
-                const auto value_count = tags[tag_key].count();
+                const unsigned int value_count = tags[tag_key].count();
                 if ((bool)length_of_first_tag_value_list == false) {
                     length_of_first_tag_value_list = value_count;
                 } else {
@@ -1954,7 +1953,7 @@ int Data_engine::generate_textfields(QXmlStreamWriter &xml, int y_start, const Q
         auto variant = section_order.section->instances[0].get_variant();
         assert(variant);
         const int text_field_width = 2000 / section_order.print_order_item.text_field_column_count;
-        int col = 0;
+        unsigned int col = 0;
         for (const auto &fields : variant->data_entries) {
             const int x_position = col * text_field_width;
             DataEngineDataEntry *field = fields.get();

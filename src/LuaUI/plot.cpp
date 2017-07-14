@@ -189,6 +189,7 @@ Curve::Curve(UI_container *, ScriptEngine *script_engine, Plot *plot)
     : plot(plot)
     , curve(new QwtPlotCurve)
     , event_filter(new Utility::Event_filter(plot->plot->canvas())) {
+    (void)script_engine;
     curve->attach(plot->plot);
     curve->setTitle("curve" + QString::number(plot->curve_id_counter++));
     plot->curves.push_back(this);

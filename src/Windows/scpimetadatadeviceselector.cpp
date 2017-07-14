@@ -53,7 +53,7 @@ void SCPIMetaDataDeviceSelector::calc_ok_enabled() {
     int checked_items = 0;
     selected_device_detail_index = -1;
     auto top_level_widget = ui->treeWidget->topLevelItem(0);
-    for (unsigned int i = 0; i < top_level_widget->childCount(); i++) {
+    for (int i = 0; i < top_level_widget->childCount(); i++) {
         auto item_to_uncheck = top_level_widget->child(i);
 
         if (item_to_uncheck->checkState(0) == Qt::Checked) {
@@ -68,7 +68,7 @@ void SCPIMetaDataDeviceSelector::on_treeWidget_itemChanged(QTreeWidgetItem *item
     (void)column;
     if (item->checkState(0) == Qt::Checked) {
         auto top_level_widget = ui->treeWidget->topLevelItem(0);
-        for (unsigned int i = 0; i < top_level_widget->childCount(); i++) {
+        for (int i = 0; i < top_level_widget->childCount(); i++) {
             auto item_to_uncheck = top_level_widget->child(i);
             if (item == item_to_uncheck) {
                 continue;

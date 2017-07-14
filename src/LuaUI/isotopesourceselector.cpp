@@ -140,6 +140,8 @@ void IsotopeSourceSelector::set_single_shot_return_pressed_callback(std::functio
             callback();
             QObject::disconnect(callback_connection);
         });
+#else
+    (void)callback;
 #endif
 }
 

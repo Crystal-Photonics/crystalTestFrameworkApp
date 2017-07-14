@@ -348,11 +348,11 @@ void DeviceMatcher::on_tree_available_itemChanged(QTreeWidgetItem *item, int col
     (void)column;
     if (selected_requirement) {
         int row = ui->tree_available->indexOfTopLevelItem(item);
-        if ((row > -1) && (row < selected_requirement->accepted_candidates.size())) {
+        if ((row > -1) && (row < (int)selected_requirement->accepted_candidates.size())) {
             if (item->checkState(0) == Qt::Checked) {
                 selected_requirement->accepted_candidates[row].selected = true;
                 if (selected_requirement->device_requirement.quantity_max == 1) {
-                    for (unsigned int i = 0; i < selected_requirement->accepted_candidates.size(); i++) {
+                    for (int i = 0; i < (int)selected_requirement->accepted_candidates.size(); i++) {
                         if (i == row) {
                             continue;
                         }

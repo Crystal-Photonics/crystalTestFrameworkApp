@@ -1494,7 +1494,7 @@ QMap<QString, QVariant> git_info(QString path, bool allow_modified, bool allow_e
     argument_list.append({"log", "--format=%h"});
     argument_list.append({"log", "--format=%ci"});
 
-    for (uint i = 0; i < argument_list.count(); i++) {
+    for (int i = 0; i < argument_list.count(); i++) {
         const auto &arguments = argument_list[i];
         QProcess myProcess(nullptr);
         myProcess.setWorkingDirectory(path);

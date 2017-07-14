@@ -1001,8 +1001,13 @@ void ScriptEngine::load_script(const QString &path) {
                                              sol::meta_function::construct, [console = console]() { return ChargeCounter{}; }, //
 
                                              "add_current", [](ChargeCounter &handle, const double current) { return handle.add_current(current); }, //
-                                             "reset", [](ChargeCounter &handle, const double current) { handle.reset(); },                           //
-                                             "get_current_hours", [](ChargeCounter &handle) { return handle.get_current_hours(); }                   //
+                                             "reset",
+                                             [](ChargeCounter &handle, const double current) {
+                                                 (void)current;
+                                                 handle.reset();
+                                             }, //
+                                             "get_current_hours",
+                                             [](ChargeCounter &handle) { return handle.get_current_hours(); } //
                                              );
         }
         //bind data engine
@@ -1044,7 +1049,7 @@ void ScriptEngine::load_script(const QString &path) {
 
                         if (tag.second.get_type() == sol::type::table) {
                             const auto &value_list = tag.second.as<sol::table>();
-                            for (int i = 1; i <= value_list.size(); i++) {
+                            for (size_t i = 1; i <= value_list.size(); i++) {
                                 const sol::object &obj = value_list[i].get<sol::object>();
                                 add_value_to_tag_list(values, obj, tag_name);
                             }
@@ -1076,8 +1081,8 @@ void ScriptEngine::load_script(const QString &path) {
                 [](Data_engine_handle &handle, const std::string &id) { return handle.data_engine->get_description(QString::fromStdString(id)).toStdString(); },
                 "get_actual_value", [](Data_engine_handle &handle,
                                        const std::string &id) { return handle.data_engine->get_actual_value(QString::fromStdString(id)).toStdString(); },
-                "get_actual_number", [](Data_engine_handle &handle,
-                                        const std::string &id) { return handle.data_engine->get_actual_number(QString::fromStdString(id)); },
+                "get_actual_number",
+                [](Data_engine_handle &handle, const std::string &id) { return handle.data_engine->get_actual_number(QString::fromStdString(id)); },
 
                 "get_unit",
                 [](Data_engine_handle &handle, const std::string &id) { return handle.data_engine->get_unit(QString::fromStdString(id)).toStdString(); },

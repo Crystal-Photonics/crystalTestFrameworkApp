@@ -108,6 +108,7 @@ struct sr_usb_dev_inst sr_usb_dev_inst_new(uint8_t bus, uint8_t address, struct 
  * @private
  */
 void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb) {
+    (void)usb;
     //;
 }
 
