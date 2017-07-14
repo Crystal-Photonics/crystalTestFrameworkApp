@@ -9,6 +9,12 @@ DataLogger::DataLogger(QPlainTextEdit *console, std::string filename, char seper
     this->filename = QString::fromStdString(filename);
     this->format = LoggerSaveFormat::csv;
     this->console = console;
+    if ((this->filename == "")) {
+        const auto &message = QObject::tr("Filename is empty.");
+        Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        throw sol::error("Filename is empty");
+    }
+
     if (!over_write_file) {
         if (QFile::exists(this->filename)) {
             const auto &message = QObject::tr("File for saving csv already exists and must not be overwritten: %1").arg(this->filename);
@@ -18,6 +24,8 @@ DataLogger::DataLogger(QPlainTextEdit *console, std::string filename, char seper
     }
 
     QFile file(this->filename);
+
+
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         const auto &message = QObject::tr("File for saving csv can not be opened: %1").arg(this->filename);
         Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
@@ -79,7 +87,7 @@ void DataLogger::dump_data_to_file() {
         QFile file(filename);
         if (!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
             const auto &message = QObject::tr("File for saving csv can not be opened: for appending %1").arg(this->filename);
-            Utility::thread_call(MainWindow::mw, nullptr,[ console = console, message = std::move(message) ] { Console::error(console) << message; });
+            Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
             throw sol::error("Cannot open file");
         }
         QTextStream out(&file);

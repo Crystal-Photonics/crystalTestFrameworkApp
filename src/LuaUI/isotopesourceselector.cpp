@@ -80,6 +80,11 @@ void IsotopeSourceSelector::load_isotope_database() {
 
     isotope_sources.clear();
 
+    if ((fn=="") || QFile::exists(fn)){
+        QString msg = QString{"isotope source file %1 does not exist."}.arg(fn);
+        throw sol::error(msg.toStdString());
+    }
+
     QFile loadFile(fn);
 
     if (!loadFile.open(QIODevice::ReadOnly)) {

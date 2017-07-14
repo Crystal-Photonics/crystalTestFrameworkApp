@@ -1559,6 +1559,11 @@ static QString get_caption(const QString &section_name, const QString &instance_
 void Data_engine::save_to_json(QString filename) {
     QFile saveFile(filename);
 
+    if (filename == ""){
+        throw DataEngineError(DataEngineErrorNumber::cannot_open_file, QString{"Filename for dumping data_engine is empty"});
+        return;
+    }
+
     if (!saveFile.open(QIODevice::WriteOnly)) {
         throw DataEngineError(DataEngineErrorNumber::cannot_open_file, QString{"Can not open file: \"%1\" for dumping data_engine content."}.arg(filename));
         return;

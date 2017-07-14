@@ -104,7 +104,7 @@ void DeviceMetaData::parse_meta_data_file(QString file_name) {
 
     if ((file_name == "") || (QFile::exists(file_name) == false)){
         Utility::thread_call(MainWindow::mw, nullptr, [file_name] {
-            QMessageBox::warning(MainWindow::mw, "Can't measurement equipment meta data file", "Can't measurement equipment meta data file: " + file_name);
+            QMessageBox::warning(MainWindow::mw, "Can't open measurement equipment meta data file", "Can't open measurement equipment meta data file: " + file_name);
         });
         return;
     }
@@ -112,7 +112,7 @@ void DeviceMetaData::parse_meta_data_file(QString file_name) {
 
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         Utility::thread_call(MainWindow::mw, nullptr, [file_name] {
-            QMessageBox::warning(MainWindow::mw, "Can't measurement equipment meta data file", "Can't measurement equipment meta data file: " + file_name);
+            QMessageBox::warning(MainWindow::mw, "Can't open measurement equipment meta data file", "Can't open measurement equipment meta data file: " + file_name);
         });
         return;
     }

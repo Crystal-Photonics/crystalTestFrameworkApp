@@ -26,6 +26,21 @@ void DeviceProtocolsSettings::parse_settings_file(QString file_name) {
 
     QFile file;
 
+    if (file_name == ""){
+        Utility::thread_call(MainWindow::mw, nullptr, [file_name] {
+            QMessageBox::warning(MainWindow::mw, "Can't open port settings", "Could not open device settings file: " + file_name);
+        });
+
+        return;
+    }
+    if (!QFile::exists(file_name)){
+        Utility::thread_call(MainWindow::mw, nullptr, [file_name] {
+            QMessageBox::warning(MainWindow::mw, "Can't open port settings", "Could not open device settings file: " + file_name);
+        });
+
+        return;
+    }
+
     file.setFileName(file_name);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         Utility::thread_call(MainWindow::mw, nullptr, [file_name] {

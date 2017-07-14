@@ -16,10 +16,25 @@ EnvironmentVariables::EnvironmentVariables(QString filename) {
     }
     QFile file;
 
+    if (filename == ""){
+        Utility::thread_call(MainWindow::mw, nullptr, [filename] {
+       QMessageBox::warning(MainWindow::mw, "Can't open environment file", "Can't open environment file. Filename is empty.");
+       });
+
+       return;
+    }
+    if (!QFile::exists(filename)){
+        Utility::thread_call(MainWindow::mw, nullptr, [filename] {
+       QMessageBox::warning(MainWindow::mw, "Can't open environment file", "Can't open environment file. File does not exist: " + filename);
+       });
+
+       return;
+    }
+
     file.setFileName(filename);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
          Utility::thread_call(MainWindow::mw, nullptr, [filename] {
-        QMessageBox::warning(MainWindow::mw, "Can't measurement equipment meta data file", "Can't measurement equipment meta data file: " + filename);
+        QMessageBox::warning(MainWindow::mw, "Can't open environment file", "Can't open environment file: " + filename);
         });
 
         return;

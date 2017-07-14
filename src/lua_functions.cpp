@@ -672,6 +672,14 @@ void table_to_json_object(QPlainTextEdit *console, QJsonArray &jarray, const sol
 
 void table_save_to_file(QPlainTextEdit *console, const std::string file_name, sol::table input_table, bool over_write_file) {
     QString fn = QString::fromStdString(file_name);
+
+    if (fn == ""){
+        const auto &message = QObject::tr("Failed open file for saving table: %1").arg(fn);
+        Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        throw sol::error("could not open file");
+        return;
+    }
+
     if (!over_write_file && QFile::exists(fn)) {
         const auto &message = QObject::tr("File for saving table already exists and must not be overwritten: %1").arg(fn);
         Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
@@ -679,6 +687,7 @@ void table_save_to_file(QPlainTextEdit *console, const std::string file_name, so
         return;
     }
     QFile saveFile(fn);
+
 
     if (!saveFile.open(QIODevice::WriteOnly)) {
         const auto &message = QObject::tr("Failed open file for saving table: %1").arg(fn);

@@ -10,6 +10,12 @@
 
 ExceptionalApprovalDB::ExceptionalApprovalDB(const QString &file_name) {
     QFile loadFile(file_name);
+    if (file_name == "") {
+        return;
+    }
+    if (!QFile::exists(file_name)) {
+        return;
+    }
     if (loadFile.open(QIODevice::ReadOnly)) {
         QByteArray saveData = loadFile.readAll();
         QJsonDocument loadDoc(QJsonDocument::fromJson(saveData));
@@ -41,13 +47,16 @@ QList<ExceptionalApprovalResult> ExceptionalApprovalDB::select_exceptional_appro
     this->failed_fields = failed_fields;
     if (parent) {
         return Utility::promised_thread_call(MainWindow::mw, [failed_fields, this, parent] {
-            ExceptiontalApprovalDialog diag{approvals, failed_fields, parent};
-            if (diag.exec()){
-                return diag.get_exceptiontal_approval_results();
+            if (failed_fields.count()) {
+                ExceptiontalApprovalDialog diag{approvals, failed_fields, parent};
+                if (diag.exec()) {
+                    return diag.get_exceptiontal_approval_results();
+                }
             }
             QList<ExceptionalApprovalResult> empty_result;
             return empty_result;
         });
+
     } else {
         auto a = approvals[0];
         for (auto ff : failed_fields) {
@@ -61,8 +70,7 @@ QList<ExceptionalApprovalResult> ExceptionalApprovalDB::select_exceptional_appro
     return result;
 }
 
-QJsonObject ExceptionalApprovalResult::get_json_dump() const
-{
+QJsonObject ExceptionalApprovalResult::get_json_dump() const {
     QJsonObject result;
     result["approved"] = approved;
     result["approved_by"] = approving_operator_name;
