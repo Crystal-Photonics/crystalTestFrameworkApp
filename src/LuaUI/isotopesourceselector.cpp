@@ -25,7 +25,7 @@ IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     layout->addStretch(1);
     parent->add(layout, this);
     load_isotope_database();
-    fill_combobox_with_isotopes();
+    fill_combobox_with_isotopes("*");
     parent->scroll_to_bottom();
 }
 
@@ -48,6 +48,10 @@ void IsotopeSourceSelector::set_enabled(bool enabled) {
     combobox->setEnabled(enabled);
 }
 
+void IsotopeSourceSelector::filter_by_isotope(std::__cxx11::string isotope_name) {
+    fill_combobox_with_isotopes(QString::fromStdString(isotope_name));
+}
+
 std::string IsotopeSourceSelector::get_selected_serial_number() {
     return combobox->currentText().toStdString();
 }
@@ -57,10 +61,12 @@ std::string IsotopeSourceSelector::get_selected_name() {
     return isot.isotope.toStdString();
 }
 
-void IsotopeSourceSelector::fill_combobox_with_isotopes() {
+void IsotopeSourceSelector::fill_combobox_with_isotopes(QString isotope_name) {
     combobox->clear();
     for (auto item : isotope_sources) {
-        combobox->addItem(item.serial_number);
+        if ((isotope_name == "") || (isotope_name == "*") || (item.isotope.toLower() == isotope_name.toLower())) {
+            combobox->addItem(item.serial_number);
+        }
     }
 }
 
@@ -80,7 +86,7 @@ void IsotopeSourceSelector::load_isotope_database() {
 
     isotope_sources.clear();
 
-    if ((fn=="") || !QFile::exists(fn)){
+    if ((fn == "") || !QFile::exists(fn)) {
         QString msg = QString{"isotope source file %1 does not exist."}.arg(fn);
         throw sol::error(msg.toStdString());
     }

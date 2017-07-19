@@ -1312,18 +1312,20 @@ void ScriptEngine::load_script(const QString &path) {
         }
         //bind IsotopeSourceSelector
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<IsotopeSourceSelector>>(
-                "IsotopeSourceSelector", //
-                sol::meta_function::construct, [ parent = this->parent, this ]() {
-                    return Lua_UI_Wrapper<IsotopeSourceSelector>{parent, this};
-                }, //
-                "set_visible",
-                thread_call_wrapper(&IsotopeSourceSelector::set_visible),                                             //
-                "set_enabled", thread_call_wrapper(&IsotopeSourceSelector::set_enabled),                              //
-                "get_selected_activity_Bq", thread_call_wrapper(&IsotopeSourceSelector::get_selected_activity_Bq),    //
-                "get_selected_name", thread_call_wrapper(&IsotopeSourceSelector::get_selected_name),                  //
-                "get_selected_serial_number", thread_call_wrapper(&IsotopeSourceSelector::get_selected_serial_number) //
-                );
+            ui_table.new_usertype<Lua_UI_Wrapper<IsotopeSourceSelector>>("IsotopeSourceSelector", //
+                                                                         sol::meta_function::construct, [ parent = this->parent, this ]() {
+                                                                             return Lua_UI_Wrapper<IsotopeSourceSelector>{parent, this};
+                                                                         }, //
+                                                                         "set_visible",
+                                                                         thread_call_wrapper(&IsotopeSourceSelector::set_visible),                            //
+                                                                         "set_enabled", thread_call_wrapper(&IsotopeSourceSelector::set_enabled),             //
+                                                                         "filter_by_isotope", thread_call_wrapper(&IsotopeSourceSelector::filter_by_isotope), //
+                                                                         "get_selected_activity_Bq",
+                                                                         thread_call_wrapper(&IsotopeSourceSelector::get_selected_activity_Bq),               //
+                                                                         "get_selected_name", thread_call_wrapper(&IsotopeSourceSelector::get_selected_name), //
+                                                                         "get_selected_serial_number",
+                                                                         thread_call_wrapper(&IsotopeSourceSelector::get_selected_serial_number) //
+                                                                         );
         }
         //bind ComboBox
         {

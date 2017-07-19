@@ -34,13 +34,14 @@ class IsotopeSourceSelector : public UI_widget{
 
     void set_visible(bool visible);
     void set_enabled(bool enabled);
+    void filter_by_isotope(std::string isotope_name);
 private:
     void load_isotope_database();
     QComboBox *combobox = nullptr;
     QMetaObject::Connection callback_connection = {};
     void set_single_shot_return_pressed_callback(std::function<void()> callback);
 
-    void fill_combobox_with_isotopes();
+    void fill_combobox_with_isotopes(QString isotope_name);
     QList<IsotopeSource> isotope_sources;
     IsotopeSource get_source_by_serial_number(QString serial_number);
 };
