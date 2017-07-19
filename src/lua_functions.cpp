@@ -6,7 +6,7 @@
 #include "console.h"
 #include "scriptengine.h"
 #include "util.h"
-
+#include "vc.h"
 #include <QApplication>
 #include <QDateTime>
 #include <QDebug>
@@ -821,7 +821,15 @@ static sol::object table_minmax_by_field(sol::state &lua, sol::table input_value
     bool is_first_value = true;
     sol::type initial_type = sol::type::nil;
 
+    if (input_values.size() == 0) {
+        return sol::nil;
+    }
+
     for (auto &i : input_values) {
+        if (i.second.get_type() != sol::type::table) {
+            throw sol::error{
+                QString("Seems the table is not of type: \"table of table\" in field %1").arg(QString::fromStdString(i.first.as<std::string>())).toStdString()};
+        }
         const sol::table &obj = i.second.as<sol::table>();
 
         if (is_first_value == false) {
@@ -887,7 +895,7 @@ static sol::object table_minmax_by_field(sol::state &lua, sol::table input_value
     } else if (initial_type == sol::type::boolean) {
         return sol::make_object(lua, result_bool);
     } else {
-        return sol::make_object(lua, sol::type::nil);
+        return sol::nil;
     }
 }
 
@@ -1657,7 +1665,7 @@ QMap<QString, QVariant> git_info(QString path, bool allow_modified, bool allow_e
                         break;
                     }
                 }
-                result.insert("modfied", modified);
+                result.insert("modified", modified);
                 if ((!allow_modified) && modified) {
                     if (allow_exceptions) {
                         throw std::runtime_error("Git Status: Git-Directory is modified.");
@@ -1681,13 +1689,71 @@ sol::table git_info(sol::state &lua, std::string path, bool allow_modified) {
     auto map = git_info(QString::fromStdString(path), allow_modified, true);
     sol::table result = lua.create_table_with();
 
-    result["modfied"] = map["modfied"].toBool();
-    result["hash"] = map["hash"].toString().toStdString();
+    result["modified"] = map["modified"].toBool();
+    result["hash"] = "0x"+map["hash"].toString().toStdString();
     result["date"] = map["date"].toString().toStdString();
     return result;
 }
 /// @endcond
 
+/*! \fn string get_framework_git_hash();
+    \brief Returns the git hash of the last git commit of this test framework as string.
+
+    \details    \par example:
+    \code{.lua}
+        print(get_framework_git_hash())  --prints eg 0x20F0467
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+string get_framework_git_hash();
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+std::string get_framework_git_hash() {
+    return "0x" + QString::number(GITHASH, 16).toUpper().toStdString();
+}
+/// @endcond
+
+/*! \fn double get_framework_git_date_unix();
+    \brief Returns the unix time of the last commit of this test framework as string.
+
+    \details    \par example:
+    \code{.lua}
+        local unix_date_time = get_framework_git_date_unix() -- returns eg. 1500044862
+        print(os.date("%X %x", v)) -- prints "14:26:49 07/19/17"
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+double get_framework_git_date_unix();
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+double get_framework_git_date_unix() {
+    return GITUNIX;
+}
+/// @endcond
+/*! \fn string get_framework_git_date_text();
+    \brief Returns the date of the last commit of this test framework as string.
+
+    \details    \par example:
+    \code{.lua}
+       print( get_framework_git_date_text()) -- prints eg "2017-07-14"
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+string get_framework_git_date_text();
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+std::string get_framework_git_date_text() {
+    return GITDATE;
+}
 /// @endcond
 
 /*! \fn string get_os_username();

@@ -47,5 +47,8 @@ sol::object table_min_by_field(sol::state &lua, sol::table input_values, const s
 std::string propose_unique_filename_by_datetime(const std::string &dir_path, const std::string &prefix, const std::string &suffix);
 sol::table git_info(sol::state &lua, std::string path, bool allow_modified);
 QMap<QString, QVariant> git_info(QString path, bool allow_modified, bool allow_exceptions);
+std::string get_framework_git_hash();
+double get_framework_git_date_unix();
+std::string get_framework_git_date_text();
 std::string get_os_username();
 #endif // LUA_FUNCTIONS_H

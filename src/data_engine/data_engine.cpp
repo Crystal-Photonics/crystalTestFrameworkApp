@@ -1590,8 +1590,8 @@ void Data_engine::save_to_json(QString filename) {
     if (script_git.contains("date")) {
         jo_general["test_git_date_str"] = script_git["date"].toString();
     }
-    if (script_git.contains("modfied")) {
-        jo_general["test_git_modified"] = script_git["modfied"].toString();
+    if (script_git.contains("modified")) {
+        jo_general["test_git_modified"] = script_git["modified"].toString();
     }
 
     jo_general["everything_in_range"] = all_values_in_range();

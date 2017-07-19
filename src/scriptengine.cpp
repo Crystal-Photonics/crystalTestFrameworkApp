@@ -969,7 +969,7 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["table_max_by_field"] = [&lua = *lua](sol::table input_values, const std::string field_name) {
                 return table_max_by_field(lua, input_values, field_name);
             };
-
+#if 1
             (*lua)["table_min_by_field"] = [&lua = *lua](sol::table input_values, const std::string field_name) {
                 return table_min_by_field(lua, input_values, field_name);
             };
@@ -980,6 +980,13 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["git_info"] = [&lua = *lua, path = path ](std::string dir_path, bool allow_modified) {
                 return git_info(lua, get_absolute_file_path(path, dir_path), allow_modified);
             };
+
+#endif
+
+            (*lua)["get_framework_git_hash"] = []() { return get_framework_git_hash(); };
+            (*lua)["get_framework_git_date_unix"] = []() { return get_framework_git_date_unix(); };
+            (*lua)["get_framework_git_date_text"] = []() { return get_framework_git_date_text(); };
+
             (*lua)["get_os_username"] = []() { return get_os_username(); };
         }
 
@@ -1433,9 +1440,10 @@ void ScriptEngine::load_script(const QString &path) {
                                                               return Lua_UI_Wrapper<Button>{parent, this, this, title};
                                                           }, //
                                                           "has_been_clicked",
-                                                          thread_call_wrapper(&Button::has_been_clicked),           //
-                                                          "set_visible", thread_call_wrapper(&Button::set_visible), //
-                                                          "await_click", non_gui_call_wrapper(&Button::await_click) //
+                                                          thread_call_wrapper(&Button::has_been_clicked),                       //
+                                                          "set_visible", thread_call_wrapper(&Button::set_visible),             //
+                                                          "reset_click_state", thread_call_wrapper(&Button::reset_click_state), //
+                                                          "await_click", non_gui_call_wrapper(&Button::await_click)             //
                                                           );
         }
 

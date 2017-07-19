@@ -94,10 +94,10 @@ public slots:
 
     void closeEvent(QCloseEvent *event) override;
 
-    private:
+    void on_actionInfo_triggered();
+
+private:
     void refresh_devices(bool only_duts);
-    //void device_detect();
-    //void update_devices_list();
     std::vector<TestDescriptionLoader> test_descriptions;
     std::vector<std::unique_ptr<TestRunner>> test_runners;
 

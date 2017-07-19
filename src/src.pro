@@ -17,7 +17,8 @@ FORMS += \
 	Windows/scpimetadatadeviceselector.ui \
 	Windows/hotkey_picker.ui \
     Windows/dummydatacreator.ui \
-    Windows/exceptiontalapprovaldialog.ui
+    Windows/exceptiontalapprovaldialog.ui \
+    Windows/infowindow.ui
 
 QPROTOCOL_INTERPRETER_PATH=$$PWD/../libs/qRPCRuntimeParser
 INCLUDEPATH += $$QPROTOCOL_INTERPRETER_PATH/project/src
@@ -86,7 +87,8 @@ HEADERS += \
     LuaUI/userinstructionlabel.h \
     data_engine/exceptionalapproval.h \
     Windows/exceptiontalapprovaldialog.h \
-    data_engine/data_engine_strings.h
+    data_engine/data_engine_strings.h \
+    Windows/infowindow.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -143,7 +145,8 @@ SOURCES += \
     environmentvariables.cpp \
     LuaUI/userinstructionlabel.cpp \
     data_engine/exceptionalapproval.cpp \
-    Windows/exceptiontalapprovaldialog.cpp
+    Windows/exceptiontalapprovaldialog.cpp \
+    Windows/infowindow.cpp
 
 
 

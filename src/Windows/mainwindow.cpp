@@ -17,7 +17,7 @@
 #include "ui_container.h"
 #include "ui_mainwindow.h"
 #include "util.h"
-
+#include "Windows/infowindow.h"
 #include "devicematcher.h"
 #include <QAction>
 #include <QByteArray>
@@ -595,4 +595,10 @@ void MainWindow::on_actionDummy_Data_Creator_for_print_templates_triggered() {
     if (dummydatacreator->get_is_valid_data_engine()){
         dummydatacreator->show();
     }
+}
+
+void MainWindow::on_actionInfo_triggered()
+{
+   auto * infowindow = new InfoWindow{this};
+   infowindow->show();
 }

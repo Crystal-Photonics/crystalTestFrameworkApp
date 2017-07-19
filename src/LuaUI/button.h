@@ -34,6 +34,7 @@ struct Button : public UI_widget{
 
 public:
     void set_visible(bool visible);
+    void reset_click_state();
 private:
     QPushButton *button = nullptr;
     QMetaObject::Connection pressed_connection;

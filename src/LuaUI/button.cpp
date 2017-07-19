@@ -26,6 +26,10 @@ bool Button::has_been_clicked() const {
     return pressed;
 }
 
+void Button::reset_click_state() {
+    pressed = false;
+}
+
 void Button::await_click() {
     QMetaObject::Connection callback_connection = QObject::connect(button, &QPushButton::pressed, [this] { script_engine->ui_event_queue_send(); });
     script_engine->ui_event_queue_run();
