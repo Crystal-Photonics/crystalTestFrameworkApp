@@ -816,7 +816,7 @@ variant table_max_by_field(table input_values, string field_name);
 
 static sol::object table_minmax_by_field(sol::state &lua, sol::table input_values, const std::string field_name, bool max) {
     QString result_string;
-    double result_num;
+    double result_num = 0;
     bool result_bool = false;
     bool is_first_value = true;
     sol::type initial_type = sol::type::nil;
