@@ -42,6 +42,8 @@ double table_max(sol::table input_values);
 double table_min(sol::table input_values);
 double table_max_abs(sol::table input_values);
 double table_min_abs(sol::table input_values);
+sol::object table_max_by_field(sol::state &lua, sol::table input_values, const std::string field_name);
+sol::object table_min_by_field(sol::state &lua, sol::table input_values, const std::string field_name);
 std::string propose_unique_filename_by_datetime(const std::string &dir_path, const std::string &prefix, const std::string &suffix);
 sol::table git_info(sol::state &lua, std::string path, bool allow_modified);
 QMap<QString, QVariant> git_info(QString path, bool allow_modified, bool allow_exceptions);

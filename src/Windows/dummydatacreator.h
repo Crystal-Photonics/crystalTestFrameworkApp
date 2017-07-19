@@ -55,6 +55,7 @@ class DummyDataCreator : public QDialog {
     public:
     explicit DummyDataCreator(QWidget *parent = 0);
     ~DummyDataCreator();
+    bool get_is_valid_data_engine();
 
     private slots:
     void on_pushButton_clicked();
@@ -73,6 +74,7 @@ class DummyDataCreator : public QDialog {
     Data_engine data_engine;
     QList<QSpinBox *> spinboxes;
     QStringList instance_names;
+    bool is_valid_data_engine = true;
 };
 
 #endif // DUMMYDATACREATOR_H

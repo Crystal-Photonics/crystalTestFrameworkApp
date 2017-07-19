@@ -592,5 +592,7 @@ void MainWindow::on_close_finished_tests_button_clicked() {
 
 void MainWindow::on_actionDummy_Data_Creator_for_print_templates_triggered() {
     DummyDataCreator *dummydatacreator = new DummyDataCreator(this);
-    dummydatacreator->show();
+    if (dummydatacreator->get_is_valid_data_engine()){
+        dummydatacreator->show();
+    }
 }

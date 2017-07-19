@@ -966,6 +966,14 @@ void ScriptEngine::load_script(const QString &path) {
 
             (*lua)["table_min_abs"] = [](sol::table input_values) { return table_min_abs(input_values); };
 
+            (*lua)["table_max_by_field"] = [&lua = *lua](sol::table input_values, const std::string field_name) {
+                return table_max_by_field(lua, input_values, field_name);
+            };
+
+            (*lua)["table_min_by_field"] = [&lua = *lua](sol::table input_values, const std::string field_name) {
+                return table_min_by_field(lua, input_values, field_name);
+            };
+
             (*lua)["propose_unique_filename_by_datetime"] = [path = path](const std::string &dir_path, const std::string &prefix, const std::string &suffix) {
                 return propose_unique_filename_by_datetime(get_absolute_file_path(path, dir_path), prefix, suffix);
             };

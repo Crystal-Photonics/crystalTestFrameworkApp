@@ -673,7 +673,7 @@ void table_to_json_object(QPlainTextEdit *console, QJsonArray &jarray, const sol
 void table_save_to_file(QPlainTextEdit *console, const std::string file_name, sol::table input_table, bool over_write_file) {
     QString fn = QString::fromStdString(file_name);
 
-    if (fn == ""){
+    if (fn == "") {
         const auto &message = QObject::tr("Failed open file for saving table: %1").arg(fn);
         Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
         throw sol::error("could not open file");
@@ -687,7 +687,6 @@ void table_save_to_file(QPlainTextEdit *console, const std::string file_name, so
         return;
     }
     QFile saveFile(fn);
-
 
     if (!saveFile.open(QIODevice::WriteOnly)) {
         const auto &message = QObject::tr("Failed open file for saving table: %1").arg(fn);
@@ -792,7 +791,141 @@ sol::table table_load_from_file(QPlainTextEdit *console, sol::state &lua, const 
     QJsonArray jarray = obj["table"].toArray();
     return jsonarray_to_table(console, lua, jarray);
 }
+/*! \fn variant table_max_by_field(table input_values, string field_name);
+\brief Returns the max value of the table \c input_values with the field \c field_name.
+\param input_values                 Input table of int, double, string or bool values. If it is a string value the greater than / smaller than decision is based on alphabetical order.
+\param input_values                 The name of the field which will be compared.
 
+\return                     The mean value of \c input_values.
+
+\details    \par example:
+\code{.lua}
+    local tabelle_num = {{a=5, b = 3, c = 1},{a=3, b = 8, c = 1}}
+    local tabelle_str = {{a="foo", b = 3, c = 1},{a="bar", b = 8, c = 1},{a="xylophon", b = 8, c = 1}}
+
+    print(table_min_by_field(tabelle_num,"a")) --prints 3
+    print(table_max_by_field(tabelle_str,"a")) --prints xylophon
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+variant table_max_by_field(table input_values, string field_name);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+static sol::object table_minmax_by_field(sol::state &lua, sol::table input_values, const std::string field_name, bool max) {
+    QString result_string;
+    double result_num;
+    bool result_bool = false;
+    bool is_first_value = true;
+    sol::type initial_type = sol::type::nil;
+
+    for (auto &i : input_values) {
+        const sol::table &obj = i.second.as<sol::table>();
+
+        if (is_first_value == false) {
+            if (initial_type != obj[field_name].get<sol::object>().get_type()) {
+                throw sol::error{QString("field type of field %1 is not consistent.").arg(QString::fromStdString(field_name)).toStdString()};
+            }
+        }
+        if (obj[field_name].get<sol::object>().get_type() == sol::type::number) {
+            if (is_first_value) {
+                initial_type = obj[field_name].get<sol::object>().get_type();
+                result_num = obj[field_name].get<double>();
+                is_first_value = false;
+            } else {
+                if (max) {
+                    if (result_num < obj[field_name].get<double>()) {
+                        result_num = obj[field_name].get<double>();
+                    }
+                } else {
+                    if (result_num > obj[field_name].get<double>()) {
+                        result_num = obj[field_name].get<double>();
+                    }
+                }
+            }
+        } else if (obj[field_name].get<sol::object>().get_type() == sol::type::boolean) {
+            if (is_first_value) {
+                initial_type = obj[field_name].get<sol::object>().get_type();
+                is_first_value = false;
+            }
+            if (max) {
+                if (obj[field_name].get<bool>()) {
+                    result_bool = true;
+                }
+            } else {
+                if (obj[field_name].get<bool>() == false) {
+                    result_bool = false;
+                }
+            }
+        } else if (obj[field_name].get<sol::object>().get_type() == sol::type::string) {
+            auto str = QString::fromStdString(obj[field_name].get<std::string>());
+            if (is_first_value) {
+                initial_type = obj[field_name].get<sol::object>().get_type();
+                result_string = str;
+                is_first_value = false;
+            } else {
+                if (max) {
+                    if (result_string < str) {
+                        result_string = str;
+                    }
+                } else {
+                    if (result_string > str) {
+                        result_string = str;
+                    }
+                }
+            }
+        } else {
+            throw sol::error{QString("Only the types string, number and boolean are allowed.").toStdString()};
+        }
+    }
+    if (initial_type == sol::type::string) {
+        return sol::make_object(lua, result_string.toStdString());
+    } else if (initial_type == sol::type::number) {
+        return sol::make_object(lua, result_num);
+    } else if (initial_type == sol::type::boolean) {
+        return sol::make_object(lua, result_bool);
+    } else {
+        return sol::make_object(lua, sol::type::nil);
+    }
+}
+
+sol::object table_max_by_field(sol::state &lua, sol::table input_values, const std::string field_name) {
+    return table_minmax_by_field(lua, input_values, field_name, true);
+}
+
+/// @endcond
+///
+/*! \fn variant table_min_by_field(table input_values, string field_name);
+\brief Returns the min value of the table \c input_values with the field \c field_name.
+\param input_values                 Input table of int, double, string or bool values. If it is a string value the greater than / smaller than decision is based on alphabetical order.
+\param input_values                 The name of the field which will be compared.
+
+\return                     The mean value of \c input_values.
+
+\details    \par example:
+\code{.lua}
+    local tabelle_num = {{a=5, b = 3, c = 1},{a=3, b = 8, c = 1}}
+    local tabelle_str = {{a="foo", b = 3, c = 1},{a="bar", b = 8, c = 1},{a="xylophon", b = 8, c = 1}}
+
+    print(table_min_by_field(tabelle_num,"a")) --prints 3
+    print(table_max_by_field(tabelle_str,"a")) --prints xylophon
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+variant table_min_by_field(table input_values, string field_name);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+sol::object table_min_by_field(sol::state &lua, sol::table input_values, const std::string field_name) {
+    return table_minmax_by_field(lua, input_values, field_name, false);
+}
+
+/// @endcond
+///
 /*! \fn double table_mean(table input_values);
 \brief Returns the mean value of the table \c input_values
 \param input_values                 Input table of int or double values.

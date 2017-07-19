@@ -1,9 +1,10 @@
+
 #include "data_engine.h"
+#include "data_engine_strings.h"
+#include "exceptionalapproval.h"
 #include "lua_functions.h"
 #include "util.h"
 #include "vc.h"
-
-#include "exceptionalapproval.h"
 #include <QApplication>
 #include <QBuffer>
 #include <QByteArray>
@@ -90,7 +91,8 @@ void Data_engine::set_source(std::istream &source) {
 
     const auto document = QJsonDocument::fromJson(std::move(data));
     if (!document.isObject()) {
-        throw std::runtime_error("invalid json file");
+        throw DataEngineError(DataEngineErrorNumber::invalid_json_file,
+                              "Invalid JSON file.\n\nYou can use one of the online JSON validators you will find at google.");
     }
 
     sections.from_json(document.object());
@@ -1544,7 +1546,9 @@ static void db_exec(QSqlDatabase &db, QString query) {
     auto instance = db.exec(query);
     if (instance.lastError().isValid()) {
         qDebug() << instance.lastError().text();
-        throw DataEngineError(DataEngineErrorNumber::sql_error, QString{"Failed executing query: ''%1''. Error: %2"}.arg(query, instance.lastError().text()));
+        throw DataEngineError(DataEngineErrorNumber::sql_error,
+                              QString{"Failed executing query: ''%1''. Error: %2 \n\nProbably because database file ''%3'' is opened by another program."}.arg(
+                                  query, instance.lastError().text(),db.databaseName()));
     }
 }
 
@@ -1559,7 +1563,7 @@ static QString get_caption(const QString &section_name, const QString &instance_
 void Data_engine::save_to_json(QString filename) {
     QFile saveFile(filename);
 
-    if (filename == ""){
+    if (filename == "") {
         throw DataEngineError(DataEngineErrorNumber::cannot_open_file, QString{"Filename for dumping data_engine is empty"});
         return;
     }
@@ -1664,26 +1668,11 @@ void Data_engine::fill_database(QSqlDatabase &db) const {
     for (const DataEngineSection &section : sections.sections) {
         int instance_id_counter{1};
         const auto instances_table_name = section.get_sql_instance_name();
-        db_exec(db, QString{R"(
-			CREATE TABLE %1 (
-				InstanceID int PRIMARY KEY,
-				Caption text
-			)
-		)"}.arg(instances_table_name));
+
+        db_exec(db, QUERY_CREATE_INSTANCE_TABLE.arg(instances_table_name));
 
         const auto &section_table_name = section.get_sql_section_name();
-        db_exec(db, QString{R"(
-            CREATE TABLE %1 (
-                ID int PRIMARY KEY,
-                Name text,
-                Description text,
-                Desired text,
-                Actual text,
-                InstanceID int KEY,
-                Inrange text,
-                Unit text
-            )
-        )"}.arg(section_table_name));
+        db_exec(db, QUERY_CREATE_DATA_TABLE.arg(section_table_name));
         int id = 0;
         for (const DataEngineInstance &instance : section.instances) {
             db_exec(db, QString{"INSERT INTO %1 VALUES(%2, '%3')"}.arg(instances_table_name, QString::number(instance_id_counter),
@@ -3112,10 +3101,10 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             return std::make_unique<ReferenceDataEntry>(field_name, reference_string, tolerance, nice_name);
         }
         case EntryType::Unspecified: {
-            throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_type, "Invalid type in JSON object");
+            throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_type, QString("Invalid type in JSON object. Field name: %1").arg(field_name));
         }
     }
-    throw DataEngineError(DataEngineErrorNumber::invalid_json_object, "invalid JSON object");
+    throw DataEngineError(DataEngineErrorNumber::invalid_json_object, QString{"Invalid JSON object. Field name: %1"}.arg(field_name));
 }
 
 NumericDataEntry::NumericDataEntry(const NumericDataEntry &other)
@@ -3635,8 +3624,7 @@ QString ReferenceDataEntry::get_actual_values() const {
     return entry->get_actual_values();
 }
 
-double ReferenceDataEntry::get_actual_number() const
-{
+double ReferenceDataEntry::get_actual_number() const {
     assert_that_instance_count_is_defined();
     return entry->get_actual_number();
 }

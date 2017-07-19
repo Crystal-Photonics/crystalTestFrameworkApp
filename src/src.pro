@@ -85,7 +85,8 @@ HEADERS += \
     environmentvariables.h \
     LuaUI/userinstructionlabel.h \
     data_engine/exceptionalapproval.h \
-    Windows/exceptiontalapprovaldialog.h
+    Windows/exceptiontalapprovaldialog.h \
+    data_engine/data_engine_strings.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \

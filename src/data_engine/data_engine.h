@@ -32,6 +32,7 @@ enum class DataEngineErrorNumber {
     invalid_data_entry_key,
     invalid_data_entry_type,
     invalid_json_object,
+    invalid_json_file,
     data_entry_contains_no_name,
     data_entry_contains_neither_type_nor_value,
     tolerance_parsing_error,

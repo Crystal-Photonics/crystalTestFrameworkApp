@@ -85,27 +85,34 @@ DummyDataCreator::DummyDataCreator(QWidget *parent)
     , ui(new Ui::DummyDataCreator) {
     ui->setupUi(this);
     QFileDialog dialog(this);
+    is_valid_data_engine = true;
     dialog.setFileMode(QFileDialog::ExistingFile);
     dialog.setNameFilter(tr("Data Engine Input files (*.json)"));
     if (dialog.exec()) {
         std::ifstream f(dialog.selectedFiles()[0].toStdString());
-        data_engine.set_source(f);
+        try {
+            data_engine.set_source(f);
 
-        instance_names = data_engine.get_instance_count_names();
-        uint i = 0;
-        for (auto name : instance_names) {
-            QSpinBox *sb = new QSpinBox(ui->groupBox);
-            QLabel *label = new QLabel(ui->groupBox);
-            spinboxes.append(sb);
-            sb->setValue(2);
-            label->setText(name + ":");
-            ui->gridLayout_2->addWidget(label, i, 0);
-            ui->gridLayout_2->addWidget(sb, i, 1);
-            i++;
+            instance_names = data_engine.get_instance_count_names();
+            uint i = 0;
+            for (auto name : instance_names) {
+                QSpinBox *sb = new QSpinBox(ui->groupBox);
+                QLabel *label = new QLabel(ui->groupBox);
+                sb->setMaximum(1000);
+                spinboxes.append(sb);
+                sb->setValue(2);
+                label->setText(name + ":");
+                ui->gridLayout_2->addWidget(label, i, 0);
+                ui->gridLayout_2->addWidget(sb, i, 1);
+                i++;
+            }
+
+            template_config_filename = dialog.selectedFiles()[0] + ".template_conf";
+            load_gui_from_json();
+        } catch (DataEngineError &e) {
+            QMessageBox::warning(this, QString("Dataengine error"), QString("Dataengine error:\n\n %1").arg(e.what()));
+            is_valid_data_engine = false;
         }
-
-        template_config_filename = dialog.selectedFiles()[0] + ".template_conf";
-        load_gui_from_json();
     }
 }
 
@@ -114,10 +121,18 @@ DummyDataCreator::~DummyDataCreator() {
 }
 
 void DummyDataCreator::on_pushButton_clicked() {
-    for (int i = 0; i < instance_names.count(); i++) {
-        data_engine.set_instance_count(instance_names[i], spinboxes[i]->value());
+    bool close_dialog = true;
+    try {
+        for (int i = 0; i < instance_names.count(); i++) {
+            data_engine.set_instance_count(instance_names[i], spinboxes[i]->value());
+        }
+        data_engine.fill_engine_with_dummy_data();
+    } catch (DataEngineError &e) {
+        QMessageBox::warning(this, QString("Dataengine error"), QString("Dataengine error:\n\n %1").arg(e.what()));
+        close_dialog = false;
+        return;
     }
-    data_engine.fill_engine_with_dummy_data();
+
     QFileDialog dialog(this);
     dialog.setFileMode(QFileDialog::AnyFile);
     dialog.setNameFilter(tr("Report Template (*.lrxml)"));
@@ -168,11 +183,18 @@ void DummyDataCreator::on_pushButton_clicked() {
 
             db.setDatabaseName(db_name);
             db.open();
-            data_engine.fill_database(db);
+            try {
+                data_engine.fill_database(db);
+            } catch (DataEngineError &e) {
+                QMessageBox::warning(this, QString("Dataengine error"), QString("Dataengine error:\n\n %1").arg(e.what()));
+                close_dialog = false;
+            }
             db.close();
         }
     }
-    close();
+    if (close_dialog) {
+        close();
+    }
 }
 
 void DummyDataCreator::on_pushButton_2_clicked() {
@@ -201,6 +223,17 @@ void DummyDataCreator::load_gui_from_json() {
         ui->edt_image_footer->setText(obj["image_footer"].toString().trimmed());
         ui->edt_image_header->setText(obj["image_header"].toString().trimmed());
         ui->edt_approved->setText(obj["approved_by_field_id"].toString().trimmed());
+        QJsonArray instance_counts = obj["instance_counts"].toArray();
+        if (instance_counts.count() == spinboxes.count()) {
+            int i = 0;
+            for (auto jitem : instance_counts) {
+                if (jitem.isDouble()) {
+                    spinboxes[i]->setValue(jitem.toInt());
+                }
+            }
+
+        }
+
         QJsonArray section_order = obj["section_order"].toArray();
         for (auto jitem : section_order) {
             QJsonObject obj = jitem.toObject();
@@ -274,6 +307,12 @@ void DummyDataCreator::save_gui_to_json() {
     obj["image_header"] = ui->edt_image_header->text();
     obj["approved_by_field_id"] = ui->edt_approved->text();
 
+    QJsonArray instance_counts;
+    for (auto spinbox : spinboxes) {
+        instance_counts.append(spinbox->value());
+    }
+    obj["instance_counts"] = instance_counts;
+
     QJsonArray section_order;
     for (int i = 0; i < ui->section_list->topLevelItemCount(); i++) {
         QJsonObject obj;
@@ -315,4 +354,8 @@ void DummyDataCreator::on_btn_image_header_clicked() {
 void DummyDataCreator::on_btn_image_footer_clicked() {
     auto fileName = QFileDialog::getOpenFileName(this, tr("Open Footer Image"), "", tr("Image Files (*.png *.jpg *.bmp)"));
     ui->edt_image_footer->setText(fileName);
+}
+
+bool DummyDataCreator::get_is_valid_data_engine() {
+    return is_valid_data_engine;
 }
