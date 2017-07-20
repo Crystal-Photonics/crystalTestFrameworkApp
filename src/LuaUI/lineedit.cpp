@@ -71,6 +71,10 @@ std::string LineEdit::get_caption() const {
     return label->text().toStdString();
 }
 
+void LineEdit::set_focus() {
+    edit->setFocus();
+}
+
 void LineEdit::await_return() {
     QMetaObject::Connection callback_connection = QObject::connect(edit, &QLineEdit::returnPressed, [this] { this->script_engine->ui_event_queue_send(); });
     script_engine->ui_event_queue_run();

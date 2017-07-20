@@ -546,7 +546,7 @@ class Data_engine {
     bool generate_pdf(const std::string &form, const std::string &destination) const;
     void fill_database(QSqlDatabase &db) const;
     void generate_template(const QString &destination, const QString &db_filename, QString report_title, QString image_footer_path, QString image_header_path,
-                           QString approved_by_field_id, const QList<PrintOrderItem> &print_order) const;
+                           QString approved_by_field_id, QString static_text_report_header, QString static_text_page_header, QString static_text_page_footer, QString static_text_report_footer_above_signature, QString static_text_report_footer_beneath_signature, const QList<PrintOrderItem> &print_order) const;
 
     void save_to_json(QString filename);
     static void replace_database_filename(const std::string &source_form_path, const std::string &destination_form_path, const std::string &database_path);
@@ -558,9 +558,9 @@ class Data_engine {
     bool do_exceptional_approval(ExceptionalApprovalDB &ea_db, QString field_id, QWidget *parent);
 
     private:
-    void generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
+    void generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id, QString static_text_report_header, QString static_text_page_header, QString static_text_page_footer, QString static_text_report_footer_above_signature, QString static_text_report_footer_beneath_signature,
                         const QList<PrintOrderItem> &print_order) const;
-    void generate_pages_header(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
+    void generate_pages_header(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id, QString static_text_report_header, QString static_text_page_header, QString static_text_page_footer, QString static_text_report_footer_above_signature, QString static_text_report_footer_beneath_signature,
                                const QList<PrintOrderItem> &print_order) const;
     void generate_tables(const QList<PrintOrderItem> &print_order) const;
     void generate_sourced_form(const std::string &source_path, const std::string &destination_path, const std::string &database_path) const;
@@ -591,6 +591,7 @@ class Data_engine {
     bool auto_open_pdf = false;
     void generate_exception_approval_table() const;
     void do_exceptional_approval_(ExceptionalApprovalDB &ea_db, QList<FailedField> failed_fields, QWidget *parent);
+    int generate_static_text_field(QXmlStreamWriter &xml, int y_start, const QString static_text, TextFieldDataBandPlace actual_band_position) const;
 };
 
 #endif // DATA_ENGINE_H

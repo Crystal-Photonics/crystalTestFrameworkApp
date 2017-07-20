@@ -1462,6 +1462,7 @@ void ScriptEngine::load_script(const QString &path) {
                                                             "set_caption", thread_call_wrapper(&LineEdit::set_caption),                               //
                                                             "set_enabled", thread_call_wrapper(&LineEdit::set_enabled),                               //
                                                             "set_visible", thread_call_wrapper(&LineEdit::set_visible),                               //
+                                                            "set_focus", thread_call_wrapper(&LineEdit::set_focus),                                   //
                                                             "await_return", non_gui_call_wrapper(&LineEdit::await_return)                             //
                                                             );
         }

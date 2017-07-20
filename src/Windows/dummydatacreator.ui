@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>532</height>
+    <width>810</width>
+    <height>720</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -147,6 +147,77 @@
       </item>
       <item row="7" column="0" colspan="2">
        <widget class="QLineEdit" name="edt_approved"/>
+      </item>
+      <item row="10" column="0">
+       <widget class="QLabel" name="label_6">
+        <property name="text">
+         <string>Static HTML texts:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="11" column="0" colspan="2">
+       <widget class="QTabWidget" name="tabWidget">
+        <property name="currentIndex">
+         <number>0</number>
+        </property>
+        <widget class="QWidget" name="tab_report_header">
+         <attribute name="title">
+          <string>Report Header</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_5">
+          <item row="0" column="0">
+           <widget class="QPlainTextEdit" name="text_report_header"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="tab_page_header">
+         <attribute name="title">
+          <string>Page Header</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_6">
+          <item row="0" column="0">
+           <widget class="QPlainTextEdit" name="text_page_header"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="tab_page_footer">
+         <attribute name="title">
+          <string>Page Footer</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_7">
+          <item row="0" column="0">
+           <widget class="QPlainTextEdit" name="text_page_footer"/>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="tab_report_footer">
+         <attribute name="title">
+          <string>Report Footer</string>
+         </attribute>
+         <layout class="QGridLayout" name="gridLayout_8">
+          <item row="1" column="1">
+           <widget class="QLabel" name="label_8">
+            <property name="text">
+             <string>Beneath Signature:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QPlainTextEdit" name="text_report_footer_above"/>
+          </item>
+          <item row="2" column="1">
+           <widget class="QPlainTextEdit" name="text_report_footer_beneath"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_7">
+            <property name="text">
+             <string>Above signature:</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </widget>
       </item>
      </layout>
     </widget>

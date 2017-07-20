@@ -103,6 +103,7 @@ class LineEdit: public UI_widget {
                                   //!< \return the caption of the line edit object set by set_caption() as a string value.
                                   //! \sa set_caption()
 
+    void set_focus();
     void await_return();
 ///\endcond
 //! \brief Waits until user hits the return key.

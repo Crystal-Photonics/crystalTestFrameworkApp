@@ -169,7 +169,18 @@ void DummyDataCreator::on_pushButton_clicked() {
             print_order.append(item);
         }
 
+        QString static_text_report_header = ui->text_report_header->toPlainText();
+        QString static_text_page_header = ui->text_page_header->toPlainText();
+
+        QString static_text_page_footer = ui->text_page_footer->toPlainText();
+        QString static_text_report_footer_above_signature = ui->text_report_footer_above->toPlainText();
+
+        QString static_text_report_footer_beneath_signature = ui->text_report_footer_beneath->toPlainText();
+
         data_engine.generate_template(dialog.selectedFiles()[0], db_name, report_title, image_footer_path, image_header_path, approved_by_field_id,
+                                      static_text_report_header, static_text_page_header, static_text_page_footer, static_text_report_footer_above_signature,
+                                      static_text_report_footer_beneath_signature,
+
                                       print_order);
         { //TODO: put into data_engine
 
@@ -223,6 +234,13 @@ void DummyDataCreator::load_gui_from_json() {
         ui->edt_image_footer->setText(obj["image_footer"].toString().trimmed());
         ui->edt_image_header->setText(obj["image_header"].toString().trimmed());
         ui->edt_approved->setText(obj["approved_by_field_id"].toString().trimmed());
+
+        ui->text_report_header->setPlainText(obj["static_text_report_header"].toString().trimmed());
+        ui->text_page_header->setPlainText(obj["static_text_page_header"].toString().trimmed());
+        ui->text_page_footer->setPlainText(obj["static_text_page_footer"].toString().trimmed());
+        ui->text_report_footer_above->setPlainText(obj["static_text_report_footer_above_signature"].toString().trimmed());
+        ui->text_report_footer_beneath->setPlainText(obj["static_text_report_footer_beneath_signature"].toString().trimmed());
+
         QJsonArray instance_counts = obj["instance_counts"].toArray();
         if (instance_counts.count() == spinboxes.count()) {
             int i = 0;
@@ -231,7 +249,6 @@ void DummyDataCreator::load_gui_from_json() {
                     spinboxes[i]->setValue(jitem.toInt());
                 }
             }
-
         }
 
         QJsonArray section_order = obj["section_order"].toArray();
@@ -306,6 +323,12 @@ void DummyDataCreator::save_gui_to_json() {
     obj["image_footer"] = ui->edt_image_footer->text();
     obj["image_header"] = ui->edt_image_header->text();
     obj["approved_by_field_id"] = ui->edt_approved->text();
+
+    obj["static_text_report_header"] = ui->text_report_header->toPlainText();
+    obj["static_text_page_header"] = ui->text_page_header->toPlainText();
+    obj["static_text_page_footer"] = ui->text_page_footer->toPlainText();
+    obj["static_text_report_footer_above_signature"] = ui->text_report_footer_above->toPlainText();
+    obj["static_text_report_footer_beneath_signature"] = ui->text_report_footer_beneath->toPlainText();
 
     QJsonArray instance_counts;
     for (auto spinbox : spinboxes) {

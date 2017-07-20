@@ -1548,7 +1548,7 @@ static void db_exec(QSqlDatabase &db, QString query) {
         qDebug() << instance.lastError().text();
         throw DataEngineError(DataEngineErrorNumber::sql_error,
                               QString{"Failed executing query: ''%1''. Error: %2 \n\nProbably because database file ''%3'' is opened by another program."}.arg(
-                                  query, instance.lastError().text(),db.databaseName()));
+                                  query, instance.lastError().text(), db.databaseName()));
     }
 }
 
@@ -1823,7 +1823,9 @@ struct XML {
 XML_state XML::state;
 
 void Data_engine::generate_template(const QString &destination, const QString &db_filename, QString report_title, QString image_footer_path,
-                                    QString image_header_path, QString approved_by_field_id, const QList<PrintOrderItem> &print_order) const {
+                                    QString image_header_path, QString approved_by_field_id, QString static_text_report_header, QString static_text_page_header,
+                                    QString static_text_page_footer, QString static_text_report_footer_above_signature,
+                                    QString static_text_report_footer_beneath_signature, const QList<PrintOrderItem> &print_order) const {
     QFile xml_file{destination};
     xml_file.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
     XML::state.xml.setDevice(&xml_file);
@@ -1839,7 +1841,8 @@ void Data_engine::generate_template(const QString &destination, const QString &d
         {
             xml.writeStartElement("pages");
             xml.writeAttribute("Type", "Collection");
-            generate_pages(xml, report_title, image_footer_path, image_header_path, approved_by_field_id, print_order);
+            generate_pages(xml, report_title, image_footer_path, image_header_path, approved_by_field_id, static_text_report_header, static_text_page_header,
+                           static_text_page_footer, static_text_report_footer_above_signature, static_text_report_footer_beneath_signature, print_order);
             xml.writeEndElement(); //pages
 
             xml.writeStartElement("datasourcesManager");
@@ -1860,7 +1863,9 @@ void Data_engine::generate_template(const QString &destination, const QString &d
 }
 
 void Data_engine::generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path,
-                                 QString approved_by_field_id, const QList<PrintOrderItem> &print_order) const {
+                                 QString approved_by_field_id, QString static_text_report_header, QString static_text_page_header,
+                                 QString static_text_page_footer, QString static_text_report_footer_above_signature,
+                                 QString static_text_report_footer_beneath_signature, const QList<PrintOrderItem> &print_order) const {
     XML pages{"item"};
     pages.attributes({{"Type", "Object"}, {"ClassName", "LimeReport::PageDesignIntf"}});
     {
@@ -1870,7 +1875,9 @@ void Data_engine::generate_pages(QXmlStreamWriter &xml, QString report_title, QS
         {
             XML children{"children"};
             children.attribute("Type", "Collection");
-            generate_pages_header(xml, report_title, image_footer_path, image_header_path, approved_by_field_id, print_order);
+            generate_pages_header(xml, report_title, image_footer_path, image_header_path, approved_by_field_id, static_text_report_header,
+                                  static_text_page_header, static_text_page_footer, static_text_report_footer_above_signature,
+                                  static_text_report_footer_beneath_signature, print_order);
             generate_tables(print_order);
         }
     }
@@ -2001,8 +2008,85 @@ int Data_engine::generate_textfields(QXmlStreamWriter &xml, int y_start, const Q
     return y_start;
 }
 
+int Data_engine::generate_static_text_field(QXmlStreamWriter &xml, int y_start, const QString static_text, TextFieldDataBandPlace actual_band_position) const {
+    int y = y_start;
+    int text_field_height = 50;
+    int font_size = 10;
+    QString font_color = "#000000";
+    if (static_text == "") {
+        return y_start;
+    }
+    if ((actual_band_position == TextFieldDataBandPlace::page_footer) || (actual_band_position == TextFieldDataBandPlace::page_header)) {
+        text_field_height = 30;
+        font_size = 6;
+        font_color = "#a8a8a8";
+    }
+
+    QString field_name;
+    switch (actual_band_position) {
+        case TextFieldDataBandPlace::report_footer:
+            field_name = "static_report_footer" + QString::number(y_start);
+            break;
+        case TextFieldDataBandPlace::report_header:
+            field_name = "static_report_header";
+            break;
+        case TextFieldDataBandPlace::page_footer:
+            field_name = "static_page_footer";
+            break;
+        case TextFieldDataBandPlace::page_header:
+            field_name = "static_page_header";
+            break;
+        default:
+            field_name = "static_text" + QString::number(y_start);
+            break;
+    }
+
+    const int x_position = 0;
+    const int text_field_width = 2000;
+
+    xml.writeStartElement("item");
+    {
+        xml.writeAttribute("Type", "Object");
+        xml.writeAttribute("ClassName", "TextItem");
+        XML{"geometry"}.attributes({{"width", QString::number(text_field_width)},
+                                    {"height", QString::number(text_field_height)},
+                                    {"x", QString::number(x_position)},
+                                    {"y", QString::number(y)},
+                                    {"Type", "QRect"}});
+        XML{"font"}.attributes({{"pointSize", QString::number(font_size)},
+                                {"family", "Arial"},
+                                {"weight", "50"},
+                                {"italic", "0"},
+                                {"Type", "QFont"},
+                                {"stylename", ""},
+                                {"bold", "0"},
+                                {"underline", "0"}});
+        XML{"fontColor"}.attributes({{"Value", font_color}, {"Type", "QColor"}});
+
+        XML{"alignment"}.attributes({{"Value", "129"}, {"Type", "enumAndFlags"}});
+        XML{"allowHTML"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+        XML{"autoHeight"}.attributes({{"Value", "1"}, {"Type", "bool"}});
+        XML{"backgroundMode"}.attributes({{"Value", "0"}, {"Type", "enumAndFlags"}});
+        XML{"content"}.attribute("Type", "QString").value(static_text);
+
+        xml.writeStartElement("objectName");
+        {
+            xml.writeAttribute("Type", "QString");
+            xml.writeCharacters("field_" + field_name);
+        }
+        xml.writeEndElement(); //objectName
+    }
+    xml.writeEndElement(); //item
+
+    y_start += text_field_height;
+
+    return y_start;
+}
+
 void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path,
-                                        QString approved_by_field_id, const QList<PrintOrderItem> &print_order) const {
+                                        QString approved_by_field_id, QString static_text_report_header, QString static_text_page_header,
+                                        QString static_text_page_footer, QString static_text_report_footer_above_signature,
+                                        QString static_text_report_footer_beneath_signature, const QList<PrintOrderItem> &print_order) const {
     {
         int y_position = 100;
         XML report_header{"item"};
@@ -2038,10 +2122,12 @@ void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_ti
                 xml.writeEndElement(); //item
                 y_position += 100;
                 y_position = generate_textfields(xml, y_position, print_order, TextFieldDataBandPlace::report_header);
+
+                y_position = generate_static_text_field(xml, y_position, static_text_report_header, TextFieldDataBandPlace::report_header);
             }
             xml.writeEndElement(); //children
             XML{"geometry"}.attributes({{"width", "2000"}, {"height", QString::number(y_position)}, {"Type", "QRect"}});
-            XML{"autoHeight"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+            XML{"autoHeight"}.attributes({{"Value", "1"}, {"Type", "bool"}});
         }
     }
     {
@@ -2062,10 +2148,11 @@ void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_ti
                 xml.writeAttribute("Type", "Collection");
                 y_position = generate_image(xml, image_header_path, y_position, header_name);
                 y_position = generate_textfields(xml, y_position, print_order, TextFieldDataBandPlace::page_header);
+                y_position = generate_static_text_field(xml, y_position, static_text_page_header, TextFieldDataBandPlace::page_header);
             }
             xml.writeEndElement(); //children
             XML{"geometry"}.attributes({{"height", QString::number(y_position + 30)}, {"Type", "QRect"}, {"width", "2000"}});
-            XML{"autoHeight"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+            XML{"autoHeight"}.attributes({{"Value", "1"}, {"Type", "bool"}});
         }
     }
     {
@@ -2074,6 +2161,7 @@ void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_ti
             int y_position = 0;
             const QString footer_name = "PageFooter_Band";
             paget_footer.attributes({{"Type", "Object"}, {"ClassName", "PageFooter"}});
+
             paget_footer.add_band_index_element();
             xml.writeStartElement("objectName");
             {
@@ -2085,6 +2173,8 @@ void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_ti
             {
                 xml.writeAttribute("Type", "Collection");
                 const int page_number_height = 50;
+
+                y_position = generate_static_text_field(xml, y_position, static_text_page_footer, TextFieldDataBandPlace::page_footer);
 
                 y_position = generate_textfields(xml, y_position, print_order, TextFieldDataBandPlace::page_footer);
 
@@ -2121,7 +2211,7 @@ void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_ti
             }
             xml.writeEndElement(); //children
             XML{"geometry"}.attributes({{"height", QString::number(y_position)}, {"Type", "QRect"}, {"width", "2000"}});
-            XML{"autoHeight"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+            XML{"autoHeight"}.attributes({{"Value", "1"}, {"Type", "bool"}});
         }
     }
     {
@@ -2135,6 +2225,8 @@ void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_ti
             {
                 xml.writeAttribute("Type", "Collection");
                 y_position = generate_textfields(xml, y_position, print_order, TextFieldDataBandPlace::report_footer);
+
+                y_position = generate_static_text_field(xml, y_position, static_text_report_footer_above_signature, TextFieldDataBandPlace::report_footer);
 
                 y_position += 300;
 
@@ -2231,11 +2323,13 @@ void Data_engine::generate_pages_header(QXmlStreamWriter &xml, QString report_ti
                 xml.writeEndElement(); //item
 
                 y_position += 50 + 25;
+
+                y_position = generate_static_text_field(xml, y_position, static_text_report_footer_beneath_signature, TextFieldDataBandPlace::report_footer);
             }
 
             xml.writeEndElement(); //children
             XML{"geometry"}.attributes({{"width", "2000"}, {"height", QString::number(y_position)}, {"Type", "QRect"}});
-            XML{"autoHeight"}.attributes({{"Value", "0"}, {"Type", "bool"}});
+            XML{"autoHeight"}.attributes({{"Value", "1"}, {"Type", "bool"}});
         }
     }
 }
