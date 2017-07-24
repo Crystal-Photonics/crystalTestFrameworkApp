@@ -1,4 +1,5 @@
 #include "rpcprotocol.h"
+#include "Windows/mainwindow.h"
 #include "channel_codec_wrapper.h"
 #include "config.h"
 #include "console.h"
@@ -9,7 +10,6 @@
 #include "rpcruntime_encoded_function_call.h"
 #include "rpcruntime_encoder.h"
 #include "rpcruntime_protocol_description.h"
-#include "Windows/mainwindow.h"
 #include <QByteArray>
 #include <QDateTime>
 #include <QDebug>
@@ -47,7 +47,6 @@ static void set_description_data(Device_data &dd, const RPCRuntimeDecodedParam &
 
         break;
         case RPCRuntimeParameterDescription::Type::character: {
-
         } break;
         case RPCRuntimeParameterDescription::Type::enumeration:
             break;
@@ -120,52 +119,37 @@ std::vector<Device_data::Description_source> Device_data::get_description_source
 
 RPCProtocol::RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting)
     : Protocol{"RPC"}
-    , decoder{description}
-    , encoder{description}
-    , channel_codec{decoder}
-    , device(&device)
+    , communication_wrapper(device)
     , device_protocol_setting(setting) {
+    rpc_runtime_protocol = std::make_unique<RPCRuntimeProtocol>(communication_wrapper, device_protocol_setting.timeout);
+#if 1
+    console_message_connection = QObject::connect(rpc_runtime_protocol.get(), &RPCRuntimeProtocol::console_message,
+                                                  [this](RPCConsoleLevel level, const QString &data) { //
+                                                      this->console_message(level, data);
+                                                  });
+    assert(console_message_connection);
+#endif
+
+#if 0
     connection = QObject::connect(&device, &CommunicationDevice::received, [&cc = channel_codec](const QByteArray &data) {
         //qDebug() << "RPC-Protocol received" << data.size() << "bytes from device";
         cc.add_data(reinterpret_cast<const unsigned char *>(data.data()), data.size());
     });
-    assert(connection);
+#endif
+    // QObject::connect(rpc_runtime_protocol.get(), SIGNAL(console_message(RPCConsoleLevel,QString)), this, SLOT());
 }
 
 RPCProtocol::~RPCProtocol() {
-    assert(connection);
-    auto result = QObject::disconnect(connection);
+    assert(console_message_connection);
+    auto result = QObject::disconnect(console_message_connection);
     assert(result);
 }
 
 bool RPCProtocol::is_correct_protocol() {
     // const CommunicationDevice::Duration TIMEOUT = std::chrono::milliseconds{100};
-    int retries_per_transmission_backup = retries_per_transmission;
-    retries_per_transmission = 0;
-    auto result = call_and_wait(encoder.encode(0), device_protocol_setting.timeout);
-    retries_per_transmission = retries_per_transmission_backup;
-    if (result) {
-        const auto &hash = QByteArray::fromStdString(result->get_parameter_by_name("hash_out")->as_full_string()).toHex();
-        device->message(QObject::tr("Received Hash: ").toUtf8() + hash);
-        QString folder = QSettings{}.value(Globals::rpc_xml_files_path_settings_key, QDir::currentPath()).toString();
-        QString filename = hash + ".xml";
-        QDirIterator directory_iterator(folder, QStringList{} << filename, QDir::Files, QDirIterator::Subdirectories);
-        if (directory_iterator.hasNext() == false) {
-            device->message(
-                QObject::tr(
-                    R"(Failed finding RPC description file "%1" in folder "%2" or any of its subfolders. Make sure it exists or change the search path in the settings menu.)")
-                    .arg(folder, filename)
-                    .toUtf8());
-            return false;
-        }
-        auto filepath = directory_iterator.next();
-        std::ifstream xmlfile(filepath.toStdString());
-        if (description.openProtocolDescription(xmlfile) == false) {
-            device->message(QObject::tr(R"(Failed opening RPC description file "%1".)").arg(filename).toUtf8());
-            return false;
-        }
-        if (description.has_function("get_device_descriptor")) {
-            auto get_device_descriptor_function = RPCRuntimeEncodedFunctionCall{description.get_function("get_device_descriptor")};
+    if (rpc_runtime_protocol.get()->load_xml_file(QSettings{}.value(Globals::rpc_xml_files_path_settings_key, QDir::currentPath()).toString())) {
+        if (rpc_runtime_protocol.get()->description.has_function("get_device_descriptor")) {
+            auto get_device_descriptor_function = RPCRuntimeEncodedFunctionCall{rpc_runtime_protocol.get()->description.get_function("get_device_descriptor")};
             if (get_device_descriptor_function.are_all_values_set()) {
                 descriptor_answer = call_and_wait(get_device_descriptor_function, device_protocol_setting.timeout);
                 if (descriptor_answer) {
@@ -177,9 +161,10 @@ bool RPCProtocol::is_correct_protocol() {
         } else {
             Console::note() << "No RPC-function \"get_device_descriptor\" available";
         }
+        return true;
     }
 
-    return result != nullptr;
+    return false;
 }
 
 std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call) {
@@ -187,47 +172,35 @@ std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const 
 }
 
 std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration) {
-    for (int try_count = 0; try_count <= retries_per_transmission; try_count++) {
-        if (try_count != 0) {
-            Console::debug()
-                << QString(R"(Request for function "%1" timed out, retry %2)").arg(call.get_description()->get_function_name().c_str()).arg(try_count);
-        }
-        Utility::thread_call(device,nullptr,
-                             [ device = this->device, data = channel_codec.encode(call), display_data = call.encode() ] { device->send(data, display_data); });
-        auto start = std::chrono::high_resolution_clock::now();
-        auto check_received = [this, &start, &duration, &call]() -> std::unique_ptr<RPCRuntimeDecodedFunctionCall> {
-            device->waitReceived(duration - (std::chrono::high_resolution_clock::now() - start), 1);
-            if (channel_codec.transfer_complete()) { //found a reply
-                auto transfer = channel_codec.pop_completed_transfer();
-                auto &raw_data = transfer.get_raw_data();
-                emit device->decoded_received(QByteArray(reinterpret_cast<const char *>(raw_data.data()), raw_data.size()));
-                auto decoded_call = transfer.decode();
-                if (decoded_call.get_id() == call.get_description()->get_reply_id()) { //found correct reply
-                    return std::make_unique<RPCRuntimeDecodedFunctionCall>(std::move(decoded_call));
-                } else { //found reply to something else, just gonna quietly ignore it
-                    Console::debug()
-                        << QString(R"(RPCProtocol::call_and_wait wrong answer. Expected answer to function "%1" but got answer to function "%2" instead.)")
-                               .arg(call.get_description()->get_function_name().c_str(), decoded_call.get_declaration()->get_function_name().c_str());
-                }
-            }
-            return nullptr;
-        };
-        do {
-            auto retval = check_received();
-            if (retval) {
-                return retval;
-            }
-        } while (std::chrono::high_resolution_clock::now() - start < duration);
-    }
-    return nullptr;
+    return rpc_runtime_protocol.get()->call_and_wait(call, duration);
 }
 
 const RPCRunTimeProtocolDescription &RPCProtocol::get_description() {
-    return description;
+    return rpc_runtime_protocol.get()->description;
 }
 
 QString RPCProtocol::get_device_summary() {
     return device_data.get_summary();
+}
+
+void RPCProtocol::console_message(RPCConsoleLevel level, QString message) {
+    switch (level) {
+        case RPCConsoleLevel::note:
+            Console::note() << message;
+            break;
+
+        case RPCConsoleLevel::error:
+            Console::error() << message;
+            break;
+
+        case RPCConsoleLevel::debug:
+            Console::debug() << message;
+            break;
+
+        case RPCConsoleLevel::warning:
+            Console::warning() << message;
+            break;
+    }
 }
 
 void RPCProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
@@ -249,20 +222,31 @@ void RPCProtocol::get_lua_device_descriptor(sol::table &t) const {
 }
 
 RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const std::string &name) const {
-    return encoder.encode(name);
-}
-
-const channel_codec_instance_t *RPCProtocol::debug_get_channel_codec_instance() const {
-    return channel_codec.debug_get_instance();
+    return rpc_runtime_protocol.get()->encode_function(name);
 }
 
 void RPCProtocol::clear() {
-    while (channel_codec.transfer_complete()) {
-        channel_codec.pop_completed_transfer();
-    }
-    channel_codec.reset_current_transfer();
+    rpc_runtime_protocol.get()->clear();
 }
 
 std::string RPCProtocol::get_name() {
     return device_data.name.toStdString();
+}
+
+CommunicationDeviceWrapper::CommunicationDeviceWrapper(CommunicationDevice &device)
+    : com_device(device) {
+    connect(this, SIGNAL(decoded_received(const QByteArray &)), &com_device, SIGNAL(decoded_received(const QByteArray &)));
+
+    connect(this, SIGNAL(message(const QByteArray &)), &com_device, SIGNAL(message(const QByteArray &)));
+
+    connect(&com_device, SIGNAL(received(const QByteArray &)), this, SIGNAL(received(const QByteArray &)));
+
+}
+
+void CommunicationDeviceWrapper::send(std::vector<unsigned char> data, std::vector<unsigned char> pre_encodec_data) {
+    com_device.send(data, pre_encodec_data);
+}
+
+bool CommunicationDeviceWrapper::waitReceived(std::chrono::_V2::steady_clock::duration timeout, int bytes, bool isPolling) {
+    return com_device.waitReceived(timeout, bytes, isPolling);
 }

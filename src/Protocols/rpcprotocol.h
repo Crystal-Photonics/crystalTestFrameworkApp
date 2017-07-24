@@ -3,11 +3,12 @@
 
 #include "CommunicationDevices/communicationdevice.h"
 #include "channel_codec_wrapper.h"
+#include "device_protocols_settings.h"
 #include "protocol.h"
 #include "rpcruntime_decoder.h"
 #include "rpcruntime_encoder.h"
+#include "rpcruntime_protcol.h"
 #include "rpcruntime_protocol_description.h"
-#include "device_protocols_settings.h"
 #include <memory>
 #include <sol.hpp>
 
@@ -15,58 +16,72 @@ class QTreeWidgetItem;
 class RPCRuntimeEncodedFunctionCall;
 
 struct Device_data {
-	QString githash;
-	QString gitDate_unix;
+    QString githash;
+    QString gitDate_unix;
 
-	QString serialnumber;
-	QString deviceID;
-	QByteArray guid_bin;
-	QString boardRevision;
+    QString serialnumber;
+    QString deviceID;
+    QByteArray guid_bin;
+    QString boardRevision;
 
-	QString name;
-	QString version;
+    QString name;
+    QString version;
 
-	QString get_summary() const;
-	void get_lua_data(sol::table &t) const;
+    QString get_summary() const;
+    void get_lua_data(sol::table &t) const;
 
-	private:
-	struct Description_source {
-		QString description;
-		const QString source;
-	};
-	std::vector<Description_source> get_description_source() const;
+    private:
+    struct Description_source {
+        QString description;
+        const QString source;
+    };
+    std::vector<Description_source> get_description_source() const;
+};
+
+class CommunicationDeviceWrapper : public RPCIODevice {
+    public:
+
+    CommunicationDeviceWrapper(CommunicationDevice &device);
+
+    void send(std::vector<unsigned char> data, std::vector<unsigned char> pre_encodec_data) override;
+    bool waitReceived(std::chrono::steady_clock::duration timeout = std::chrono::seconds(1), int bytes = 1, bool isPolling=false) override;
+
+private:
+    CommunicationDevice &com_device;
+
 };
 
 class RPCProtocol : public Protocol {
-	public:
-	RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting);
-	~RPCProtocol();
-	RPCProtocol(const RPCProtocol &) = delete;
-	RPCProtocol(RPCProtocol &&other) = delete;
-	bool is_correct_protocol();
-	std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call);
-	std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration);
-	const RPCRunTimeProtocolDescription &get_description();
-	void set_ui_description(QTreeWidgetItem *ui_entry);
-	RPCProtocol &operator=(const RPCProtocol &&) = delete;
-	void get_lua_device_descriptor(sol::table &t) const;
-	RPCRuntimeEncodedFunctionCall encode_function(const std::string &name) const;
-	const channel_codec_instance_t *debug_get_channel_codec_instance() const;
-	int retries_per_transmission{2};
-	void clear();
-	std::string get_name();
+    public:
+    RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting);
+    ~RPCProtocol();
+    RPCProtocol(const RPCProtocol &) = delete;
+    RPCProtocol(RPCProtocol &&other) = delete;
+    bool is_correct_protocol();
+    std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call);
+    std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration);
+    const RPCRunTimeProtocolDescription &get_description();
+    void set_ui_description(QTreeWidgetItem *ui_entry);
+    RPCProtocol &operator=(const RPCProtocol &&) = delete;
+    void get_lua_device_descriptor(sol::table &t) const;
+    RPCRuntimeEncodedFunctionCall encode_function(const std::string &name) const;
+
+    void clear();
+    std::string get_name();
 
     QString get_device_summary();
-private:
-	RPCRunTimeProtocolDescription description;
-	RPCRuntimeDecoder decoder;
-	RPCRuntimeEncoder encoder;
-	Channel_codec_wrapper channel_codec;
-	QMetaObject::Connection connection;
-	std::unique_ptr<RPCRuntimeDecodedFunctionCall> descriptor_answer;
-	CommunicationDevice *device;
-	Device_data device_data;
-	DeviceProtocolSetting device_protocol_setting;
+
+    private:
+    std::unique_ptr<RPCRuntimeProtocol> rpc_runtime_protocol;
+
+
+    void console_message(RPCConsoleLevel level,QString message);
+
+    QMetaObject::Connection console_message_connection;
+    std::unique_ptr<RPCRuntimeDecodedFunctionCall> descriptor_answer;
+    Device_data device_data;
+    CommunicationDeviceWrapper communication_wrapper;
+    DeviceProtocolSetting device_protocol_setting;
 };
 
 #endif // RPCPROTOCOL_H
