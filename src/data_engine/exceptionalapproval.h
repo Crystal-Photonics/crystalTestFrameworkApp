@@ -3,6 +3,7 @@
 #include <QList>
 #include <QString>
 #include <QJsonObject>
+#include <QWidget>
 
 class DataEngineDataEntry;
 

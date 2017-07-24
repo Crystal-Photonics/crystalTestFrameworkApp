@@ -32,6 +32,7 @@
 #include <lrdatasourcemanagerintf.h>
 #include <lrreportengine.h>
 #include <type_traits>
+#include <QUrl>
 
 static const QString exceptional_approvals_table_name = "exceptional_approvals";
 template <class T>
