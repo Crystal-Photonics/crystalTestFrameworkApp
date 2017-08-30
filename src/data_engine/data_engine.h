@@ -71,7 +71,8 @@ enum class DataEngineErrorNumber {
     sql_error,
     cannot_open_file,
     actual_value_not_set,
-    actual_value_is_not_a_number
+    actual_value_is_not_a_number,
+    pdf_template_file_not_existing
 };
 class DataEngineError : public std::runtime_error {
     public:
