@@ -336,14 +336,19 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
     switch (param.get_desciption()->get_type()) {
         case RPCRuntimeParameterDescription::Type::array: {
             auto array = param.as_array();
-            if (array.size() == 1) {
-                return create_lua_object_from_RPC_answer(array.front(), lua);
+            if (array.front().get_desciption()->get_type() == RPCRuntimeParameterDescription::Type::character) {
+                std::string result_string = param.as_string();
+                return sol::make_object(lua.lua_state(), result_string);
+            } else {
+                if (array.size() == 1) {
+                    return create_lua_object_from_RPC_answer(array.front(), lua);
+                }
+                auto table = lua.create_table_with();
+                for (auto &element : array) {
+                    table.add(create_lua_object_from_RPC_answer(element, lua));
+                }
+                return table;
             }
-            auto table = lua.create_table_with();
-            for (auto &element : array) {
-                table.add(create_lua_object_from_RPC_answer(element, lua));
-            }
-            return table;
         }
         case RPCRuntimeParameterDescription::Type::character:
             throw sol::error("TODO: Parse return value of type character");

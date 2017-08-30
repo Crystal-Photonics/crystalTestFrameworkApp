@@ -5,8 +5,10 @@
 #include "LuaUI/window.h"
 #include "Protocols/sg04countprotocol.h"
 #include "Windows/dummydatacreator.h"
+#include "Windows/infowindow.h"
 #include "config.h"
 #include "console.h"
+#include "devicematcher.h"
 #include "deviceworker.h"
 #include "hotkey_picker.h"
 #include "pathsettingswindow.h"
@@ -17,8 +19,6 @@
 #include "ui_container.h"
 #include "ui_mainwindow.h"
 #include "util.h"
-#include "Windows/infowindow.h"
-#include "devicematcher.h"
 #include <QAction>
 #include <QByteArray>
 #include <QDebug>
@@ -111,7 +111,7 @@ MainWindow::~MainWindow() {
 void MainWindow::align_columns() {
     assert(currently_in_gui_thread());
     int dev_min_size = 0;
-    for (int i = 0; i < ui->devices_list->columnCount(); i++) {
+    for (int i = 0; i < 4; i++) {
         ui->devices_list->resizeColumnToContents(i);
         dev_min_size += ui->devices_list->columnWidth(i);
     }
@@ -592,13 +592,12 @@ void MainWindow::on_close_finished_tests_button_clicked() {
 
 void MainWindow::on_actionDummy_Data_Creator_for_print_templates_triggered() {
     DummyDataCreator *dummydatacreator = new DummyDataCreator(this);
-    if (dummydatacreator->get_is_valid_data_engine()){
+    if (dummydatacreator->get_is_valid_data_engine()) {
         dummydatacreator->show();
     }
 }
 
-void MainWindow::on_actionInfo_triggered()
-{
-   auto * infowindow = new InfoWindow{this};
-   infowindow->show();
+void MainWindow::on_actionInfo_triggered() {
+    auto *infowindow = new InfoWindow{this};
+    infowindow->show();
 }

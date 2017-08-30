@@ -1,6 +1,8 @@
 
 #include "data_engine.h"
-#include "data_engine_strings.h"
+//#if IAM_NOT_LUPDATE
+    #include "data_engine_strings.h"
+//#endif
 #include "exceptionalapproval.h"
 #include "lua_functions.h"
 #include "util.h"
