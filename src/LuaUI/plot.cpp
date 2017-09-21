@@ -268,6 +268,22 @@ double Curve::integrate_ci(double integral_start_ci, double integral_end_ci) {
     return 0;
 }
 
+sol::table Curve::get_y_values_as_array(sol::state &lua) {
+#if 1
+
+    const auto &yvalues_plot = curve_data().get_plot_data();
+
+    sol::table retval = lua.create_table_with();
+    for (auto val : yvalues_plot) {
+
+        retval.add(val);
+    }
+    return retval;
+
+#endif
+    return 0;
+}
+
 void Curve::set_median_enable(bool enable) {
     curve_data().median_enable = enable;
     update();

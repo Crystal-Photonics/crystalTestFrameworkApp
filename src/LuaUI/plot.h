@@ -194,6 +194,7 @@ class Curve {
 
 
     double pick_x_coord();
+    sol::table get_y_values_as_array(sol::state &lua);
 private:
     ///\cond HIDDEN_SYMBOLS
 

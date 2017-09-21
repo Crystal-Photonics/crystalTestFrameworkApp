@@ -1157,8 +1157,7 @@ void ScriptEngine::load_script(const QString &path) {
                 [](Data_engine_handle &handle, const std::string &field_id, const std::string text) {
                     handle.data_engine->set_actual_text(QString::fromStdString(field_id), QString::fromStdString(text));
                 },
-                "all_values_in_range",
-                [](Data_engine_handle &handle) { return handle.data_engine->all_values_in_range(); });
+                "all_values_in_range", [](Data_engine_handle &handle) { return handle.data_engine->all_values_in_range(); });
         }
 
         //bind UI
@@ -1209,6 +1208,7 @@ void ScriptEngine::load_script(const QString &path) {
                 "integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
                 "set_x_axis_gain", thread_call_wrapper(&Curve::set_x_axis_gain),               //
                 "set_x_axis_offset", thread_call_wrapper(&Curve::set_x_axis_offset),           //
+                "get_y_values_as_array", thread_call_wrapper(&Curve::get_y_values_as_array),   //
                 "set_color", thread_call_wrapper(&Curve::set_color),                           //
                 "user_pick_x_coord",
 #if 0
