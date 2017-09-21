@@ -194,7 +194,7 @@ class Curve {
 
 
     double pick_x_coord();
-    sol::table get_y_values_as_array(sol::state &lua);
+    sol::table get_y_values_as_array();
 private:
     ///\cond HIDDEN_SYMBOLS
 
@@ -202,13 +202,14 @@ private:
     void detach();
 	Curve_data &curve_data();
 
+
     ///\endcond
     Plot *plot{nullptr};
     QwtPlotCurve *curve{nullptr};
 	Utility::Event_filter *event_filter{nullptr};
 	///\endcond
     friend class Plot;
-    ScriptEngine *script_engine ;
+    ScriptEngine *script_engine_ ;
 };
 /** \} */ // end of group ui
 

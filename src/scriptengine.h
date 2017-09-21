@@ -78,8 +78,8 @@ class ScriptEngine {
     QString get_absolute_filename(QString file_to_open);
 
     void interrupt(QString msg);
-    private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
     sol::table create_table();
+    private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
     QStringList get_string_list(const QString &name);
     std::vector<DeviceRequirements> get_device_requirement_list(const QString &name);
     void run(std::vector<MatchedDevice> &devices);
