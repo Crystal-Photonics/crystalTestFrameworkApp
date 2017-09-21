@@ -1156,7 +1156,9 @@ void ScriptEngine::load_script(const QString &path) {
                 "set_actual_text",
                 [](Data_engine_handle &handle, const std::string &field_id, const std::string text) {
                     handle.data_engine->set_actual_text(QString::fromStdString(field_id), QString::fromStdString(text));
-                });
+                },
+                "all_values_in_range",
+                [](Data_engine_handle &handle) { return handle.data_engine->all_values_in_range(); });
         }
 
         //bind UI
