@@ -923,6 +923,10 @@ void ScriptEngine::load_script(const QString &path) {
                 return table_add_table(lua, input_values_a, input_values_b);
             };
 
+            (*lua)["table_add_table_at"] = [&lua = *lua](sol::table input_values_a, sol::table input_values_b, unsigned int at) {
+                return table_add_table_at(lua, input_values_a, input_values_b, at);
+            };
+
             (*lua)["table_add_constant"] = [&lua = *lua](sol::table input_values, double constant) {
                 return table_add_constant(lua, input_values, constant);
             };
@@ -1208,7 +1212,7 @@ void ScriptEngine::load_script(const QString &path) {
                 "integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
                 "set_x_axis_gain", thread_call_wrapper(&Curve::set_x_axis_gain),               //
                 "set_x_axis_offset", thread_call_wrapper(&Curve::set_x_axis_offset),           //
-                "get_y_values_as_array", non_gui_call_wrapper(&Curve::get_y_values_as_array),   //
+                "get_y_values_as_array", non_gui_call_wrapper(&Curve::get_y_values_as_array),  //
                 "set_color", thread_call_wrapper(&Curve::set_color),                           //
                 "user_pick_x_coord",
 #if 0
