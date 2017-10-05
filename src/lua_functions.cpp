@@ -1085,11 +1085,11 @@ sol::table table_add_table_at(sol::state &lua, sol::table input_values_a, sol::t
     }
 
     int overlap_count = input_values_a.size() - at + 1;
-    if (overlap_count > input_values_b.size()) {
+    if (overlap_count > (int)input_values_b.size()) {
         overlap_count = input_values_b.size();
     }
 
-    for (size_t i = 1; i <= overlap_count; i++) {
+    for (int i = 1; i <= overlap_count; i++) {
         double val_a = 0;
         size_t index_a = i + (at - 1);
         if (index_a <= input_values_a.size()) {
@@ -1107,7 +1107,7 @@ sol::table table_add_table_at(sol::state &lua, sol::table input_values_a, sol::t
     if (at - 1 + input_values_b.size() > input_values_a.size()) {
         int extra_start_of_b = input_values_a.size() - at + 1;
 
-        for (int i = extra_start_of_b; i < input_values_b.size(); i++) {
+        for (int i = extra_start_of_b; i < (int)input_values_b.size(); i++) {
             if (i < 1) {
                 retval.add(0);
             } else {
