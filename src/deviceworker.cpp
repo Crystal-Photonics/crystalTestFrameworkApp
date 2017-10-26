@@ -65,7 +65,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
                     QMessageBox::Critical);
                 continue;
             }
-            device.port_info.insert("baudrate", baudrate);
+            device.port_info.insert("baudrate", rpc_device.baud); //TODO: crash bei einem ttyUSB0, kubuntu16.04 ??
             if (device.device->connect(device.port_info) == false) {
                 auto display_string = device.device->get_identifier_display_string();
                 Utility::thread_call(MainWindow::mw, nullptr,
@@ -138,6 +138,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             }
 
             const QSerialPort::BaudRate baudrate = static_cast<QSerialPort::BaudRate>(sg04_count_device.baud);
+
             if (is_valid_baudrate(baudrate) == false) {
                 MainWindow::mw->show_message_box(
                     tr("Input Error"),
@@ -204,13 +205,20 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
     //TODO: Add non-rpc device discovery here
 
     for (auto &device : device_list) {
+        auto device_name = device->port_info[HOST_NAME_TAG].toString();
         std::function<void(PortDescription &)> protocol_functions[] = {check_rpc_protocols, check_scpi_protocols, check_sg04_count_protocols,
                                                                        check_manual_protocols};
         for (auto &protocol_check_function : protocol_functions) {
             if ((device->device->isConnected()) && (device->communication_type != CommunicationDeviceType::Manual)) {
                 break;
             }
-            protocol_check_function(*device);
+            try {
+                protocol_check_function(*device);
+            } catch (std::runtime_error &e) {
+                Console::error() << tr("Error happened while checking device '%1'. Message: '%2'").arg(device_name).arg(QString(e.what()));
+            } catch (std::domain_error &e) {
+                Console::error() << tr("Error happened while checking device '%1'. Message: '%2'").arg(device_name).arg(QString(e.what()));
+            }
         }
         if (device->device->isConnected() == false) { //out of protocols and still not connected
             auto display_string = device->device->get_identifier_display_string();

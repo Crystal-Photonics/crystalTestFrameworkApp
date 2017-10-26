@@ -114,7 +114,7 @@ void Device_data::get_lua_data(sol::table &t) const {
 std::vector<Device_data::Description_source> Device_data::get_description_source() const {
     return {{"GitHash", githash},   {"GitDate", gitDate_unix},     {"Serialnumber", serialnumber},
             {"DeviceID", deviceID}, {"GUID", guid_bin.toHex()},    {"BoardRevision", boardRevision},
-            {"Name", name},         {"Serialnumber", serialnumber}};
+            {"Name", name},         {"Version", version}};
 }
 
 RPCProtocol::RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting)
