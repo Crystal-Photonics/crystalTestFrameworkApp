@@ -4,6 +4,8 @@
 #include "ui_container.h"
 #include "util.h"
 
+
+#include "Windows/mainwindow.h"
 #include "scriptengine.h"
 #include <QAction>
 #include <QDateTime>
@@ -157,24 +159,24 @@ void Curve_data::update() {
 }
 
 void Curve_data::update_bounding_rect_height() {
-    qDebug() << "old top:" << bounding_rect.top() << "old bot: "<<bounding_rect.bottom();
+    qDebug() << "old top:" << bounding_rect.top() << "old bot: " << bounding_rect.bottom();
     auto max_iter = std::max_element(std::begin(yvalues_orig), std::end(yvalues_orig));
     double max_value = *max_iter;
     auto min_iter = std::min_element(std::begin(yvalues_orig), std::end(yvalues_orig));
     double min_value = *min_iter;
     bounding_rect.setBottom(max_value); //top and bottom are swapped in QRect for some reason
     bounding_rect.setTop(min_value);
-    qDebug() << "top:" << bounding_rect.top() << "bot: "<<bounding_rect.bottom();
+    qDebug() << "top:" << bounding_rect.top() << "bot: " << bounding_rect.bottom();
 }
 
 void Curve_data::update_bounding_rect_height(double new_yvalue) {
-    qDebug() << "old nv top:" << bounding_rect.top() << "old nv bot: "<<bounding_rect.bottom();
+    qDebug() << "old nv top:" << bounding_rect.top() << "old nv bot: " << bounding_rect.bottom();
     if (bounding_rect.top() > new_yvalue) { //top and bottom are swapped in QRect for some reason
         bounding_rect.setTop(new_yvalue);
     } else if (bounding_rect.bottom() < new_yvalue) {
         bounding_rect.setBottom(new_yvalue);
     }
-    qDebug() << "nv top:" << bounding_rect.top() << "nv bot: "<<bounding_rect.bottom();
+    qDebug() << "nv top:" << bounding_rect.top() << "nv bot: " << bounding_rect.bottom();
 }
 
 const std::vector<double> &Curve_data::get_plot_data() {
@@ -188,8 +190,8 @@ bool Curve_data::use_interpolated_values() const {
 Curve::Curve(UI_container *, ScriptEngine *script_engine, Plot *plot)
     : plot(plot)
     , curve(new QwtPlotCurve)
-    , event_filter(new Utility::Event_filter(plot->plot->canvas())) {
-    (void)script_engine;
+    , event_filter(new Utility::Event_filter(plot->plot->canvas()))
+    , script_engine_{script_engine} {
     curve->attach(plot->plot);
     curve->setTitle("curve" + QString::number(plot->curve_id_counter++));
     plot->curves.push_back(this);
@@ -268,6 +270,22 @@ double Curve::integrate_ci(double integral_start_ci, double integral_end_ci) {
     return 0;
 }
 
+sol::table Curve::get_y_values_as_array() {
+#if 1
+
+    assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+    const auto &yvalues_plot = curve_data().get_plot_data();
+
+    auto retval = script_engine_->create_table();
+    for (auto val : yvalues_plot) {
+        retval.add(val);
+    }
+    return retval;
+
+#endif
+    return 0;
+}
+
 void Curve::set_median_enable(bool enable) {
     curve_data().median_enable = enable;
     update();
@@ -304,7 +322,7 @@ double Curve::pick_x_coord() {
         return false;
     });
 #endif
-    script_engine->ui_event_queue_run();
+    script_engine_->ui_event_queue_run();
     return 0;
 }
 

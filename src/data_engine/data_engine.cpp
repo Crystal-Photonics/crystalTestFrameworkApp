@@ -1,6 +1,8 @@
 
 #include "data_engine.h"
-#include "data_engine_strings.h"
+//#if IAM_NOT_LUPDATE
+    #include "data_engine_strings.h"
+//#endif
 #include "exceptionalapproval.h"
 #include "lua_functions.h"
 #include "util.h"
@@ -1521,6 +1523,10 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
     }
     assert(opend);
 
+    if (!QFile{QString::fromStdString(form)}.exists()){
+        qDebug() << "PDF Template file does not exist: " << QString::fromStdString(form);
+        throw DataEngineError(DataEngineErrorNumber::pdf_template_file_not_existing, "PDF Template file does not exist: "+ QString::fromStdString(form));
+    }
     fill_database(db);
     const auto sourced_form = form + ".tmp.lrxml";
     replace_database_filename(form, sourced_form, QFileInfo{db_name}.absoluteFilePath().toStdString());

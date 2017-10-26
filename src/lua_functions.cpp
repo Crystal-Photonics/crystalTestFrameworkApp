@@ -1033,21 +1033,108 @@ sol::table table_create_constant(sol::state &lua, const unsigned int size, doubl
 /// @endcond
 ///
 
-/*! \fn table table_add_table(table input_values_a, table input_values_b);
-	\brief Performs a vector addition of \c input_values_a[i] + \c input_values_b[i] for each i.
+/*! \fn table table_add_table_at(table input_values_a, table input_values_b, int at);
+    \brief Performs a vector addition of \c input_values_a[i+at-1] + \c input_values_b[i] for each i while input_values_a and input_values_b may have a different legth.
 	\param input_values_a       Input table of int or double values.
 	\param input_values_b       Input table of int or double values. The summands the table \c input_values_a is added with.
+    \param at                   Position offset between input_values_a and input_values_b.
 
-	\return                     A table of the differences of \c input_values_a[i] + \c input_values_b[i] for each i.
+    \return                     A table of the differences of \c input_values_a[i+at-1] + \c input_values_b[i] for each i.
 
 	\details    \par example:
 	\code{.lua}
-		local input_values_a = {-20, -40, 2, 30}
-		local constant = {2}
-		local retval = table_add_table(input_values,constant)   -- retval is {-18,
-																--   -38, 4, 32}
-		print(retval)
+        local input_values_a = {1, 2, 3, 4}
+        local input_values_b = {1, 2}
+        local retval_1 = table_add_table_at(input_values_a,input_values_b, 1)
+            -- retval_1 is {2, 4, 3, 4}
+        print(retval_1)
+
+        local retval_3 = table_add_table_at(input_values_a,input_values_b, 3)
+            -- retval_3 is {1, 2, 4, 6}
+        print(retval_3)
+
+        local retval_4 = table_add_table_at(input_values_a,input_values_b, 4)
+            -- retval_4 is {1, 2, 3, 5, 2}
+        print(retval_4)
+
+        local retval_6 = table_add_table_at(input_values_a,input_values_b, 6)
+            -- retval_6 is {1, 2, 3, 4, 0, 1, 2}
+        print(retval_6)
+
 	\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_add_table_at(table input_values_a, table input_values_b, int at);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+sol::table table_add_table_at(sol::state &lua, sol::table input_values_a, sol::table input_values_b, unsigned int at) {
+    if (at < 1){
+        throw std::runtime_error("table_add_table_at: at index must be > 0 but is " + QString::number(at).toStdString() + ".");
+    }
+
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= at - 1; i++) {
+        if (i <= input_values_a.size()) {
+            retval.add(input_values_a[i].get<double>());
+        } else {
+            retval.add(0);
+        }
+    }
+
+    int overlap_count = input_values_a.size() - at + 1;
+    if (overlap_count > (int)input_values_b.size()) {
+        overlap_count = input_values_b.size();
+    }
+
+    for (int i = 1; i <= overlap_count; i++) {
+        double val_a = 0;
+        size_t index_a = i + (at - 1);
+        if (index_a <= input_values_a.size()) {
+            val_a = input_values_a[index_a].get<double>();
+        }
+
+        double sum_i = val_a + input_values_b[i].get<double>();
+        retval.add(sum_i);
+    }
+
+    for (size_t i = at + input_values_b.size(); i <= input_values_a.size(); i++) {
+        retval.add(input_values_a[i].get<double>());
+    }
+
+    if (at - 1 + input_values_b.size() > input_values_a.size()) {
+        int extra_start_of_b = input_values_a.size() - at + 1;
+
+        for (int i = extra_start_of_b; i < (int)input_values_b.size(); i++) {
+            if (i < 1) {
+                retval.add(0);
+            } else {
+                retval.add(input_values_b[i + 1].get<double>());
+            }
+        }
+    }
+    return retval;
+}
+/// @endcond
+
+/*! \fn table table_add_table(table input_values_a, table input_values_b);
+    \brief Performs a vector addition of \c input_values_a[i] + \c input_values_b[i] for each i.
+    \param input_values_a       Input table of int or double values.
+    \param input_values_b       Input table of int or double values. The summands the table \c input_values_a is added with.
+
+    \return                     A table of the differences of \c input_values_a[i] + \c input_values_b[i] for each i.
+
+    \details    \par example:
+    \code{.lua}
+        local input_values_a = {-20, -40, 2, 30}
+        local input_values_a = {-1.5, 2, 0.5, 3}
+
+        local retval = table_add_table(input_values,input_values_a) -- retval is {-21.5,
+                                                                    --   -38, 2.5, 33}
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1076,9 +1163,9 @@ sol::table table_add_table(sol::state &lua, sol::table input_values_a, sol::tabl
 	\details    \par example:
 	\code{.lua}
 		local input_values_a = {-20, -40, 2, 30}
-		local input_values_a = {-1.5, 2, 0.5, 3}
-		local retval = table_add_constant(input_values,constant) -- retval is {-21.5,
-																 --   -38, 2.5, 33}
+        local constant = {2}
+        local retval = table_add_constant(input_values,constant) -- retval is {-18,
+                                                                 --   -38, 4, 32}
 		print(retval)
 	\endcode
 */
@@ -1690,7 +1777,7 @@ sol::table git_info(sol::state &lua, std::string path, bool allow_modified) {
     sol::table result = lua.create_table_with();
 
     result["modified"] = map["modified"].toBool();
-    result["hash"] = "0x"+map["hash"].toString().toStdString();
+    result["hash"] = "0x" + map["hash"].toString().toStdString();
     result["date"] = map["date"].toString().toStdString();
     return result;
 }

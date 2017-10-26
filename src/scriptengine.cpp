@@ -336,14 +336,19 @@ static sol::object create_lua_object_from_RPC_answer(const RPCRuntimeDecodedPara
     switch (param.get_desciption()->get_type()) {
         case RPCRuntimeParameterDescription::Type::array: {
             auto array = param.as_array();
-            if (array.size() == 1) {
-                return create_lua_object_from_RPC_answer(array.front(), lua);
+            if (array.front().get_desciption()->get_type() == RPCRuntimeParameterDescription::Type::character) {
+                std::string result_string = param.as_string();
+                return sol::make_object(lua.lua_state(), result_string);
+            } else {
+                if (array.size() == 1) {
+                    return create_lua_object_from_RPC_answer(array.front(), lua);
+                }
+                auto table = lua.create_table_with();
+                for (auto &element : array) {
+                    table.add(create_lua_object_from_RPC_answer(element, lua));
+                }
+                return table;
             }
-            auto table = lua.create_table_with();
-            for (auto &element : array) {
-                table.add(create_lua_object_from_RPC_answer(element, lua));
-            }
-            return table;
         }
         case RPCRuntimeParameterDescription::Type::character:
             throw sol::error("TODO: Parse return value of type character");
@@ -918,6 +923,10 @@ void ScriptEngine::load_script(const QString &path) {
                 return table_add_table(lua, input_values_a, input_values_b);
             };
 
+            (*lua)["table_add_table_at"] = [&lua = *lua](sol::table input_values_a, sol::table input_values_b, unsigned int at) {
+                return table_add_table_at(lua, input_values_a, input_values_b, at);
+            };
+
             (*lua)["table_add_constant"] = [&lua = *lua](sol::table input_values, double constant) {
                 return table_add_constant(lua, input_values, constant);
             };
@@ -1151,7 +1160,8 @@ void ScriptEngine::load_script(const QString &path) {
                 "set_actual_text",
                 [](Data_engine_handle &handle, const std::string &field_id, const std::string text) {
                     handle.data_engine->set_actual_text(QString::fromStdString(field_id), QString::fromStdString(text));
-                });
+                },
+                "all_values_in_range", [](Data_engine_handle &handle) { return handle.data_engine->all_values_in_range(); });
         }
 
         //bind UI
@@ -1202,6 +1212,7 @@ void ScriptEngine::load_script(const QString &path) {
                 "integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
                 "set_x_axis_gain", thread_call_wrapper(&Curve::set_x_axis_gain),               //
                 "set_x_axis_offset", thread_call_wrapper(&Curve::set_x_axis_offset),           //
+                "get_y_values_as_array", non_gui_call_wrapper(&Curve::get_y_values_as_array),  //
                 "set_color", thread_call_wrapper(&Curve::set_color),                           //
                 "user_pick_x_coord",
 #if 0

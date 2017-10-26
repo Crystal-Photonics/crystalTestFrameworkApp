@@ -86,10 +86,10 @@ HEADERS += \
     Windows/dummydatacreator.h \
     environmentvariables.h \
     LuaUI/userinstructionlabel.h \
-    data_engine/exceptionalapproval.h \
-    Windows/exceptiontalapprovaldialog.h \
-    data_engine/data_engine_strings.h \
-    Windows/infowindow.h
+    data_engine/exceptionalapproval.h
+HEADERS +=    Windows/exceptiontalapprovaldialog.h
+#HEADERS +=    data_engine/data_engine_strings.h
+HEADERS +=    Windows/infowindow.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \

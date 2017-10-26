@@ -127,7 +127,8 @@ void IsotopeSourceSelector::load_isotope_database() {
             //2.6 Years
             isotope_source.half_time_days = 2.6 * 365;
 
-        } else if ((isotope_source.isotope.toLower() == "j129") || (isotope_source.isotope.toLower() == "j-129")) {
+        } else if ((isotope_source.isotope.toLower() == "j129") || (isotope_source.isotope.toLower() == "j-129") ||
+                   (isotope_source.isotope.toLower() == "i129") || (isotope_source.isotope.toLower() == "i-129")) {
             //1,57 * 10^7  years;
             isotope_source.half_time_days = 1.57e7 * 365;
         } else {
