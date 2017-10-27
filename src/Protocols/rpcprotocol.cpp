@@ -112,8 +112,8 @@ void Device_data::get_lua_data(sol::table &t) const {
 }
 
 std::vector<Device_data::Description_source> Device_data::get_description_source() const {
-    return {{"GitHash", githash},   {"GitDate", gitDate_unix},     {"Serialnumber", serialnumber},
-            {"DeviceID", deviceID}, {"GUID", guid_bin.toHex()},    {"BoardRevision", boardRevision},
+    return {{"GitHash", githash},   {"GitDate", gitDate_unix},  {"Serialnumber", serialnumber},
+            {"DeviceID", deviceID}, {"GUID", guid_bin.toHex()}, {"BoardRevision", boardRevision},
             {"Name", name},         {"Version", version}};
 }
 
@@ -123,10 +123,10 @@ RPCProtocol::RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting &set
     , device_protocol_setting(setting) {
     rpc_runtime_protocol = std::make_unique<RPCRuntimeProtocol>(communication_wrapper, device_protocol_setting.timeout);
 #if 1
-    console_message_connection = QObject::connect(rpc_runtime_protocol.get(), &RPCRuntimeProtocol::console_message,
-                                                  [this](RPCConsoleLevel level, const QString &data) { //
-                                                      this->console_message(level, data);
-                                                  });
+    console_message_connection =
+        QObject::connect(rpc_runtime_protocol.get(), &RPCRuntimeProtocol::console_message, [this](RPCConsoleLevel level, const QString &data) { //
+            this->console_message(level, data);
+        });
     assert(console_message_connection);
 #endif
 
@@ -172,7 +172,7 @@ std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const 
 }
 
 std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration) {
-    return rpc_runtime_protocol.get()->call_and_wait(call, duration);
+    return rpc_runtime_protocol.get()->call_and_wait(call, duration).decoded_function_call_reply;
 }
 
 const RPCRunTimeProtocolDescription &RPCProtocol::get_description() {
@@ -240,7 +240,6 @@ CommunicationDeviceWrapper::CommunicationDeviceWrapper(CommunicationDevice &devi
     connect(this, SIGNAL(message(const QByteArray &)), &com_device, SIGNAL(message(const QByteArray &)));
 
     connect(&com_device, SIGNAL(received(const QByteArray &)), this, SIGNAL(received(const QByteArray &)));
-
 }
 
 void CommunicationDeviceWrapper::send(std::vector<unsigned char> data, std::vector<unsigned char> pre_encodec_data) {
