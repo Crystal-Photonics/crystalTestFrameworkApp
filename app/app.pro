@@ -6,4 +6,11 @@ SOURCES += main.cpp
 DEFINES += EXPORT_APPLICATION
 TARGET = crystalTestFramework
 LIBS += -L$$BINDIR
-LIBS +=  -lcrystalTestFrameworkApp
+
+CONFIG(debug, debug|release) {
+    LIBS += -lcrystalTestFrameworkAppd
+} else {
+    LIBS += -lcrystalTestFrameworkApp
+}
+
+

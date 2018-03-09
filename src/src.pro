@@ -1,7 +1,11 @@
 include(../defaults.pri)
 DESTDIR = $$BINDIR
 
-TARGET = crystalTestFrameworkApp
+CONFIG(debug, debug|release) {
+    TARGET = crystalTestFrameworkAppd
+} else {
+    TARGET = crystalTestFrameworkApp
+}
 
 TEMPLATE = lib
 

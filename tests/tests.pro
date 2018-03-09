@@ -28,7 +28,13 @@ LIBS += -L$$BINDIR
 LIBS += -L$$PWD/../libs/googletest/build
 LIBS += -lgmock
 LIBS += -lgtest
-LIBS += -lcrystalTestFrameworkApp
+
+
+CONFIG(debug, debug|release) {
+    LIBS += -lcrystalTestFrameworkAppd
+} else {
+    LIBS += -lcrystalTestFrameworkApp
+}
 
 COPY_DIR = "$$(UNIXTOOLS)cp -r"
 

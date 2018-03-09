@@ -14,25 +14,32 @@ win32 {
     QWT_DIR = $$PWD/libs/qwt
     INCLUDEPATH += $$QWT_DIR/include
     LIBS += -L$$QWT_DIR/lib
-    debug:LIBS += -lqwtd
-    release:LIBS += -lqwt
+
+    CONFIG(debug, debug|release) {
+        LIBS += -lqwtd
+        LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/win32/debug/lib
+    } else {
+        LIBS += -lqwt
+        LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/win32/release/lib
+    }
 
     LIBS += -L$$PWD/libs/luasol
     LIBS += -llua53
 
-        debug:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/win32/debug/lib
-        release:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/win32/release/lib
-
 }else{
     CONFIG += qwt
     LIBS += -llua5.3
-        #error("fill in the correct path for linux")
-        debug:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux64/debug/lib
-        debug:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux/debug/lib
-        release:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux64/release/lib
-        release:LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux/release/lib
-        message($$LIBS)
-#libs/LimeReport/build/5.5.1/linux64/debug/lib/
+    #error("fill in the correct path for linux")
+    CONFIG(debug, debug|release) {
+        LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux64/debug/lib
+        LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux/debug/lib
+    } else {
+        LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux64/release/lib
+        LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux/release/lib
+    }
+
+    message($$LIBS)
+
 }
 
 win32 {
@@ -45,7 +52,24 @@ win32 {
 }
 
 INCLUDEPATH += $$PWD/libs/LimeReport/include
-LIBS += -llimereport -lQtZint
+
+CONFIG(debug, debug|release) {
+    LIBS += -llimereportd
+    LIBS += -lQtZintd
+
+    BINSUB_DIR = bin/debug
+    BINDIR = $$OUT_PWD/../$$BINSUB_DIR
+    BINDIR_ZINT = $$OUT_PWD/../../../$$BINSUB_DIR
+} else {
+    LIBS += -llimereport
+    LIBS += -lQtZint
+
+    BINSUB_DIR = bin/release
+    BINDIR = $$OUT_PWD/../$$BINSUB_DIR
+    BINDIR_ZINT = $$OUT_PWD/../../../$$BINSUB_DIR
+}
+
+
 DEFINES += SOL_CHECK_ARGUMENTS
 
 QMAKE_CXXFLAGS += -Werror
@@ -57,12 +81,4 @@ QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
 #QMAKE_CXXFLAGS_DEBUG += -static-libasan -static-libubsan #some day windows will support a reasonable development environment ...
 
-CONFIG(debug, debug|release) {
-    BINSUB_DIR = bin/debug
-    BINDIR = $$OUT_PWD/../$$BINSUB_DIR#
-   BINDIR_ZINT = $$OUT_PWD/../../../$$BINSUB_DIR
-} else {
-    BINSUB_DIR = bin/release
-    BINDIR = $$OUT_PWD/../$$BINSUB_DIR
-        BINDIR_ZINT = $$OUT_PWD/../../../$$BINSUB_DIR
-}
+
