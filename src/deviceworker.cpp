@@ -74,7 +74,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
                                      });
                 return;
             }
-            auto protocol = std::make_unique<RPCProtocol>(*device.device, rpc_device);
+			std::unique_ptr<RPCProtocol> protocol = std::make_unique<RPCProtocol>(*device.device, rpc_device);
             if (protocol->is_correct_protocol()) {
                 MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
                     if (MainWindow::mw->device_item_exists(ui_entry)) {
