@@ -633,13 +633,13 @@ void ScriptEngine::resume_timer() {
 int ScriptEngine::event_queue_run_() {
     assert(!event_loop.isRunning());
     assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-#if 0
+#if 1
     qDebug() << "eventloop start"
              << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
              << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
     auto exit_value = event_loop.exec();
-#if 0
+#if 1
     qDebug() << "eventloop end"
              << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
              << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
@@ -675,7 +675,7 @@ TimerEvent::TimerEvent ScriptEngine::timer_event_queue_run(int timeout_ms) {
         callback_timer = QObject::connect(timer.get(), &QTimer::timeout, [this] {
             QObject *owner_obj = owner->obj();
             Utility::thread_call(owner_obj, this, [this] {
-#if 0
+#if 1
                 qDebug() << "quitting timer event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
                          << "Current Thread:" << QThread::currentThreadId()
                          << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
@@ -910,6 +910,10 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["table_sum"] = [](sol::table table) { return table_sum(table); };
 
             (*lua)["table_mean"] = [](sol::table table) { return table_mean(table); };
+
+            (*lua)["table_variance"] = [](sol::table table) { return table_variance(table); };
+
+            (*lua)["table_standard_deviation"] = [](sol::table table) { return table_standard_deviation(table); };
 
             (*lua)["table_set_constant"] = [&lua = *lua](sol::table input_values, double constant) {
                 return table_set_constant(lua, input_values, constant);
