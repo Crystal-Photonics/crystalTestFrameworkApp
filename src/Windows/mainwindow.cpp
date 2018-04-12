@@ -78,6 +78,10 @@ MainWindow::MainWindow(QWidget *parent)
     MainWindow::gui_thread = QThread::currentThread();
     mw = this;
     ui->setupUi(this);
+
+	Utility::add_handle(ui->splitter);
+	Utility::add_handle(ui->splitter_3);
+
     device_worker->moveToThread(&devices_thread);
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
     Console::console = ui->console_edit;

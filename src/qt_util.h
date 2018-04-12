@@ -3,6 +3,8 @@
 
 #include <QCoreApplication>
 #include <QEvent>
+#include <QFrame>
+#include <QSplitter>
 #include <QThread>
 #include <QVariant>
 #include <cassert>
@@ -17,6 +19,9 @@ namespace Utility {
     inline QVariant make_qvariant(void *p) {
         return QVariant::fromValue(p);
     }
+
+	QFrame *add_handle(QSplitter *splitter);
+
     template <class T>
     T *from_qvariant(QVariant &qv) {
         return static_cast<T *>(qv.value<void *>());
@@ -33,8 +38,7 @@ namespace Utility {
     struct ValueSetter;
 
     template <class Fun>
-    auto promised_thread_call(QObject *object, Fun &&f)
-        -> decltype(f()); //calls f in the thread that owns obj and waits for the function to get processed
+	auto promised_thread_call(QObject *object, Fun &&f) -> decltype(f()); //calls f in the thread that owns obj and waits for the function to get processed
 
     QWidget *replace_tab_widget(QTabWidget *tabs, int index, QWidget *new_widget, const QString &title);
 
