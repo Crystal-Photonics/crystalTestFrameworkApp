@@ -99,7 +99,7 @@
             <bool>false</bool>
            </property>
            <property name="contextMenuPolicy">
-            <enum>Qt::CustomContextMenu</enum>
+            <enum>Qt::ActionsContextMenu</enum>
            </property>
            <property name="sortingEnabled">
             <bool>true</bool>
@@ -227,8 +227,17 @@
          <verstretch>2</verstretch>
         </sizepolicy>
        </property>
+       <property name="frameShape">
+        <enum>QFrame::NoFrame</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Raised</enum>
+       </property>
        <property name="lineWidth">
         <number>2</number>
+       </property>
+       <property name="midLineWidth">
+        <number>0</number>
        </property>
        <property name="orientation">
         <enum>Qt::Vertical</enum>
@@ -344,7 +353,7 @@
      <x>0</x>
      <y>0</y>
      <width>1113</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuSettings">

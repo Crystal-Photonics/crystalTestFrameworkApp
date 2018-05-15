@@ -157,9 +157,9 @@ void MainWindow::load_scripts() {
     }
 }
 
-void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *cummincation_device) {
+void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *communication_device) {
     //called from device worker
-    Utility::thread_call(this, nullptr, [this, parent, child, tab_name, cummincation_device] {
+	Utility::thread_call(this, nullptr, [this, parent, child, tab_name, communication_device] {
         assert(currently_in_gui_thread());
         if (parent) {
             parent->addChild(child);
@@ -167,20 +167,43 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
             ui->devices_list->addTopLevelItem(child);
         }
         align_columns();
-        if (cummincation_device) {
+		if (communication_device) {
             auto console = new QPlainTextEdit(ui->console_tabs);
             console->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
             console->setReadOnly(true);
             console->setMaximumBlockCount(1000);
             ui->console_tabs->addTab(console, tab_name);
-            device_worker->connect_to_device_console(console, cummincation_device);
+			device_worker->connect_to_device_console(console, communication_device);
         }
-    });
+	});
 }
 
-void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *cummincation_device) {
+void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State state) {
+	auto runner_index = ui->test_tabs->indexOf(testrunner->get_lua_ui_container());
+	const char *prefix;
+	Qt::GlobalColor color;
+	switch (state) {
+		case TestRunner::State::running:
+			prefix = "▶";
+			color = Qt::darkGreen;
+			break;
+		case TestRunner::State::finished:
+			prefix = "█";
+			color = Qt::black;
+			break;
+		case TestRunner::State::error:
+			prefix = "⚠";
+			color = Qt::darkRed;
+			break;
+	}
+
+	ui->test_tabs->setTabText(runner_index, prefix + (" " + testrunner->get_name()));
+	ui->test_tabs->tabBar()->setTabTextColor(runner_index, color);
+}
+
+void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *communication_device) {
     //called from device worker
-    add_device_child_item(nullptr, item, tab_name, cummincation_device);
+	add_device_child_item(nullptr, item, tab_name, communication_device);
 }
 
 void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
@@ -323,8 +346,9 @@ void MainWindow::on_run_test_script_button_clicked() {
             continue;
         }
         auto &runner = *test_runners.back();
-        ui->test_tabs->setCurrentIndex(ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name()));
-        DeviceMatcher device_matcher(this);
+		const auto tab_index = ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name());
+		ui->test_tabs->setCurrentIndex(tab_index);
+		DeviceMatcher device_matcher(this);
         device_matcher.match_devices(*device_worker, runner, *test);
         auto devices = device_matcher.get_matched_devices();
         if (device_matcher.was_successful()) {

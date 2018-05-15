@@ -3,6 +3,7 @@
 
 #include "export.h"
 #include "qt_util.h"
+#include "testrunner.h"
 
 #include <QDebug>
 #include <QMainWindow>
@@ -22,7 +23,6 @@ class QSplitter;
 class QString;
 class QTreeWidget;
 class TestDescriptionLoader;
-class TestRunner;
 class UI_container;
 struct Protocol;
 
@@ -59,11 +59,12 @@ class EXPORT MainWindow : public QMainWindow {
     bool device_item_exists(QTreeWidgetItem *child);
     std::unique_ptr<QTreeWidgetItem> *get_manual_devices_parent_item();
     std::unique_ptr<QTreeWidgetItem> *create_manual_devices_parent_item();
-    void add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *cummincation_device);
-public slots:
+	void add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *communication_device);
+	void set_testrunner_state(TestRunner *testrunner, TestRunner::State state);
+	public slots:
     void align_columns();
 
-    void add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *cummincation_device);
+	void add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *communication_device);
     void append_html_to_console(QString text, QPlainTextEdit *console);
 
     private slots:
@@ -71,32 +72,25 @@ public slots:
     void load_scripts();
 
     void on_actionPaths_triggered();
-
     void on_run_test_script_button_clicked();
     void on_tests_list_itemClicked(QTreeWidgetItem *item, int column);
     void on_tests_list_customContextMenuRequested(const QPoint &pos);
     void on_test_tabs_tabCloseRequested(int index);
-
     void on_test_tabs_customContextMenuRequested(const QPoint &pos);
-
     void on_use_human_readable_encoding_toggled(bool checked);
-
     void on_console_tabs_customContextMenuRequested(const QPoint &pos);
-
     void on_actionHotkey_triggered();
-
-    void poll_sg04_counts();
     void on_close_finished_tests_button_clicked();
-
     void on_actionDummy_Data_Creator_for_print_templates_triggered();
     void on_btn_refresh_dut_clicked();
     void on_btn_refresh_all_clicked();
+	void on_actionInfo_triggered();
+
+	void poll_sg04_counts();
 
     void closeEvent(QCloseEvent *event) override;
 
-    void on_actionInfo_triggered();
-
-private:
+	private:
     void refresh_devices(bool only_duts);
     std::vector<TestDescriptionLoader> test_descriptions;
     std::vector<std::unique_ptr<TestRunner>> test_runners;
