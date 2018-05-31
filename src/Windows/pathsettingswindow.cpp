@@ -90,7 +90,11 @@ void PathSettingsWindow::on_env_var_path_button_clicked() {
     request_user_file(ui->env_var_path, tr("Select the location of the environment variable file"), Globals::path_to_environment_variables, "*.json");
 }
 
-void PathSettingsWindow::on_exceptional_approval_path_clicked()
-{
-   request_user_file(ui->edit_exceptional_approval, tr("Select the location of the exceptional approval db file"), Globals::path_to_excpetional_approval_db, "*.json");
+void PathSettingsWindow::on_exceptional_approval_path_clicked() {
+	request_user_file(ui->edit_exceptional_approval, tr("Select the location of the exceptional approval db file"), Globals::path_to_excpetional_approval_db,
+					  "*.json");
+}
+
+void PathSettingsWindow::on_isotope_db_path_button_clicked() {
+	request_user_file(ui->isotope_db_path, tr("Select Isotope Source Database"), Globals::isotope_source_data_base_path, "*.json");
 }
