@@ -74,7 +74,7 @@ DEFINES += SOL_CHECK_ARGUMENTS
 
 QMAKE_CXXFLAGS += -Werror
 
-QMAKE_CXXFLAGS_DEBUG += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare
+QMAKE_CXXFLAGS_DEBUG += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare -fsanitize-undefined-trap-on-error
 QMAKE_CXXFLAGS_RELEASE += -Wall -Wunused-function -Wunused-parameter -Wunused-variable
 
 QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer
