@@ -179,7 +179,6 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
 }
 
 void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State state) {
-	auto runner_index = ui->test_tabs->indexOf(testrunner->get_lua_ui_container());
 	const char *prefix;
 	Qt::GlobalColor color;
 	switch (state) {
@@ -197,8 +196,18 @@ void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State 
 			break;
 	}
 
-	ui->test_tabs->setTabText(runner_index, prefix + (" " + testrunner->get_name()));
-	ui->test_tabs->tabBar()->setTabTextColor(runner_index, color);
+	const auto runner_index = ui->test_tabs->indexOf(testrunner->get_lua_ui_container());
+	const auto title = prefix + (" " + testrunner->get_name());
+	if (runner_index == -1) {
+		testrunner->get_lua_ui_container()->parentWidget()->setWindowTitle(title);
+	} else {
+		ui->test_tabs->setTabText(runner_index, title);
+		ui->test_tabs->tabBar()->setTabTextColor(runner_index, color);
+	}
+}
+
+void MainWindow::adopt_testrunner(TestRunner *testrunner, QString title) {
+	ui->test_tabs->addTab(testrunner->get_lua_ui_container(), title);
 }
 
 void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *communication_device) {
@@ -531,7 +540,7 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 
         QAction action_abort_script(tr("Abort Script"), nullptr);
         if (runner->is_running()) {
-            connect(&action_abort_script, &QAction::triggered, [this, runner] {
+			connect(&action_abort_script, &QAction::triggered, [runner] {
                 runner->interrupt();
                 runner->join();
             });
@@ -539,14 +548,15 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
         }
 
         QAction action_open_script_in_editor(tr("Open in Editor"), nullptr);
-        connect(&action_open_script_in_editor, &QAction::triggered, [this, runner] { runner->launch_editor(); });
+		connect(&action_open_script_in_editor, &QAction::triggered, [runner] { runner->launch_editor(); });
         menu.addAction(&action_open_script_in_editor);
 
         QAction action_pop_out(tr("Open in extra Window"), nullptr);
         connect(&action_pop_out, &QAction::triggered, [this, runner] {
             auto container = runner->get_lua_ui_container();
-            ui->test_tabs->removeTab(ui->test_tabs->indexOf(container));
-            new Window(runner);
+			const auto index = ui->test_tabs->indexOf(container);
+			new Window(runner, ui->test_tabs->tabBar()->tabText(index));
+			ui->test_tabs->removeTab(index);
         });
         menu.addAction(&action_pop_out);
 

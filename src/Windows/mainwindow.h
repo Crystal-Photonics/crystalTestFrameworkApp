@@ -36,7 +36,7 @@ class EXPORT MainWindow : public QMainWindow {
     Q_OBJECT
 
     public:
-    explicit MainWindow(QWidget *parent = 0);
+	explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     static MainWindow *mw;
     static QThread *gui_thread;
@@ -61,6 +61,8 @@ class EXPORT MainWindow : public QMainWindow {
     std::unique_ptr<QTreeWidgetItem> *create_manual_devices_parent_item();
 	void add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *communication_device);
 	void set_testrunner_state(TestRunner *testrunner, TestRunner::State state);
+	void adopt_testrunner(TestRunner *testrunner, QString title);
+
 	public slots:
     void align_columns();
 
