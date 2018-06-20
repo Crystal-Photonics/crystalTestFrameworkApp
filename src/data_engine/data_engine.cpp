@@ -1,7 +1,7 @@
 
 #include "data_engine.h"
 //#if IAM_NOT_LUPDATE
-    #include "data_engine_strings.h"
+#include "data_engine_strings.h"
 //#endif
 #include "exceptionalapproval.h"
 #include "lua_functions.h"
@@ -25,6 +25,8 @@
 #include <QSqlQueryModel>
 #include <QSqlRecord>
 #include <QStringList>
+#include <QTemporaryFile>
+#include <QUrl>
 #include <QWidget>
 #include <QXmlStreamWriter>
 #include <algorithm>
@@ -34,7 +36,6 @@
 #include <lrdatasourcemanagerintf.h>
 #include <lrreportengine.h>
 #include <type_traits>
-#include <QUrl>
 
 static const QString exceptional_approvals_table_name = "exceptional_approvals";
 template <class T>
@@ -1506,9 +1507,21 @@ std::unique_ptr<QWidget> Data_engine::get_preview() const {
 }
 
 bool Data_engine::generate_pdf(const std::string &form, const std::string &destination) const {
-    const auto db_name = "report_temp_data.db"; //TODO: find a better temporary name
-    QFile::remove(db_name);
-    assert(QFile{db_name}.exists() == false);
+    QString db_name = ""; //TODO: find a better temporary name
+                                          //QDir::homePath()
+                                          //      AppLocalDataLocation
+#if 1
+    QTemporaryFile db_file;
+    if (db_file.open()) {
+        db_name = db_file.fileName(); // returns the unique file name
+                                   //The file name of the temporary file can be found by calling fileName().
+                                   //Note that this is only defined after the file is first opened; the
+                                   //function returns an empty string before this.
+    }
+    db_file.close(); //Reopening a QTemporaryFile after calling close() is safe
+                     // QFile::remove(db_name);
+                     // assert(QFile{db_name}.exists() == false);
+#endif
     QSqlDatabase db;
     if (QSqlDatabase::contains()) {
         db = QSqlDatabase::database();
@@ -1523,9 +1536,9 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
     }
     assert(opend);
 
-    if (!QFile{QString::fromStdString(form)}.exists()){
+    if (!QFile{QString::fromStdString(form)}.exists()) {
         qDebug() << "PDF Template file does not exist: " << QString::fromStdString(form);
-        throw DataEngineError(DataEngineErrorNumber::pdf_template_file_not_existing, "PDF Template file does not exist: "+ QString::fromStdString(form));
+        throw DataEngineError(DataEngineErrorNumber::pdf_template_file_not_existing, "PDF Template file does not exist: " + QString::fromStdString(form));
     }
     fill_database(db);
     const auto sourced_form = form + ".tmp.lrxml";
