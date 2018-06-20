@@ -179,19 +179,19 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
 }
 
 void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State state) {
-	const char *prefix;
-	Qt::GlobalColor color;
+    QString prefix=" ";
+    Qt::GlobalColor color = Qt::black;
 	switch (state) {
 		case TestRunner::State::running:
-			prefix = "▶";
+            prefix = "▶";
 			color = Qt::darkGreen;
 			break;
 		case TestRunner::State::finished:
-			prefix = "█";
+            prefix = "█";
 			color = Qt::black;
 			break;
 		case TestRunner::State::error:
-			prefix = "⚠";
+            prefix = "⚠";
 			color = Qt::darkRed;
 			break;
 	}
