@@ -65,6 +65,7 @@ public:
     void test_instances_with_different_variants_and_references_and_different_signatures_and_already_defined_instance_counts();
     void test_iterate_entries();
     void test_iterate_entries_instance();
+    void test_section_valid();
     void test_get_possible_variant_tag_values();
     void test_form_creation();
     void test_exceptional_approval();

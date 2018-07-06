@@ -705,6 +705,48 @@ void Test_Data_engine::test_iterate_entries() {
 #endif
 }
 
+
+void Test_Data_engine::test_section_valid() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "testA":{
+        "data":[
+            {	"name": "idA1",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	},
+            {	"name": "idA2",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	}
+        ]
+    },
+    "testB":{
+            "data":[
+                        {	"name": "idB1_true",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	},
+                        {	"name": "idB2_true",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	},
+                        {	"name": "idB3_true",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	},
+                        {	"name": "idB4_true",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	}
+            ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    Data_engine de{input, tags};
+
+    QVERIFY(!de.value_complete_in_section("testA"));
+    QVERIFY(!de.value_in_range_in_section("testA"));
+    QVERIFY(!de.values_in_range(QList<FormID>{"testA/idA1","testA/idA2"}));
+
+    de.set_actual_text("testA/idA1","DEV123");
+    de.set_actual_text("testA/idA2","DEV122");
+    QVERIFY(!de.values_in_range(QList<FormID>{"testA/idA1","testA/idA2"}));
+    QVERIFY(de.value_complete_in_section("testA"));
+    QVERIFY(!de.value_in_range_in_section("testA"));
+    de.set_actual_text("testA/idA2","DEV123");
+    QVERIFY(de.values_in_range(QList<FormID>{"testA/idA1","testA/idA2"}));
+    QVERIFY(de.value_in_range_in_section("testA"));
+
+    QVERIFY(!de.value_in_range_in_section("testB"));
+#endif
+}
+
 void Test_Data_engine::test_iterate_entries_instance() {
 #if !DISABLE_ALL || 0
 

@@ -1138,9 +1138,21 @@ void ScriptEngine::load_script(const QString &path) {
                 },
                 "value_in_range",
                 [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->value_in_range(QString::fromStdString(field_id)); },
+                "value_in_range_in_section",
+                [](Data_engine_handle &handle, const std::string &field_id) {
+                    return handle.data_engine->value_in_range_in_section(QString::fromStdString(field_id));
+                },
                 "value_in_range_in_instance",
                 [](Data_engine_handle &handle, const std::string &field_id) {
                     return handle.data_engine->value_in_range_in_instance(QString::fromStdString(field_id));
+                },
+                "values_in_range",
+                [](Data_engine_handle &handle, const sol::table &field_ids) {
+                    QList<FormID> ids;
+                    for (const auto &field_id : field_ids) {
+                        ids.append(QString::fromStdString(field_id.second.as<std::string>()));
+                    }
+                    return handle.data_engine->values_in_range(ids);
                 },
                 "is_bool",
                 [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->is_bool(QString::fromStdString(field_id)); },

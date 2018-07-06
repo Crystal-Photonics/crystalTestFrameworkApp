@@ -1176,17 +1176,16 @@ bool Data_engine::all_values_in_range() const {
     return sections.all_values_in_range();
 }
 
-bool Data_engine::value_in_range(const FormID &id) const {
-    assert_in_dummy_mode();
-    QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id);
-    for (auto entry : data_entry) {
-        assert(entry);
-        if (!entry->is_in_range()) {
+bool Data_engine::values_in_range(const QList<FormID> &ids) const
+{
+    for (FormID const &id: ids){
+        if (!value_in_range(id)){
             return false;
         }
     }
     return true;
 }
+
 
 bool Data_engine::value_complete_in_instance(const FormID &id) const {
     assert_in_dummy_mode();
@@ -1202,6 +1201,38 @@ bool Data_engine::value_in_range_in_instance(const FormID &id) const {
     assert(data_entry);
     bool result = data_entry->is_in_range();
     return result;
+}
+
+bool Data_engine::value_complete_in_section(FormID id) const
+{
+    assert_in_dummy_mode();
+    if (!id.contains("/")){
+        id = id + "/";
+    }
+    const DataEngineSection *section = sections.get_section(id);
+    return section->is_complete();
+}
+
+bool Data_engine::value_in_range_in_section(FormID id) const
+{
+    assert_in_dummy_mode();
+    if (!id.contains("/")){
+        id = id + "/";
+    }
+    const DataEngineSection *section = sections.get_section(id);
+    return section->all_values_in_range();
+}
+
+bool Data_engine::value_in_range(const FormID &id) const {
+    assert_in_dummy_mode();
+    QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id);
+    for (auto entry : data_entry) {
+        assert(entry);
+        if (!entry->is_in_range()) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool Data_engine::value_complete(const FormID &id) const {

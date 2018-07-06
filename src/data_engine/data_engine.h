@@ -507,10 +507,15 @@ class Data_engine {
 
     bool is_complete() const;
     bool all_values_in_range() const;
+    bool values_in_range(const QList<FormID> &ids) const;
     bool value_in_range(const FormID &id) const;
     bool value_complete(const FormID &id) const;
     bool value_complete_in_instance(const FormID &id) const;
     bool value_in_range_in_instance(const FormID &id) const;
+
+    bool value_complete_in_section(FormID id) const;
+    bool value_in_range_in_section(FormID id) const;
+
     bool is_bool(const FormID &id) const;
     bool is_number(const FormID &id) const;
     bool is_text(const FormID &id) const;
