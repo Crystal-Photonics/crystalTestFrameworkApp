@@ -22,9 +22,9 @@ bool USBTMCCommunicationDevice::isConnected() {
     return is_connected;
 }
 
-bool USBTMCCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo) {
-    is_connected = usbtmc.open(portinfo[HOST_NAME_TAG].toString());
-    this->portinfo = portinfo;
+bool USBTMCCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo_) {
+    is_connected = usbtmc.open(portinfo_[HOST_NAME_TAG].toString());
+    this->portinfo = portinfo_;
     return is_connected;
 }
 

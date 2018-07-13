@@ -37,7 +37,7 @@ class EXPORT CommunicationDevice : public QObject {
     void set_is_in_use(bool in_use);
     bool get_is_in_use() const;
     const QMap<QString, QVariant> &get_port_info();
-    virtual bool connect(const QMap<QString, QVariant> &portinfo) = 0;
+    virtual bool connect(const QMap<QString, QVariant> &portinfo_) = 0;
     QString proposed_alias{};
     signals:
     void connected();

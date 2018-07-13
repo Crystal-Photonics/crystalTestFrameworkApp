@@ -18,29 +18,29 @@ ComportCommunicationDevice::ComportCommunicationDevice() {
 }
 
 bool ComportCommunicationDevice::isConnected() {
-    return Utility::promised_thread_call(this,  [this] { return port.isOpen(); });
+    return Utility::promised_thread_call(this, [this] { return port.isOpen(); });
 }
 
-bool ComportCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo) {
-    return Utility::promised_thread_call(this,  [this, portinfo] {
-        assert(portinfo.contains(HOST_NAME_TAG));
-        assert(portinfo.contains("baudrate"));
-        assert(portinfo[HOST_NAME_TAG].type() == QVariant::String);
-        assert(portinfo["baudrate"].type() == QVariant::Int);
+bool ComportCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo_) {
+    this->portinfo = portinfo_;
+    return Utility::promised_thread_call(this, [this, portinfo_] {
+        assert(portinfo_.contains(HOST_NAME_TAG));
+        assert(portinfo_.contains("baudrate"));
+        assert(portinfo_[HOST_NAME_TAG].type() == QVariant::String);
+        assert(portinfo_["baudrate"].type() == QVariant::Int);
 
-        port.setPortName(portinfo[HOST_NAME_TAG].toString());
-        port.setBaudRate(portinfo["baudrate"].toInt());
+        port.setPortName(portinfo_[HOST_NAME_TAG].toString());
+        port.setBaudRate(portinfo_["baudrate"].toInt());
 
         return port.open(QIODevice::ReadWrite);
     });
-    this->portinfo = portinfo;
 }
 
 bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes, bool isPolling) {
     auto now = std::chrono::high_resolution_clock::now();
     int received_bytes = 0;
     auto try_read = [this, &received_bytes] {
-        auto result = Utility::promised_thread_call(this,  [this] {
+        auto result = Utility::promised_thread_call(this, [this] {
             QApplication::processEvents();
             return port.readAll();
         });
@@ -68,7 +68,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
     QByteArray inbuffer{};
 
     auto try_read = [this, &inbuffer] {
-        auto result = Utility::promised_thread_call(this,  [this] {
+        auto result = Utility::promised_thread_call(this, [this] {
             QApplication::processEvents();
             char byte_buffer = 0;
             QByteArray inbyte_buffer{};
@@ -124,7 +124,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
 }
 
 void ComportCommunicationDevice::send(const QByteArray &data, const QByteArray &displayed_data) {
-    return Utility::promised_thread_call(this,  [this, data, displayed_data] {
+    return Utility::promised_thread_call(this, [this, data, displayed_data] {
         auto size = port.write(data);
         if (size == -1) {
             return;
@@ -139,7 +139,7 @@ void ComportCommunicationDevice::send(const QByteArray &data, const QByteArray &
 }
 
 void ComportCommunicationDevice::close() {
-    return Utility::promised_thread_call(this,  [this] { port.close(); });
+    return Utility::promised_thread_call(this, [this] { port.close(); });
 }
 
 QString ComportCommunicationDevice::getName() {

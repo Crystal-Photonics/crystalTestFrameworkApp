@@ -81,8 +81,8 @@ void SocketCommunicationDevice::close() {
     socket->close();
 }
 
-bool SocketCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo) {
-    this->portinfo = portinfo;
+bool SocketCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo_) {
+    this->portinfo = portinfo_;
     return true;
 }
 

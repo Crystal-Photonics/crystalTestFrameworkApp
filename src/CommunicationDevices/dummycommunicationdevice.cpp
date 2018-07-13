@@ -7,10 +7,10 @@ DummyCommunicationDevice::DummyCommunicationDevice() {
     emit connected();
 }
 
-bool DummyCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo)
+bool DummyCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo_)
 {
     is_connected = true;
-    this->portinfo = portinfo;
+    this->portinfo = portinfo_;
 
     return true;
 }
