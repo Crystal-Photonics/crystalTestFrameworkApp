@@ -909,6 +909,8 @@ void ScriptEngine::load_script(const QString &path) {
             };
             (*lua)["table_sum"] = [](sol::table table) { return table_sum(table); };
 
+            (*lua)["table_crc16"] = [console = console](sol::table table) { return table_crc16(console, table); };
+
             (*lua)["table_mean"] = [](sol::table table) { return table_mean(table); };
 
             (*lua)["table_set_constant"] = [&lua = *lua](sol::table input_values, double constant) {
@@ -978,6 +980,8 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["table_max_by_field"] = [&lua = *lua](sol::table input_values, const std::string field_name) {
                 return table_max_by_field(lua, input_values, field_name);
             };
+
+
 #if 1
             (*lua)["table_min_by_field"] = [&lua = *lua](sol::table input_values, const std::string field_name) {
                 return table_min_by_field(lua, input_values, field_name);

@@ -590,6 +590,46 @@ double round_double(const double value, const unsigned int precision) {
 }
 /// @endcond
 
+/*! \fn double table_crc16(table input_values);
+\brief Calculated the CRC16 checksum of \c input_values assuming these values are an array of uint8_t
+\param input_values                 Input table of int values < 255.
+
+\return                     The crc16 value of \c input_values.
+
+\details    \par example:
+\code{.lua}
+    local input_values = {20, 40, 2, 30}
+    local retval = table_crc16(input_values)
+    print(retval)
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+int table_crc16(table input_values);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+uint16_t table_crc16(QPlainTextEdit *console, sol::table input_values) {
+    uint8_t x = 0;
+    uint16_t crc = 0xFFFF;
+
+    for (auto &i : input_values) {
+        if (i.second.as<double>() > 255) {
+            const auto &message = QObject::tr("table_crc16: found field value > 255");
+            Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+            throw sol::error("Unsupported table field type");
+        }
+        uint8_t item = i.second.as<double>();
+        x = crc >> 8 ^ item;
+        x ^= x >> 4;
+        crc = (crc << 8) ^ ((uint16_t)(x << 12)) ^ ((uint16_t)(x << 5)) ^ ((uint16_t)x);
+    }
+
+    return crc;
+}
+/// @endcond
+
 /*! \fn double table_sum(table input_values);
 \brief Returns the sum of the table \c input_values
 \param input_values                 Input table of int or double values.
@@ -1071,7 +1111,7 @@ table table_add_table_at(table input_values_a, table input_values_b, int at);
 /// @cond HIDDEN_SYMBOLS
 
 sol::table table_add_table_at(sol::state &lua, sol::table input_values_a, sol::table input_values_b, unsigned int at) {
-    if (at < 1){
+    if (at < 1) {
         throw std::runtime_error("table_add_table_at: at index must be > 0 but is " + QString::number(at).toStdString() + ".");
     }
 

@@ -23,6 +23,7 @@ double current_date_time_ms(void);
 double round_double(const double value, const unsigned int precision);
 void table_save_to_file(QPlainTextEdit *console, const std::string file_name, sol::table input_table, bool over_write_file);
 sol::table table_load_from_file(QPlainTextEdit *console, sol::state &lua, const std::string file_name);
+uint16_t table_crc16(QPlainTextEdit *console, sol::table input_values) ;
 double table_sum(sol::table input_values);
 double table_mean(sol::table input_values);
 sol::table table_set_constant(sol::state &lua, sol::table input_values, double constant);

@@ -52,6 +52,7 @@ enum class DataEngineErrorNumber {
     reference_is_not_number_but_has_tolerance,
     reference_is_a_number_and_needs_tolerance,
     reference_must_not_point_to_multiinstance_actual_value,
+    reference_must_not_point_to_undefined_instance,
     reference_pointing_to_multiinstance_with_different_values,
     illegal_reference_declaration,
     setting_reference_actual_value_with_wrong_type,
