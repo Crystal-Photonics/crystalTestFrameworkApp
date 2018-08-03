@@ -2938,7 +2938,7 @@ bool NumericTolerance::test_in_range(const double desired, const std::experiment
     }
 
 
-    if (std::isnan(measured.value())) {
+    if (std::isnan(measured.value())) {//fixes #1113 Fehler: "Dataengine: NaN ist immer OK, soll natürlich nicht"
         return false;
     }
 
