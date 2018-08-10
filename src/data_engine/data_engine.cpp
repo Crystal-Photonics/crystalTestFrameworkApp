@@ -3,6 +3,7 @@
 //#if IAM_NOT_LUPDATE
 #include "data_engine_strings.h"
 //#endif
+#include "Windows/mainwindow.h"
 #include "exceptionalapproval.h"
 #include "lua_functions.h"
 #include "util.h"
@@ -18,7 +19,10 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMessageBox>
 #include <QObject>
+#include <QPainter>
+#include <QPrinter>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -31,12 +35,12 @@
 #include <QXmlStreamWriter>
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <iostream>
 #include <limits>
 #include <lrdatasourcemanagerintf.h>
 #include <lrreportengine.h>
 #include <type_traits>
-#include <math.h>
 
 static const QString exceptional_approvals_table_name = "exceptional_approvals";
 template <class T>
@@ -1591,7 +1595,22 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
     if (re.loadFromFile(QString::fromStdString(sourced_form), false) == false) {
         return false;
     }
-    bool result = re.printToPDF(QString::fromStdString(destination));
+	bool result = false;
+	{
+		QString filename = QString::fromStdString(destination);
+		//doing the error checking that LimeReport should do but doesn't.
+		QPrinter printer;
+		printer.setOutputFileName(filename);
+		QPainter painter;
+		if (painter.begin(&printer) == false) {
+			MainWindow::mw->execute_in_gui_thread([filename] {
+				QMessageBox::critical(MainWindow::mw, "Failed printing report",
+									  "Requested to write report to file " + filename + " which could not be opened.");
+			});
+		} else {
+			result = re.printToPDF(filename);
+		}
+	}
     db.close();
     if (auto_open_pdf) {
         QFileInfo fi{QString::fromStdString(destination)};
@@ -2937,8 +2956,7 @@ bool NumericTolerance::test_in_range(const double desired, const std::experiment
         return false;
     }
 
-
-    if (std::isnan(measured.value())) {//fixes #1113 Fehler: "Dataengine: NaN ist immer OK, soll natürlich nicht"
+	if (std::isnan(measured.value())) { //fixes #1113 Fehler: "Dataengine: NaN ist immer OK, soll natürlich nicht"
         return false;
     }
 
