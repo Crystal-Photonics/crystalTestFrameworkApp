@@ -1608,6 +1608,7 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
 									  "Requested to write report to file " + filename + " which could not be opened.");
 			});
 		} else {
+            painter.end();
 			result = re.printToPDF(filename);
 		}
 	}
