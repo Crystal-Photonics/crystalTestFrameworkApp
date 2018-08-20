@@ -46,6 +46,7 @@
 #include <QShortcut>
 #include <QThread>
 #include <QTimer>
+#include <cmath>
 #include <functional>
 #include <memory>
 #include <regex>
