@@ -152,7 +152,7 @@ SOURCES += \
     LuaUI/userinstructionlabel.cpp \
     data_engine/exceptionalapproval.cpp \
     Windows/exceptiontalapprovaldialog.cpp \
-    Windows/infowindow.cpp
+    Windows/infowindow.cpp 
 
 win32 {
     system($$system_quote($$SH) $$PWD/../git_win.sh)
