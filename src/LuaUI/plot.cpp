@@ -16,11 +16,11 @@
 #include <QSplitter>
 #include <QtGlobal>
 #include <fstream>
-#include <qwt/qwt_picker_machine.h>
-#include <qwt/qwt_plot.h>
-#include <qwt/qwt_plot_curve.h>
-#include <qwt/qwt_plot_marker.h>
-#include <qwt/qwt_plot_picker.h>
+#include <qwt_picker_machine.h>
+#include <qwt_plot.h>
+#include <qwt_plot_curve.h>
+#include <qwt_plot_marker.h>
+#include <qwt_plot_picker.h>
 
 #include <chrono>
 
