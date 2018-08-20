@@ -64,6 +64,7 @@ class RPCProtocol : public Protocol {
     void set_ui_description(QTreeWidgetItem *ui_entry);
     RPCProtocol &operator=(const RPCProtocol &&) = delete;
     void get_lua_device_descriptor(sol::table &t) const;
+    RPCRuntimeEncodedFunctionCall encode_function(const int request_id) const;
     RPCRuntimeEncodedFunctionCall encode_function(const std::string &name) const;
 
     void clear();

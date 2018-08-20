@@ -436,19 +436,17 @@ struct RPCDevice {
     std::string get_protocol_name() {
         return protocol->type.toStdString();
     }
-    bool is_protocol_available() {
-#if 0
-        auto function = protocol->encode_function("get_hash");
-        int param_count = 0;
-        for (auto &arg : va) {
-            auto &param = function.get_parameter(param_count++);
-            set_runtime_parameter(param, arg);
-        }
+    bool is_protocol_device_available() {
+#if 1
+        auto function = protocol->encode_function(0);
         if (function.are_all_values_set()) {
             auto result = protocol->call_and_wait(function);
+            if(result){
+                return true;
+            }
         }
 #endif
-        return true;
+        return false;
     }
 
     sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
@@ -1767,7 +1765,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
                             add_enum_types(function, *lua);
                         }
                         type_reg.set("get_protocol_name", [](RPCDevice &device) { return device.get_protocol_name(); });
-                        type_reg.set("is_protocol_available", [](RPCDevice &device) { return device.is_protocol_available(); });
+                        type_reg.set("is_protocol_device_available", [](RPCDevice &device) { return device.is_protocol_device_available(); });
                         const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
                         lua->set_usertype(type_name, type_reg);
                         while (device_protocol.device->waitReceived(CommunicationDevice::Duration{0}, 1)) {

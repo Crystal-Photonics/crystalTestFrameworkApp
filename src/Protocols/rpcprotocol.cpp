@@ -225,6 +225,10 @@ RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const std::string &na
     return rpc_runtime_protocol.get()->encode_function(name);
 }
 
+RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const int request_id) const {
+    return rpc_runtime_protocol.get()->encode_function(request_id);
+}
+
 void RPCProtocol::clear() {
     rpc_runtime_protocol.get()->clear();
 }
