@@ -438,9 +438,16 @@ struct RPCDevice {
     }
     bool is_protocol_device_available() {
 #if 1
-        auto function = protocol->encode_function(0);
-        if (function.are_all_values_set()) {
-            auto result = protocol->call_and_wait(function);
+        auto get_hash_function = protocol->encode_function(0);
+        RPCRuntimeEncodedParam &param_hash = get_hash_function.get_parameter(0);
+        RPCRuntimeEncodedParam &param_hash_index = get_hash_function.get_parameter(1);
+        for (std::size_t i = 0; i < 16; i++) {
+            param_hash[i].set_value(0); //For now a runtime rpc codec should send a NULL hash, since it knows to speak many hashes.
+        }
+        param_hash_index[0].set_value(0);
+
+        if (get_hash_function.are_all_values_set()) {
+            auto result = protocol->call_and_wait(get_hash_function);
             if(result){
                 return true;
             }
