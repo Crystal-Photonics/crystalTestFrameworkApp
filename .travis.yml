@@ -34,7 +34,9 @@ install:
 
 script:
  # - source /opt/qt58/bin/qt58-env.sh
-  - cd $TRAVIS_BUILD_DIR/project
+  - ls 
+  - cd $TRAVIS_BUILD_DIR
+  - ls
   - qmake
   - make -j$(nproc)
 #notifications:

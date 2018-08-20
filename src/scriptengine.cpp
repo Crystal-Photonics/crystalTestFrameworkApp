@@ -438,19 +438,9 @@ struct RPCDevice {
     }
     bool is_protocol_device_available() {
 #if 1
-        auto get_hash_function = protocol->encode_function(0);
-        RPCRuntimeEncodedParam &param_hash = get_hash_function.get_parameter(0);
-        RPCRuntimeEncodedParam &param_hash_index = get_hash_function.get_parameter(1);
-        for (std::size_t i = 0; i < 16; i++) {
-            param_hash[i].set_value(0); //For now a runtime rpc codec should send a NULL hash, since it knows to speak many hashes.
-        }
-        param_hash_index[0].set_value(0);
-
-        if (get_hash_function.are_all_values_set()) {
-            auto result = protocol->call_and_wait(get_hash_function);
-            if(result){
-                return true;
-            }
+        auto result = protocol->call_get_hash_function();
+        if (result) {
+            return true;
         }
 #endif
         return false;
@@ -928,7 +918,9 @@ void ScriptEngine::load_script(const QString &path) {
             };
             (*lua)["table_sum"] = [](sol::table table) { return table_sum(table); };
 
-            (*lua)["table_crc16"] = [console = console](sol::table table) { return table_crc16(console, table); };
+            (*lua)["table_crc16"] = [console = console](sol::table table) {
+                return table_crc16(console, table);
+            };
 
             (*lua)["table_mean"] = [](sol::table table) { return table_mean(table); };
 
@@ -999,7 +991,6 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["table_max_by_field"] = [&lua = *lua](sol::table input_values, const std::string field_name) {
                 return table_max_by_field(lua, input_values, field_name);
             };
-
 
 #if 1
             (*lua)["table_min_by_field"] = [&lua = *lua](sol::table input_values, const std::string field_name) {
