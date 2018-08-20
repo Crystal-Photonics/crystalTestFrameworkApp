@@ -24,7 +24,7 @@ install:
   - LD_LIBRARY_PATH=$(readlink -f lib):$LD_LIBRARY_PATH
   - qmake
   - make -j$(nproc)
-  - make install
+  - sudo make install
 
 
 script:
