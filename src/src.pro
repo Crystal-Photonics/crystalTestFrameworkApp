@@ -154,5 +154,9 @@ SOURCES += \
     Windows/exceptiontalapprovaldialog.cpp \
     Windows/infowindow.cpp
 
-system($$system_quote($$SH) $$PWD/../git.sh)
+win32 {
+    system($$system_quote($$SH) $$PWD/../git_win.sh)
+}else{
+    system($$system_quote($$SH) $$PWD/../git_linux.sh)
+}
 
