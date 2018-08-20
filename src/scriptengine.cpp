@@ -437,6 +437,17 @@ struct RPCDevice {
         return protocol->type.toStdString();
     }
     bool is_protocol_available() {
+#if 0
+        auto function = protocol->encode_function(name);
+        int param_count = 0;
+        for (auto &arg : va) {
+            auto &param = function.get_parameter(param_count++);
+            set_runtime_parameter(param, arg);
+        }
+        if (function.are_all_values_set()) {
+            auto result = protocol->call_and_wait(function);
+        }
+#endif
         return true;
     }
 
