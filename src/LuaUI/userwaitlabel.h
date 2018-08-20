@@ -1,5 +1,5 @@
-#ifndef USERINSTRUCTIONLABEL_H
-#define USERINSTRUCTIONLABEL_H
+#ifndef USERWAITLABEL_H
+#define USERWAITLABEL_H
 #include "scriptengine.h"
 #include "ui_container.h"
 #include <QMetaObject>
@@ -16,6 +16,7 @@ class QWidget;
 class QLineEdit;
 class QPushButton;
 class QPushButton;
+
 class UserWaitLabel : public UI_widget {
     public:
     UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, std::string instruction_text);

@@ -14,6 +14,7 @@
 #include "LuaUI/progressbar.h"
 #include "LuaUI/spinbox.h"
 #include "LuaUI/userinstructionlabel.h"
+#include "LuaUI/userwaitlabel.h"
 #include "Protocols/manualprotocol.h"
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
@@ -1335,7 +1336,23 @@ void ScriptEngine::load_script(const QString &path) {
 
                                                                             );
         }
+        //bind UserWaitLabel
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<UserWaitLabel>>("UserWaitLabel", //
+                                                                        sol::meta_function::construct,
+                                                                        [ parent = this->parent, this ](const std::string &instruction_text) {
+                                                                            return Lua_UI_Wrapper<UserWaitLabel>{parent, this, this, instruction_text};
+                                                                        }, //
+                                                                        "await_event",
+                                                                        non_gui_call_wrapper(&UserWaitLabel::await_event),                  //
+                                                                        "await_yes_no", non_gui_call_wrapper(&UserWaitLabel::await_yes_no), //
 
+                                                                        "set_visible", thread_call_wrapper(&UserWaitLabel::set_visible), //
+                                                                        "set_enabled", thread_call_wrapper(&UserWaitLabel::set_enabled), //
+                                                                        "set_instruction_text", thread_call_wrapper(&UserWaitLabel::set_instruction_text)
+
+                                                                            );
+        }
         //bind ComboBoxFileSelector
         {
             ui_table.new_usertype<Lua_UI_Wrapper<ComboBoxFileSelector>>(
