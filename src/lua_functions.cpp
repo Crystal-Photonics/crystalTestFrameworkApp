@@ -1900,12 +1900,14 @@ string get_os_username();
 #endif
 
 /// @cond HIDDEN_SYMBOLS
+#if defined(Q_OS_WIN)
 static QString handle_lower_upper_case_username(QString origun) {
     if (origun.size() == 2) {
         origun = origun.toUpper(); //converting e.g ak to AK
     }
     return origun;
 }
+#endif
 
 std::string get_os_username() {
 #if defined(Q_OS_WIN)

@@ -438,7 +438,7 @@ struct RPCDevice {
     }
     bool is_protocol_available() {
 #if 0
-        auto function = protocol->encode_function(name);
+        auto function = protocol->encode_function("get_hash");
         int param_count = 0;
         for (auto &arg : va) {
             auto &param = function.get_parameter(param_count++);
