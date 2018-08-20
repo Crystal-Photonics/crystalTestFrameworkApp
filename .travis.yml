@@ -19,6 +19,7 @@ install:
   - # on machines with qt5 executing:  `sudo aptitude -f install libqwt-dev` should be enough
   - ls
   - cd ~/
+  - echo $TRAVIS_BUILD_DIR
   - find -name travis_qwtconfig.pri
   - cd $TRAVIS_BUILD_DIR/..
   - ls
