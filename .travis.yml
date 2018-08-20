@@ -24,7 +24,7 @@ install:
   - cd $TRAVIS_BUILD_DIR/..
   - ls
   - svn checkout svn://svn.code.sf.net/p/qwt/code/branches/qwt-6.1 qwt
-  - cp ~/crystalTestFrameworkApp/libs/qwt/travis_qwtconfig.pri qwt/qwtconfig_.pri
+  - cp crystalTestFrameworkApp/libs/qwt/travis_qwtconfig.pri qwt/qwtconfig.pri
   - cd qwt
   - QWT_ROOT_DIR=`pwd`
   - LD_LIBRARY_PATH=$(readlink -f lib):$LD_LIBRARY_PATH
