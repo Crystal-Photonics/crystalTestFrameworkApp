@@ -33,14 +33,6 @@ class UserInstructionLabel : public UI_widget {
     QLabel *label_user_instruction = nullptr;
     QTimer *timer = nullptr;
 
-    QPushButton *button_next = nullptr;
-    QLabel *label_next = nullptr;
-
-    QPushButton *button_yes = nullptr;
-    QLabel *label_yes = nullptr;
-
-    QPushButton *button_no = nullptr;
-    QLabel *label_no = nullptr;
 
     QHBoxLayout *hlayout = nullptr;
     QString instruction_text;
@@ -54,9 +46,7 @@ class UserInstructionLabel : public UI_widget {
     bool is_question_mode = false;
 
     QMetaObject::Connection callback_timer = {};
-    QMetaObject::Connection callback_button_yes = {};
-    QMetaObject::Connection callback_button_no = {};
-    QMetaObject::Connection callback_button_next = {};
+
     ScriptEngine *script_engine;
     int total_width = 10;
     void resizeMe(QResizeEvent *event) override;
