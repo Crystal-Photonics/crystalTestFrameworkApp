@@ -16,6 +16,7 @@
 #include <QString>
 #include <QTranslator>
 #include <QTreeWidgetItem>
+#include <cmath>
 #include <cassert>
 #include <fstream>
 #include "CommunicationDevices/usbtmccommunicationdevice.h"
