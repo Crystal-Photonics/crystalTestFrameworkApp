@@ -225,6 +225,10 @@ RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const std::string &na
     return rpc_runtime_protocol.get()->encode_function(name);
 }
 
+RPCFunctionCallResult RPCProtocol::call_get_hash_function() const {
+    return rpc_runtime_protocol.get()->call_get_hash_function();
+}
+
 RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const int request_id) const {
     return rpc_runtime_protocol.get()->encode_function(request_id);
 }

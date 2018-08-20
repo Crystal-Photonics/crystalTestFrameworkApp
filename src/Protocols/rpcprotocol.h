@@ -66,6 +66,7 @@ class RPCProtocol : public Protocol {
     void get_lua_device_descriptor(sol::table &t) const;
     RPCRuntimeEncodedFunctionCall encode_function(const int request_id) const;
     RPCRuntimeEncodedFunctionCall encode_function(const std::string &name) const;
+    RPCFunctionCallResult call_get_hash_function() const;
 
     void clear();
     std::string get_name();

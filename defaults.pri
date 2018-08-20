@@ -13,7 +13,7 @@ INCLUDEPATH += ../libs/luasol/include
 win32 {
     QWT_DIR = $$PWD/libs/qwt
     INCLUDEPATH += $$QWT_DIR/include
-    INCLUDEPATH += $$QWT_DIR/include/qwt
+    #INCLUDEPATH += $$QWT_DIR/include/qwt
     LIBS += -L$$QWT_DIR/lib
 
     CONFIG(debug, debug|release) {
