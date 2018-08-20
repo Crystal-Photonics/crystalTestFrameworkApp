@@ -19,6 +19,7 @@ install:
   - # on machines with qt5 executing:  `sudo aptitude -f install libqwt-dev` should be enough
   - cd $TRAVIS_BUILD_DIR/..
   - svn checkout svn://svn.code.sf.net/p/qwt/code/branches/qwt-6.1 qwt
+  - cp ~/crystalTestFrameworkApp/libs/qwt/travis_qwtconfig.pri qwt/qwtconfig_.pri
   - cd qwt
   - QWT_ROOT_DIR=`pwd`
   - LD_LIBRARY_PATH=$(readlink -f lib):$LD_LIBRARY_PATH
@@ -30,7 +31,7 @@ script:
  # - source /opt/qt58/bin/qt58-env.sh
   - cd project  
   - qmake
-  - make
+  - make -j$(nproc)
 #notifications:
 #irc:
 #    channels:
