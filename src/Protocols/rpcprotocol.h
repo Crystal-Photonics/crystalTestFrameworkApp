@@ -67,6 +67,7 @@ class RPCProtocol : public Protocol {
     RPCRuntimeEncodedFunctionCall encode_function(const int request_id) const;
     RPCRuntimeEncodedFunctionCall encode_function(const std::string &name) const;
     RPCFunctionCallResult call_get_hash_function() const;
+    RPCFunctionCallResult call_get_hash_function(int retries) const;
 
     void clear();
     std::string get_name();

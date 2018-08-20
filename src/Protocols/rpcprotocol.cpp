@@ -229,9 +229,14 @@ RPCFunctionCallResult RPCProtocol::call_get_hash_function() const {
     return rpc_runtime_protocol.get()->call_get_hash_function();
 }
 
+RPCFunctionCallResult RPCProtocol::call_get_hash_function(int retries) const {
+    return rpc_runtime_protocol.get()->call_get_hash_function(retries);
+}
+
 RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const int request_id) const {
     return rpc_runtime_protocol.get()->encode_function(request_id);
 }
+
 
 void RPCProtocol::clear() {
     rpc_runtime_protocol.get()->clear();

@@ -439,7 +439,7 @@ struct RPCDevice {
     }
     bool is_protocol_device_available() {
 #if 1
-        auto result = protocol->call_get_hash_function();
+        auto result = protocol->call_get_hash_function(0);
         if (result.decoded_function_call_reply) {
             return true;
         }
