@@ -1,6 +1,7 @@
 #include "test_data_engine.h"
 #include "data_engine/data_engine.h"
 #include "data_engine/exceptionalapproval.h"
+#include <experimental/optional>
 
 #include "config.h"
 
@@ -170,6 +171,16 @@ void Test_Data_engine::check_properties_of_empty_set() {
     QVERIFY(de.all_values_in_range());
 #endif
 }
+
+
+void Test_Data_engine::stl_optional_test() {
+    std::experimental::optional<int> desired_value{};
+
+    QVERIFY(desired_value.value_or(100) == 100);
+    desired_value = 10;
+    QVERIFY(desired_value.value_or(100) == 10);
+}
+
 
 void Test_Data_engine::check_no_data_error_A() {
 #if !DISABLE_ALL

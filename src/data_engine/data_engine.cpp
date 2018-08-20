@@ -3167,7 +3167,11 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
     field_name = object.value("name").toString();
     switch (entrytype) {
         case EntryType::Numeric: {
+        //disable maybe-uninitialized warning for an optional type.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
             std::experimental::optional<double> desired_value{};
+#pragma GCC diagnostic pop
             NumericTolerance tolerance{};
             std::experimental::optional<double> si_prefix = 1;
             QString unit{};
@@ -3218,7 +3222,12 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             return std::make_unique<NumericDataEntry>(field_name, desired_value, tolerance, std::move(unit), si_prefix, std::move(nice_name));
         }
         case EntryType::Bool: {
-            std::experimental::optional<bool> desired_value{};
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+        std::experimental::optional<bool> desired_value{};
+#pragma GCC diagnostic pop
+
+
             QString nice_name{};
             for (const auto &key : keys) {
                 if (key == "name") {
