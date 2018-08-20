@@ -50,6 +50,7 @@ win32 {
     LIBS += -L$$PWD/libs/libusb-1.0.21/MinGW32/static/
     LIBS += -llibusb-1.0
 }else{
+    INCLUDEPATH += $$PWD/libs/libusb-1.0.21/include/
     LIBS +=  -lusb-1.0
 }
 
