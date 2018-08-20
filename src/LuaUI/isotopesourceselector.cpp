@@ -12,6 +12,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 #include <sol.hpp>
+#include <cmath>
 
 IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     : UI_widget{parent}
@@ -163,7 +164,7 @@ double IsotopeSource::get_activtiy_becquerel(QDate date_for_activity) {
     const double ln2 = 0.693147180559945;
     double days = start_date.daysTo(date_for_activity);
 
-    double current_activity = (start_activity_becquerel * exp(-days * ln2 / half_time_days));
+    double current_activity = (start_activity_becquerel * std::exp(-days * ln2 / half_time_days));
 
     return current_activity;
 }
