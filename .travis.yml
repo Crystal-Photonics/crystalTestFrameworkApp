@@ -2,7 +2,7 @@ language: cpp
 sudo: required
 dist: trusty
 git:
-  submodules: false
+  submodules: true
       
 before_install:
   - sudo add-apt-repository --yes ppa:beineri/opt-qt58-trusty
