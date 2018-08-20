@@ -25,6 +25,7 @@ win32 {
 
     LIBS += -L$$PWD/libs/luasol
     LIBS += -llua53
+    SH = C:/Program Files/Git/bin/sh.exe
 
 }else{
     CONFIG += qwt
@@ -38,7 +39,8 @@ win32 {
         LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux/release/lib
     }
 
-    message($$LIBS)
+    #message($$LIBS)
+    SH = sh
 
 }
 
@@ -50,6 +52,9 @@ win32 {
 }else{
     LIBS +=  -lusb-1.0
 }
+
+
+system($$system_quote($$SH) $$PWD/../git.sh)
 
 INCLUDEPATH += $$PWD/libs/LimeReport/include
 

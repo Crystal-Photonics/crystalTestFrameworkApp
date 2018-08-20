@@ -436,6 +436,9 @@ struct RPCDevice {
     std::string get_protocol_name() {
         return protocol->type.toStdString();
     }
+    bool is_protocol_available() {
+        return protocol->type.toStdString();
+    }
 
     sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
         if (QThread::currentThread()->isInterruptionRequested()) {
@@ -1753,6 +1756,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
                             add_enum_types(function, *lua);
                         }
                         type_reg.set("get_protocol_name", [](RPCDevice &device) { return device.get_protocol_name(); });
+                        type_reg.set("is_protocol_available", [](RPCDevice &device) { return device.is_protocol_available(); });
                         const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
                         lua->set_usertype(type_name, type_reg);
                         while (device_protocol.device->waitReceived(CommunicationDevice::Duration{0}, 1)) {

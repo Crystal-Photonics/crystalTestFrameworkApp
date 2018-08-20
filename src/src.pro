@@ -156,7 +156,3 @@ SOURCES += \
 
 
 
-
-SH = C:/Program Files/Git/bin/sh.exe
-
-system($$system_quote($$SH) $$PWD/../git.sh)
