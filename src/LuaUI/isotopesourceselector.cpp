@@ -48,7 +48,7 @@ void IsotopeSourceSelector::set_enabled(bool enabled) {
     combobox->setEnabled(enabled);
 }
 
-void IsotopeSourceSelector::filter_by_isotope(std::__cxx11::string isotope_name) {
+void IsotopeSourceSelector::filter_by_isotope(std::string isotope_name) {
     fill_combobox_with_isotopes(QString::fromStdString(isotope_name));
 }
 
