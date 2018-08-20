@@ -21,12 +21,10 @@ class UserWaitLabel : public UI_widget {
     public:
     UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, std::string instruction_text);
     ~UserWaitLabel();
-    void set_instruction_text(const std::string &instruction_text);
+    void set_text(const std::string &instruction_text);
     void set_visible(bool visible);
 
     void set_enabled(bool enabled);
-    void await_event();
-    bool await_yes_no();
 
     void scale_columns();
 

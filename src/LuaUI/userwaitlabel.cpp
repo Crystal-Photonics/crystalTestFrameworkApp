@@ -75,11 +75,7 @@ void UserWaitLabel::scale_columns() {
     label_user_instruction->setFixedWidth(5 * total_width / col_size);
 }
 
-void UserWaitLabel::await_event() {
-    assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-    is_question_mode = false;
-    run_hotkey_loop();
-}
+
 
 
 bool UserWaitLabel::run_hotkey_loop() {
@@ -94,7 +90,7 @@ bool UserWaitLabel::run_hotkey_loop() {
     }
 }
 
-void UserWaitLabel::set_instruction_text(const std::string &instruction_text) {
+void UserWaitLabel::set_text(const std::string &instruction_text) {
     this->instruction_text = QString().fromStdString(instruction_text);
     label_user_instruction->setText(this->instruction_text);
 }

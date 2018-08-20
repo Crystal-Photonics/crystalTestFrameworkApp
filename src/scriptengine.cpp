@@ -1343,13 +1343,8 @@ void ScriptEngine::load_script(const QString &path) {
                                                                         [ parent = this->parent, this ](const std::string &instruction_text) {
                                                                             return Lua_UI_Wrapper<UserWaitLabel>{parent, this, this, instruction_text};
                                                                         }, //
-                                                                        "await_event",
-                                                                        non_gui_call_wrapper(&UserWaitLabel::await_event),                  //
-                                                                        "await_yes_no", non_gui_call_wrapper(&UserWaitLabel::await_yes_no), //
-
-                                                                        "set_visible", thread_call_wrapper(&UserWaitLabel::set_visible), //
                                                                         "set_enabled", thread_call_wrapper(&UserWaitLabel::set_enabled), //
-                                                                        "set_instruction_text", thread_call_wrapper(&UserWaitLabel::set_instruction_text)
+                                                                        "set_text", thread_call_wrapper(&UserWaitLabel::set_text)
 
                                                                             );
         }
