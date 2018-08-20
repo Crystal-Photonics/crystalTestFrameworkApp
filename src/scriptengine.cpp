@@ -437,7 +437,7 @@ struct RPCDevice {
         return protocol->type.toStdString();
     }
     bool is_protocol_available() {
-        return protocol->type.toStdString();
+        return true;
     }
 
     sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {

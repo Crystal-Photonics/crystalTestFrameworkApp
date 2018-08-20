@@ -29,6 +29,7 @@ LIBS += -L$$PWD/../libs/googletest/build
 LIBS += -lgmock
 LIBS += -lgtest
 
+system($$system_quote($$SH) $$PWD/../git.sh)
 
 CONFIG(debug, debug|release) {
     LIBS += -lcrystalTestFrameworkAppd

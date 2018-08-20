@@ -54,7 +54,7 @@ win32 {
 }
 
 
-system($$system_quote($$SH) $$PWD/../git.sh)
+
 
 INCLUDEPATH += $$PWD/libs/LimeReport/include
 
