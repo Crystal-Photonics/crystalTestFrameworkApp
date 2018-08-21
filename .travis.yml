@@ -24,14 +24,8 @@ install:
   - cd build/googletest
   - pwd
   - cmake -DCMAKE_CXX_FLAGS=$CXX_FLAGS ../../../googletest/
-      
- # - export GTEST_TARGET=googletest 
-#  - cd $TRAVIS_BUILD_DIR/libs/googletest
- # - ./travis.sh
- # - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/libs/googletest/build/$GTEST_TARGET:$LD_LIBRARY_PATH
- # - export GTEST_TARGET=googlemock 
- # - cd $TRAVIS_BUILD_DIR/libs/googletest
-#  - ./travis.sh
+  - make -j$(nproc)      
+
   - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/libs/googletest/build/googletest:$LD_LIBRARY_PATH  
   
   
