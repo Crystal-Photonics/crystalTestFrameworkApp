@@ -87,6 +87,7 @@ HEADERS += \
     LuaUI/progressbar.h \
     LuaUI/dataengineinput.h \
     LuaUI/hline.h \
+    LuaUI/polldataengine.h \
     Windows/dummydatacreator.h \
     environmentvariables.h \
     LuaUI/userinstructionlabel.h \
@@ -152,6 +153,7 @@ SOURCES += \
     environmentvariables.cpp \
     LuaUI/userinstructionlabel.cpp \
     LuaUI/userwaitlabel.cpp \
+    LuaUI/polldataengine.cpp \
     data_engine/exceptionalapproval.cpp \
     Windows/exceptiontalapprovaldialog.cpp \
     Windows/infowindow.cpp 

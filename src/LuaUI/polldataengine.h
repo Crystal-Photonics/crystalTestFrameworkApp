@@ -1,5 +1,5 @@
-#ifndef DATAENGINEINPUT_H
-#define DATAENGINEINPUT_H
+#ifndef POLLDATAENGINE_H
+#define POLLDATAENGINE_H
 
 #include "data_engine/data_engine.h"
 #include "scriptengine.h"
@@ -20,24 +20,19 @@ class QPushButton;
 /** \ingroup ui
  *  \{
  */
-class DataEngineInput : public UI_widget {
+class PollDataEngine : public UI_widget {
     enum FieldType { Bool, String, Numeric };
 
     public:
-    DataEngineInput(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, std::string field_id_, std::string extra_explanation,
+    PollDataEngine(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, std::string field_id_, std::string extra_explanation,
                     std::string empty_value_placeholder, std::string desired_prefix, std::string actual_prefix_);
-    ~DataEngineInput();
+    ~PollDataEngine();
 
     void set_visible(bool visible);
     void set_enabled(bool is_enabled);
     void load_actual_value();
-    void set_editable();
-    void save_to_data_engine();
-    void await_event();
-    void sleep_ms(uint timeout_ms);
     void set_explanation_text(const std::string &extra_explanation);
 
-    bool get_is_editable();
     private:
 
 
@@ -47,19 +42,7 @@ class DataEngineInput : public UI_widget {
     QLabel *label_de_actual_value = nullptr;
     QLabel *label_ok = nullptr;
 
-    QPushButton *button_yes = nullptr;
-    QLabel *label_yes = nullptr;
 
-    QPushButton *button_no = nullptr;
-    QLabel *label_no = nullptr;
-
-    QPushButton *button_next = nullptr;
-    QLabel *label_next = nullptr;
-
-    QPushButton *button_exceptional_approval = nullptr;
-    QLabel *label_exceptional_approval = nullptr;
-
-    QLineEdit *lineedit = nullptr;
     QTimer *timer = nullptr;
 
     Data_engine *data_engine = nullptr;
@@ -84,10 +67,6 @@ class DataEngineInput : public UI_widget {
     std::experimental::optional<bool> bool_result;
 
     QMetaObject::Connection callback_timer = {};
-    QMetaObject::Connection callback_bool_yes = {};
-    QMetaObject::Connection callback_bool_no = {};
-    QMetaObject::Connection callback_next = {};
-    QMetaObject::Connection callback_exceptional_approval = {};
     void set_ui_visibility();
     void set_button_visibility(bool next, bool yes_no);
     FieldType field_type;
