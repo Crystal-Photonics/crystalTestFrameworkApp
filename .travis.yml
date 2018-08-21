@@ -80,12 +80,12 @@ script:
   - cd libs/LimeReport/
   - ls 
   - qmake
-  - make -j$(nproc)
+  - make
   #- tree -d build/
 #build testframework  
   - cd $TRAVIS_BUILD_DIR
   - qmake
-  - make -j$(nproc)
+  - make
   
   
 #notifications:
