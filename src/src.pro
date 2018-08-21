@@ -90,6 +90,7 @@ HEADERS += \
     Windows/dummydatacreator.h \
     environmentvariables.h \
     LuaUI/userinstructionlabel.h \
+    LuaUI/userwaitlabel.h \
     data_engine/exceptionalapproval.h
 HEADERS +=    Windows/exceptiontalapprovaldialog.h
 #HEADERS +=    data_engine/data_engine_strings.h
@@ -150,6 +151,7 @@ SOURCES += \
     Windows/dummydatacreator.cpp \
     environmentvariables.cpp \
     LuaUI/userinstructionlabel.cpp \
+    LuaUI/userwaitlabel.cpp \
     data_engine/exceptionalapproval.cpp \
     Windows/exceptiontalapprovaldialog.cpp \
     Windows/infowindow.cpp 
@@ -159,4 +161,7 @@ win32 {
 }else{
     system($$system_quote($$SH) $$PWD/../git_linux.sh)
 }
+
+RESOURCES += \
+    resources.qrc
 
