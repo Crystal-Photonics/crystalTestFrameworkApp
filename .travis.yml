@@ -36,11 +36,18 @@ install:
 
 script:
  # - source /opt/qt58/bin/qt58-env.sh
+ #build limereport
   - ls 
   - cd $TRAVIS_BUILD_DIR
-  - ls
+  - cd libs/LimeReport/
+  - ls 
   - qmake
   - make -j$(nproc)
+#build testframework  
+  - cd $TRAVIS_BUILD_DIR
+  - qmake
+  - make -j$(nproc)
+  
   
 #notifications:
 #irc:
