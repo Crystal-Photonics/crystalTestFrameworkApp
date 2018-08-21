@@ -10,7 +10,7 @@ before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq g++-6 gcc-6
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 90
-  - sudo aptitude -f install  -y qt58base qt58serialport qt58script qt58svg qt58tools libusb-1.0-0-dev libgtest-dev google-mock tree
+  - sudo aptitude -f install  -y qt58base qt58serialport qt58script qt58svg qt58tools libusb-1.0-0-dev tree
  # - sudo apt-get install -qq -y qt57base qt57declarative qt57imageformats qt57location qt57multimedia qt57quickcontrols qt57script qt57svg qt57tools qt57translations libsdl2-dev
   
 install:
@@ -29,8 +29,11 @@ install:
   - ls /usr/lib/x86_64-linux-gnu/ | grep lua
   - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH
     
-    
-    
+  - #install gtest and gmock
+  - cd $TRAVIS_BUILD_DIR/libs/googletest
+  - ./travis.sh
+  - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/libs/googletest/build/$GTEST_TARGET:$LD_LIBRARY_PATH
+
   - # Install QWT
   - # on machines with qt5 executing:  `sudo aptitude -f install libqwt-dev` should be enough
  # - svn checkout svn://svn.code.sf.net/p/qwt/code/branches/qwt-6.1 qwt
