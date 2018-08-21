@@ -27,17 +27,10 @@
 PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, const sol::table &items)
     : UI_widget{parent_}
     , label_extra_explanation{new QLabel(parent_)}
-    , label_de_description{new QLabel(parent_)}
-    , label_de_desired_value{new QLabel(parent_)}
-    , label_de_actual_value{new QLabel(parent_)}
-    , label_ok{new QLabel(parent_)}
+
     , timer{new QTimer(parent_)}
     , data_engine{data_engine_}
-    , field_id{QString::fromStdString(items)}
-    , empty_value_placeholder{QString::fromStdString(empty_value_placeholder_)}
-    , extra_explanation{QString::fromStdString(extra_explanation_)}
-    , desired_prefix{QString::fromStdString(desired_prefix_)}
-    , actual_prefix{QString::fromStdString(actual_prefix_)}
+
     , script_engine{script_engine} {
 #if 0
     qDebug() << "field_id" << QString::fromStdString(field_id_);
@@ -47,71 +40,76 @@ PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engin
     qDebug() << "actual_prefix_" << QString::fromStdString(actual_prefix_);
     qDebug() << "line" << __LINE__;
 #endif
-    hlayout = new QHBoxLayout;
+    for (auto &i : items) {
+        field_ids.append(QString::fromStdString(i.second.as<std::string>()));
+    }
 
-    hlayout->addWidget(label_extra_explanation, 0, Qt::AlignTop);
-    hlayout->addWidget(label_de_description, 0, Qt::AlignTop);
-    hlayout->addWidget(label_de_desired_value, 0, Qt::AlignTop);
-    hlayout->addWidget(label_de_actual_value, 0, Qt::AlignTop);
-    hlayout->addWidget(label_ok, 0, Qt::AlignTop);
-    parent->add(hlayout, this);
+    vlayout = new QVBoxLayout;
+
+    parent->add(vlayout, this);
 
     label_extra_explanation->setText(extra_explanation);
     label_extra_explanation->setWordWrap(true);
 
     assert(data_engine);
-    QString desc = data_engine->get_description(this->field_id);
-    label_de_description->setText(desc);
-    label_de_description->setWordWrap(true);
-    QString s = this->desired_prefix + " " + data_engine->get_desired_value_as_string(this->field_id);
-    label_de_desired_value->setText(s);
-    label_de_desired_value->setWordWrap(true);
-    label_de_actual_value->setText(this->actual_prefix + " " + this->empty_value_placeholder);
-    label_de_actual_value->setWordWrap(true);
-    label_ok->setText("-");
-    if (!data_engine->is_desired_value_set(this->field_id)) {
-        QString s = data_engine->get_unit(this->field_id);
-        if (s.size()) {
-            label_de_desired_value->setText("[" + s + "]");
-        } else {
-            label_de_desired_value->setText("");
+    for (auto field_id : field_ids) {
+        QLabel *label_de_description = new QLabel(parent_);
+        QLabel *label_de_desired_value = new QLabel(parent_);
+        QLabel *label_de_actual_value = new QLabel(parent_);
+        QLabel *label_ok = new QLabel(parent_);
+
+        QHBoxLayout *hlayout = new QHBoxLayout;
+        hlayout->addWidget(label_extra_explanation, 0, Qt::AlignTop);
+        hlayout->addWidget(label_de_description, 0, Qt::AlignTop);
+        hlayout->addWidget(label_de_desired_value, 0, Qt::AlignTop);
+        hlayout->addWidget(label_de_actual_value, 0, Qt::AlignTop);
+        hlayout->addWidget(label_ok, 0, Qt::AlignTop);
+        vlayout->addLayout(hlayout);
+
+        QString desc = data_engine->get_description(field_id);
+        label_de_description->setText(desc);
+        label_de_description->setWordWrap(true);
+        QString s = this->desired_prefix + " " + data_engine->get_desired_value_as_string(field_id);
+        label_de_desired_value->setText(s);
+        label_de_desired_value->setWordWrap(true);
+        label_de_actual_value->setText(this->actual_prefix + " " + this->empty_value_placeholder);
+        label_de_actual_value->setWordWrap(true);
+        label_ok->setText("-");
+        if (!data_engine->is_desired_value_set(field_id)) {
+            QString s = data_engine->get_unit(field_id);
+            if (s.size()) {
+                label_de_desired_value->setText("[" + s + "]");
+            } else {
+                label_de_desired_value->setText("");
+            }
         }
+
+        auto entry_type = data_engine->get_entry_type(field_id);
+        switch (entry_type) {
+            case EntryType::Bool: {
+                field_type = FieldType::Bool;
+
+            } break;
+            case EntryType::Numeric: {
+                field_type = FieldType::Numeric;
+            } break;
+            case EntryType::String: {
+                field_type = FieldType::String;
+            } break;
+            default:
+                assert(0);
+                break;
+        }
+
+        auto sp_w = QSizePolicy::Maximum;
+        auto sp_h = QSizePolicy::MinimumExpanding;
+        //auto sp_h_f = QSizePolicy::Fixed;
+
+        label_extra_explanation->setSizePolicy(sp_w, sp_h);
+        label_de_desired_value->setSizePolicy(sp_w, sp_h);
+        label_de_actual_value->setSizePolicy(sp_w, sp_h);
+        label_ok->setSizePolicy(sp_w, sp_h);
     }
-
-    auto entry_type = data_engine->get_entry_type(this->field_id);
-    switch (entry_type) {
-        case EntryType::Bool: {
-            field_type = FieldType::Bool;
-
-        } break;
-        case EntryType::Numeric: {
-            field_type = FieldType::Numeric;
-        } break;
-        case EntryType::String: {
-            field_type = FieldType::String;
-        } break;
-        default:
-            assert(0);
-            break;
-    }
-
-
-
-
-
-
-
-    auto sp_w = QSizePolicy::Maximum;
-    auto sp_h = QSizePolicy::MinimumExpanding;
-    //auto sp_h_f = QSizePolicy::Fixed;
-
-    label_extra_explanation->setSizePolicy(sp_w, sp_h);
-    label_de_desired_value->setSizePolicy(sp_w, sp_h);
-    label_de_actual_value->setSizePolicy(sp_w, sp_h);
-    label_ok->setSizePolicy(sp_w, sp_h);
-
-
-
 
     set_enabled(true);
 
@@ -136,7 +134,7 @@ PollDataEngine::~PollDataEngine() {
 ///\endcond
 
 void PollDataEngine::load_actual_value() {
-    is_editable = false;
+#if 0
     if (data_engine->value_complete_in_instance(field_id)) {
         timer->stop();
 
@@ -149,8 +147,8 @@ void PollDataEngine::load_actual_value() {
         }
         set_ui_visibility();
     }
+#endif
 }
-
 
 void PollDataEngine::set_explanation_text(const std::string &extra_explanation) {
     assert(MainWindow::gui_thread == QThread::currentThread());
@@ -177,6 +175,7 @@ void PollDataEngine::set_enabled(bool enabled) {
 
 ///\cond HIDDEN_SYMBOLS
 void PollDataEngine::start_timer() {
+#if 0
     callback_timer = QObject::connect(timer, &QTimer::timeout, [this]() {
         if (blink_state == Globals::ui_blink_ratio) {
             label_de_actual_value->setText(" ");
@@ -196,6 +195,7 @@ void PollDataEngine::start_timer() {
         blink_state++;
 
     });
+#endif
 }
 
 void PollDataEngine::resizeMe(QResizeEvent *event) {
@@ -204,6 +204,7 @@ void PollDataEngine::resizeMe(QResizeEvent *event) {
 }
 
 void PollDataEngine::set_total_visibilty() {
+#if 0
     assert(MainWindow::gui_thread == QThread::currentThread());
 
     label_extra_explanation->setVisible(is_visible && is_enabled && is_waiting);
@@ -213,14 +214,15 @@ void PollDataEngine::set_total_visibilty() {
     label_ok->setVisible(is_visible && ((is_editable == false) || (is_enabled == false)));
 
     //    });
+#endif
 }
 
 void PollDataEngine::scale_columns() {
+    #if 0
     assert(MainWindow::gui_thread == QThread::currentThread());
 
     int col_size = 7;
     if (is_editable && is_enabled && is_visible) {
-
         label_extra_explanation->setFixedWidth((total_width / col_size));
         //label_de_description->setFixedWidth((total_width / col_size));
         label_de_desired_value->setFixedWidth((total_width / col_size));
@@ -231,7 +233,6 @@ void PollDataEngine::scale_columns() {
         label_de_actual_value->setFixedWidth((total_width / col_size));
         label_ok->setFixedWidth((total_width / col_size));
 
-
     } else if ((is_enabled == false) && is_visible) {
         label_extra_explanation->setFixedWidth((total_width / col_size));
         //label_de_description->setFixedWidth((total_width / col_size));
@@ -241,10 +242,11 @@ void PollDataEngine::scale_columns() {
 
     } else if (!is_visible) {
     }
+    #endif
 }
 
-
 void PollDataEngine::set_labels_enabled() {
+        #if 0
     label_extra_explanation->setEnabled(is_enabled);
     label_de_description->setEnabled(is_enabled);
     label_de_desired_value->setEnabled(is_enabled);
@@ -257,9 +259,11 @@ void PollDataEngine::set_labels_enabled() {
         label_extra_explanation->setVisible(true);
     }
     label_ok->setEnabled(is_enabled);
+        #endif
 }
 
 void PollDataEngine::set_ui_visibility() {
+        #if 0
     Utility::promised_thread_call(MainWindow::mw, [this] {
 
         if (init_ok == false) {
@@ -275,8 +279,8 @@ void PollDataEngine::set_ui_visibility() {
         set_labels_enabled();
         set_total_visibilty();
 
-
     });
+            #endif
 }
 
 ///\endcond

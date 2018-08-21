@@ -36,24 +36,20 @@ class PollDataEngine : public UI_widget {
 
 
     QLabel *label_extra_explanation = nullptr;
-    QLabel *label_de_description = nullptr;
-    QLabel *label_de_desired_value = nullptr;
-    QLabel *label_de_actual_value = nullptr;
-    QLabel *label_ok = nullptr;
+
 
 
     QTimer *timer = nullptr;
 
     Data_engine *data_engine = nullptr;
-    QHBoxLayout *hlayout = nullptr;
-    QString field_id;
+    QVBoxLayout *vlayout = nullptr;
+    QStringList field_ids;
 
-    QString empty_value_placeholder;
+    QString empty_value_placeholder{"/"};
     QString extra_explanation;
     QString desired_prefix;
     QString actual_prefix;
     uint blink_state = 0;
-    bool is_editable = false;
 
     bool is_enabled = true;
     bool is_visible = true;
