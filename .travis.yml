@@ -33,8 +33,8 @@ install:
     
   - # Install QWT
   - # on machines with qt5 executing:  `sudo aptitude -f install libqwt-dev` should be enough
-  - svn checkout svn://svn.code.sf.net/p/qwt/code/branches/qwt-6.1 qwt
- # - git clone is there a more reliable path for qwt?
+ # - svn checkout svn://svn.code.sf.net/p/qwt/code/branches/qwt-6.1 qwt
+  - git clone https://github.com/Crystal-Photonics/qwt
   - cd qwt
   - cp $TRAVIS_BUILD_DIR/libs/qwt/travis_qwtconfig.pri qwtconfig.pri
   - QWT_ROOT_DIR=`pwd`

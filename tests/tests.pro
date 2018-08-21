@@ -49,8 +49,18 @@ COPY_DIR = "$$(UNIXTOOLS)cp -r"
 
 #runtests.commands = $$RUNTEST
 #runtests.depends = copydata
+#TEST1="123"
+#TEST2="123"
+#message($$TEST1)
+#message($$TEST2)
 
-!equals($$OUT_PWD, $$PWD) {
+#!equals(TEST1, $$TEST2) {
+#    message("not equal")
+#}else{
+#   message("equal")
+#}
+
+!equals(OUT_PWD, $$PWD) {
     #avoid cp: ‘xx/scripts’ and ‘xx/scripts’ are the same file
     copydata.commands = $$COPY_DIR $$PWD/scripts $$OUT_PWD/
     first.depends = $(first) copydata
