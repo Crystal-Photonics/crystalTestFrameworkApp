@@ -30,8 +30,11 @@ win32 {
 
 }else{
     CONFIG += qwt
+    LIBS += -lqwt
     LIBS += -llua5.3
-    LIBS += -L/usr/local/qwt-svn/lib
+   # LIBS += -L/usr/local/qwt-svn/lib
+   # LIBS += -L/usr/local/qwt-svn/lib
+
     #error("fill in the correct path for linux")
     CONFIG(debug, debug|release) {
         LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/linux64/debug/lib
