@@ -87,12 +87,12 @@ script:
   - cp $TRAVIS_BUILD_DIR/libs/travis_limereport.pro limereport.pro  || true
   - ls 
   - qmake
-  - make
+  - make -j$(nproc)
   #- tree -d build/
 #build testframework  
   - cd $TRAVIS_BUILD_DIR
   - qmake
-  - make
+  - make -j$(nproc)
   
   
 #notifications:
