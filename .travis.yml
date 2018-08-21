@@ -72,7 +72,8 @@ install:
   - tree /usr/local/qwt-svn
   - export CPATH=/usr/local/qwt-svn/include:$CPATH
   - export LD_LIBRARY_PATH=/usr/local/qwt-svn/lib:$LD_LIBRARY_PATH  
-  - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt/lib:$LD_LIBRARY_PATH 
+  - export LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt/lib:$LIBRARY_PATH 
+  
   - tree LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt
   
 
