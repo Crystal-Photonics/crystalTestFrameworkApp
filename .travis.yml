@@ -20,7 +20,6 @@ install:
   
   - # Install libLua5.3  
   - # on newer ubuntu machines executing:  `sudo aptitude -f install liblua5.3-dev` should be enough
-  
   - wget http://ftp.us.debian.org/debian/pool/main/l/lua5.3/liblua5.3-0_5.3.3-1_amd64.deb
   - wget http://ftp.br.debian.org/debian/pool/main/l/lua5.3/liblua5.3-dev_5.3.3-1_amd64.deb
   #- dpkg -c liblua5.3-0_5.3.3-1_amd64.deb
@@ -29,11 +28,20 @@ install:
   - ls /usr/lib/x86_64-linux-gnu/ | grep lua
   - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH
     
+    
+    
+    
   - #install gtest and gmock
+  - export GTEST_TARGET=GTEST_TARGET 
   - cd $TRAVIS_BUILD_DIR/libs/googletest
+  - tree
   - ./travis.sh
   - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/libs/googletest/build/$GTEST_TARGET:$LD_LIBRARY_PATH
 
+  
+  
+  
+  
   - # Install QWT
   - # on machines with qt5 executing:  `sudo aptitude -f install libqwt-dev` should be enough
  # - svn checkout svn://svn.code.sf.net/p/qwt/code/branches/qwt-6.1 qwt
