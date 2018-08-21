@@ -50,10 +50,15 @@ COPY_DIR = "$$(UNIXTOOLS)cp -r"
 #runtests.commands = $$RUNTEST
 #runtests.depends = copydata
 
-copydata.commands = $$COPY_DIR $$PWD/scripts $$OUT_PWD/
-first.depends = $(first) copydata
+!equals($$OUT_PWD, $$PWD) {
+    #avoid cp: ‘xx/scripts’ and ‘xx/scripts’ are the same file
+    copydata.commands = $$COPY_DIR $$PWD/scripts $$OUT_PWD/
+    first.depends = $(first) copydata
 
-export(first.depends)
-export(copydata.commands)
+    export(first.depends)
+    export(copydata.commands)
 
-QMAKE_EXTRA_TARGETS += first copydata
+    QMAKE_EXTRA_TARGETS += first copydata
+}
+
+
