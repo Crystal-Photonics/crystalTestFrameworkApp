@@ -68,7 +68,6 @@ class PollDataEngine : public UI_widget {
 
     QMetaObject::Connection callback_timer = {};
     void set_ui_visibility();
-    void set_button_visibility(bool next, bool yes_no);
     FieldType field_type;
     void set_labels_enabled();
     void set_total_visibilty();

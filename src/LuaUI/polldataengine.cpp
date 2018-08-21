@@ -122,9 +122,7 @@ PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engin
     init_ok = true;
     set_ui_visibility();
     load_actual_value();
-    if ((field_type == FieldType::Numeric) || (field_type == FieldType::String)) {
-        lineedit->setFocus();
-    }
+
     assert(MainWindow::gui_thread == QThread::currentThread());
 }
 
@@ -223,34 +221,17 @@ void PollDataEngine::scale_columns() {
 
     int col_size = 7;
     if (is_editable && is_enabled && is_visible) {
-        switch (field_type) {
-            case FieldType::Numeric: {
-                lineedit->setFixedWidth((total_width / col_size));
-                button_next->setFixedWidth((total_width / col_size));
-            } break;
-            case FieldType::Bool: {
-                button_yes->setFixedWidth((total_width / (col_size * 2)));
-                button_no->setFixedWidth((total_width / (col_size * 2)));
-            } break;
-            case FieldType::String: {
-                lineedit->setFixedWidth((total_width / col_size));
-                button_next->setFixedWidth((total_width / col_size));
-            } break;
-            default:
-                break;
-        }
+
         label_extra_explanation->setFixedWidth((total_width / col_size));
         //label_de_description->setFixedWidth((total_width / col_size));
         label_de_desired_value->setFixedWidth((total_width / col_size));
-        button_exceptional_approval->setFixedWidth((total_width / col_size));
     } else if (is_enabled && is_visible) {
         label_extra_explanation->setFixedWidth((total_width / col_size));
         //label_de_description->setFixedWidth((total_width / col_size));
         label_de_desired_value->setFixedWidth((total_width / col_size));
         label_de_actual_value->setFixedWidth((total_width / col_size));
         label_ok->setFixedWidth((total_width / col_size));
-        button_next->setFixedWidth((total_width / col_size));
-        button_exceptional_approval->setFixedWidth((total_width / col_size));
+
 
     } else if ((is_enabled == false) && is_visible) {
         label_extra_explanation->setFixedWidth((total_width / col_size));
@@ -258,20 +239,11 @@ void PollDataEngine::scale_columns() {
         label_de_desired_value->setFixedWidth((total_width / col_size));
         label_de_actual_value->setFixedWidth((total_width / col_size));
         label_ok->setFixedWidth((total_width / col_size));
-        button_next->setFixedWidth((total_width / col_size));
 
-        button_exceptional_approval->setFixedWidth((total_width / col_size));
     } else if (!is_visible) {
     }
 }
 
-void PollDataEngine::set_button_visibility(bool next, bool yes_no) {
-    assert(MainWindow::gui_thread == QThread::currentThread());
-
-
-
-    this->button_exceptional_approval->setVisible(next || yes_no);
-}
 
 void PollDataEngine::set_labels_enabled() {
     label_extra_explanation->setEnabled(is_enabled);
@@ -303,38 +275,8 @@ void PollDataEngine::set_ui_visibility() {
         }
         set_labels_enabled();
         set_total_visibilty();
-        set_button_visibility(false, false);
 
-        if (is_editable && is_enabled && is_visible) {
-            switch (field_type) {
-                case FieldType::Numeric: {
-                    lineedit->setVisible(true);
-                    auto validator = new QDoubleValidator(parent);
-                    lineedit->setValidator(validator);
 
-                } break;
-                case FieldType::Bool: {
-                    lineedit->setVisible(false);
-
-                } break;
-                case FieldType::String: {
-                    lineedit->setVisible(true);
-                    lineedit->setValidator(nullptr);
-
-                } break;
-                default:
-                    break;
-            }
-
-        } else if (is_enabled && is_visible) {
-            lineedit->setVisible(false);
-
-        } else if ((is_enabled == false) && is_visible) {
-            lineedit->setVisible(false);
-
-        } else if (!is_visible) {
-            lineedit->setVisible(false);
-        }
     });
 }
 
