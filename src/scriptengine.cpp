@@ -1305,19 +1305,19 @@ void ScriptEngine::load_script(const QString &path) {
                 sol::meta_function::construct, [ parent = this->parent, this ](Data_engine_handle & handle, const std::string &field_id,
                                                                                const std::string &extra_explanation, const std::string &empty_value_placeholder,
                                                                                const std::string &actual_prefix, const std::string &desired_prefix) {
-                    return Lua_UI_Wrapper<DataEngineInput>{
+                    return Lua_UI_Wrapper<PollDataEngine>{
                         parent, this, this, handle.data_engine, field_id, extra_explanation, empty_value_placeholder, actual_prefix, desired_prefix};
                 }, //
                 "load_actual_value",
-                thread_call_wrapper(&DataEngineInput::load_actual_value),                          //
-                "await_event", non_gui_call_wrapper(&DataEngineInput::await_event),                //
-                "set_visible", thread_call_wrapper(&DataEngineInput::set_visible),                 //
-                "set_enabled", thread_call_wrapper(&DataEngineInput::set_enabled),                 //
-                "save_to_data_engine", thread_call_wrapper(&DataEngineInput::save_to_data_engine), //
-                "set_editable", thread_call_wrapper(&DataEngineInput::set_editable),               //
-                "sleep_ms", non_gui_call_wrapper(&DataEngineInput::sleep_ms),                      //
-                "is_editable", thread_call_wrapper(&DataEngineInput::get_is_editable),             //
-                "set_explanation_text", thread_call_wrapper(&DataEngineInput::set_explanation_text)
+                thread_call_wrapper(&PollDataEngine::load_actual_value),                          //
+                "await_event", non_gui_call_wrapper(&PollDataEngine::await_event),                //
+                "set_visible", thread_call_wrapper(&PollDataEngine::set_visible),                 //
+                "set_enabled", thread_call_wrapper(&PollDataEngine::set_enabled),                 //
+                "save_to_data_engine", thread_call_wrapper(&PollDataEngine::save_to_data_engine), //
+                "set_editable", thread_call_wrapper(&PollDataEngine::set_editable),               //
+                "sleep_ms", non_gui_call_wrapper(&PollDataEngine::sleep_ms),                      //
+                "is_editable", thread_call_wrapper(&PollDataEngine::get_is_editable),             //
+                "set_explanation_text", thread_call_wrapper(&PollDataEngine::set_explanation_text)
 
                     );
         }
