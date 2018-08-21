@@ -17,10 +17,14 @@ install:
     
   - source /opt/qt58/bin/qt58-env.sh
   - wget http://ftp.us.debian.org/debian/pool/main/l/lua5.3/liblua5.3-0_5.3.3-1_amd64.deb
+  - wget http://ftp.br.debian.org/debian/pool/main/l/lua5.3/liblua5.3-dev_5.3.3-1_amd64.deb
   - dpkg -c liblua5.3-0_5.3.3-1_amd64.deb
   - sudo dpkg -i liblua5.3-0_5.3.3-1_amd64.deb
+  - sudo dpkg -i liblua5.3-dev_5.3.3-1_amd64
   - ls /usr/lib/x86_64-linux-gnu/ | grep lua
   - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH
+    
+    
     
   - # Install QWT
   - # on machines with qt5 executing:  `sudo aptitude -f install libqwt-dev` should be enough
