@@ -21,6 +21,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <QMovie>
 
 ///\cond HIDDEN_SYMBOLS
 UserWaitLabel::UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, std::string extra_explanation)
@@ -34,6 +35,13 @@ UserWaitLabel::UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, 
     hlayout = new QHBoxLayout;
 
     hlayout->addWidget(label_user_instruction, 0, Qt::AlignTop);
+
+    spinner_label = new QLabel(parent);
+    QMovie *movie = new QMovie("T:/ajax-loader.gif");
+    spinner_label->setMovie(movie);
+    movie->start();
+
+    hlayout->addWidget(spinner_label, 0, Qt::AlignTop);
 
     parent->add(hlayout, this);
 

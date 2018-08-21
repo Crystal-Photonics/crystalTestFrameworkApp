@@ -30,6 +30,7 @@ class UserWaitLabel : public UI_widget {
 
     private:
     QLabel *label_user_instruction = nullptr;
+    QLabel *spinner_label = nullptr;
     QTimer *timer = nullptr;
 
 
