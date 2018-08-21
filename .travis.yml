@@ -35,9 +35,6 @@ install:
   
   
   - # Install libLua5.3  
-  - cd $TRAVIS_BUILD_DIR  
-  - mkdir lua
-  - cd lua  
   - # on newer ubuntu machines executing:  `sudo aptitude -f install liblua5.3-dev` should be enough
   - wget http://ftp.us.debian.org/debian/pool/main/l/lua5.3/liblua5.3-0_5.3.3-1_amd64.deb
   - wget http://ftp.br.debian.org/debian/pool/main/l/lua5.3/liblua5.3-dev_5.3.3-1_amd64.deb
@@ -76,8 +73,8 @@ install:
   - export CPATH=/usr/local/qwt-svn/include:$CPATH
   - export LD_LIBRARY_PATH=/usr/local/qwt-svn/lib:$LD_LIBRARY_PATH  
   - export LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt/lib:$LIBRARY_PATH 
-  
-  - tree $TRAVIS_BUILD_DIR/qwt
+  - echo $QWT_DIR
+  #- tree LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt
   
 
 
