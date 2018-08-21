@@ -5,7 +5,6 @@
 #include "ui_container.h"
 #include "util.h"
 
-#include <QResizeEvent>
 #include <QCheckBox>
 #include <QDoubleValidator>
 #include <QHBoxLayout>
@@ -13,7 +12,9 @@
 #include <QKeySequence>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMovie>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QSettings>
 #include <QShortcut>
 #include <QSplitter>
@@ -21,7 +22,6 @@
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
-#include <QMovie>
 
 ///\cond HIDDEN_SYMBOLS
 UserWaitLabel::UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, std::string extra_explanation)
@@ -37,8 +37,8 @@ UserWaitLabel::UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, 
     hlayout->addWidget(label_user_instruction, 0, Qt::AlignTop);
 
     spinner_label = new QLabel(parent);
-    QMovie *movie = new QMovie("T:/ajax-loader.gif");
-    spinner_label->setMovie(movie);
+    QMovie *movie = new QMovie("://LuaUI/ajax-loader.gif");
+    spinner_label->setMovie(movie); //":/MyPreciousRes/MyResources.pro"
     movie->start();
 
     hlayout->addWidget(spinner_label, 0, Qt::AlignTop);
@@ -47,9 +47,6 @@ UserWaitLabel::UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, 
 
     label_user_instruction->setText(QString::fromStdString(extra_explanation));
     label_user_instruction->setWordWrap(true);
-
-
-
 
     start_timer();
     timer->start(500);
@@ -83,9 +80,6 @@ void UserWaitLabel::scale_columns() {
     label_user_instruction->setFixedWidth(5 * total_width / col_size);
 }
 
-
-
-
 bool UserWaitLabel::run_hotkey_loop() {
     assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     Utility::promised_thread_call(MainWindow::mw, [this] {      //
@@ -103,18 +97,17 @@ void UserWaitLabel::set_text(const std::string &instruction_text) {
     label_user_instruction->setText(this->instruction_text);
 }
 
-
-
 void UserWaitLabel::set_enabled(bool enabled) {
     assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 
     label_user_instruction->setEnabled(enabled);
     label_user_instruction->setText(instruction_text);
 
-
+    spinner_label->setVisible(enabled);
 
     if (enabled) {
         timer->start(500);
+
     } else {
         timer->stop();
     }
