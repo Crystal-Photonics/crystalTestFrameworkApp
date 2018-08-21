@@ -24,8 +24,7 @@
 #include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, std::string field_id_,
-                                 std::string extra_explanation_, std::string empty_value_placeholder_, std::string desired_prefix_, std::string actual_prefix_)
+PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, const sol::table &items)
     : UI_widget{parent_}
     , label_extra_explanation{new QLabel(parent_)}
     , label_de_description{new QLabel(parent_)}
@@ -34,7 +33,7 @@ PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engin
     , label_ok{new QLabel(parent_)}
     , timer{new QTimer(parent_)}
     , data_engine{data_engine_}
-    , field_id{QString::fromStdString(field_id_)}
+    , field_id{QString::fromStdString(items)}
     , empty_value_placeholder{QString::fromStdString(empty_value_placeholder_)}
     , extra_explanation{QString::fromStdString(extra_explanation_)}
     , desired_prefix{QString::fromStdString(desired_prefix_)}

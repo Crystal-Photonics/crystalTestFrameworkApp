@@ -1304,7 +1304,7 @@ void ScriptEngine::load_script(const QString &path) {
                 "PollDataEngine", //
                 sol::meta_function::construct, [ parent = this->parent, this ](Data_engine_handle & handle, const sol::table &items) {
                     return Lua_UI_Wrapper<PollDataEngine>{
-                        parent, this, this, handle.data_engine, field_id, extra_explanation, empty_value_placeholder, actual_prefix, desired_prefix};
+                        parent, this, this, handle.data_engine, items};
                 }, //
                 "load_actual_value",
                 thread_call_wrapper(&PollDataEngine::load_actual_value),                          //

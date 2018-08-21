@@ -24,8 +24,7 @@ class PollDataEngine : public UI_widget {
     enum FieldType { Bool, String, Numeric };
 
     public:
-    PollDataEngine(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, std::string field_id_, std::string extra_explanation,
-                    std::string empty_value_placeholder, std::string desired_prefix, std::string actual_prefix_);
+    PollDataEngine(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, const sol::table &items);
     ~PollDataEngine();
 
     void set_visible(bool visible);
