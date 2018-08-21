@@ -32,11 +32,24 @@ install:
     
     
   - #install gtest and gmock
-  - export GTEST_TARGET=GTEST_TARGET 
-  - cd $TRAVIS_BUILD_DIR/libs/googletest
-  - tree
-  - ./travis.sh
+  - cd $TRAVIS_BUILD_DIR/libs/googletest/
+  - mkdir build || true
+  - mkdir build/googletest || true
+  - cd build/googletest
+  - cmake -DCMAKE_CXX_FLAGS=$CXX_FLAGS \
+          ../../
+      
+ # - export GTEST_TARGET=googletest 
+#  - cd $TRAVIS_BUILD_DIR/libs/googletest
+ # - ./travis.sh
+ # - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/libs/googletest/build/$GTEST_TARGET:$LD_LIBRARY_PATH
+ # - export GTEST_TARGET=googlemock 
+ # - cd $TRAVIS_BUILD_DIR/libs/googletest
+#  - ./travis.sh
   - LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/libs/googletest/build/$GTEST_TARGET:$LD_LIBRARY_PATH
+
+  
+  
 
   
   
