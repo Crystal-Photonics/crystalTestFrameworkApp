@@ -68,7 +68,9 @@ install:
   - make -j$(nproc)
   - sudo make install
   #defined in travis_qwtconfig.pri
+  - tree /usr/local/qwt-svn
   - export CPATH=/usr/local/qwt-svn/include:$CPATH
+  - export LD_LIBRARY_PATH=/usr/local/qwt-svn/:$LD_LIBRARY_PATH  
   
 
 
