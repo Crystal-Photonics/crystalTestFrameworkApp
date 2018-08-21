@@ -84,6 +84,7 @@ script:
   - ls 
   - cd $TRAVIS_BUILD_DIR
   - cd libs/LimeReport/
+  - cp $TRAVIS_BUILD_DIR/libs/travis_limereport.pro limereport.pro  || true
   - ls 
   - qmake
   - make
