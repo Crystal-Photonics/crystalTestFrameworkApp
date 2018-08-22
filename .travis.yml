@@ -8,15 +8,18 @@ before_install:
   - sudo add-apt-repository --yes ppa:beineri/opt-qt58-trusty
   - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
   - sudo apt-get update -qq
+
+install:
+    
   - sudo apt-get install -qq g++-6 gcc-6
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 90
   - sudo aptitude -f install  -y qt58base qt58serialport qt58script qt58svg qt58tools libusb-1.0-0-dev tree xvfb 
- # - sudo apt-get install -qq -y qt57base qt57declarative qt57imageformats qt57location qt57multimedia qt57quickcontrols qt57script qt57svg qt57tools qt57translations libsdl2-dev
+  - gcc --version
   
-install:
-    
+  
+  
+  
   - source /opt/qt58/bin/qt58-env.sh
-  - echo $QT_VERSION
 
   - #install gtest and gmock
   - cd $TRAVIS_BUILD_DIR/libs/googletest/
@@ -27,8 +30,7 @@ install:
   - cmake -DCMAKE_CXX_FLAGS=$CXX_FLAGS ../../../googletest/
   - make -j$(nproc)      
   - sudo make install
-  #- LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/libs/googletest/build/googletest:$LD_LIBRARY_PATH  
-  
+ 
   
   
   
@@ -73,29 +75,27 @@ install:
   - make -j$(nproc)
   - sudo make install
   - QWT_INSTALL_PREFIX=/usr/local/qwt-svn
-  #defined in travis_qwtconfig.pri
-  #- tree $QWT_INSTALL_PREFIX
+  - #defined in travis_qwtconfig.pri
+  - #tree $QWT_INSTALL_PREFIX
   - export CPATH=$QWT_INSTALL_PREFIX/include:$CPATH
   - export LIBRARY_PATH=$QWT_INSTALL_PREFIX/lib:$LIBRARY_PATH 
-  #- tree LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt
+  - #tree LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt
   
 
  
 script:
  # - source /opt/qt58/bin/qt58-env.sh
  #build limereport
-  #- ls 
   - cd $TRAVIS_BUILD_DIR/libs/LimeReport/
   - cp $TRAVIS_BUILD_DIR/libs/travis_limereport.pro limereport.pro || true
-  #- ls 
   - qmake
   - make -j$(nproc)
-  #- tree -d build/
+  
 #build testframework  
   - cd $TRAVIS_BUILD_DIR
   - qmake
   - make -j$(nproc)
-  - tree $TRAVIS_BUILD_DIR
+  #- tree $TRAVIS_BUILD_DIR
   
   - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/bin/release/:$LD_LIBRARY_PATH    
   - cd $TRAVIS_BUILD_DIR/libs/LimeReport/build/
@@ -106,8 +106,7 @@ script:
   - export LD_LIBRARY_PATH=$(pwd)/release/lib/:$LD_LIBRARY_PATH  
   - echo $LD_LIBRARY_PATH
   - cd $TRAVIS_BUILD_DIR/bin/release/
-  #- export DISPLAY=:0 # QFATAL : Test_Data_engine::test_preview() QXcbConnection: Could not connect to display 
-  - xvfb-run --auto-servernum ./tests
+  - xvfb-run --auto-servernum ./tests # without xvfb: QFATAL : Test_Data_engine::test_preview() QXcbConnection: Could not connect to display 
   
   
 notifications:
@@ -123,9 +122,3 @@ notifications:
       - secure: "vUn+qVqHFt9ZYA224ucpNd+KrbZmC2jdwYrWuW2vcOqama7rC00qfyWHS5rNRBlr+AroGMthziW8k6o/Z4dFQbwzPxyRQ/K9WWtB8Dv9rFmxgEUKzuhemKotjQZWSK+4m76aiaVhryiuCirsclO66ZlSo+y/5ku7PfXj0y70V+8HAAGU28F5kX6/x0btPrgtLZ+0qXL2EapoWX+VgPT+ChA6mAImzOcPtk8hJDVNQQl7Z3DUcTwRIDeeoDKjtRKm5GEpJeleeGpaoio5si413+b3D5VFY+tiHnN2fcnMwlwbjOcDlDlZP0X0iO0n6x6Q2o17wReKP8lLwGWxGalMpzQ02wLT5JQxskk3PAgfRLrL7V7QrSRrooWgQZZf4qUiSaFL1YjOH+sEplv0CeZiY8C0DWgEOdJklrKFQAU42aomtTWn1wZwi5J97o2s/Bp+AKARWKM+tUFlRRBW6NgwOni36AQn93lg8GfUz1DBXkz4IKHyfTntZKRKvGpLrmr+DM5wvK75bZqufJ8Z0YXtLPrvIk+lstV2gDnE28P3vJOon8kyWtJPCncBkTFRLqDvmWrVDtoSbBEtNiJ+4MmeLTH2+1GQy0ExS1aICd3imeBqj1Ka15hLpHCisXhZ1j6AHTZR7mpg0FJ/n4d506QBpabLJ9fhcyK/v8tK3VgSpD4="
     on_success: always
     on_failure: always # default: always
-    
-#irc:
-#    channels:
-#      - "chat.freenode.net#phoenix-dev"
-#    use_notice: true
-#    skip_join: true
