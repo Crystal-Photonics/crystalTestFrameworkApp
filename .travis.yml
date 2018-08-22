@@ -100,6 +100,10 @@ script:
   - tree $TRAVIS_BUILD_DIR
   
   - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/bin/release/:$LD_LIBRARY_PATH    
+  - cd $TRAVIS_BUILD_DIR/libs/LimeReport/build/$QT_VERSION
+  - ./$TRAVIS_BUILD_DIR/travis_cd_next_directory.sh
+  - export LD_LIBRARY_PATH=$(pwd)/release/lib/:$LD_LIBRARY_PATH  
+  - cd $TRAVIS_BUILD_DIR
   - ./bin/release/tests
   
   
