@@ -113,8 +113,8 @@ script:
 notifications:
   email:
     recipients:
-      - ak@example.com
-      - tr@example.com
+      - ak@crystal-photonics.com
+      - tr@crystal-photonics.com
     on_success: always
     on_failure: always # default: always
     
