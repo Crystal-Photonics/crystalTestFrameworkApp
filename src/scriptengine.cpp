@@ -1303,17 +1303,18 @@ void ScriptEngine::load_script(const QString &path) {
             ui_table.new_usertype<Lua_UI_Wrapper<PollDataEngine>>("PollDataEngine", //
                                                                   sol::meta_function::construct,
                                                                   [ parent = this->parent, this ](Data_engine_handle & handle, const sol::table items) {
-                QStringList sl;
-                for (const auto &item : items) {
-                    sl.append(QString::fromStdString(item.second.as<std::string>()));
-                }
+                                                                      QStringList sl;
+                                                                      for (const auto &item : items) {
+                                                                          sl.append(QString::fromStdString(item.second.as<std::string>()));
+                                                                      }
                                                                       return Lua_UI_Wrapper<PollDataEngine>{parent, this, this, handle.data_engine, sl};
                                                                   }, //
-                                                                  "load_actual_value",
-                                                                  thread_call_wrapper(&PollDataEngine::load_actual_value),          //
-                                                                  "set_visible", thread_call_wrapper(&PollDataEngine::set_visible), //
+
+                                                                  "set_visible",
+                                                                  thread_call_wrapper(&PollDataEngine::set_visible),                //
+                                                                  "refresh", thread_call_wrapper(&PollDataEngine::refresh),         //
                                                                   "set_enabled", thread_call_wrapper(&PollDataEngine::set_enabled), //
-                                                                  "set_explanation_text", thread_call_wrapper(&PollDataEngine::set_explanation_text)
+                                                                  "is_in_range", thread_call_wrapper(&PollDataEngine::is_in_range)
 
                                                                       );
         }

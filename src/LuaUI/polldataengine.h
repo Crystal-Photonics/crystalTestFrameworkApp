@@ -41,34 +41,27 @@ class PollDataEngine : public UI_widget {
 
     void set_visible(bool visible);
     void set_enabled(bool is_enabled);
-    void load_actual_value();
-    void set_explanation_text(const std::string &extra_explanation);
+    void refresh();
+    bool is_in_range();
 
     private:
-    QLabel *label_extra_explanation = nullptr;
+    void load_actual_value();
 
     QTimer *timer = nullptr;
 
     QList<FieldEntry> field_entries;
     Data_engine *data_engine = nullptr;
     QGridLayout *grid_layout = nullptr;
-    QStringList field_ids;
 
     QString empty_value_placeholder{"/"};
-    QString extra_explanation;
-    QString desired_prefix;
-    QString actual_prefix;
-    uint blink_state = 0;
 
     bool is_enabled = true;
     bool is_visible = true;
-    bool is_waiting = false;
     ///\cond HIDDEN_SYMBOLS
     void start_timer();
     ///\endcond
     ScriptEngine *script_engine;
     void resizeMe(QResizeEvent *event) override;
-    std::experimental::optional<bool> bool_result;
 
     QMetaObject::Connection callback_timer = {};
     void set_ui_visibility();
@@ -76,11 +69,8 @@ class PollDataEngine : public UI_widget {
     void set_labels_enabled();
     void set_total_visibilty();
     const int BLINK_INTERVAL_MS = 500;
-    uint total_width = 0;
     bool init_ok = false;
 
-    bool dont_save_result_to_de = false;
-    void scale_columns();
 };
 
 #endif // DATAENGINEINPUT_H
