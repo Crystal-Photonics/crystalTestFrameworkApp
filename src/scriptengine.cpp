@@ -11,6 +11,7 @@
 #include "LuaUI/label.h"
 #include "LuaUI/lineedit.h"
 #include "LuaUI/plot.h"
+#include "LuaUI/polldataengine.h"
 #include "LuaUI/progressbar.h"
 #include "LuaUI/spinbox.h"
 #include "LuaUI/userinstructionlabel.h"
@@ -1297,6 +1298,26 @@ void ScriptEngine::load_script(const QString &path) {
                                                     }, //
                                                     [](int rgb) { return Color{rgb}; });
         }
+        //bind PollDataEngine
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<PollDataEngine>>("PollDataEngine", //
+                                                                  sol::meta_function::construct,
+                                                                  [ parent = this->parent, this ](Data_engine_handle & handle, const sol::table items) {
+                                                                      QStringList sl;
+                                                                      for (const auto &item : items) {
+                                                                          sl.append(QString::fromStdString(item.second.as<std::string>()));
+                                                                      }
+                                                                      return Lua_UI_Wrapper<PollDataEngine>{parent, this, this, handle.data_engine, sl};
+                                                                  }, //
+
+                                                                  "set_visible",
+                                                                  thread_call_wrapper(&PollDataEngine::set_visible),                //
+                                                                  "refresh", thread_call_wrapper(&PollDataEngine::refresh),         //
+                                                                  "set_enabled", thread_call_wrapper(&PollDataEngine::set_enabled), //
+                                                                  "is_in_range", thread_call_wrapper(&PollDataEngine::is_in_range)
+
+                                                                      );
+        }
         //bind DataEngineInput
         {
             ui_table.new_usertype<Lua_UI_Wrapper<DataEngineInput>>(
@@ -1340,14 +1361,15 @@ void ScriptEngine::load_script(const QString &path) {
         //bind UserWaitLabel
         {
             ui_table.new_usertype<Lua_UI_Wrapper<UserWaitLabel>>("UserWaitLabel", //
-                                                                        sol::meta_function::construct,
-                                                                        [ parent = this->parent, this ](const std::string &instruction_text) {
-                                                                            return Lua_UI_Wrapper<UserWaitLabel>{parent, this, this, instruction_text};
-                                                                        }, //
-                                                                        "set_enabled", thread_call_wrapper(&UserWaitLabel::set_enabled), //
-                                                                        "set_text", thread_call_wrapper(&UserWaitLabel::set_text)
+                                                                 sol::meta_function::construct,
+                                                                 [ parent = this->parent, this ](const std::string &instruction_text) {
+                                                                     return Lua_UI_Wrapper<UserWaitLabel>{parent, this, this, instruction_text};
+                                                                 }, //
+                                                                 "set_enabled",
+                                                                 thread_call_wrapper(&UserWaitLabel::set_enabled), //
+                                                                 "set_text", thread_call_wrapper(&UserWaitLabel::set_text)
 
-                                                                            );
+                                                                     );
         }
         //bind ComboBoxFileSelector
         {
