@@ -14,6 +14,7 @@ install:
   - sudo apt-get install -qq g++-6 gcc-6
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 90
   - sudo aptitude -f install  -y qt58base qt58serialport qt58script qt58svg qt58tools libusb-1.0-0-dev tree xvfb 
+  - g++ --version
   - gcc --version
   
   
