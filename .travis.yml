@@ -107,7 +107,7 @@ script:
   - echo $LD_LIBRARY_PATH
   - cd $TRAVIS_BUILD_DIR
   #- export DISPLAY=:0 # QFATAL : Test_Data_engine::test_preview() QXcbConnection: Could not connect to display 
-  - xvfb-run --auto-servernum ./bin/release/tests --output-on-failure
+  - xvfb-run --auto-servernum ./bin/release/tests
   
   
 notifications:
