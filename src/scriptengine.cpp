@@ -1303,7 +1303,11 @@ void ScriptEngine::load_script(const QString &path) {
             ui_table.new_usertype<Lua_UI_Wrapper<PollDataEngine>>("PollDataEngine", //
                                                                   sol::meta_function::construct,
                                                                   [ parent = this->parent, this ](Data_engine_handle & handle, const sol::table items) {
-                                                                      return Lua_UI_Wrapper<PollDataEngine>{parent, this, this, handle.data_engine, items};
+                QStringList sl;
+                for (const auto &item : items) {
+                    sl.append(QString::fromStdString(item.second.as<std::string>()));
+                }
+                                                                      return Lua_UI_Wrapper<PollDataEngine>{parent, this, this, handle.data_engine, sl};
                                                                   }, //
                                                                   "load_actual_value",
                                                                   thread_call_wrapper(&PollDataEngine::load_actual_value),          //

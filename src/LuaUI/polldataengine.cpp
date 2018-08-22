@@ -24,7 +24,7 @@
 #include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, const sol::table items)
+PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, QStringList items)
     : UI_widget{parent_}
     , label_extra_explanation{new QLabel(parent_)}
 
@@ -40,11 +40,7 @@ PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engin
     qDebug() << "actual_prefix_" << QString::fromStdString(actual_prefix_);
     qDebug() << "line" << __LINE__;
 #endif
-    for (auto &i : items) {
-        QString field_id = QString::fromStdString(i.second.as<std::string>());
-        field_ids.append(field_id);
-    }
-
+    field_ids.append(items);
     vlayout = new QVBoxLayout;
 
     parent->add(vlayout, this);
