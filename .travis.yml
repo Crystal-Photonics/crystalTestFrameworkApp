@@ -34,14 +34,17 @@ install:
   
   
   
-  - # Install libLua5.3  
+  - # Install libLua5.3 
+  - cd $TRAVIS_BUILD_DIR
+  - mkdir lua_packages
+  - cd $TRAVIS_BUILD_DIR/lua_packages/  
   - # on newer ubuntu machines executing:  `sudo aptitude -f install liblua5.3-dev` should be enough
   - wget http://ftp.us.debian.org/debian/pool/main/l/lua5.3/liblua5.3-0_5.3.3-1_amd64.deb
   - wget http://ftp.br.debian.org/debian/pool/main/l/lua5.3/liblua5.3-dev_5.3.3-1_amd64.deb
   #- dpkg -c liblua5.3-0_5.3.3-1_amd64.deb
   - sudo dpkg -i liblua5.3-0_5.3.3-1_amd64.deb
   - sudo dpkg -i liblua5.3-dev_5.3.3-1_amd64.deb
-  - ls /usr/lib/x86_64-linux-gnu/ | grep lua
+  #- ls /usr/lib/x86_64-linux-gnu/ | grep lua
   - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH
     
     
@@ -68,12 +71,14 @@ install:
   - qmake
   - make -j$(nproc)
   - sudo make install
+  - QWT_INSTALL_PREFIX=/usr/local/qwt-svn
   #defined in travis_qwtconfig.pri
-  - tree /usr/local/qwt-svn
-  - export CPATH=/usr/local/qwt-svn/include:$CPATH
-  - export LD_LIBRARY_PATH=/usr/local/qwt-svn/lib:$LD_LIBRARY_PATH  
-  - export LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt/lib:$LIBRARY_PATH 
-  - echo $QWT_DIR
+  #- tree $QWT_INSTALL_PREFIX
+  - export CPATH=$QWT_INSTALL_PREFIX/include:$CPATH
+  #- export LD_LIBRARY_PATH=$QWT_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH  
+  #- export LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt/lib:$LIBRARY_PATH 
+  - export LIBRARY_PATH=$QWT_INSTALL_PREFIX/lib:$LIBRARY_PATH 
+  #- echo $QWT_DIR
   #- tree LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt
   
 
@@ -81,11 +86,10 @@ install:
 script:
  # - source /opt/qt58/bin/qt58-env.sh
  #build limereport
-  - ls 
-  - cd $TRAVIS_BUILD_DIR
-  - cd libs/LimeReport/
-  - cp $TRAVIS_BUILD_DIR/libs/travis_limereport.pro limereport.pro  || true
-  - ls 
+  #- ls 
+  - cd $TRAVIS_BUILD_DIR/libs/LimeReport/
+  - cp $TRAVIS_BUILD_DIR/libs/travis_limereport.pro limereport.pro || true
+  #- ls 
   - qmake
   - make -j$(nproc)
   #- tree -d build/
@@ -93,6 +97,8 @@ script:
   - cd $TRAVIS_BUILD_DIR
   - qmake
   - make -j$(nproc)
+  - tree $TRAVIS_BUILD_DIR
+  - ./test
   
   
 #notifications:
