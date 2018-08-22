@@ -105,9 +105,9 @@ script:
   - pwd
   - export LD_LIBRARY_PATH=$(pwd)/release/lib/:$LD_LIBRARY_PATH  
   - echo $LD_LIBRARY_PATH
-  - cd $TRAVIS_BUILD_DIR
+  - cd $TRAVIS_BUILD_DIR/bin/release/
   #- export DISPLAY=:0 # QFATAL : Test_Data_engine::test_preview() QXcbConnection: Could not connect to display 
-  - xvfb-run --auto-servernum ./bin/release/tests
+  - xvfb-run --auto-servernum ./tests
   
   
 notifications:
