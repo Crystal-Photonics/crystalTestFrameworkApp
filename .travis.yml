@@ -105,10 +105,10 @@ script:
   
 notifications:
   email:
-    - ak@example.com
-    - tr@example.com
-    on_success: always
-    on_failure: always # default: always
+   - ak@example.com
+   - tr@example.com
+   on_success: always
+   on_failure: always # default: always
     
   slack:
     rooms:
