@@ -105,10 +105,11 @@ script:
   
 notifications:
   email:
-      - ak@example.com
-      - tr@example.com
+    - ak@example.com
+    - tr@example.com
+    on_success: always
     on_failure: always # default: always
-    on_success: change    
+    
   slack:
     rooms:
       - secure: "vUn+qVqHFt9ZYA224ucpNd+KrbZmC2jdwYrWuW2vcOqama7rC00qfyWHS5rNRBlr+AroGMthziW8k6o/Z4dFQbwzPxyRQ/K9WWtB8Dv9rFmxgEUKzuhemKotjQZWSK+4m76aiaVhryiuCirsclO66ZlSo+y/5ku7PfXj0y70V+8HAAGU28F5kX6/x0btPrgtLZ+0qXL2EapoWX+VgPT+ChA6mAImzOcPtk8hJDVNQQl7Z3DUcTwRIDeeoDKjtRKm5GEpJeleeGpaoio5si413+b3D5VFY+tiHnN2fcnMwlwbjOcDlDlZP0X0iO0n6x6Q2o17wReKP8lLwGWxGalMpzQ02wLT5JQxskk3PAgfRLrL7V7QrSRrooWgQZZf4qUiSaFL1YjOH+sEplv0CeZiY8C0DWgEOdJklrKFQAU42aomtTWn1wZwi5J97o2s/Bp+AKARWKM+tUFlRRBW6NgwOni36AQn93lg8GfUz1DBXkz4IKHyfTntZKRKvGpLrmr+DM5wvK75bZqufJ8Z0YXtLPrvIk+lstV2gDnE28P3vJOon8kyWtJPCncBkTFRLqDvmWrVDtoSbBEtNiJ+4MmeLTH2+1GQy0ExS1aICd3imeBqj1Ka15hLpHCisXhZ1j6AHTZR7mpg0FJ/n4d506QBpabLJ9fhcyK/v8tK3VgSpD4="
