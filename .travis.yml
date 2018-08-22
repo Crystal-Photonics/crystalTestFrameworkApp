@@ -16,6 +16,7 @@ before_install:
 install:
     
   - source /opt/qt58/bin/qt58-env.sh
+  - echo $QT_VERSION
 
   - #install gtest and gmock
   - cd $TRAVIS_BUILD_DIR/libs/googletest/
@@ -101,6 +102,8 @@ script:
   
   - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/bin/release/:$LD_LIBRARY_PATH    
   - cd $TRAVIS_BUILD_DIR/libs/LimeReport/build/$QT_VERSION
+#  pkg-config --modversion QtCore
+
   - cd $($TRAVIS_BUILD_DIR/./travis_cd_next_directory.sh)
   - export LD_LIBRARY_PATH=$(pwd)/release/lib/:$LD_LIBRARY_PATH  
   - echo $LD_LIBRARY_PATH
