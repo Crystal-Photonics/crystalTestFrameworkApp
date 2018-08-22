@@ -102,11 +102,11 @@ script:
   
   
 notifications:
-    email:
-        - ak@example.com
-        - tr@example.com
-        on_failure: always # default: always
-        on_success: change    
+  email:
+    - ak@example.com
+    - tr@example.com
+  on_failure: always # default: always
+  on_success: change    
 
 
 #irc:
