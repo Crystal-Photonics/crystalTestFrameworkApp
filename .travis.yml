@@ -101,11 +101,11 @@ script:
   - tree $TRAVIS_BUILD_DIR
   
   - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/bin/release/:$LD_LIBRARY_PATH    
-  - cd $TRAVIS_BUILD_DIR/libs/LimeReport/build/$(pkg-config --modversion QtCore)
+  - cd $TRAVIS_BUILD_DIR/libs/LimeReport/build/
   - pwd
-#  pkg-config --modversion QtCore
-
-  - cd $($TRAVIS_BUILD_DIR/./travis_cd_next_directory.sh)
+  - cd $($TRAVIS_BUILD_DIR/./travis_cd_next_directory.sh) #cd to LimeReport/build/5.8.0
+  - cd $($TRAVIS_BUILD_DIR/./travis_cd_next_directory.sh) #cd to LimeReport/build/5.8.0/linux64
+  - pwd
   - export LD_LIBRARY_PATH=$(pwd)/release/lib/:$LD_LIBRARY_PATH  
   - echo $LD_LIBRARY_PATH
   - cd $TRAVIS_BUILD_DIR
