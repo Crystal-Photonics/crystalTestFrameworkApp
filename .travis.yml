@@ -105,8 +105,8 @@ script:
   
 notifications:
   email:
-   - ak@example.com
-   - tr@example.com
+    - ak@example.com
+    - tr@example.com
    on_success: always
    on_failure: always # default: always
     
