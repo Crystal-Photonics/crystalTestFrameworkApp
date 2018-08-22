@@ -1,2 +1,2 @@
 #!/bin/bash
-cd `compgen -o dirnames`
+echo `compgen -o dirnames`
