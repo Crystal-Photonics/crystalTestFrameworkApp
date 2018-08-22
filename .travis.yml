@@ -98,10 +98,17 @@ script:
   - qmake
   - make -j$(nproc)
   - tree $TRAVIS_BUILD_DIR
-  - ./test
+  - ./bin/release/tests
   
   
-#notifications:
+notifications:
+    email:
+        - ak@example.com
+        - tr@example.com
+        on_failure: always # default: always
+        on_success: change    
+
+
 #irc:
 #    channels:
 #      - "chat.freenode.net#phoenix-dev"
