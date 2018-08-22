@@ -10,7 +10,7 @@ before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq g++-6 gcc-6
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 90
-  - sudo aptitude -f install  -y qt58base qt58serialport qt58script qt58svg qt58tools libusb-1.0-0-dev tree
+  - sudo aptitude -f install  -y qt58base qt58serialport qt58script qt58svg qt58tools libusb-1.0-0-dev tree xorg-server-xvfb
  # - sudo apt-get install -qq -y qt57base qt57declarative qt57imageformats qt57location qt57multimedia qt57quickcontrols qt57script qt57svg qt57tools qt57translations libsdl2-dev
   
 install:
@@ -76,10 +76,7 @@ install:
   #defined in travis_qwtconfig.pri
   #- tree $QWT_INSTALL_PREFIX
   - export CPATH=$QWT_INSTALL_PREFIX/include:$CPATH
-  #- export LD_LIBRARY_PATH=$QWT_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH  
-  #- export LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt/lib:$LIBRARY_PATH 
   - export LIBRARY_PATH=$QWT_INSTALL_PREFIX/lib:$LIBRARY_PATH 
-  #- echo $QWT_DIR
   #- tree LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt
   
 
@@ -109,7 +106,8 @@ script:
   - export LD_LIBRARY_PATH=$(pwd)/release/lib/:$LD_LIBRARY_PATH  
   - echo $LD_LIBRARY_PATH
   - cd $TRAVIS_BUILD_DIR
-  - ./bin/release/tests
+  #- export DISPLAY=:0 # QFATAL : Test_Data_engine::test_preview() QXcbConnection: Could not connect to display 
+  - xvfb-run --auto-servernum ./bin/release/tests --output-on-failure
   
   
 notifications:
