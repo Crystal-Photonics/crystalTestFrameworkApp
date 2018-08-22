@@ -1781,7 +1781,13 @@ QMap<QString, QVariant> git_info(QString path, bool allow_modified, bool allow_e
         myProcess.waitForFinished();
         auto out = QString(myProcess.readAll()).split("\n");
         if (myProcess.exitCode() != 0) {
-            throw std::runtime_error(myProcess.readAllStandardError().toStdString());
+            if (allow_exceptions) {
+                throw std::runtime_error(myProcess.readAllStandardError().toStdString());
+            }else{
+                qDebug() << "git_info" << myProcess.readAllStandardError();
+
+                return QMap<QString, QVariant>{};
+            }
         }
         //qDebug() << out;
         switch (i) {
