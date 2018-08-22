@@ -27,41 +27,31 @@
 PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, QStringList items)
     : UI_widget{parent_}
     , label_extra_explanation{new QLabel(parent_)}
-
     , timer{new QTimer(parent_)}
     , data_engine{data_engine_}
-
     , script_engine{script_engine} {
-#if 0
-    qDebug() << "field_id" << QString::fromStdString(field_id_);
-    qDebug() << "empty_value_placeholder_" << QString::fromStdString(empty_value_placeholder_);
-    qDebug() << "extra_explanation_" << QString::fromStdString(extra_explanation_);
-    qDebug() << "desired_prefix_" << QString::fromStdString(desired_prefix_);
-    qDebug() << "actual_prefix_" << QString::fromStdString(actual_prefix_);
-    qDebug() << "line" << __LINE__;
-#endif
     field_ids.append(items);
-    vlayout = new QVBoxLayout;
+    grid_layout = new QGridLayout;
 
-    parent->add(vlayout, this);
+    parent->add(grid_layout, this);
 
     label_extra_explanation->setText(extra_explanation);
     label_extra_explanation->setWordWrap(true);
 
     assert(data_engine);
+    int row = 0;
     for (auto field_id : field_ids) {
         QLabel *label_de_description = new QLabel(parent_);
         QLabel *label_de_desired_value = new QLabel(parent_);
         QLabel *label_de_actual_value = new QLabel(parent_);
         QLabel *label_ok = new QLabel(parent_);
 
-        QHBoxLayout *hlayout = new QHBoxLayout;
-        hlayout->addWidget(label_extra_explanation, 0, Qt::AlignTop);
-        hlayout->addWidget(label_de_description, 0, Qt::AlignTop);
-        hlayout->addWidget(label_de_desired_value, 0, Qt::AlignTop);
-        hlayout->addWidget(label_de_actual_value, 0, Qt::AlignTop);
-        hlayout->addWidget(label_ok, 0, Qt::AlignTop);
-        vlayout->addLayout(hlayout);
+
+        grid_layout->addWidget(label_extra_explanation, row, 0, Qt::AlignTop);
+        grid_layout->addWidget(label_de_description, row, 1, Qt::AlignTop);
+        grid_layout->addWidget(label_de_desired_value, row, 2, Qt::AlignTop);
+        grid_layout->addWidget(label_de_actual_value, row, 3, Qt::AlignTop);
+        grid_layout->addWidget(label_ok, row, 4, Qt::AlignTop);
 
         QString desc = data_engine->get_description(field_id);
         label_de_description->setText(desc);
@@ -71,7 +61,7 @@ PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engin
         label_de_desired_value->setWordWrap(true);
         label_de_actual_value->setText(this->actual_prefix + " " + this->empty_value_placeholder);
         label_de_actual_value->setWordWrap(true);
-        label_ok->setText("-");
+        label_ok->setText("Fail");
         if (!data_engine->is_desired_value_set(field_id)) {
             QString s = data_engine->get_unit(field_id);
             if (s.size()) {
@@ -100,12 +90,11 @@ PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engin
 
         auto sp_w = QSizePolicy::Maximum;
         auto sp_h = QSizePolicy::MinimumExpanding;
-        //auto sp_h_f = QSizePolicy::Fixed;
-
         label_extra_explanation->setSizePolicy(sp_w, sp_h);
         label_de_desired_value->setSizePolicy(sp_w, sp_h);
         label_de_actual_value->setSizePolicy(sp_w, sp_h);
         label_ok->setSizePolicy(sp_w, sp_h);
+        row++;
     }
 
     set_enabled(true);
@@ -215,7 +204,7 @@ void PollDataEngine::set_total_visibilty() {
 }
 
 void PollDataEngine::scale_columns() {
-    #if 0
+#if 0
     assert(MainWindow::gui_thread == QThread::currentThread());
 
     int col_size = 7;
@@ -239,11 +228,11 @@ void PollDataEngine::scale_columns() {
 
     } else if (!is_visible) {
     }
-    #endif
+#endif
 }
 
 void PollDataEngine::set_labels_enabled() {
-        #if 0
+#if 0
     label_extra_explanation->setEnabled(is_enabled);
     label_de_description->setEnabled(is_enabled);
     label_de_desired_value->setEnabled(is_enabled);
@@ -256,11 +245,11 @@ void PollDataEngine::set_labels_enabled() {
         label_extra_explanation->setVisible(true);
     }
     label_ok->setEnabled(is_enabled);
-        #endif
+#endif
 }
 
 void PollDataEngine::set_ui_visibility() {
-        #if 0
+#if 0
     Utility::promised_thread_call(MainWindow::mw, [this] {
 
         if (init_ok == false) {
@@ -277,7 +266,7 @@ void PollDataEngine::set_ui_visibility() {
         set_total_visibilty();
 
     });
-            #endif
+#endif
 }
 
 ///\endcond

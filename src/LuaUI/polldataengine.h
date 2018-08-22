@@ -13,6 +13,7 @@ class QSplitter;
 class QTimer;
 class QCheckBox;
 class QHBoxLayout;
+class QGridLayout;
 class QWidget;
 class QLineEdit;
 class QPushButton;
@@ -34,15 +35,12 @@ class PollDataEngine : public UI_widget {
 
     private:
 
-
     QLabel *label_extra_explanation = nullptr;
-
-
 
     QTimer *timer = nullptr;
 
     Data_engine *data_engine = nullptr;
-    QVBoxLayout *vlayout = nullptr;
+    QGridLayout *grid_layout = nullptr;
     QStringList field_ids;
 
     QString empty_value_placeholder{"/"};
