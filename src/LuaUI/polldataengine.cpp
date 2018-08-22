@@ -41,59 +41,61 @@ PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engin
     assert(data_engine);
     int row = 0;
     for (auto field_id : field_ids) {
-        QLabel *label_de_description = new QLabel(parent_);
-        QLabel *label_de_desired_value = new QLabel(parent_);
-        QLabel *label_de_actual_value = new QLabel(parent_);
-        QLabel *label_ok = new QLabel(parent_);
+        FieldEntry field_entry{};
+        field_entry.label_de_description = new QLabel(parent_);
+        field_entry.label_de_desired_value = new QLabel(parent_);
+        field_entry.label_de_actual_value = new QLabel(parent_);
+        field_entry.label_ok = new QLabel(parent_);
 
 
-        grid_layout->addWidget(label_extra_explanation, row, 0, Qt::AlignTop);
-        grid_layout->addWidget(label_de_description, row, 1, Qt::AlignTop);
-        grid_layout->addWidget(label_de_desired_value, row, 2, Qt::AlignTop);
-        grid_layout->addWidget(label_de_actual_value, row, 3, Qt::AlignTop);
-        grid_layout->addWidget(label_ok, row, 4, Qt::AlignTop);
+        //grid_layout->addWidget(field_entry.label_extra_explanation, row, 0, Qt::AlignTop);
+        grid_layout->addWidget(field_entry.label_de_description, row, 1, Qt::AlignTop);
+        grid_layout->addWidget(field_entry.label_de_desired_value, row, 2, Qt::AlignTop);
+        grid_layout->addWidget(field_entry.label_de_actual_value, row, 3, Qt::AlignTop);
+        grid_layout->addWidget(field_entry.label_ok, row, 4, Qt::AlignTop);
 
         QString desc = data_engine->get_description(field_id);
-        label_de_description->setText(desc);
-        label_de_description->setWordWrap(true);
+        field_entry.label_de_description->setText(desc);
+        field_entry.label_de_description->setWordWrap(true);
         QString s = this->desired_prefix + " " + data_engine->get_desired_value_as_string(field_id);
-        label_de_desired_value->setText(s);
-        label_de_desired_value->setWordWrap(true);
-        label_de_actual_value->setText(this->actual_prefix + " " + this->empty_value_placeholder);
-        label_de_actual_value->setWordWrap(true);
-        label_ok->setText("Fail");
+        field_entry.label_de_desired_value->setText(s);
+        field_entry.label_de_desired_value->setWordWrap(true);
+        field_entry.label_de_actual_value->setText(this->actual_prefix + " " + this->empty_value_placeholder);
+        field_entry.label_de_actual_value->setWordWrap(true);
+        field_entry.label_ok->setText("Fail");
         if (!data_engine->is_desired_value_set(field_id)) {
             QString s = data_engine->get_unit(field_id);
             if (s.size()) {
-                label_de_desired_value->setText("[" + s + "]");
+                field_entry.label_de_desired_value->setText("[" + s + "]");
             } else {
-                label_de_desired_value->setText("");
+                field_entry.label_de_desired_value->setText("");
             }
         }
 
         auto entry_type = data_engine->get_entry_type(field_id);
         switch (entry_type) {
             case EntryType::Bool: {
-                field_type = FieldType::Bool;
+                field_entry.field_type = FieldEntry::FieldType::Bool;
 
             } break;
             case EntryType::Numeric: {
-                field_type = FieldType::Numeric;
+                field_entry.field_type = FieldEntry::FieldType::Numeric;
             } break;
             case EntryType::String: {
-                field_type = FieldType::String;
+                field_entry.field_type =FieldEntry:: FieldType::String;
             } break;
             default:
                 assert(0);
                 break;
         }
-
+#if 0
         auto sp_w = QSizePolicy::Maximum;
         auto sp_h = QSizePolicy::MinimumExpanding;
         label_extra_explanation->setSizePolicy(sp_w, sp_h);
         label_de_desired_value->setSizePolicy(sp_w, sp_h);
         label_de_actual_value->setSizePolicy(sp_w, sp_h);
         label_ok->setSizePolicy(sp_w, sp_h);
+#endif
         row++;
     }
 

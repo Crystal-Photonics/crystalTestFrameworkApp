@@ -21,8 +21,19 @@ class QPushButton;
 /** \ingroup ui
  *  \{
  */
-class PollDataEngine : public UI_widget {
+class FieldEntry {
+public:
     enum FieldType { Bool, String, Numeric };
+    QString field_id;
+    QLabel *label_de_description = nullptr;
+    QLabel *label_de_desired_value = nullptr;
+    QLabel *label_de_actual_value = nullptr;
+    QLabel *label_ok = nullptr;
+    FieldType field_type;
+};
+
+class PollDataEngine : public UI_widget {
+
 
     public:
     PollDataEngine(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, QStringList items);
@@ -34,11 +45,11 @@ class PollDataEngine : public UI_widget {
     void set_explanation_text(const std::string &extra_explanation);
 
     private:
-
     QLabel *label_extra_explanation = nullptr;
 
     QTimer *timer = nullptr;
 
+    QList<FieldEntry> field_entries;
     Data_engine *data_engine = nullptr;
     QGridLayout *grid_layout = nullptr;
     QStringList field_ids;
@@ -61,7 +72,7 @@ class PollDataEngine : public UI_widget {
 
     QMetaObject::Connection callback_timer = {};
     void set_ui_visibility();
-    FieldType field_type;
+
     void set_labels_enabled();
     void set_total_visibilty();
     const int BLINK_INTERVAL_MS = 500;
