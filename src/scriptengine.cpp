@@ -1,6 +1,5 @@
 #include "scriptengine.h"
 #include "LuaUI/button.h"
-#include "LuaUI/polldataengine.h"
 #include "LuaUI/checkbox.h"
 #include "LuaUI/color.h"
 #include "LuaUI/combobox.h"
@@ -12,6 +11,7 @@
 #include "LuaUI/label.h"
 #include "LuaUI/lineedit.h"
 #include "LuaUI/plot.h"
+#include "LuaUI/polldataengine.h"
 #include "LuaUI/progressbar.h"
 #include "LuaUI/spinbox.h"
 #include "LuaUI/userinstructionlabel.h"
@@ -1300,19 +1300,18 @@ void ScriptEngine::load_script(const QString &path) {
         }
         //bind PollDataEngine
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<PollDataEngine>>(
-                "PollDataEngine", //
-                sol::meta_function::construct, [ parent = this->parent, this ](Data_engine_handle & handle, const sol::table &items) {
-                    return Lua_UI_Wrapper<PollDataEngine>{
-                        parent, this, this, handle.data_engine, items};
-                }, //
-                "load_actual_value",
-                thread_call_wrapper(&PollDataEngine::load_actual_value),                          //
-                "set_visible", thread_call_wrapper(&PollDataEngine::set_visible),                 //
-                "set_enabled", thread_call_wrapper(&PollDataEngine::set_enabled),                 //
-                "set_explanation_text", thread_call_wrapper(&PollDataEngine::set_explanation_text)
+            ui_table.new_usertype<Lua_UI_Wrapper<PollDataEngine>>("PollDataEngine", //
+                                                                  sol::meta_function::construct,
+                                                                  [ parent = this->parent, this ](Data_engine_handle & handle, const sol::table items) {
+                                                                      return Lua_UI_Wrapper<PollDataEngine>{parent, this, this, handle.data_engine, items};
+                                                                  }, //
+                                                                  "load_actual_value",
+                                                                  thread_call_wrapper(&PollDataEngine::load_actual_value),          //
+                                                                  "set_visible", thread_call_wrapper(&PollDataEngine::set_visible), //
+                                                                  "set_enabled", thread_call_wrapper(&PollDataEngine::set_enabled), //
+                                                                  "set_explanation_text", thread_call_wrapper(&PollDataEngine::set_explanation_text)
 
-                    );
+                                                                      );
         }
         //bind DataEngineInput
         {
@@ -1357,14 +1356,15 @@ void ScriptEngine::load_script(const QString &path) {
         //bind UserWaitLabel
         {
             ui_table.new_usertype<Lua_UI_Wrapper<UserWaitLabel>>("UserWaitLabel", //
-                                                                        sol::meta_function::construct,
-                                                                        [ parent = this->parent, this ](const std::string &instruction_text) {
-                                                                            return Lua_UI_Wrapper<UserWaitLabel>{parent, this, this, instruction_text};
-                                                                        }, //
-                                                                        "set_enabled", thread_call_wrapper(&UserWaitLabel::set_enabled), //
-                                                                        "set_text", thread_call_wrapper(&UserWaitLabel::set_text)
+                                                                 sol::meta_function::construct,
+                                                                 [ parent = this->parent, this ](const std::string &instruction_text) {
+                                                                     return Lua_UI_Wrapper<UserWaitLabel>{parent, this, this, instruction_text};
+                                                                 }, //
+                                                                 "set_enabled",
+                                                                 thread_call_wrapper(&UserWaitLabel::set_enabled), //
+                                                                 "set_text", thread_call_wrapper(&UserWaitLabel::set_text)
 
-                                                                            );
+                                                                     );
         }
         //bind ComboBoxFileSelector
         {
