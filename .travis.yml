@@ -82,7 +82,7 @@ install:
   #- tree LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt
   
 
-
+ 
 script:
  # - source /opt/qt58/bin/qt58-env.sh
  #build limereport
