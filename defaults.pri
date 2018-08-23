@@ -85,7 +85,13 @@ DEFINES += SOL_CHECK_ARGUMENTS
 
 QMAKE_CXXFLAGS += -Werror
 
-QMAKE_CXXFLAGS_DEBUG += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare -fsanitize-undefined-trap-on-error
+QMAKE_CXXFLAGS_DEBUG += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare
+unix {
+	QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
+	QMAKE_LFLAGS_DEBUG += -fsanitize=undefined,address -fuse-ld=gold -L/usr/local/lib
+} else {
+	QMAKE_CXXFLAGS_DEBUG += -fsanitize-undefined-trap-on-error
+}
 QMAKE_CXXFLAGS_RELEASE += -Wall -Wunused-function -Wunused-parameter -Wunused-variable
 
 QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer

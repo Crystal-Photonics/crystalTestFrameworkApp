@@ -15,3 +15,7 @@ SUBDIRS += tests
 #src.depends = comModules/mocklayer/appPlugin
 app.depends = src
 tests.depends = src
+
+OTHER_FILES += \
+	.travis.yml \
+	lsan.supp
