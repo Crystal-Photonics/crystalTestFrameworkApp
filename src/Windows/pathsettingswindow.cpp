@@ -40,9 +40,10 @@ std::vector<std::pair<QLineEdit *, const char *>> PathSettingsWindow::get_config
             {ui->lua_editor_path_text, Globals::lua_editor_path_settings_key},
             {ui->lua_editor_parameters_text, Globals::lua_editor_parameters_settings_key},
             {ui->meta_path_text, Globals::measurement_equipment_meta_data_path},
-            {ui->git_path, Globals::git_path},
+           // {ui->git_path, Globals::git_path},
             {ui->env_var_path, Globals::path_to_environment_variables},
-            {ui->edit_exceptional_approval, Globals::path_to_excpetional_approval_db}
+            {ui->edit_exceptional_approval, Globals::path_to_excpetional_approval_db},
+            {ui->search_path, Globals::search_path}
 
     };
 }
@@ -80,10 +81,6 @@ void PathSettingsWindow::on_lua_editor_path_selector_clicked() {
 
 void PathSettingsWindow::on_meta_path_selector_clicked() {
     request_user_file(ui->meta_path_text, tr("Select measurement equipment meta data file"), Globals::measurement_equipment_meta_data_path, "*.json");
-}
-
-void PathSettingsWindow::on_git_path_selector_clicked() {
-    request_user_file(ui->git_path, tr("Select the location of the git executable"), Globals::git_path, "git.exe");
 }
 
 void PathSettingsWindow::on_env_var_path_button_clicked() {

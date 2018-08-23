@@ -18,6 +18,7 @@ class TestScriptEngine : public QObject {
     void basicLuaTest();
     void test_file_name_path();
     void test_create_name_path();
+    void test_serachpath();
 };
 
 DECLARE_TEST(TestScriptEngine)

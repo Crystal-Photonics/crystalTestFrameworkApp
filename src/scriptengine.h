@@ -6,9 +6,9 @@
 #include <QDebug>
 #include <QEventLoop>
 #include <QList>
+#include <QMutex>
 #include <QString>
 #include <QWaitCondition>
-#include <QMutex>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -25,6 +25,7 @@ struct MatchedDevice;
 
 QString get_absolute_file_path(const QString &script_path, const QString &file_to_open);
 std::string get_absolute_file_path(const QString &script_path, const std::string &file_to_open);
+
 
 class DeviceRequirements {
     public:
@@ -55,9 +56,9 @@ class ScriptEngine {
     friend class DeviceWorker;
 
     ScriptEngine(TestRunner *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine);
-	ScriptEngine(const ScriptEngine &) = delete;
-	ScriptEngine(ScriptEngine &&) = delete;
-	~ScriptEngine();
+    ScriptEngine(const ScriptEngine &) = delete;
+    ScriptEngine(ScriptEngine &&) = delete;
+    ~ScriptEngine();
 
     void pause_timer();
     void resume_timer();
@@ -79,6 +80,7 @@ class ScriptEngine {
 
     void interrupt(QString msg);
     sol::table create_table();
+
     private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
     QStringList get_string_list(const QString &name);
     std::vector<DeviceRequirements> get_device_requirement_list(const QString &name);
@@ -96,7 +98,6 @@ class ScriptEngine {
     QString data_engine_auto_dump_path;
     QString additional_pdf_path;
     QString data_engine_pdf_template_path;
-
 
     QEventLoop event_loop;
 

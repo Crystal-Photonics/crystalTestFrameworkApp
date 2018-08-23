@@ -19,6 +19,7 @@ namespace Globals {
     static const auto cancel_key_sequence = "cancel key sequence";
     static const auto path_to_environment_variables = "path_to_environment_variables";
     static const auto path_to_excpetional_approval_db = "path_to_excpetional_approval_db";
+    static const auto search_path = "search_path";
 
     static const auto ui_blink_ratio = 8;
 }

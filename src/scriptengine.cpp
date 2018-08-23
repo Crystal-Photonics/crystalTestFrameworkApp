@@ -1006,6 +1006,11 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["git_info"] = [&lua = *lua, path = path ](std::string dir_path, bool allow_modified) {
                 return git_info(lua, get_absolute_file_path(path, dir_path), allow_modified);
             };
+            (*lua)["run_external_tool"] =
+                [&lua = *lua, path = path ](const std::string &execute_directory, const std::string &executable, const sol::table &arguments, uint timeout_s) {
+                return run_external_tool(path, QString::fromStdString(get_absolute_file_path(path,execute_directory)), QString::fromStdString(executable), arguments, timeout_s)
+                    .toStdString();
+            };
 
 #endif
 

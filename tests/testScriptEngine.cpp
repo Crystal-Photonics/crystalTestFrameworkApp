@@ -45,3 +45,7 @@ void TestScriptEngine::test_create_name_path() {
     QCOMPARE(create_path(QString("/absolute/filename")).toLower(), QDir::toNativeSeparators(abs_prefix + "/absolute/filename/"));
     QCOMPARE(create_path(QString("/absolute/filename/")).toLower(), QDir::toNativeSeparators(abs_prefix + "/absolute/filename/"));
 }
+
+void TestScriptEngine::test_serachpath() {
+    QVERIFY(search_in_search_path("","git") != "");
+}

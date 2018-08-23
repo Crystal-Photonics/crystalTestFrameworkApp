@@ -9,7 +9,10 @@
 class QPlainTextEdit;
 
 QString create_path(QString filename);
+QString get_clean_file_path(QString filename);
 QString append_separator_to_path(QString path);
+QString search_in_search_path(const QString &script_path, const QString &file_to_be_searched);
+QString get_search_paths(const QString &script_path);
 std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigned int length, const double min_val, const double max_val);
 double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const unsigned int dacs_quantity, const unsigned int max_possible_dac_value);
 void print(QPlainTextEdit *console, const sol::variadic_args &args);
@@ -19,11 +22,12 @@ void show_info(const QString &path, const sol::optional<std::string> &title, con
 void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
 void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms);
 void pc_speaker_beep();
+QString run_external_tool(const QString &script_path, const QString &execute_directory, const QString &executable, const sol::table &arguments, uint timeout);
 double current_date_time_ms(void);
 double round_double(const double value, const unsigned int precision);
 void table_save_to_file(QPlainTextEdit *console, const std::string file_name, sol::table input_table, bool over_write_file);
 sol::table table_load_from_file(QPlainTextEdit *console, sol::state &lua, const std::string file_name);
-uint16_t table_crc16(QPlainTextEdit *console, sol::table input_values) ;
+uint16_t table_crc16(QPlainTextEdit *console, sol::table input_values);
 double table_sum(sol::table input_values);
 double table_mean(sol::table input_values);
 sol::table table_set_constant(sol::state &lua, sol::table input_values, double constant);
