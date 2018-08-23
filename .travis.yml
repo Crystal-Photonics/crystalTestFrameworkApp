@@ -70,7 +70,7 @@ install:
   - cd $TRAVIS_BUILD_DIR  
   - # on machines with qt5 executing:  `sudo aptitude -f install libqwt-dev` should be enough
  # - svn checkout svn://svn.code.sf.net/p/qwt/code/branches/qwt-6.1 qwt
-  - git clone https://github.com/Crystal-Photonics/qwt
+  - git clone --single-branch --depth=1 https://github.com/Crystal-Photonics/qwt
   - cd qwt
   - cp $TRAVIS_BUILD_DIR/libs/qwt/travis_qwtconfig.pri qwtconfig.pri
   - QWT_ROOT_DIR=`pwd`
@@ -92,7 +92,7 @@ script:
  #build limereport
   - cd $TRAVIS_BUILD_DIR/libs/LimeReport/
   - cp $TRAVIS_BUILD_DIR/libs/travis_limereport.pro limereport.pro || true
-  - qmake
+  - qmake "CONFIG+=debug"
   - make -j$(nproc)
   
 #build testframework  
