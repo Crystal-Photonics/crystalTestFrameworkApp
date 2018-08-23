@@ -14,8 +14,8 @@ void message_handler(QtMsgType type, const QMessageLogContext &context, const QS
             qDebug() << msg;
 			auto show_message = [ msg, file = QString{context.file}, function = QString{context.function}, line = context.line ] {
 				QMessageBox::critical(MainWindow::mw, "Qt Error", '\"' + msg + '\"' + "\nwas caused by " + function + " in " + file + ":" +
-																	  QString::number(line) +
-																	  ".\nAdd a breakpoint in main.cpp:28 to inspect the stack.\n"
+																	  QString::number(line) + ".\nAdd a breakpoint in main.cpp:" + QString::number(line - 2) +
+																	  " to inspect the stack.\n"
 																	  "Press CTRL+C to copy the content of this message box to your clipboard.");
 			};
 			if (MainWindow::mw != nullptr) {
@@ -28,8 +28,8 @@ void message_handler(QtMsgType type, const QMessageLogContext &context, const QS
 			qDebug() << msg;
 			auto show_message = [ msg, file = QString{context.file}, function = QString{context.function}, line = context.line ] {
 				QMessageBox::warning(MainWindow::mw, "Qt Warning", '\"' + msg + '\"' + "\nwas caused by " + function + " in " + file + ":" +
-																	   QString::number(line) +
-																	   ".\nAdd a breakpoint in main.cpp:28 to inspect the stack.\n"
+																	   QString::number(line) + ".\nAdd a breakpoint in main.cpp:" + QString::number(line - 2) +
+																	   " to inspect the stack.\n"
 																	   "Press CTRL+C to copy the content of this message box to your clipboard.");
 			};
 			if (MainWindow::mw != nullptr) {
