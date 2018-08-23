@@ -17,4 +17,5 @@ app.depends = src
 tests.depends = src
 
 OTHER_FILES += \
-	.travis.yml
+	.travis.yml \
+	lsan.supp

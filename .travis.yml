@@ -87,7 +87,7 @@ install:
   - #tree LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt
   
 
- 
+
 script:
  # - source /opt/qt58/bin/qt58-env.sh
  #build limereport
@@ -111,10 +111,14 @@ script:
   - export LD_LIBRARY_PATH=$(pwd)/debug/lib/:$LD_LIBRARY_PATH
   - echo $LD_LIBRARY_PATH
   - cd $TRAVIS_BUILD_DIR/bin/debug/
+
+  # sanitizer settings
+  - export UBSAN_OPTIONS=print_stacktrace=1
+  - export LSAN_OPTIONS=suppressions=$TRAVIS_BUILD_DIR/lsan.supp #ignore Qt's memory leaks
+  - echo $LSAN_OPTIONS
+
   # without xvfb: QFATAL : Test_Data_engine::test_preview() QXcbConnection: Could not connect to display
   - xvfb-run --auto-servernum gdb -q --return-child-result -ex "set confirm off" -ex "set pagination off" -ex "set print thread-events off" -ex "run" -ex "bt" -ex "quit" ./tests
-  # run tests again without gdb to make leak sanitizer work
-  - xvfb-run --auto-servernum ./tests
 
 after_script:
   # print ccache stats
