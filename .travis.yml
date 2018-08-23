@@ -3,6 +3,8 @@ sudo: required
 dist: trusty
 git:
   submodules: true
+cache:
+  ccache: true
       
 before_install:
   - sudo add-apt-repository --yes ppa:beineri/opt-qt58-trusty
@@ -115,7 +117,6 @@ notifications:
   email:
     recipients:
       - ak@crystal-photonics.com
-      - tr@crystal-photonics.com
     on_success: always
     on_failure: always # default: always
     
