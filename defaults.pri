@@ -88,7 +88,7 @@ QMAKE_CXXFLAGS += -Werror
 QMAKE_CXXFLAGS_DEBUG += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare
 unix {
 	QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
-	QMAKE_LFLAGS_DEBUG += -fsanitize=undefined,address
+	QMAKE_LFLAGS_DEBUG += -fsanitize=undefined,address -fuse-ld=gold
 } else {
 	QMAKE_CXXFLAGS_DEBUG += -fsanitize-undefined-trap-on-error
 }
