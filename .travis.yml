@@ -110,7 +110,8 @@ script:
   - export LD_LIBRARY_PATH=$(pwd)/release/lib/:$LD_LIBRARY_PATH  
   - echo $LD_LIBRARY_PATH
   - cd $TRAVIS_BUILD_DIR/bin/release/
-  - xvfb-run --auto-servernum ./tests # without xvfb: QFATAL : Test_Data_engine::test_preview() QXcbConnection: Could not connect to display 
+  # without xvfb: QFATAL : Test_Data_engine::test_preview() QXcbConnection: Could not connect to display
+  - xvfb-run --auto-servernum gdb -q --return-child-result -ex "set confirm off" -ex "set pagination off" -ex "set print thread-events off" -ex "run" -ex "bt" -ex "quit" ./tests
   
   
 notifications:
