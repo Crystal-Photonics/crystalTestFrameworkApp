@@ -97,7 +97,7 @@ script:
   
 #build testframework  
   - cd $TRAVIS_BUILD_DIR
-  - qmake
+  - qmake "CONFIG+=debug"
   - make -j$(nproc)
   #- tree $TRAVIS_BUILD_DIR
   
@@ -112,7 +112,10 @@ script:
   - cd $TRAVIS_BUILD_DIR/bin/release/
   # without xvfb: QFATAL : Test_Data_engine::test_preview() QXcbConnection: Could not connect to display
   - xvfb-run --auto-servernum gdb -q --return-child-result -ex "set confirm off" -ex "set pagination off" -ex "set print thread-events off" -ex "run" -ex "bt" -ex "quit" ./tests
-  
+
+after_script:
+  # print ccache stats
+  - ccache -s
   
 notifications:
   email:
