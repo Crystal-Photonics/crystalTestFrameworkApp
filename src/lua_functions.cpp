@@ -2051,6 +2051,10 @@ QChar get_search_path_delimiter() {
 #endif
 }
 
+static QRegExp get_path_seperator_regex(){
+    return QRegExp("\\:(?<!(:.:))");
+}
+
 QString get_search_paths(const QString &script_path) {
     QString search_path = QSettings{}.value(Globals::search_path, "").toString();
     if (script_path != "") {
@@ -2063,8 +2067,13 @@ QString get_search_paths(const QString &script_path) {
         search_path += get_search_path_delimiter() + env.value("PATH");
     }
     search_path = search_path.replace("\\", "/");
-    search_path = search_path.replace(QRegExp("\\:(?!\\/)"), get_search_path_delimiter());
+    //search_path = search_path.replace(get_path_seperator_regex(), get_search_path_delimiter());
     return search_path;
+}
+
+QStringList get_search_path_entries(QString search_path){
+    QStringList sl = search_path.split(get_search_path_delimiter()); // match at asasda:asfsdf but not windows-like C:/asdasdas
+    return sl;
 }
 
 QString search_in_search_path(const QString &script_path, const QString &file_to_be_searched) {
@@ -2073,24 +2082,19 @@ QString search_in_search_path(const QString &script_path, const QString &file_to
         return file_to_be_searched;
     }
 
-    QString search_path = get_search_paths(script_path);
-    QStringList sl_colon = search_path.split(QRegExp("\\:(?!\\/)")); // match at asasda:asfsdf but not windows-like C:/asdasdas
-    QStringList sl;
-    for (auto &s : sl_colon) {
-        sl.append(s.split(";"));
-    }
+    QStringList sl = get_search_path_entries(get_search_paths(script_path));
 
     for (auto &s : sl) {
         QString path_to_test = append_separator_to_path(s);
         QDir base(QFileInfo(path_to_test).absoluteDir());
         QString result = base.absoluteFilePath(file_to_be_searched);
-        qDebug() << result;
+      //  qDebug() << result;
         if (QFile::exists(result)) {
             return result;
         }
 #if defined(Q_OS_WIN)
         result = base.absoluteFilePath(file_to_be_searched + ".exe");
-        qDebug() << result;
+        //qDebug() << result;
         if (QFile::exists(result)) {
             return result;
         }

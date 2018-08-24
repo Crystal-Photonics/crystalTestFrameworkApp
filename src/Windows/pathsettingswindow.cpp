@@ -1,11 +1,12 @@
 #include "pathsettingswindow.h"
 #include "config.h"
+#include "lua_functions.h"
 #include "mainwindow.h"
 #include "ui_pathsettingswindow.h"
-
 #include <QDebug>
 #include <QFileDialog>
 #include <QSettings>
+#include <QToolTip>
 
 PathSettingsWindow::PathSettingsWindow(QWidget *parent)
     : QDialog(parent)
@@ -40,7 +41,7 @@ std::vector<std::pair<QLineEdit *, const char *>> PathSettingsWindow::get_config
             {ui->lua_editor_path_text, Globals::lua_editor_path_settings_key},
             {ui->lua_editor_parameters_text, Globals::lua_editor_parameters_settings_key},
             {ui->meta_path_text, Globals::measurement_equipment_meta_data_path},
-           // {ui->git_path, Globals::git_path},
+            // {ui->git_path, Globals::git_path},
             {ui->env_var_path, Globals::path_to_environment_variables},
             {ui->edit_exceptional_approval, Globals::path_to_excpetional_approval_db},
             {ui->search_path, Globals::search_path}
@@ -88,10 +89,26 @@ void PathSettingsWindow::on_env_var_path_button_clicked() {
 }
 
 void PathSettingsWindow::on_exceptional_approval_path_clicked() {
-	request_user_file(ui->edit_exceptional_approval, tr("Select the location of the exceptional approval db file"), Globals::path_to_excpetional_approval_db,
-					  "*.json");
+    request_user_file(ui->edit_exceptional_approval, tr("Select the location of the exceptional approval db file"), Globals::path_to_excpetional_approval_db,
+                      "*.json");
 }
 
 void PathSettingsWindow::on_isotope_db_path_button_clicked() {
-	request_user_file(ui->isotope_db_path, tr("Select Isotope Source Database"), Globals::isotope_source_data_base_path, "*.json");
+    request_user_file(ui->isotope_db_path, tr("Select Isotope Source Database"), Globals::isotope_source_data_base_path, "*.json");
+}
+
+void PathSettingsWindow::on_search_path_textChanged(const QString &arg1) {
+    QStringList wrong_folders;
+    QStringList sl = get_search_path_entries(arg1);
+    for (QString s : sl) {
+        if (QDir(s).exists() == false) {
+            wrong_folders.append(s);
+        }
+    }
+    if (wrong_folders.count()) {
+        QString s = "Can not find folders:\n" + wrong_folders.join("\n");
+        QToolTip::showText(ui->search_path->mapToGlobal(QPoint(0, 0)), s);
+    } else {
+        QToolTip::showText(ui->search_path->mapToGlobal(QPoint(0, 0)), "");
+    }
 }

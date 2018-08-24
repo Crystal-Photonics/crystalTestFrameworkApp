@@ -29,7 +29,9 @@ class PathSettingsWindow : public QDialog {
     void on_exceptional_approval_path_clicked();
 	void on_isotope_db_path_button_clicked();
 
-	private:
+    void on_search_path_textChanged(const QString &arg1);
+
+private:
 	Ui::PathSettingsWindow *ui;
 
 	std::vector<std::pair<QLineEdit *, const char *>> get_config_lines() const;

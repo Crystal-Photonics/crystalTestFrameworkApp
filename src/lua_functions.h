@@ -11,6 +11,7 @@ class QPlainTextEdit;
 QString create_path(QString filename);
 QString get_clean_file_path(QString filename);
 QString append_separator_to_path(QString path);
+QStringList get_search_path_entries(QString search_path);
 QString search_in_search_path(const QString &script_path, const QString &file_to_be_searched);
 QString get_search_paths(const QString &script_path);
 std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigned int length, const double min_val, const double max_val);
