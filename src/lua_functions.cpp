@@ -2070,10 +2070,6 @@ QChar get_search_path_delimiter() {
 #endif
 }
 
-static QRegExp get_path_seperator_regex() {
-    return QRegExp("\\:(?<!(:.:))");
-}
-
 QString get_search_paths(const QString &script_path) {
     QString search_path = QSettings{}.value(Globals::search_path, "").toString();
     if (script_path != "") {
