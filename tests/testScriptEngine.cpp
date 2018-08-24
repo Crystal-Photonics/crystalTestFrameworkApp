@@ -47,5 +47,8 @@ void TestScriptEngine::test_create_name_path() {
 }
 
 void TestScriptEngine::test_serachpath() {
-    QVERIFY(search_in_search_path("","git") != "");
+    QString git_path = search_in_search_path("", "git");
+    qDebug() << get_search_paths("");
+    qDebug() << git_path;
+    QVERIFY(git_path != "");
 }

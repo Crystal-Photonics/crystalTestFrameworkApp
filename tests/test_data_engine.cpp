@@ -2695,6 +2695,7 @@ void Test_Data_engine::test_preview() {
         db = QSqlDatabase::addDatabase("QSQLITE");
     }
 
+    qDebug() << db_name;
     db.setDatabaseName(db_name);
     bool opend = db.open();
     if (!opend) {
