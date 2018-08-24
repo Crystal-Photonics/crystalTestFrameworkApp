@@ -4116,7 +4116,7 @@ void DataEngineActualValueStatisticFile::open_or_create_new_file() {
         open_file(file_name);
         for (const QString &key : data_entries.keys()) {
             QJsonArray arr = data_entries[key].toArray();
-            if (uint)(arr.count() > entry_limit) {
+            if ((uint)arr.count() > entry_limit) {
                 use_new_file = true;
                 break;
             }
