@@ -1653,6 +1653,24 @@ text propose_unique_filename_by_datetime(text dir_path, text prefix, text suffix
 #endif
 
 /// @cond HIDDEN_SYMBOLS
+
+static QString get_unique_file_name_date_time_format(){
+    return "-yyyy_MM_dd-HH_mm_ss-";
+}
+
+
+QDateTime decode_date_time_from_file_name( const std::string &file_name, const std::string &prefix) {
+    QString str =  QString::fromStdString(file_name);
+    str = QFileInfo{str}.baseName();
+  //  qDebug() << str;
+    str = str.remove(QString::fromStdString(prefix));
+    str = str.left(get_unique_file_name_date_time_format().size());
+   // qDebug() << str;
+    QDateTime result = QDateTime::fromString(str, get_unique_file_name_date_time_format());
+   // qDebug() << result.toString();
+    return result;
+}
+
 std::string propose_unique_filename_by_datetime(const std::string &dir_path, const std::string &prefix, const std::string &suffix) {
     int index = 0;
     QString dir_ = QString::fromStdString(dir_path);
@@ -1663,7 +1681,8 @@ std::string propose_unique_filename_by_datetime(const std::string &dir_path, con
     create_path(dir_);
 
     QString result;
-    QString currentDateTime = QDateTime::currentDateTime().toString("-yyyy_MM_dd-HH_mm_ss-");
+    QString currentDateTime = QDateTime::currentDateTime().toString(get_unique_file_name_date_time_format());
+
     //currentDateTime = "-2017_06_01-14_50_49-";
     do {
         index++;
@@ -2051,7 +2070,7 @@ QChar get_search_path_delimiter() {
 #endif
 }
 
-static QRegExp get_path_seperator_regex(){
+static QRegExp get_path_seperator_regex() {
     return QRegExp("\\:(?<!(:.:))");
 }
 
@@ -2071,7 +2090,7 @@ QString get_search_paths(const QString &script_path) {
     return search_path;
 }
 
-QStringList get_search_path_entries(QString search_path){
+QStringList get_search_path_entries(QString search_path) {
     QStringList sl = search_path.split(get_search_path_delimiter()); // match at asasda:asfsdf but not windows-like C:/asdasdas
     return sl;
 }
@@ -2088,7 +2107,7 @@ QString search_in_search_path(const QString &script_path, const QString &file_to
         QString path_to_test = append_separator_to_path(s);
         QDir base(QFileInfo(path_to_test).absoluteDir());
         QString result = base.absoluteFilePath(file_to_be_searched);
-      //  qDebug() << result;
+        //  qDebug() << result;
         if (QFile::exists(result)) {
             return result;
         }

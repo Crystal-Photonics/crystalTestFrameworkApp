@@ -70,6 +70,7 @@ private slots:
     void test_get_possible_variant_tag_values();
     void test_form_creation();
     void test_exceptional_approval();
+    void test_actual_value_statistic_get_latest_file_name();
 };
 
 DECLARE_TEST(Test_Data_engine)

@@ -1008,7 +1008,8 @@ void ScriptEngine::load_script(const QString &path) {
             };
             (*lua)["run_external_tool"] =
                 [&lua = *lua, path = path ](const std::string &execute_directory, const std::string &executable, const sol::table &arguments, uint timeout_s) {
-                return run_external_tool(path, QString::fromStdString(get_absolute_file_path(path,execute_directory)), QString::fromStdString(executable), arguments, timeout_s)
+                return run_external_tool(path, QString::fromStdString(get_absolute_file_path(path, execute_directory)), QString::fromStdString(executable),
+                                         arguments, timeout_s)
                     .toStdString();
             };
 
@@ -1121,8 +1122,14 @@ void ScriptEngine::load_script(const QString &path) {
                 [](Data_engine_handle &handle, const std::string &section_name, const std::string &instance_caption, const uint instance_index) {
                     handle.data_engine->use_instance(QString::fromStdString(section_name), QString::fromStdString(instance_caption), instance_index);
                 },
+                "start_recording_actual_value_statistic",
+                [](Data_engine_handle &handle, const std::string &root_file_path, const std::string &prefix ) {
+                    return handle.data_engine->start_recording_actual_value_statistic(root_file_path, prefix);
+
+                },
                 "get_instance_count",
                 [](Data_engine_handle &handle, const std::string &section_name) { return handle.data_engine->get_instance_count(section_name); },
+
                 "get_description",
                 [](Data_engine_handle &handle, const std::string &id) { return handle.data_engine->get_description(QString::fromStdString(id)).toStdString(); },
                 "get_actual_value", [](Data_engine_handle &handle,

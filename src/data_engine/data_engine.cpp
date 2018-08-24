@@ -121,6 +121,10 @@ void Data_engine::set_source_path(QString source_path) {
     this->source_path = source_path;
 }
 
+void Data_engine::start_recording_actual_value_statistic(const std::string &root_file_path, const std::string &file_prefix) {
+    statistics_file.start_recording(QString::fromStdString(root_file_path), QString::fromStdString(file_prefix));
+}
+
 QStringList Data_engine::get_instance_count_names() {
     QStringList result;
     for (auto &section : sections.sections) {
@@ -414,7 +418,7 @@ bool DataEngineSections::section_exists(QString section_name) {
 
 void DataEngineSection::delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags) {
     int instance_index = 0;
-    for (auto &instance : instances) {
+    for (DataEngineInstance &instance : instances) {
         assert((bool)instance_count);
         instance.delete_unmatched_variants(tags, instance_index, instance_count.value());
         instance_index++;
@@ -831,6 +835,10 @@ uint VariantData::get_entry_count() const {
     return data_entries.size();
 }
 
+QString VariantData::get_dependencies_serialised_string() const {
+    return dependency_tags.get_dependencies_serialised_string();
+}
+
 bool VariantData::uses_dependency() const {
     return !dependency_tags.tags.isEmpty();
 }
@@ -969,6 +977,15 @@ const QMap<QString, QVariant> &VariantData::get_relevant_dependencies() const {
     return relevant_dependencies;
 }
 
+QString DependencyTags::get_dependencies_serialised_string() const {
+    QString result = "";
+    for (const QString &key : tags.keys()) {
+        const auto &val = tags.value(key);
+        result = result + key + ":" + val.get_serialised_string();
+    }
+    return result;
+}
+
 void DependencyTags::from_json(const QJsonValue &object) {
     tags.clear();
     if (object.isObject()) {
@@ -1027,6 +1044,26 @@ DependencyValue::DependencyValue() {
     range_high_excluding = 0;
     range_low_including = 0;
     match_style = Match_style::MatchNone;
+}
+
+QString DependencyValue::get_serialised_string() const {
+    QString str = serialised_string;
+    switch (match_style) {
+        case Match_style::MatchEverything:
+            str = "all_" + str;
+            break;
+        case Match_style::MatchExactly:
+            str = "exact_" + str;
+            break;
+        case Match_style::MatchByRange:
+            str = "range_" + str;
+            break;
+
+        case Match_style::MatchNone:
+            str = "none_" + str;
+            break;
+    }
+    return str;
 }
 
 void DependencyValue::from_json(const QJsonValue &object, const bool default_to_match_all) {
@@ -1119,6 +1156,7 @@ void DependencyValue::parse_number(const QString &str, float &vnumber, bool &mat
 
 void DependencyValue::from_string(const QString &str) {
     QString value = str.trimmed();
+    serialised_string = value;
     if (value.startsWith("[") && value.endsWith("]")) {
         value = value.remove(0, 1);
         value = value.remove(value.size() - 1, 1);
@@ -1172,6 +1210,7 @@ void DependencyValue::from_string(const QString &str) {
 void DependencyValue::from_number(const double &number) {
     match_style = Match_style::MatchExactly;
     match_exactly.setValue<double>(number);
+    serialised_string = QString::number(number);
     range_low_including = 0;
     range_high_excluding = 0;
 }
@@ -1179,6 +1218,12 @@ void DependencyValue::from_number(const double &number) {
 void DependencyValue::from_bool(const bool &boolean) {
     match_style = Match_style::MatchExactly;
     match_exactly.setValue<bool>(boolean);
+    if (boolean) {
+        serialised_string = "true";
+    } else {
+        serialised_string = "false";
+    }
+
     range_low_including = 0;
     range_high_excluding = 0;
 }
@@ -1281,6 +1326,13 @@ const DataEngineInstance *DataEngineSection::get_actual_instance() const {
     return &instances[actual_instance_index];
 }
 
+QString DataEngineSection::get_serialised_dependency_string() const {
+    const auto instance = get_actual_instance();
+    assert(instance);
+    auto variant = instance->get_variant();
+    return variant->get_dependencies_serialised_string();
+}
+
 void DataEngineSection::set_actual_number(const FormID &id, double number) {
     auto data_entry = get_entry(id);
     assert(data_entry); //if field is not found an exception was already thrown above. Something bad must happen to assert here
@@ -1352,6 +1404,8 @@ bool DataEngineSection::section_uses_variants() const {
 void Data_engine::set_actual_number(const FormID &id, double number) {
     auto section = sections.get_section(id);
     section->set_actual_number(id, number);
+    QString serialised_dependency = section->get_serialised_dependency_string();
+    statistics_file.set_actual_value(id, serialised_dependency, number);
 }
 
 void Data_engine::set_actual_text(const FormID &id, QString text) {
@@ -1595,23 +1649,23 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
     if (re.loadFromFile(QString::fromStdString(sourced_form), false) == false) {
         return false;
     }
-	bool result = false;
-	{
-		QString filename = QString::fromStdString(destination);
-		//doing the error checking that LimeReport should do but doesn't.
-		QPrinter printer;
-		printer.setOutputFileName(filename);
-		QPainter painter;
-		if (painter.begin(&printer) == false) {
-			MainWindow::mw->execute_in_gui_thread([filename] {
-				QMessageBox::critical(MainWindow::mw, "Failed printing report",
-									  "Requested to write report to file " + filename + " which could not be opened.");
-			});
-		} else {
+    bool result = false;
+    {
+        QString filename = QString::fromStdString(destination);
+        //doing the error checking that LimeReport should do but doesn't.
+        QPrinter printer;
+        printer.setOutputFileName(filename);
+        QPainter painter;
+        if (painter.begin(&printer) == false) {
+            MainWindow::mw->execute_in_gui_thread([filename] {
+                QMessageBox::critical(MainWindow::mw, "Failed printing report",
+                                      "Requested to write report to file " + filename + " which could not be opened.");
+            });
+        } else {
             painter.end();
-			result = re.printToPDF(filename);
-		}
-	}
+            result = re.printToPDF(filename);
+        }
+    }
     db.close();
     if (auto_open_pdf) {
         QFileInfo fi{QString::fromStdString(destination)};
@@ -2957,7 +3011,7 @@ bool NumericTolerance::test_in_range(const double desired, const std::experiment
         return false;
     }
 
-	if (std::isnan(measured.value())) { //fixes #1113 Fehler: "Dataengine: NaN ist immer OK, soll natürlich nicht"
+    if (std::isnan(measured.value())) { //fixes #1113 Fehler: "Dataengine: NaN ist immer OK, soll natürlich nicht"
         return false;
     }
 
@@ -3167,7 +3221,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
     field_name = object.value("name").toString();
     switch (entrytype) {
         case EntryType::Numeric: {
-        //disable maybe-uninitialized warning for an optional type.
+//disable maybe-uninitialized warning for an optional type.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
             std::experimental::optional<double> desired_value{};
@@ -3224,9 +3278,8 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
         case EntryType::Bool: {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-        std::experimental::optional<bool> desired_value{};
+            std::experimental::optional<bool> desired_value{};
 #pragma GCC diagnostic pop
-
 
             QString nice_name{};
             for (const auto &key : keys) {
@@ -4018,4 +4071,142 @@ QString ReferenceDataEntry::get_specific_json_name() const {
     assert_that_instance_count_is_defined();
     assert(entry_target);
     return entry_target->get_specific_json_name();
+}
+
+DataEngineActualValueStatisticFile::DataEngineActualValueStatisticFile() {
+    is_opened = false;
+}
+
+DataEngineActualValueStatisticFile::~DataEngineActualValueStatisticFile() {
+    close_file();
+}
+
+void DataEngineActualValueStatisticFile::start_recording(QString file_root_path, QString file_prefix) {
+    this->file_root_path = file_root_path;
+    this->file_prefix = file_prefix;
+    open_or_create_new_file();
+}
+
+QString select_newest_file_name(QStringList file_list, QString prefix) {
+    QDateTime dt_max = QDateTime::fromMSecsSinceEpoch(0);
+    QString max_file_name{""};
+    for (const QString &file_name : file_list) {
+        QDateTime dt = decode_date_time_from_file_name(file_name.toStdString(), prefix.toStdString());
+        //  qDebug() << dt.toString();
+        if (dt > dt_max) {
+            max_file_name = file_name;
+            dt_max = dt;
+        }
+    }
+    return max_file_name;
+}
+
+QString DataEngineActualValueStatisticFile::select_file_name_to_be_used(QStringList file_list) {
+    return select_newest_file_name(file_list, file_prefix);
+}
+
+void DataEngineActualValueStatisticFile::open_or_create_new_file() {
+    QStringList nameFilter(file_prefix + "*.json");
+    QDir directory(file_root_path);
+    QString file_name = select_file_name_to_be_used(directory.entryList(nameFilter));
+    file_name = directory.filePath(file_name);
+    bool use_new_file = true;
+    if (file_name.size()) {
+        use_new_file = false;
+        open_file(file_name);
+        for (const QString &key : data_entries.keys()) {
+            QJsonArray arr = data_entries[key].toArray();
+            if (arr.count() > entry_limit) {
+                use_new_file = true;
+                break;
+            }
+        }
+    }
+    if (use_new_file) {
+        create_new_file();
+    }
+}
+
+void DataEngineActualValueStatisticFile::create_new_file() {
+    QString file_name = QString::fromStdString(propose_unique_filename_by_datetime(file_root_path.toStdString(), file_prefix.toStdString(), ".json"));
+    open_file(file_name);
+}
+
+void DataEngineActualValueStatisticFile::close_file() {
+    if (is_opened && used_file_name.size()) {
+        QFile saveFile(used_file_name);
+        if (!saveFile.open(QIODevice::WriteOnly)) {
+            throw DataEngineError(DataEngineErrorNumber::cannot_open_file,
+                                  QString{"Dataengine: Can not open file: \"%1\" for saving actual value statistics."}.arg(used_file_name));
+            remove_lock_file();
+            return;
+        }
+        QJsonDocument saveDoc(data_entries);
+        saveFile.write(saveDoc.toJson());
+        data_entries = QJsonObject{};
+        remove_lock_file();
+        is_opened = false;
+    }
+}
+
+void DataEngineActualValueStatisticFile::remove_lock_file() {
+    if (lock_file_exists) {
+        QString lock_file_name = used_file_name + ".lock";
+        QFile file(lock_file_name);
+        file.remove();
+        lock_file_exists = false;
+    }
+}
+
+bool DataEngineActualValueStatisticFile::check_and_create_lock_file() {
+    bool result = false;
+    QString lock_file_name = used_file_name + ".lock";
+    if (QFile::exists(lock_file_name)) {
+        result = true;
+    }
+
+    QFile lockfile(lock_file_name);
+    lockfile.open(QIODevice::WriteOnly);
+    lock_file_exists = true;
+    return result;
+}
+
+void DataEngineActualValueStatisticFile::open_file(QString file_name) {
+    qDebug() << file_name;
+    close_file();
+    used_file_name = file_name;
+    if (check_and_create_lock_file()) {
+        used_file_name = QString::fromStdString(propose_unique_filename_by_datetime(file_root_path.toStdString(), file_prefix.toStdString(), ".json"));
+    }
+
+    QFile loadFile(used_file_name);
+    if (!loadFile.open(QIODevice::ReadOnly)) {
+        data_entries = QJsonObject{};
+    } else {
+        QByteArray byte_data = loadFile.readAll();
+        QJsonDocument loadDoc(QJsonDocument::fromJson(byte_data));
+        data_entries = loadDoc.object();
+    }
+    is_opened = true;
+}
+
+void DataEngineActualValueStatisticFile::set_actual_value(const FormID &field_name, const QString serialised_dependency, double value) {
+    if (is_opened) {
+        QJsonObject obj{};
+        obj["time_stamp"] = QDateTime::currentMSecsSinceEpoch();
+        obj["value"] = value;
+        QJsonArray arr;
+        QString key_name = field_name;
+        if (serialised_dependency.size()) {
+            key_name = key_name + "~" + serialised_dependency;
+        }
+        if (data_entries[key_name].isArray()) {
+            arr = data_entries[key_name].toArray();
+        }
+        arr.append(obj);
+        data_entries[key_name] = arr;
+        if (arr.count() > entry_limit) {
+            create_new_file();
+        }
+    }
 }
