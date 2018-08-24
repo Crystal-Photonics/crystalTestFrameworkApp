@@ -2084,13 +2084,17 @@ QString search_in_search_path(const QString &script_path, const QString &file_to
         QString path_to_test = append_separator_to_path(s);
         QDir base(QFileInfo(path_to_test).absoluteDir());
         QString result = base.absoluteFilePath(file_to_be_searched);
+        qDebug() << result;
         if (QFile::exists(result)) {
             return result;
         }
+#if defined(Q_OS_WIN)
         result = base.absoluteFilePath(file_to_be_searched + ".exe");
+        qDebug() << result;
         if (QFile::exists(result)) {
             return result;
         }
+#endif
     }
     return "";
 }
