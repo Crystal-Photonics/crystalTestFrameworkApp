@@ -85,6 +85,7 @@ class DataEngineActualValueStatisticFile {
 
     void start_recording(QString file_root_path, QString file_prefix);
     void set_actual_value(const FormID &field_name, const QString serialised_dependency, double value);
+    void set_dut_identifier(QString dut_identifier);
     QString select_file_name_to_be_used(QStringList file_list);
 
     private:
@@ -94,6 +95,7 @@ class DataEngineActualValueStatisticFile {
     QString file_root_path;
     QString file_prefix;
     QString used_file_name;
+    QString dut_identifier;
     QJsonObject data_entries;
     const uint entry_limit = 100;
     bool lock_file_exists = false;
@@ -537,6 +539,7 @@ class Data_engine {
     void set_script_path(QString script_path);
     void set_source_path(QString source_path);
     void start_recording_actual_value_statistic(const std::string &root_file_path, const std::string &file_prefix);
+    void set_dut_identifier(QString dut_identifier);
     QStringList get_instance_count_names();
 
     void set_start_time_seconds_since_epoch(double start_seconds_since_epoch);

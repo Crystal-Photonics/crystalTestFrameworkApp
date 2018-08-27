@@ -1123,10 +1123,16 @@ void ScriptEngine::load_script(const QString &path) {
                     handle.data_engine->use_instance(QString::fromStdString(section_name), QString::fromStdString(instance_caption), instance_index);
                 },
                 "start_recording_actual_value_statistic",
-                [](Data_engine_handle &handle, const std::string &root_file_path, const std::string &prefix ) {
+                [](Data_engine_handle &handle, const std::string &root_file_path, const std::string &prefix) {
                     return handle.data_engine->start_recording_actual_value_statistic(root_file_path, prefix);
 
                 },
+                "set_dut_identifier",
+                [](Data_engine_handle &handle, const std::string &dut_identifier) {
+                    return handle.data_engine->set_dut_identifier(QString::fromStdString(dut_identifier));
+
+                },
+
                 "get_instance_count",
                 [](Data_engine_handle &handle, const std::string &section_name) { return handle.data_engine->get_instance_count(section_name); },
 

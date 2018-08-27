@@ -125,6 +125,11 @@ void Data_engine::start_recording_actual_value_statistic(const std::string &root
     statistics_file.start_recording(QString::fromStdString(root_file_path), QString::fromStdString(file_prefix));
 }
 
+void Data_engine::set_dut_identifier(QString dut_identifier)
+{
+    statistics_file.set_dut_identifier(dut_identifier);
+}
+
 QStringList Data_engine::get_instance_count_names() {
     QStringList result;
     for (auto &section : sections.sections) {
@@ -4197,6 +4202,9 @@ void DataEngineActualValueStatisticFile::set_actual_value(const FormID &field_na
         QJsonObject obj{};
         obj["time_stamp"] = QDateTime::currentMSecsSinceEpoch();
         obj["value"] = value;
+        if (dut_identifier != ""){
+            obj["dut_id"] = dut_identifier;
+        }
         QJsonArray arr;
         QString key_name = field_name;
         if (serialised_dependency.size()) {
@@ -4211,4 +4219,9 @@ void DataEngineActualValueStatisticFile::set_actual_value(const FormID &field_na
             create_new_file();
         }
     }
+}
+
+void DataEngineActualValueStatisticFile::set_dut_identifier(QString dut_identifier)
+{
+    this->dut_identifier = dut_identifier;
 }
