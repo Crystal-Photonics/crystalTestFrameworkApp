@@ -4107,11 +4107,13 @@ QString DataEngineActualValueStatisticFile::select_file_name_to_be_used(QStringL
 
 void DataEngineActualValueStatisticFile::open_or_create_new_file() {
     QStringList nameFilter(file_prefix + "*.json");
-    QDir directory(file_root_path);
+    QString root_path = append_separator_to_path(file_root_path);
+    QDir directory(root_path);
+    directory.mkpath(root_path);
     QString file_name = select_file_name_to_be_used(directory.entryList(nameFilter));
-    file_name = directory.filePath(file_name);
     bool use_new_file = true;
     if (file_name.size()) {
+        file_name = directory.filePath(file_name);
         use_new_file = false;
         open_file(file_name);
         for (const QString &key : data_entries.keys()) {
