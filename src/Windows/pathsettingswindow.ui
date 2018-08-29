@@ -323,6 +323,13 @@
    <item>
     <layout class="QHBoxLayout" name="layout_buttons">
      <item>
+      <widget class="QPushButton" name="btn_load_from_file">
+       <property name="text">
+        <string>Import settings from file</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="btn_save_to_file">
        <property name="text">
         <string>Export settings to file</string>
@@ -330,11 +337,17 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="btn_load_from_file">
-       <property name="text">
-        <string>Import settings from file</string>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
        </property>
-      </widget>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
      </item>
     </layout>
    </item>
