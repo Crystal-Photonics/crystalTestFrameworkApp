@@ -1,0 +1,23 @@
+<RCC>
+    <qresource prefix="/">
+        <file>examples/settings/communication_settings.json</file>
+        <file>examples/settings/environment_variables.json</file>
+        <file>examples/settings/equipment_data_base.json</file>
+        <file>examples/settings/exceptional_approvals.json</file>
+        <file>examples/settings/isotope_sources.json</file>
+        <file>src/LuaUI/ajax-loader.gif</file>
+        <file>examples/xml/dummy.txt</file>
+        <file>examples/scripts/example/chargeCounter_test.lua</file>
+        <file>examples/scripts/example/dummy.txt</file>
+        <file>examples/scripts/example/file_selector_test.lua</file>
+        <file>examples/scripts/example/Jellyfish.jpg</file>
+        <file>examples/scripts/example/luatests.lua</file>
+        <file>examples/scripts/example/manual_device_test.lua</file>
+        <file>examples/scripts/example/nuklid_selector_test.lua</file>
+        <file>examples/scripts/example/scpi_hm8150_test.lua</file>
+        <file>examples/scripts/example/user_wait_label.lua</file>
+        <file>examples/scripts/example/test_external_tool/flash.jlink</file>
+        <file>examples/scripts/example/test_external_tool/jlink.bat</file>
+        <file>examples/scripts/example/test_external_tool/test_exernal_bat.lua</file>
+    </qresource>
+</RCC>

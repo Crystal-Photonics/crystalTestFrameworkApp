@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>LuaUI/ajax-loader.gif</file>
-    </qresource>
-</RCC>

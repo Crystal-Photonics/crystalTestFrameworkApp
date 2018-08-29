@@ -111,6 +111,7 @@ class EXPORT MainWindow : public QMainWindow {
     bool remove_device_item_recursion(QTreeWidgetItem *root_item, QTreeWidgetItem *child_to_remove, bool remove_if_existing);
     std::unique_ptr<QTreeWidgetItem> manual_devices_parent_item;
     QMutex manual_devices_parent_item_mutex;
+    void load_default_paths_if_needed();
 };
 
 template <class T>

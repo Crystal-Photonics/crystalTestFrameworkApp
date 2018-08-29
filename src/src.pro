@@ -165,5 +165,16 @@ win32 {
 }
 
 RESOURCES += \
-    resources.qrc
+    ../resources.qrc
+
+DISTFILES += \
+    ../examples/scripts/example/Jellyfish.jpg \
+    ../examples/scripts/example/dummy.txt \
+    ../examples/scripts/example/chargeCounter_test.lua \
+    ../examples/scripts/example/file_selector_test.lua \
+    ../examples/scripts/example/luatests.lua \
+    ../examples/scripts/example/manual_device_test.lua \
+    ../examples/scripts/example/nuklid_selector_test.lua \
+    ../examples/scripts/example/scpi_hm8150_test.lua \
+    ../examples/scripts/example/user_wait_label.lua
 

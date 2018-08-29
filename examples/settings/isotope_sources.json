@@ -1,0 +1,23 @@
+{
+	"isotopes":[
+		{
+			"serial_number": "AF7947",
+			"isotope": "co57",
+			"start_activity_kBq": 181,
+			"start_date":"2015.7.1",
+			"removed":"no"
+		},{
+			"serial_number": "RG319",
+			"isotope": "na22",
+			"start_activity_kBq": 370,
+			"start_date":"2008.7.9",
+			"removed":"no"
+		},{
+			"serial_number": "464-83",
+			"isotope": "i129",
+			"start_activity_kBq": 37,
+			"start_date":"1994.6.30",
+			"removed":"no"
+		}
+	]
+}

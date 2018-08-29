@@ -37,7 +37,7 @@ UserWaitLabel::UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, 
     hlayout->addWidget(label_user_instruction, 0, Qt::AlignTop);
 
     spinner_label = new QLabel(parent);
-    QMovie *movie = new QMovie("://LuaUI/ajax-loader.gif");
+    QMovie *movie = new QMovie("://src/LuaUI/ajax-loader.gif");
     spinner_label->setMovie(movie); //":/MyPreciousRes/MyResources.pro"
     movie->start();
 

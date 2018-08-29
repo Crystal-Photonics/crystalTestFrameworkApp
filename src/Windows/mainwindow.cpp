@@ -25,6 +25,7 @@
 #include <QDesktopServices>
 #include <QDir>
 #include <QDirIterator>
+#include <QFileInfo>
 #include <QGroupBox>
 #include <QListView>
 #include <QMessageBox>
@@ -71,6 +72,68 @@ bool currently_in_gui_thread() {
     return QThread::currentThread() == MainWindow::gui_thread;
 }
 
+void MainWindow::load_default_paths_if_needed() {
+    QMap<QString, QString> map_paths;
+    map_paths.insert(Globals::test_script_path_settings_key, QSettings{}.value(Globals::test_script_path_settings_key, "").toString());
+    map_paths.insert(Globals::isotope_source_data_base_path, QSettings{}.value(Globals::isotope_source_data_base_path, "").toString());
+    map_paths.insert(Globals::device_protocols_file_settings_key, QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString());
+    map_paths.insert(Globals::measurement_equipment_meta_data_path, QSettings{}.value(Globals::measurement_equipment_meta_data_path, "").toString());
+    map_paths.insert(Globals::path_to_environment_variables, QSettings{}.value(Globals::path_to_environment_variables, "").toString());
+    map_paths.insert(Globals::path_to_excpetional_approval_db, QSettings{}.value(Globals::path_to_excpetional_approval_db, "").toString());
+
+    QString test;
+    for (QString s : map_paths.keys()) {
+        test += map_paths[s];
+    }
+
+    if ((test == "") || false) {
+        QString AppDataLocation = QStandardPaths::locate(QStandardPaths::AppDataLocation, QString{}, QStandardPaths::LocateDirectory);
+        QDir dir{AppDataLocation};
+        QString example_path_script = "examples/scripts/";
+        dir.mkpath(example_path_script + "/example");
+        example_path_script = dir.absoluteFilePath(example_path_script);
+        QSettings{}.setValue(Globals::test_script_path_settings_key, example_path_script);
+
+        QString example_path_xml = "examples/xml/";
+        dir.mkpath(example_path_xml);
+        example_path_xml = dir.absoluteFilePath(example_path_xml);
+        QSettings{}.setValue(Globals::rpc_xml_files_path_settings_key, example_path_xml);
+
+        QString example_settings = "examples/settings/";
+        dir.mkpath(example_settings);
+        example_settings = dir.absoluteFilePath(example_settings);
+        QDir dir_settings{example_settings};
+
+        QMap<QString, QString> map_setting_file_names;
+        map_setting_file_names.insert(Globals::device_protocols_file_settings_key, "communication_settings.json");
+        map_setting_file_names.insert(Globals::path_to_environment_variables, "environment_variables.json");
+        map_setting_file_names.insert(Globals::measurement_equipment_meta_data_path, "equipment_data_base.json");
+        map_setting_file_names.insert(Globals::path_to_excpetional_approval_db, "exceptional_approvals.json");
+        map_setting_file_names.insert(Globals::isotope_source_data_base_path, "isotope_sources.json");
+
+        for (QString s : map_setting_file_names.keys()) {
+            QString path = dir_settings.absoluteFilePath(map_setting_file_names[s]);
+            QFile::copy(":/examples/settings/" + map_setting_file_names[s], path);
+            QSettings{}.setValue(s, path);
+        }
+
+        QStringList copy_dirs{":/examples/scripts/", ":/examples/xml/"};
+        for (QString copy_dir : copy_dirs) {
+            QDirIterator it(copy_dir, QDir::Files, QDirIterator::Subdirectories);
+            QDir script_dir{copy_dir};
+            QDir script_dir_target{example_path_script};
+            while (it.hasNext()) {
+                QString found_file = it.next();
+                QString rel_path = script_dir.relativeFilePath(found_file);
+                QString target = script_dir_target.absoluteFilePath(rel_path);
+                QString target_dir_s = QFileInfo{target}.absoluteDir().absolutePath();
+                dir.mkpath(target_dir_s);
+                QFile::copy(found_file, target);
+            }
+        }
+    }
+}
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , device_worker(std::make_unique<DeviceWorker>())
@@ -79,9 +142,10 @@ MainWindow::MainWindow(QWidget *parent)
     mw = this;
     ui->setupUi(this);
 
-	Utility::add_handle(ui->splitter);
-	Utility::add_handle(ui->splitter_3);
+    Utility::add_handle(ui->splitter);
+    Utility::add_handle(ui->splitter_3);
 
+    load_default_paths_if_needed();
     device_worker->moveToThread(&devices_thread);
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
     Console::console = ui->console_edit;
@@ -159,7 +223,7 @@ void MainWindow::load_scripts() {
 
 void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *communication_device) {
     //called from device worker
-	Utility::thread_call(this, nullptr, [this, parent, child, tab_name, communication_device] {
+    Utility::thread_call(this, nullptr, [this, parent, child, tab_name, communication_device] {
         assert(currently_in_gui_thread());
         if (parent) {
             parent->addChild(child);
@@ -167,52 +231,52 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
             ui->devices_list->addTopLevelItem(child);
         }
         align_columns();
-		if (communication_device) {
+        if (communication_device) {
             auto console = new QPlainTextEdit(ui->console_tabs);
             console->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
             console->setReadOnly(true);
             console->setMaximumBlockCount(1000);
             ui->console_tabs->addTab(console, tab_name);
-			device_worker->connect_to_device_console(console, communication_device);
+            device_worker->connect_to_device_console(console, communication_device);
         }
-	});
+    });
 }
 
 void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State state) {
-    QString prefix=" ";
+    QString prefix = " ";
     Qt::GlobalColor color = Qt::black;
-	switch (state) {
-		case TestRunner::State::running:
+    switch (state) {
+        case TestRunner::State::running:
             prefix = "▶";
-			color = Qt::darkGreen;
-			break;
-		case TestRunner::State::finished:
+            color = Qt::darkGreen;
+            break;
+        case TestRunner::State::finished:
             prefix = "█";
-			color = Qt::black;
-			break;
-		case TestRunner::State::error:
+            color = Qt::black;
+            break;
+        case TestRunner::State::error:
             prefix = "⚠";
-			color = Qt::darkRed;
-			break;
-	}
+            color = Qt::darkRed;
+            break;
+    }
 
-	const auto runner_index = ui->test_tabs->indexOf(testrunner->get_lua_ui_container());
-	const auto title = prefix + (" " + testrunner->get_name());
-	if (runner_index == -1) {
-		testrunner->get_lua_ui_container()->parentWidget()->setWindowTitle(title);
-	} else {
-		ui->test_tabs->setTabText(runner_index, title);
-		ui->test_tabs->tabBar()->setTabTextColor(runner_index, color);
-	}
+    const auto runner_index = ui->test_tabs->indexOf(testrunner->get_lua_ui_container());
+    const auto title = prefix + (" " + testrunner->get_name());
+    if (runner_index == -1) {
+        testrunner->get_lua_ui_container()->parentWidget()->setWindowTitle(title);
+    } else {
+        ui->test_tabs->setTabText(runner_index, title);
+        ui->test_tabs->tabBar()->setTabTextColor(runner_index, color);
+    }
 }
 
 void MainWindow::adopt_testrunner(TestRunner *testrunner, QString title) {
-	ui->test_tabs->addTab(testrunner->get_lua_ui_container(), title);
+    ui->test_tabs->addTab(testrunner->get_lua_ui_container(), title);
 }
 
 void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *communication_device) {
     //called from device worker
-	add_device_child_item(nullptr, item, tab_name, communication_device);
+    add_device_child_item(nullptr, item, tab_name, communication_device);
 }
 
 void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
@@ -355,9 +419,9 @@ void MainWindow::on_run_test_script_button_clicked() {
             continue;
         }
         auto &runner = *test_runners.back();
-		const auto tab_index = ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name());
-		ui->test_tabs->setCurrentIndex(tab_index);
-		DeviceMatcher device_matcher(this);
+        const auto tab_index = ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name());
+        ui->test_tabs->setCurrentIndex(tab_index);
+        DeviceMatcher device_matcher(this);
         device_matcher.match_devices(*device_worker, runner, *test);
         auto devices = device_matcher.get_matched_devices();
         if (device_matcher.was_successful()) {
@@ -540,7 +604,7 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 
         QAction action_abort_script(tr("Abort Script"), nullptr);
         if (runner->is_running()) {
-			connect(&action_abort_script, &QAction::triggered, [runner] {
+            connect(&action_abort_script, &QAction::triggered, [runner] {
                 runner->interrupt();
                 runner->join();
             });
@@ -548,15 +612,15 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
         }
 
         QAction action_open_script_in_editor(tr("Open in Editor"), nullptr);
-		connect(&action_open_script_in_editor, &QAction::triggered, [runner] { runner->launch_editor(); });
+        connect(&action_open_script_in_editor, &QAction::triggered, [runner] { runner->launch_editor(); });
         menu.addAction(&action_open_script_in_editor);
 
         QAction action_pop_out(tr("Open in extra Window"), nullptr);
         connect(&action_pop_out, &QAction::triggered, [this, runner] {
             auto container = runner->get_lua_ui_container();
-			const auto index = ui->test_tabs->indexOf(container);
-			new Window(runner, ui->test_tabs->tabBar()->tabText(index));
-			ui->test_tabs->removeTab(index);
+            const auto index = ui->test_tabs->indexOf(container);
+            new Window(runner, ui->test_tabs->tabBar()->tabText(index));
+            ui->test_tabs->removeTab(index);
         });
         menu.addAction(&action_pop_out);
 
