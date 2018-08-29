@@ -15,20 +15,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <spacer name="verticalSpacer_2">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="verticalLayout_2">
+    <layout class="QVBoxLayout" name="layout_isotopfile">
      <item>
       <widget class="QLabel" name="label_2">
        <property name="text">
@@ -57,20 +44,7 @@
     </layout>
    </item>
    <item>
-    <spacer name="verticalSpacer_10">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="verticalLayout_10">
+    <layout class="QVBoxLayout" name="layout_script_path">
      <item>
       <widget class="QLabel" name="label_10">
        <property name="text">
@@ -99,20 +73,7 @@
     </layout>
    </item>
    <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="verticalLayout_11">
+    <layout class="QVBoxLayout" name="layout_environment_file">
      <item>
       <widget class="QLabel" name="label_12">
        <property name="text">
@@ -141,20 +102,7 @@
     </layout>
    </item>
    <item>
-    <spacer name="verticalSpacer_11">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="verticalLayout_3">
+    <layout class="QVBoxLayout" name="layout_device_description_file">
      <item>
       <widget class="QLabel" name="label_3">
        <property name="text">
@@ -183,33 +131,7 @@
     </layout>
    </item>
    <item>
-    <spacer name="verticalSpacer_12">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <spacer name="verticalSpacer_3">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>25</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="verticalLayout_7">
+    <layout class="QVBoxLayout" name="layout_equipment_file">
      <item>
       <widget class="QLabel" name="label_7">
        <property name="text">
@@ -238,20 +160,7 @@
     </layout>
    </item>
    <item>
-    <spacer name="verticalSpacer_7">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="verticalLayout_4">
+    <layout class="QVBoxLayout" name="layout_xml">
      <item>
       <widget class="QLabel" name="label_4">
        <property name="text">
@@ -280,7 +189,7 @@
     </layout>
    </item>
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout_12">
+    <layout class="QVBoxLayout" name="layout_searchpath">
      <item>
       <widget class="QLabel" name="label_15">
        <property name="text">
@@ -314,20 +223,7 @@
     </layout>
    </item>
    <item>
-    <spacer name="verticalSpacer_4">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>0</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="verticalLayout_8">
+    <layout class="QVBoxLayout" name="layout_editor">
      <item>
       <widget class="QLabel" name="label_5">
        <property name="text">
@@ -359,20 +255,28 @@
     </layout>
    </item>
    <item>
-    <spacer name="verticalSpacer_13">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
+    <layout class="QVBoxLayout" name="layout_editor_argurments">
+     <item>
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>Lua Editor Parameters: Use %1 for the file name and %2 for the line number</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="lua_editor_parameters_text">
+       <property name="text">
+        <string/>
+       </property>
+       <property name="placeholderText">
+        <string>--file=%1 --line_number=%2</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout_9">
+    <layout class="QVBoxLayout" name="layout_exceptional_approval">
      <item>
       <widget class="QLabel" name="label_11">
        <property name="text">
@@ -404,40 +308,6 @@
     </layout>
    </item>
    <item>
-    <spacer name="verticalSpacer_5">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="verticalLayout_6">
-     <item>
-      <widget class="QLabel" name="label_6">
-       <property name="text">
-        <string>Lua Editor Parameters: Use %1 for the file name and %2 for the line number</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="lua_editor_parameters_text">
-       <property name="text">
-        <string/>
-       </property>
-       <property name="placeholderText">
-        <string>--file=%1 --line_number=%2</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
     <spacer name="verticalSpacer_6">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -449,6 +319,24 @@
       </size>
      </property>
     </spacer>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="layout_buttons">
+     <item>
+      <widget class="QPushButton" name="btn_save_to_file">
+       <property name="text">
+        <string>Export settings to file</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_load_from_file">
+       <property name="text">
+        <string>Import settings from file</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="settings_confirmation">

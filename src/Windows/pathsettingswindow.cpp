@@ -13,19 +13,29 @@ PathSettingsWindow::PathSettingsWindow(QWidget *parent)
     , ui(new Ui::PathSettingsWindow) {
     ui->setupUi(this);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint); //remove question mark from the title bar
-    for (auto &conf : get_config_lines()) {
-        conf.first->setText(QSettings{}.value(conf.second, "").toString());
-    }
+    QSettings q_settings{};
+    load_ui_from_settings(q_settings);
 }
 
 PathSettingsWindow::~PathSettingsWindow() {
     delete ui;
 }
 
-void PathSettingsWindow::on_settings_confirmation_accepted() {
+void PathSettingsWindow::write_ui_to_settings(QSettings &q_settings) {
     for (auto &conf : get_config_lines()) {
-        QSettings{}.setValue(conf.second, conf.first->text());
+        q_settings.setValue(conf.second, conf.first->text());
     }
+}
+
+void PathSettingsWindow::load_ui_from_settings(QSettings &q_settings) {
+    for (auto &conf : get_config_lines()) {
+        conf.first->setText(q_settings.value(conf.second, "").toString());
+    }
+}
+
+void PathSettingsWindow::on_settings_confirmation_accepted() {
+    QSettings q_settigns{};
+    write_ui_to_settings(q_settigns);
     close();
 }
 
@@ -110,5 +120,29 @@ void PathSettingsWindow::on_search_path_textChanged(const QString &arg1) {
         QToolTip::showText(ui->search_path->mapToGlobal(QPoint(0, 0)), s);
     } else {
         QToolTip::showText(ui->search_path->mapToGlobal(QPoint(0, 0)), "");
+    }
+}
+
+void PathSettingsWindow::on_btn_save_to_file_clicked() {
+    QFileDialog dialog(this);
+    dialog.setAcceptMode(QFileDialog::AcceptSave);
+    dialog.setFileMode(QFileDialog::AnyFile);
+    dialog.setNameFilter(tr("Config-Files (*.ini)"));
+    if (dialog.exec()) {
+        QString file_name = dialog.selectedFiles()[0];
+        QSettings settings_file{file_name, QSettings::IniFormat};
+        write_ui_to_settings(settings_file);
+    }
+}
+
+void PathSettingsWindow::on_btn_load_from_file_clicked() {
+    QFileDialog dialog(this);
+    dialog.setAcceptMode(QFileDialog::AcceptOpen);
+    dialog.setFileMode(QFileDialog::AnyFile);
+    dialog.setNameFilter(tr("Config-Files (*.ini)"));
+    if (dialog.exec()) {
+        QString file_name = dialog.selectedFiles()[0];
+        QSettings settings_file{file_name, QSettings::IniFormat};
+        load_ui_from_settings(settings_file);
     }
 }
