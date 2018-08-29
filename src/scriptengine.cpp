@@ -1758,6 +1758,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
         ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db, "").toString()};
         data_engine->do_exceptional_approvals(ea_db, MainWindow::mw);
         lua = std::make_unique<sol::state>();
+        data_engine->save_actual_value_statistic();
         if ((data_engine_pdf_template_path.count()) && (data_engine_auto_dump_path.count())) {
             QFileInfo fi(data_engine_auto_dump_path);
             QString suffix = fi.completeSuffix();

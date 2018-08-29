@@ -130,6 +130,11 @@ void Data_engine::set_dut_identifier(QString dut_identifier)
     statistics_file.set_dut_identifier(dut_identifier);
 }
 
+void Data_engine::save_actual_value_statistic()
+{
+    statistics_file.save_to_file();
+}
+
 QStringList Data_engine::get_instance_count_names() {
     QStringList result;
     for (auto &section : sections.sections) {
@@ -4083,7 +4088,7 @@ DataEngineActualValueStatisticFile::DataEngineActualValueStatisticFile() {
 }
 
 DataEngineActualValueStatisticFile::~DataEngineActualValueStatisticFile() {
-    close_file();
+ //   close_file();
 }
 
 void DataEngineActualValueStatisticFile::start_recording(QString file_root_path, QString file_prefix) {
@@ -4108,6 +4113,11 @@ QString select_newest_file_name(QStringList file_list, QString prefix) {
 
 QString DataEngineActualValueStatisticFile::select_file_name_to_be_used(QStringList file_list) {
     return select_newest_file_name(file_list, file_prefix);
+}
+
+void DataEngineActualValueStatisticFile::save_to_file()
+{
+    close_file();
 }
 
 void DataEngineActualValueStatisticFile::open_or_create_new_file() {

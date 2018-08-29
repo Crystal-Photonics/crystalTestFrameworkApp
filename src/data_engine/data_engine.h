@@ -87,7 +87,7 @@ class DataEngineActualValueStatisticFile {
     void set_actual_value(const FormID &field_name, const QString serialised_dependency, double value);
     void set_dut_identifier(QString dut_identifier);
     QString select_file_name_to_be_used(QStringList file_list);
-
+    void save_to_file();
     private:
     void open_or_create_new_file();
     void open_file(QString file_name);
@@ -540,6 +540,7 @@ class Data_engine {
     void set_source_path(QString source_path);
     void start_recording_actual_value_statistic(const std::string &root_file_path, const std::string &file_prefix);
     void set_dut_identifier(QString dut_identifier);
+    void save_actual_value_statistic();
     QStringList get_instance_count_names();
 
     void set_start_time_seconds_since_epoch(double start_seconds_since_epoch);
