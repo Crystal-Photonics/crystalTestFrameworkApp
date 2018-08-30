@@ -11,8 +11,8 @@
 #include <QSettings>
 #include <QVBoxLayout>
 #include <QWidget>
-#include <sol.hpp>
 #include <cmath>
+#include <sol.hpp>
 
 IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     : UI_widget{parent}
@@ -28,11 +28,15 @@ IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     load_isotope_database();
     fill_combobox_with_isotopes("*");
     parent->scroll_to_bottom();
+
+    callback_isotope_selected = QObject::connect(combobox, &QComboBox::currentTextChanged, [this](const QString &text) {
+        QSettings{}.setValue(Globals::isotope_source_most_recent, text);
+    });
 }
 
 IsotopeSourceSelector::~IsotopeSourceSelector() {
     combobox->setEnabled(false);
-    QObject::disconnect(callback_connection);
+    QObject::disconnect(callback_isotope_selected);
 }
 
 double IsotopeSourceSelector::get_selected_activity_Bq() {
