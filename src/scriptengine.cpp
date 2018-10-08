@@ -724,7 +724,7 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
     });
 
     Utility::promised_thread_call(MainWindow::mw, [this, &shortcuts] { //
-        const char *settings_keys[] = {Globals::confirm_key_sequence, Globals::skip_key_sequence, Globals::cancel_key_sequence};
+        const char *settings_keys[] = {Globals::confirm_key_sequence_key, Globals::skip_key_sequence_key, Globals::cancel_key_sequence_key};
         for (std::size_t i = 0; i < shortcuts.size(); i++) {
             shortcuts[i] = std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
             QObject::connect(shortcuts[i].get(), &QShortcut::activated, [this, i] {
@@ -851,7 +851,7 @@ void ScriptEngine::load_script(const QString &path) {
 
     this->path = path;
 
-    EnvironmentVariables env_variables(QSettings{}.value(Globals::path_to_environment_variables, "").toString());
+    EnvironmentVariables env_variables(QSettings{}.value(Globals::path_to_environment_variables_key, "").toString());
     if (data_engine) {
         data_engine->set_script_path(this->path);
     }
@@ -1755,7 +1755,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
     qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
 
     auto reset_lua_state = [this] {
-        ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db, "").toString()};
+        ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString()};
         data_engine->do_exceptional_approvals(ea_db, MainWindow::mw);
         lua = std::make_unique<sol::state>();
         data_engine->save_actual_value_statistic();

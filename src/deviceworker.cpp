@@ -46,7 +46,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
         return;
     }
     DeviceProtocolsSettings device_protocol_settings{device_protocol_settings_file};
-    device_meta_data.reload(QSettings{}.value(Globals::measurement_equipment_meta_data_path, "").toString());
+    device_meta_data.reload(QSettings{}.value(Globals::measurement_equipment_meta_data_path_key, "").toString());
 
     auto &rpc_devices = device_protocol_settings.protocols_rpc;
     auto &scpi_devices = device_protocol_settings.protocols_scpi;
@@ -270,7 +270,7 @@ void DeviceWorker::refresh_devices(QTreeWidgetItem *root, bool dut_only) {
             forget_device_(item);
             // qDebug() << "forgetting:" << item->text(0);
         }
-        device_meta_data.reload(QSettings{}.value(Globals::measurement_equipment_meta_data_path, "").toString());
+        device_meta_data.reload(QSettings{}.value(Globals::measurement_equipment_meta_data_path_key, "").toString());
         update_devices();
         detect_devices();
         emit device_discrovery_done();

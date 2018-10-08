@@ -11,6 +11,7 @@
 #include "devicematcher.h"
 #include "deviceworker.h"
 #include "hotkey_picker.h"
+#include "identicon/identicon.h"
 #include "pathsettingswindow.h"
 #include "qt_util.h"
 #include "scriptengine.h"
@@ -73,69 +74,221 @@ bool currently_in_gui_thread() {
 }
 
 void MainWindow::load_default_paths_if_needed() {
-    QMap<QString, QString> map_paths;
-    map_paths.insert(Globals::test_script_path_settings_key, QSettings{}.value(Globals::test_script_path_settings_key, "").toString());
-    map_paths.insert(Globals::isotope_source_data_base_path, QSettings{}.value(Globals::isotope_source_data_base_path, "").toString());
-    map_paths.insert(Globals::device_protocols_file_settings_key, QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString());
-    map_paths.insert(Globals::measurement_equipment_meta_data_path, QSettings{}.value(Globals::measurement_equipment_meta_data_path, "").toString());
-    map_paths.insert(Globals::path_to_environment_variables, QSettings{}.value(Globals::path_to_environment_variables, "").toString());
-    map_paths.insert(Globals::path_to_excpetional_approval_db, QSettings{}.value(Globals::path_to_excpetional_approval_db, "").toString());
+    QString AppDataLocation = QStandardPaths::locate(QStandardPaths::AppDataLocation, QString{}, QStandardPaths::LocateDirectory);
+    QMap<QString, QString> default_paths;
+    default_paths.insert(Globals::test_script_path_settings_key, "examples/scripts/");
+    default_paths.insert(Globals::isotope_source_data_base_path_key, "examples/settings/isotope_sources.json");
+    default_paths.insert(Globals::device_protocols_file_settings_key, "examples/settings/communication_settings.json");
+    default_paths.insert(Globals::measurement_equipment_meta_data_path_key, "examples/settings/equipment_data_base.json");
+    default_paths.insert(Globals::path_to_environment_variables_key, "examples/settings/environment_variables.json");
+    default_paths.insert(Globals::path_to_excpetional_approval_db_key, "examples/settings/exceptional_approvals.json");
+    default_paths.insert(Globals::favorite_script_file_key, "examples/settings/favorite_scripts.json");
+    default_paths.insert(Globals::rpc_xml_files_path_settings_key, "examples/xml/");
 
-    QString test;
-    for (QString s : map_paths.keys()) {
-        test += map_paths[s];
+    QDir dir{AppDataLocation};
+
+    {
+        QStringList folders_for_copy{"scripts/", "xml/", "settings/"};
+        QString source_base_dir = ":/examples/";
+        QDirIterator it(source_base_dir, QDir::Files, QDirIterator::Subdirectories);
+        QDir dir_source{source_base_dir};
+        while (it.hasNext()) {
+            bool accept_file = false;
+            QString found_file = it.next();
+            for (auto s : folders_for_copy) {
+                if (found_file.startsWith(source_base_dir + s)) {
+                    accept_file = true;
+                    break;
+                }
+            }
+
+            if (accept_file) {
+                QString rel_path = dir_source.relativeFilePath(found_file);
+                QString target_file_name = dir.absoluteFilePath("examples/" + rel_path);
+                QString target_dir_s = QFileInfo{target_file_name}.absoluteDir().absolutePath();
+                dir.mkpath(target_dir_s);
+                if (!QFile::exists(target_file_name)) {
+                    qDebug() << "copy example file: " << found_file << target_file_name;
+                    QFile::copy(found_file, target_file_name);
+                }
+            }
+        }
     }
 
-    if ((test == "") || false) {
-        QString AppDataLocation = QStandardPaths::locate(QStandardPaths::AppDataLocation, QString{}, QStandardPaths::LocateDirectory);
-        QDir dir{AppDataLocation};
-        QString example_path_script = "examples/scripts/";
-        dir.mkpath(example_path_script + "/example");
-        example_path_script = dir.absoluteFilePath(example_path_script);
-        QSettings{}.setValue(Globals::test_script_path_settings_key, example_path_script);
-
-        QString example_path_xml = "examples/xml/";
-        dir.mkpath(example_path_xml);
-        example_path_xml = dir.absoluteFilePath(example_path_xml);
-        QSettings{}.setValue(Globals::rpc_xml_files_path_settings_key, example_path_xml);
-
-        QString example_settings = "examples/settings/";
-        dir.mkpath(example_settings);
-        example_settings = dir.absoluteFilePath(example_settings);
-        QDir dir_settings{example_settings};
-
-        QMap<QString, QString> map_setting_file_names;
-        map_setting_file_names.insert(Globals::device_protocols_file_settings_key, "communication_settings.json");
-        map_setting_file_names.insert(Globals::path_to_environment_variables, "environment_variables.json");
-        map_setting_file_names.insert(Globals::measurement_equipment_meta_data_path, "equipment_data_base.json");
-        map_setting_file_names.insert(Globals::path_to_excpetional_approval_db, "exceptional_approvals.json");
-        map_setting_file_names.insert(Globals::isotope_source_data_base_path, "isotope_sources.json");
-
-        for (QString s : map_setting_file_names.keys()) {
-            QString path = dir_settings.absoluteFilePath(map_setting_file_names[s]);
-            QFile::copy(":/examples/settings/" + map_setting_file_names[s], path);
-            QSettings{}.setValue(s, path);
+    for (QString key : default_paths.keys()) {
+        QString true_value = QSettings{}.value(key, "").toString();
+        bool load_default_value = false;
+        if (true_value.endsWith("/")) {
+            load_default_value = !dir.exists(true_value);
+        } else {
+            load_default_value = !QFile::exists(true_value);
         }
+        if (load_default_value) {
+            QString default_value = default_paths[key];
+            QString path = dir.absoluteFilePath(default_value);
+            qDebug() << "set default setting: " << key << default_value << path;
+            QSettings{}.setValue(key, path);
+        }
+    }
+}
 
-        QStringList copy_dirs{":/examples/scripts/", ":/examples/xml/"};
-        for (QString copy_dir : copy_dirs) {
-            QDirIterator it(copy_dir, QDir::Files, QDirIterator::Subdirectories);
-            QDir script_dir{copy_dir};
-            QDir script_dir_target{example_path_script};
-            while (it.hasNext()) {
-                QString found_file = it.next();
-                QString rel_path = script_dir.relativeFilePath(found_file);
-                QString target = script_dir_target.absoluteFilePath(rel_path);
-                QString target_dir_s = QFileInfo{target}.absoluteDir().absolutePath();
-                dir.mkpath(target_dir_s);
-                QFile::copy(found_file, target);
+QString MainWindow::view_mode_to_string(MainWindow::ViewMode view_mode) {
+    switch (view_mode) {
+        case ViewMode::FavoriteScripts:
+            return "favorite_only";
+        case ViewMode::AllScripts:
+            return "all_scripts";
+        case ViewMode::None:
+            return "";
+    }
+    return "";
+}
+
+MainWindow::ViewMode MainWindow::string_to_view_mode(QString view_mode_name) {
+    if (view_mode_name == "favorite_only") {
+        return ViewMode::FavoriteScripts;
+    }
+    if (view_mode_name == "all_scripts") {
+        return ViewMode::AllScripts;
+    }
+    return ViewMode::None;
+}
+
+void MainWindow::set_view_mode(MainWindow::ViewMode view_mode) {
+    switch (view_mode) {
+        case ViewMode::None:
+            break;
+        case ViewMode::FavoriteScripts:
+            enable_favorite_view();
+            break;
+        case ViewMode::AllScripts:
+            enable_all_script_view();
+            break;
+    }
+}
+
+QStringList MainWindow::get_expanded_tree_view_recursion(QTreeWidgetItem *root_item, QString path) {
+    QStringList result;
+    path = path + root_item->text(0) + "/";
+    result.append(path);
+    for (int i = 0; i < root_item->childCount(); i++) {
+        QTreeWidgetItem *item = root_item->child(i);
+        if ((item->isExpanded()) && (item->childCount())) {
+            result.append(get_expanded_tree_view_recursion(item, path));
+        }
+    }
+    return result;
+}
+
+QStringList MainWindow::get_expanded_tree_view_paths() {
+    QStringList result;
+    for (int i = 0; i < ui->tests_advanced_view->topLevelItemCount(); i++) {
+        QTreeWidgetItem *item = ui->tests_advanced_view->topLevelItem(i);
+        if (item->isExpanded()) {
+            result.append(get_expanded_tree_view_recursion(item, ""));
+        }
+    }
+    return result;
+}
+
+void MainWindow::expand_from_stringlist_recusion(QTreeWidgetItem *root_item, const QStringList &child_texts, int index) {
+    if (index > child_texts.count() - 1) {
+        return;
+    }
+    QString child_text = child_texts[index];
+    if (child_text == "") {
+        return;
+    }
+    for (int i = 0; i < root_item->childCount(); i++) {
+        QTreeWidgetItem *item = root_item->child(i);
+        if (item->text(0) == child_text) {
+            item->setExpanded(true);
+            expand_from_stringlist_recusion(item, child_texts, index + 1);
+        }
+    }
+}
+
+void MainWindow::expand_from_stringlist(QStringList sl) {
+    for (const auto &path : sl) {
+        QStringList child_texts = path.split("/");
+        QList<QTreeWidgetItem *> items = ui->tests_advanced_view->findItems(child_texts[0], Qt::MatchExactly, 0);
+        for (QTreeWidgetItem *item : items) {
+            item->setExpanded(true);
+            expand_from_stringlist_recusion(item, child_texts, 1);
+        }
+    }
+}
+
+QString MainWindow::get_treeview_selection_path() {
+    QString result;
+    QTreeWidgetItem *item = ui->tests_advanced_view->currentItem();
+    while (item != nullptr) {
+        result = item->text(0) + "/" + result;
+        item = item->parent();
+    }
+    return result;
+}
+
+QString MainWindow::get_list_selection_path() {
+    QListWidgetItem *item = ui->test_simple_view->currentItem();
+    if (item == nullptr) {
+        return "";
+    }
+    TestDescriptionLoader *test = get_test_from_listViewItem(item);
+    if (test == nullptr) {
+        return "";
+    }
+    return test->get_name();
+}
+
+void MainWindow::set_list_selection_from_path(QString path) {
+    ScriptEntry fav_entry = favorite_scripts.get_entry(path);
+    QString text = fav_entry.alternative_name;
+    if (text == "")
+        text = fav_entry.script_path;
+
+    QList<QListWidgetItem *> items = ui->test_simple_view->findItems(text, Qt::MatchExactly);
+    for (auto item : items) {
+        TestDescriptionLoader *test = get_test_from_listViewItem(item);
+        if (test) {
+            if (test->get_name() == path) {
+                item->setSelected(true);
+                return;
             }
         }
     }
 }
 
+void MainWindow::set_treeview_selection_from_path_recursion(QTreeWidgetItem *root_item, const QStringList &child_texts, int index) {
+    if (index > child_texts.count() - 1) {
+        return;
+    }
+    QString child_text = child_texts[index];
+    if (child_text == "") {
+        return;
+    }
+    for (int i = 0; i < root_item->childCount(); i++) {
+        QTreeWidgetItem *item = root_item->child(i);
+        if (item->text(0) == child_text) {
+            item->setSelected(true);
+        }
+    }
+}
+
+void MainWindow::set_treeview_selection_from_path(QString path) {
+    QStringList child_texts = path.split("/");
+    if (child_texts.count() == 0) {
+        return;
+    }
+    QList<QTreeWidgetItem *> items = ui->tests_advanced_view->findItems(child_texts[0], Qt::MatchExactly, 0);
+    for (QTreeWidgetItem *item : items) {
+        set_treeview_selection_from_path_recursion(item, child_texts, 1);
+    }
+}
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
+    , favorite_scripts()
     , device_worker(std::make_unique<DeviceWorker>())
     , ui(new Ui::MainWindow) {
     MainWindow::gui_thread = QThread::currentThread();
@@ -146,19 +299,38 @@ MainWindow::MainWindow(QWidget *parent)
     Utility::add_handle(ui->splitter_3);
 
     load_default_paths_if_needed();
+    favorite_scripts.load_from_file(QSettings{}.value(Globals::favorite_script_file_key, "").toString());
     device_worker->moveToThread(&devices_thread);
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
     Console::console = ui->console_edit;
     Console::mw = this;
     // connect(&action_run, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
 
+    ui->test_simple_view->setVisible(false);
     devices_thread.start();
     connect(device_worker.get(), SIGNAL(device_discrovery_done()), this, SLOT(slot_device_discovery_done()));
     ui->btn_refresh_all->click();
+
     load_scripts();
+    ViewMode vm = string_to_view_mode(QSettings{}.value(Globals::last_view_mode_key, "").toString());
+    if (ui->test_simple_view->count() == 0) {
+        vm = ViewMode::AllScripts;
+    }
+    if (vm == ViewMode::None) {
+        vm = ViewMode::AllScripts;
+    }
+    set_view_mode(vm);
+    expand_from_stringlist(QSettings{}.value(Globals::expanded_paths_key, QStringList{}).toStringList());
+    set_treeview_selection_from_path(QSettings{}.value(Globals::current_tree_view_selection_key, "").toString());
+    set_list_selection_from_path(QSettings{}.value(Globals::current_list_view_selection_key, "").toString());
 }
 
 MainWindow::~MainWindow() {
+    QSettings{}.setValue(Globals::last_view_mode_key, view_mode_to_string(view_mode_m));
+    QSettings{}.setValue(Globals::expanded_paths_key, get_expanded_tree_view_paths());
+    QSettings{}.setValue(Globals::current_tree_view_selection_key, get_treeview_selection_path());
+    QSettings{}.setValue(Globals::current_list_view_selection_key, get_list_selection_path());
+
     for (auto &test : test_runners) {
         if (test->is_running()) {
             test->interrupt();
@@ -188,8 +360,8 @@ void MainWindow::align_columns() {
     ui->splitter_devices->setStretchFactor(0, 3);
     ui->splitter_devices->setStretchFactor(1, 1);
     ui->devices_list->setMinimumWidth(dev_min_size);
-    for (int i = 0; i < ui->tests_list->columnCount(); i++) {
-        ui->tests_list->resizeColumnToContents(i);
+    for (int i = 0; i < ui->tests_advanced_view->columnCount(); i++) {
+        ui->tests_advanced_view->resizeColumnToContents(i);
     }
 }
 
@@ -217,7 +389,30 @@ void MainWindow::load_scripts() {
     QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories};
     while (dit.hasNext()) {
         const auto &file_path = dit.next();
-        test_descriptions.push_back(TestDescriptionLoader{ui->tests_list, file_path, QDir{dir}.relativeFilePath(file_path)});
+        test_descriptions.push_back(TestDescriptionLoader{ui->tests_advanced_view, file_path, QDir{dir}.relativeFilePath(file_path)});
+    }
+    load_favorites();
+}
+
+void MainWindow::load_favorites() {
+    ui->test_simple_view->clear();
+    for (const TestDescriptionLoader &test : test_descriptions) {
+        const ScriptEntry favorite_entry = favorite_scripts.get_entry(test.get_name());
+        if (favorite_entry.valid) {
+            QListWidgetItem *item = new QListWidgetItem{favorite_entry.script_path};
+            if (favorite_entry.alternative_name != "") {
+                item->setText(favorite_entry.alternative_name);
+            }
+            item->setFlags(item->flags() | Qt::ItemIsEditable);
+            item->setData(Qt::UserRole, Utility::make_qvariant(test.ui_entry.get()));
+            item->setToolTip(favorite_entry.script_path);
+            Identicon ident_icon{test.get_name().toLocal8Bit()};
+            const int SCALE_FACTOR = 12;
+            QImage img = ident_icon.toImage(SCALE_FACTOR);
+            item->setIcon(QPixmap::fromImage(img));
+            //item->setIcon(favorite_entry.icon);
+            ui->test_simple_view->addItem(item);
+        }
     }
 }
 
@@ -392,9 +587,6 @@ void MainWindow::slot_device_discovery_done() {
 }
 
 void MainWindow::on_btn_refresh_all_clicked() {
-    //  std::string destination = "X:/Alle/CrystalTestFramework/scripts/sg04/test.pdf";
-    //  std::string destination = "//amelie/austausch/Alle/CrystalTestFramework/dumps/SG04/1234/report-2017_06_30-12_25_12-001.pdf";
-    // QDesktopServices::openUrl(QUrl("file://" + QString::fromStdString(destination)));
     refresh_devices(false);
 }
 
@@ -405,34 +597,62 @@ void MainWindow::on_btn_refresh_dut_clicked() {
 void MainWindow::on_run_test_script_button_clicked() {
     assert(currently_in_gui_thread());
 
-    auto items = ui->tests_list->selectedItems();
-    for (auto &item : items) {
-        auto data = item->data(0, Qt::UserRole);
-        auto test = Utility::from_qvariant<TestDescriptionLoader>(data);
-        if (test == nullptr) {
-            continue;
-        }
-        try {
-            test_runners.push_back(std::make_unique<TestRunner>(*test));
-        } catch (const std::runtime_error &e) {
-            Console::error(test->console) << "Failed running test: " << e.what();
-            continue;
-        }
-        auto &runner = *test_runners.back();
-        const auto tab_index = ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name());
-        ui->test_tabs->setCurrentIndex(tab_index);
-        DeviceMatcher device_matcher(this);
-        device_matcher.match_devices(*device_worker, runner, *test);
-        auto devices = device_matcher.get_matched_devices();
-        if (device_matcher.was_successful()) {
-            runner.run_script(devices, *device_worker);
-        } else {
-            runner.interrupt();
-        }
+    if (ui->tests_advanced_view->isVisible()) {
+        auto item = ui->tests_advanced_view->selectedItems()[0];
+        auto test = get_test_from_tree_widget(item);
+        run_test_script(test);
+    } else if (ui->test_simple_view->isVisible()) {
+        auto item = ui->test_simple_view->selectedItems()[0];
+        auto test = get_test_from_listViewItem(item);
+        run_test_script(test);
     }
 }
 
-void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
+TestDescriptionLoader *MainWindow::get_test_from_tree_widget(const QTreeWidgetItem *item) {
+    if (item == nullptr) {
+        item = ui->tests_advanced_view->currentItem();
+    }
+    if (item == nullptr) {
+        return nullptr;
+    }
+    QVariant data = item->data(0, Qt::UserRole);
+    return Utility::from_qvariant<TestDescriptionLoader>(data);
+}
+
+TestDescriptionLoader *MainWindow::get_test_from_listViewItem(QListWidgetItem *item) {
+    QTreeWidgetItem *parent_tree_widget_item = Utility::from_qvariant<QTreeWidgetItem>(item->data(Qt::UserRole));
+    return get_test_from_tree_widget(parent_tree_widget_item);
+}
+
+void MainWindow::run_test_script(TestDescriptionLoader *test) {
+    assert(currently_in_gui_thread());
+    if (test == nullptr) {
+        return;
+    }
+    try {
+        test_runners.push_back(std::make_unique<TestRunner>(*test));
+    } catch (const std::runtime_error &e) {
+        Console::error(test->console) << "Failed running test: " << e.what();
+        return;
+    }
+    auto &runner = *test_runners.back();
+    const auto tab_index = ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name());
+    ui->test_tabs->setCurrentIndex(tab_index);
+    DeviceMatcher device_matcher(this);
+    device_matcher.match_devices(*device_worker, runner, *test);
+    auto devices = device_matcher.get_matched_devices();
+    if (device_matcher.was_successful()) {
+        runner.run_script(devices, *device_worker);
+    } else {
+        runner.interrupt();
+    }
+}
+
+void MainWindow::on_test_simple_view_itemDoubleClicked(QListWidgetItem *item) {
+    run_test_script(get_test_from_listViewItem(item));
+}
+
+void MainWindow::on_tests_advanced_view_itemClicked(QTreeWidgetItem *item, int column) {
     assert(currently_in_gui_thread());
     (void)column;
     //Utility::thread_call(this, nullptr, [this, item] {
@@ -445,18 +665,18 @@ void MainWindow::on_tests_list_itemClicked(QTreeWidgetItem *item, int column) {
     // });
 }
 
-void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
+void MainWindow::on_tests_advanced_view_customContextMenuRequested(const QPoint &pos) {
     assert(currently_in_gui_thread());
     // Utility::thread_call(this, nullptr, [this, pos] {
-    auto item = ui->tests_list->itemAt(pos);
-    if (item && get_test_from_ui()) {
-        while (ui->tests_list->indexOfTopLevelItem(item) == -1) {
+    auto item = ui->tests_advanced_view->itemAt(pos);
+    if (item && get_test_from_tree_widget()) {
+        while (ui->tests_advanced_view->indexOfTopLevelItem(item) == -1) {
             item = item->parent();
         }
 
-        emit on_tests_list_itemClicked(item, 0);
+        emit on_tests_advanced_view_itemClicked(item, 0);
 
-        auto test = get_test_from_ui();
+        auto test = get_test_from_tree_widget();
 
         QMenu menu(this);
 
@@ -472,7 +692,16 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
         connect(&action_editor, &QAction::triggered, [test] { test->launch_editor(); });
         menu.addAction(&action_editor);
 
-        menu.exec(ui->tests_list->mapToGlobal(pos));
+        QAction action_favorite(tr("Add to favorites"), nullptr);
+        if (!favorite_scripts.is_favorite(test->get_name())) {
+            connect(&action_favorite, &QAction::triggered, [test, this] {
+                favorite_scripts.add_favorite(test->get_name());
+                load_favorites();
+                enable_favorite_view();
+            });
+            menu.addAction(&action_favorite);
+        }
+        menu.exec(ui->tests_advanced_view->mapToGlobal(pos));
     } else {
         QMenu menu(this);
 
@@ -483,24 +712,41 @@ void MainWindow::on_tests_list_customContextMenuRequested(const QPoint &pos) {
         });
         menu.addAction(&action);
 
-        menu.exec(ui->tests_list->mapToGlobal(pos));
+        menu.exec(ui->tests_advanced_view->mapToGlobal(pos));
     }
     //  });
 }
 
-TestDescriptionLoader *MainWindow::get_test_from_ui(const QTreeWidgetItem *item) {
+void MainWindow::on_test_simple_view_customContextMenuRequested(const QPoint &pos) {
+    assert(currently_in_gui_thread());
+    auto item = ui->test_simple_view->itemAt(pos);
     if (item == nullptr) {
-        item = ui->tests_list->currentItem();
+        return;
     }
-    if (item == nullptr) {
-        return nullptr;
-    }
-    for (auto &test : test_descriptions) {
-        if (test.ui_entry == item) {
-            return &test;
-        }
-    }
-    return nullptr;
+    auto test = get_test_from_listViewItem(item);
+    QMenu menu(this);
+
+    QAction action_run(tr("Run"), nullptr);
+    connect(&action_run, &QAction::triggered, [test, this] { run_test_script(test); });
+    menu.addAction(&action_run);
+
+    QAction action_editor(tr("Open in Editor"), nullptr);
+    connect(&action_editor, &QAction::triggered, [test] { test->launch_editor(); });
+    menu.addAction(&action_editor);
+
+    QAction action_remove(tr("Remove from Favorites"), nullptr);
+    connect(&action_remove, &QAction::triggered, [test, this] {
+        favorite_scripts.remove_favorite(test->get_name());
+        load_favorites();
+    });
+    menu.addAction(&action_remove);
+
+    menu.exec(ui->test_simple_view->mapToGlobal(pos));
+}
+
+void MainWindow::on_test_simple_view_itemChanged(QListWidgetItem *item) {
+    auto test = get_test_from_listViewItem(item);
+    favorite_scripts.set_alternative_name(test->get_name(), item->text());
 }
 
 TestRunner *MainWindow::get_runner_from_tab_index(int index) {
@@ -690,6 +936,7 @@ void MainWindow::poll_sg04_counts() {
 
 void MainWindow::on_close_finished_tests_button_clicked() {
     close_finished_tests();
+    qDebug() << get_treeview_selection_path();
 }
 
 void MainWindow::on_actionDummy_Data_Creator_for_print_templates_triggered() {
@@ -702,4 +949,28 @@ void MainWindow::on_actionDummy_Data_Creator_for_print_templates_triggered() {
 void MainWindow::on_actionInfo_triggered() {
     auto *infowindow = new InfoWindow{this};
     infowindow->show();
+}
+
+void MainWindow::on_action_view_all_scripts_triggered() {
+    enable_all_script_view();
+}
+
+void MainWindow::on_action_view_favorite_scripts_triggered() {
+    enable_favorite_view();
+}
+
+void MainWindow::enable_favorite_view() {
+    ui->action_view_all_scripts->setChecked(false);
+    ui->action_view_favorite_scripts->setChecked(true);
+    ui->test_simple_view->setVisible(true);
+    ui->tests_advanced_view->setVisible(false);
+    view_mode_m = ViewMode::FavoriteScripts;
+}
+
+void MainWindow::enable_all_script_view() {
+    ui->action_view_all_scripts->setChecked(true);
+    ui->action_view_favorite_scripts->setChecked(false);
+    ui->test_simple_view->setVisible(false);
+    ui->tests_advanced_view->setVisible(true);
+    view_mode_m = ViewMode::AllScripts;
 }

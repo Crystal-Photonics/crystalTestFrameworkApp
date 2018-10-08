@@ -39,8 +39,8 @@ void Hotkey_picker::save() const {
 
 std::vector<Hotkey_picker::Key_config> Hotkey_picker::get_key_sequence_config() const {
 	return {
-		{ui->confirm_keySequenceEdit, Globals::confirm_key_sequence, "Enter"},
-		{ui->skip_keySequenceEdit, Globals::skip_key_sequence, "Space"},
-		{ui->cancel_keySequenceEdit, Globals::cancel_key_sequence, "Esc"},
+		{ui->confirm_keySequenceEdit, Globals::confirm_key_sequence_key, "Enter"},
+		{ui->skip_keySequenceEdit, Globals::skip_key_sequence_key, "Space"},
+		{ui->cancel_keySequenceEdit, Globals::cancel_key_sequence_key, "Esc"},
 	};
 }

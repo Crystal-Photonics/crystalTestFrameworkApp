@@ -36,7 +36,9 @@ class PathSettingsWindow : public QDialog {
 
     void on_btn_load_from_file_clicked();
 
-    private:
+    void on_favorite_script_selector_clicked();
+
+private:
     Ui::PathSettingsWindow *ui;
 
     std::vector<std::pair<QLineEdit *, const char *>> get_config_lines() const;

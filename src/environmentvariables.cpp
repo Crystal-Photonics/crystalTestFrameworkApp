@@ -1,6 +1,7 @@
 #include "environmentvariables.h"
 #include "util.h"
 #include "qt_util.h"
+#include "Windows/mainwindow.h"
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -8,7 +9,7 @@
 #include <QJsonValue>
 #include <QMessageBox>
 #include <QStringList>
-#include "Windows/mainwindow.h"
+
 
 EnvironmentVariables::EnvironmentVariables(QString filename) {
     if (filename == "") {

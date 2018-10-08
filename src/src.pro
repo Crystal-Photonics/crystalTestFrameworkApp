@@ -92,7 +92,9 @@ HEADERS += \
     environmentvariables.h \
     LuaUI/userinstructionlabel.h \
     LuaUI/userwaitlabel.h \
-    data_engine/exceptionalapproval.h
+    data_engine/exceptionalapproval.h \
+        identicon/identicon.h \
+favorite_scripts.h
 HEADERS +=    Windows/exceptiontalapprovaldialog.h
 #HEADERS +=    data_engine/data_engine_strings.h
 HEADERS +=    Windows/infowindow.h
@@ -156,7 +158,9 @@ SOURCES += \
     LuaUI/polldataengine.cpp \
     data_engine/exceptionalapproval.cpp \
     Windows/exceptiontalapprovaldialog.cpp \
-    Windows/infowindow.cpp 
+    Windows/infowindow.cpp \ 
+    identicon/identicon.cpp \
+    favorite_scripts.cpp
 
 win32 {
     system($$system_quote($$SH) $$PWD/../git_win.sh)

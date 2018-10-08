@@ -246,14 +246,14 @@
         <bool>false</bool>
        </property>
        <widget class="QWidget" name="layoutWidget">
-        <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0">
+        <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0">
          <item>
-          <widget class="QTreeWidget" name="tests_list">
+          <widget class="QTreeWidget" name="tests_advanced_view">
            <property name="contextMenuPolicy">
             <enum>Qt::CustomContextMenu</enum>
            </property>
            <property name="selectionMode">
-            <enum>QAbstractItemView::ExtendedSelection</enum>
+            <enum>QAbstractItemView::SingleSelection</enum>
            </property>
            <property name="sortingEnabled">
             <bool>true</bool>
@@ -273,6 +273,87 @@
              <string>Connected Devices</string>
             </property>
            </column>
+          </widget>
+         </item>
+         <item>
+          <widget class="QListWidget" name="test_simple_view">
+           <property name="contextMenuPolicy">
+            <enum>Qt::CustomContextMenu</enum>
+           </property>
+           <property name="editTriggers">
+            <set>QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
+           </property>
+           <property name="viewMode">
+            <enum>QListView::IconMode</enum>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
+           </property>
+           <item>
+            <property name="text">
+             <string>Neues Element</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Neues Element</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Neues Element</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Neues Element</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Neues Element</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Neues Element</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Neues Element</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Neues Element</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Neues Element</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Neues Element</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Neues Element</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Neues Element</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Neues Element</string>
+            </property>
+           </item>
           </widget>
          </item>
          <item>
@@ -353,7 +434,7 @@
      <x>0</x>
      <y>0</y>
      <width>1113</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuSettings">
@@ -379,6 +460,22 @@
    <addaction name="menuTools"/>
    <addaction name="menuHelp"/>
   </widget>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="layoutDirection">
+    <enum>Qt::RightToLeft</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="action_view_all_scripts"/>
+   <addaction name="action_view_favorite_scripts"/>
+  </widget>
   <action name="actionPaths">
    <property name="text">
     <string>Paths ...</string>
@@ -397,6 +494,31 @@
   <action name="actionInfo">
    <property name="text">
     <string>Info</string>
+   </property>
+  </action>
+  <action name="action_view_all_scripts">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>All scripts</string>
+   </property>
+   <property name="toolTip">
+    <string>All scripts</string>
+   </property>
+  </action>
+  <action name="action_view_favorite_scripts">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Favorite scripts</string>
    </property>
   </action>
  </widget>
@@ -468,7 +590,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>tests_list</sender>
+   <sender>tests_advanced_view</sender>
    <signal>itemChanged(QTreeWidgetItem*,int)</signal>
    <receiver>MainWindow</receiver>
    <slot>align_columns()</slot>
@@ -484,7 +606,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>tests_list</sender>
+   <sender>tests_advanced_view</sender>
    <signal>itemEntered(QTreeWidgetItem*,int)</signal>
    <receiver>MainWindow</receiver>
    <slot>align_columns()</slot>
@@ -500,7 +622,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>tests_list</sender>
+   <sender>tests_advanced_view</sender>
    <signal>itemExpanded(QTreeWidgetItem*)</signal>
    <receiver>MainWindow</receiver>
    <slot>align_columns()</slot>
@@ -516,7 +638,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>tests_list</sender>
+   <sender>tests_advanced_view</sender>
    <signal>itemCollapsed(QTreeWidgetItem*)</signal>
    <receiver>MainWindow</receiver>
    <slot>align_columns()</slot>

@@ -30,7 +30,7 @@ IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     parent->scroll_to_bottom();
 
     callback_isotope_selected = QObject::connect(combobox, &QComboBox::currentTextChanged, [this](const QString &text) {
-        QSettings{}.setValue(Globals::isotope_source_most_recent, text);
+        QSettings{}.setValue(Globals::isotope_source_most_recent_key, text);
     });
 }
 
@@ -41,7 +41,7 @@ IsotopeSourceSelector::~IsotopeSourceSelector() {
 
 double IsotopeSourceSelector::get_selected_activity_Bq() {
     QString my_serial_number = combobox->currentText();
-    QSettings{}.setValue(Globals::isotope_source_most_recent, my_serial_number);
+    QSettings{}.setValue(Globals::isotope_source_most_recent_key, my_serial_number);
     return get_source_by_serial_number(combobox->currentText()).get_activtiy_becquerel(QDate::currentDate());
 }
 
@@ -86,8 +86,8 @@ IsotopeSource IsotopeSourceSelector::get_source_by_serial_number(QString serial_
 }
 
 void IsotopeSourceSelector::load_isotope_database() {
-    QString most_recent_serial_number = QSettings{}.value(Globals::isotope_source_most_recent, "").toString();
-    QString fn = QSettings{}.value(Globals::isotope_source_data_base_path, "").toString();
+    QString most_recent_serial_number = QSettings{}.value(Globals::isotope_source_most_recent_key, "").toString();
+    QString fn = QSettings{}.value(Globals::isotope_source_data_base_path_key, "").toString();
 
     isotope_sources.clear();
 

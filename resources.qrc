@@ -19,5 +19,7 @@
         <file>examples/scripts/example/test_external_tool/flash.jlink</file>
         <file>examples/scripts/example/test_external_tool/jlink.bat</file>
         <file>examples/scripts/example/test_external_tool/test_exernal_bat.lua</file>
+        <file>src/file_icon.ico</file>
+        <file>examples/settings/favorite_scripts.json</file>
     </qresource>
 </RCC>

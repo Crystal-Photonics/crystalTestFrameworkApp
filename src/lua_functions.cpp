@@ -2071,7 +2071,7 @@ QChar get_search_path_delimiter() {
 }
 
 QString get_search_paths(const QString &script_path) {
-    QString search_path = QSettings{}.value(Globals::search_path, "").toString();
+    QString search_path = QSettings{}.value(Globals::search_path_key, "").toString();
     if (script_path != "") {
         search_path = search_path + get_search_path_delimiter() + get_clean_file_path(script_path);
     }

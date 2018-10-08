@@ -1136,7 +1136,7 @@ void Test_Data_engine::test_exceptional_approval() {
     QVERIFY(de.is_complete());
     QVERIFY(!de.all_values_in_range());
 
-    // auto filename = QSettings{}.value(Globals::path_to_excpetional_approval_db, "").toString();
+    // auto filename = QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString();
     QString filename = QString{"../../tests/scripts/sonderfreigaben.json"};
     qDebug() << QDir::currentPath();
     ExceptionalApprovalDB ea = ExceptionalApprovalDB{filename};

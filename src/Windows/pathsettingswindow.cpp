@@ -44,18 +44,17 @@ void PathSettingsWindow::on_settings_confirmation_rejected() {
 }
 
 std::vector<std::pair<QLineEdit *, const char *>> PathSettingsWindow::get_config_lines() const {
-    return {{ui->isotope_db_path, Globals::isotope_source_data_base_path},
+    return {{ui->isotope_db_path, Globals::isotope_source_data_base_path_key},
             {ui->test_script_path_text, Globals::test_script_path_settings_key},
             {ui->device_description_path_text, Globals::device_protocols_file_settings_key},
             {ui->rpc_xml_files_path_text, Globals::rpc_xml_files_path_settings_key},
             {ui->lua_editor_path_text, Globals::lua_editor_path_settings_key},
             {ui->lua_editor_parameters_text, Globals::lua_editor_parameters_settings_key},
-            {ui->meta_path_text, Globals::measurement_equipment_meta_data_path},
-            // {ui->git_path, Globals::git_path},
-            {ui->env_var_path, Globals::path_to_environment_variables},
-            {ui->edit_exceptional_approval, Globals::path_to_excpetional_approval_db},
-            {ui->search_path, Globals::search_path}
-
+            {ui->meta_path_text, Globals::measurement_equipment_meta_data_path_key},
+            {ui->env_var_path, Globals::path_to_environment_variables_key},
+            {ui->edit_exceptional_approval, Globals::path_to_excpetional_approval_db_key},
+            {ui->favorite_script_path, Globals::favorite_script_file_key},
+            {ui->search_path, Globals::search_path_key}
     };
 }
 
@@ -86,25 +85,29 @@ void PathSettingsWindow::on_rpc_xml_files_path_selector_clicked() {
     request_user_dir(ui->rpc_xml_files_path_text, tr("Select RPC-xml path"), Globals::rpc_xml_files_path_settings_key);
 }
 
+void PathSettingsWindow::on_favorite_script_selector_clicked() {
+    request_user_file(ui->favorite_script_path, tr("Select favorite script description file"), Globals::favorite_script_file_key, "*.json");
+}
+
 void PathSettingsWindow::on_lua_editor_path_selector_clicked() {
     request_user_file(ui->lua_editor_path_text, tr("Select lua editor executable"), Globals::lua_editor_path_settings_key, "*.exe");
 }
 
 void PathSettingsWindow::on_meta_path_selector_clicked() {
-    request_user_file(ui->meta_path_text, tr("Select measurement equipment meta data file"), Globals::measurement_equipment_meta_data_path, "*.json");
+    request_user_file(ui->meta_path_text, tr("Select measurement equipment meta data file"), Globals::measurement_equipment_meta_data_path_key, "*.json");
 }
 
 void PathSettingsWindow::on_env_var_path_button_clicked() {
-    request_user_file(ui->env_var_path, tr("Select the location of the environment variable file"), Globals::path_to_environment_variables, "*.json");
+    request_user_file(ui->env_var_path, tr("Select the location of the environment variable file"), Globals::path_to_environment_variables_key, "*.json");
 }
 
 void PathSettingsWindow::on_exceptional_approval_path_clicked() {
-    request_user_file(ui->edit_exceptional_approval, tr("Select the location of the exceptional approval db file"), Globals::path_to_excpetional_approval_db,
+    request_user_file(ui->edit_exceptional_approval, tr("Select the location of the exceptional approval db file"), Globals::path_to_excpetional_approval_db_key,
                       "*.json");
 }
 
 void PathSettingsWindow::on_isotope_db_path_button_clicked() {
-    request_user_file(ui->isotope_db_path, tr("Select Isotope Source Database"), Globals::isotope_source_data_base_path, "*.json");
+    request_user_file(ui->isotope_db_path, tr("Select Isotope Source Database"), Globals::isotope_source_data_base_path_key, "*.json");
 }
 
 void PathSettingsWindow::on_search_path_textChanged(const QString &arg1) {
