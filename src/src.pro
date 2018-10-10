@@ -16,13 +16,12 @@ DEFINES += EXPORT_LIBRARY
 
 FORMS += \
 	Windows/mainwindow.ui \
-	Windows/pathsettingswindow.ui \
 	Windows/devicematcher.ui \
 	Windows/scpimetadatadeviceselector.ui \
-	Windows/hotkey_picker.ui \
-    Windows/dummydatacreator.ui \
+            Windows/dummydatacreator.ui \
     Windows/exceptiontalapprovaldialog.ui \
-    Windows/infowindow.ui
+    Windows/infowindow.ui \
+    Windows/settingsform.ui
 
 QPROTOCOL_INTERPRETER_PATH=$$PWD/../libs/qRPCRuntimeParser
 INCLUDEPATH += $$QPROTOCOL_INTERPRETER_PATH/project/src
@@ -51,7 +50,6 @@ HEADERS += \
 	LuaUI/plot.h \
 	LuaUI/window.h \
 	Windows/mainwindow.h \
-	Windows/pathsettingswindow.h \
 	Protocols/protocol.h \
 	Protocols/rpcprotocol.h \
 	Protocols/scpiprotocol.h \
@@ -65,8 +63,7 @@ HEADERS += \
 	Windows/devicematcher.h \
 	Windows/scpimetadatadeviceselector.h \
 	Protocols/sg04countprotocol.h \
-        Windows/hotkey_picker.h \
-    datalogger.h \
+            datalogger.h \
     LuaUI/isotopesourceselector.h \
     LuaUI/combofileselector.h \
     chargecounter.h \
@@ -94,7 +91,9 @@ HEADERS += \
     LuaUI/userwaitlabel.h \
     data_engine/exceptionalapproval.h \
         identicon/identicon.h \
-favorite_scripts.h
+favorite_scripts.h \
+    Windows/settingsform.h
+
 HEADERS +=    Windows/exceptiontalapprovaldialog.h
 #HEADERS +=    data_engine/data_engine_strings.h
 HEADERS +=    Windows/infowindow.h
@@ -115,7 +114,6 @@ SOURCES += \
 	LuaUI/plot.cpp \
 	LuaUI/window.cpp \
 	Windows/mainwindow.cpp \
-	Windows/pathsettingswindow.cpp \
 	Protocols/protocol.cpp \
 	Protocols/rpcprotocol.cpp \
 	Protocols/scpiprotocol.cpp \
@@ -129,7 +127,6 @@ SOURCES += \
 	Windows/devicematcher.cpp \
 	Windows/scpimetadatadeviceselector.cpp \
 	Protocols/sg04countprotocol.cpp \
-	Windows/hotkey_picker.cpp \
     datalogger.cpp \
     LuaUI/isotopesourceselector.cpp \
     LuaUI/combofileselector.cpp \
@@ -160,7 +157,8 @@ SOURCES += \
     Windows/exceptiontalapprovaldialog.cpp \
     Windows/infowindow.cpp \ 
     identicon/identicon.cpp \
-    favorite_scripts.cpp
+    favorite_scripts.cpp \
+    Windows/settingsform.cpp
 
 win32 {
     system($$system_quote($$SH) $$PWD/../git_win.sh)

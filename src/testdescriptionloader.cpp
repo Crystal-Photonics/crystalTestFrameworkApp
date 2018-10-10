@@ -104,7 +104,9 @@ void TestDescriptionLoader::load_description() {
         }
 
         ui_entry->setText(1, reqs.join(", "));
+        ui_entry->setIcon(3, QIcon{});
     } catch (const std::runtime_error &e) {
+        ui_entry->setIcon(3, QIcon{"://src/icons/if_exclamation_16.ico"});
         Console::error(console) << "Failed loading protocols: " << e.what();
     }
 }

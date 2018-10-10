@@ -21,9 +21,6 @@ class FavoriteScripts {
 
     ScriptEntry get_entry(QString script_path);
 
-
-
-
     void add_favorite(QString script_path);
     void set_alternative_name(QString script_path, QString alternative_name);
     void remove_favorite(QString script_path);

@@ -37,7 +37,7 @@ class TestRunner : QObject {
     ReturnType call(const char *function_name, Arguments &&... args);
     UI_container *get_lua_ui_container() const;
     void run_script(std::vector<MatchedDevice> devices, DeviceWorker &device_worker);
-    bool is_running();
+    bool is_running() const;
     const QString &get_name() const;
     void launch_editor() const;
 

@@ -98,7 +98,7 @@ void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &de
     });
 }
 
-bool TestRunner::is_running() {
+bool TestRunner::is_running() const {
     return thread.isRunning();
 }
 

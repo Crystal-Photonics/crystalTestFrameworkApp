@@ -4,15 +4,14 @@
 #include "LuaUI/plot.h"
 #include "LuaUI/window.h"
 #include "Protocols/sg04countprotocol.h"
+#include "SettingsForm.h"
 #include "Windows/dummydatacreator.h"
 #include "Windows/infowindow.h"
 #include "config.h"
 #include "console.h"
 #include "devicematcher.h"
 #include "deviceworker.h"
-#include "hotkey_picker.h"
 #include "identicon/identicon.h"
-#include "pathsettingswindow.h"
 #include "qt_util.h"
 #include "scriptengine.h"
 #include "testdescriptionloader.h"
@@ -253,6 +252,7 @@ void MainWindow::set_list_selection_from_path(QString path) {
         if (test) {
             if (test->get_name() == path) {
                 item->setSelected(true);
+                ui->test_simple_view->setCurrentItem(item);
                 return;
             }
         }
@@ -271,6 +271,7 @@ void MainWindow::set_treeview_selection_from_path_recursion(QTreeWidgetItem *roo
         QTreeWidgetItem *item = root_item->child(i);
         if (item->text(0) == child_text) {
             item->setSelected(true);
+            ui->tests_advanced_view->setCurrentItem(item);
         }
     }
 }
@@ -295,8 +296,8 @@ MainWindow::MainWindow(QWidget *parent)
     mw = this;
     ui->setupUi(this);
 
-    Utility::add_handle(ui->splitter);
-    Utility::add_handle(ui->splitter_3);
+    //Utility::add_handle(ui->splitter_script_view);
+    // Utility::add_handle(ui->splitter_3);
 
     load_default_paths_if_needed();
     favorite_scripts.load_from_file(QSettings{}.value(Globals::favorite_script_file_key, "").toString());
@@ -309,9 +310,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->test_simple_view->setVisible(false);
     devices_thread.start();
     connect(device_worker.get(), SIGNAL(device_discrovery_done()), this, SLOT(slot_device_discovery_done()));
-    ui->btn_refresh_all->click();
+    refresh_devices(false);
 
     load_scripts();
+    ui->test_simple_view->installEventFilter(this);
     ViewMode vm = string_to_view_mode(QSettings{}.value(Globals::last_view_mode_key, "").toString());
     if (ui->test_simple_view->count() == 0) {
         vm = ViewMode::AllScripts;
@@ -323,6 +325,8 @@ MainWindow::MainWindow(QWidget *parent)
     expand_from_stringlist(QSettings{}.value(Globals::expanded_paths_key, QStringList{}).toStringList());
     set_treeview_selection_from_path(QSettings{}.value(Globals::current_tree_view_selection_key, "").toString());
     set_list_selection_from_path(QSettings{}.value(Globals::current_list_view_selection_key, "").toString());
+    enable_run_test_button_by_script_selection();
+    enable_closed_finished_test_button_script_states();
 }
 
 MainWindow::~MainWindow() {
@@ -365,12 +369,6 @@ void MainWindow::align_columns() {
     }
 }
 
-//void MainWindow::set_manual_devices_parent_item(std::unique_ptr<QTreeWidgetItem> manual_devices_parent_item) {
-//  manual_devices_parent_item_mutex.lock();
-//this->manual_devices_parent_item = manual_devices_parent_item;
-// manual_devices_parent_item_mutex.unlock();
-//}
-
 std::unique_ptr<QTreeWidgetItem> *MainWindow::create_manual_devices_parent_item() {
     manual_devices_parent_item = std::make_unique<QTreeWidgetItem>(QStringList{} << "Manual Devices");
     //if (manual_parent_item->get()) {
@@ -385,6 +383,13 @@ std::unique_ptr<QTreeWidgetItem> *MainWindow::MainWindow::get_manual_devices_par
 
 void MainWindow::load_scripts() {
     assert(currently_in_gui_thread());
+    bool enabled_a = ui->tbtn_refresh_scripts->isEnabled();
+    bool enabled_b = ui->actionReload_All_Scripts->isEnabled();
+    ui->tbtn_refresh_scripts->setEnabled(false);
+    ui->actionReload_All_Scripts->setEnabled(false);
+    statusBar()->showMessage(tr("Refreshing Scripts.."));
+
+    test_descriptions.clear();
     const auto dir = QSettings{}.value(Globals::test_script_path_settings_key, "").toString();
     QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories};
     while (dit.hasNext()) {
@@ -392,11 +397,16 @@ void MainWindow::load_scripts() {
         test_descriptions.push_back(TestDescriptionLoader{ui->tests_advanced_view, file_path, QDir{dir}.relativeFilePath(file_path)});
     }
     load_favorites();
+    set_enabled_states_for_matchable_scripts();
+    statusBar()->showMessage(tr(""));
+    ui->tbtn_refresh_scripts->setEnabled(enabled_a);
+    ui->actionReload_All_Scripts->setEnabled(enabled_b);
 }
 
 void MainWindow::load_favorites() {
+    assert(currently_in_gui_thread());
     ui->test_simple_view->clear();
-    for (const TestDescriptionLoader &test : test_descriptions) {
+    for (TestDescriptionLoader &test : test_descriptions) {
         const ScriptEntry favorite_entry = favorite_scripts.get_entry(test.get_name());
         if (favorite_entry.valid) {
             QListWidgetItem *item = new QListWidgetItem{favorite_entry.script_path};
@@ -410,8 +420,36 @@ void MainWindow::load_favorites() {
             const int SCALE_FACTOR = 12;
             QImage img = ident_icon.toImage(SCALE_FACTOR);
             item->setIcon(QPixmap::fromImage(img));
-            //item->setIcon(favorite_entry.icon);
             ui->test_simple_view->addItem(item);
+            test.ui_entry->setIcon(4, QIcon{"://src/icons/star_16.ico"});
+        } else {
+            test.ui_entry->setIcon(4, QIcon{"://src/icons/if_star_empty_16.png"});
+        }
+    }
+}
+
+void MainWindow::set_enabled_states_for_matchable_scripts() {
+    assert(currently_in_gui_thread());
+    for (TestDescriptionLoader &test : test_descriptions) {
+        DeviceMatcher device_matcher(this);
+        bool is_matchable = device_matcher.is_match_possible(*device_worker.get(), test);
+        if (is_matchable) {
+            test.ui_entry->setForeground(0, palette().color(QPalette::Active, QPalette::Text));
+            test.ui_entry->setForeground(1, palette().color(QPalette::Active, QPalette::Text));
+            test.ui_entry->setForeground(3, palette().color(QPalette::Active, QPalette::Text));
+        } else {
+            test.ui_entry->setForeground(0, palette().color(QPalette::Disabled, QPalette::Text));
+            test.ui_entry->setForeground(1, palette().color(QPalette::Disabled, QPalette::Text));
+            test.ui_entry->setForeground(3, palette().color(QPalette::Disabled, QPalette::Text));
+        }
+    }
+    for (int i = 0; i < ui->test_simple_view->count(); i++) {
+        auto item = ui->test_simple_view->item(i);
+        QTreeWidgetItem *tree_item = get_treewidgetitem_from_listViewItem(item);
+        if (tree_item->foreground(0) == palette().color(QPalette::Active, QPalette::Text)) {
+            item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+        } else {
+            item->setFlags(Qt::ItemIsSelectable);
         }
     }
 }
@@ -438,6 +476,7 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
 }
 
 void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State state) {
+    assert(currently_in_gui_thread());
     QString prefix = " ";
     Qt::GlobalColor color = Qt::black;
     switch (state) {
@@ -448,10 +487,12 @@ void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State 
         case TestRunner::State::finished:
             prefix = "█";
             color = Qt::black;
+            set_script_view_collapse_state(false);
             break;
         case TestRunner::State::error:
             prefix = "⚠";
             color = Qt::darkRed;
+            set_script_view_collapse_state(false);
             break;
     }
 
@@ -463,6 +504,7 @@ void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State 
         ui->test_tabs->setTabText(runner_index, title);
         ui->test_tabs->tabBar()->setTabTextColor(runner_index, color);
     }
+    enable_closed_finished_test_button_script_states();
 }
 
 void MainWindow::adopt_testrunner(TestRunner *testrunner, QString title) {
@@ -511,12 +553,10 @@ void MainWindow::remove_test_runner(TestRunner *runner) {
     test_runners.erase(std::find(std::begin(test_runners), std::end(test_runners), runner));
 }
 
-void MainWindow::on_actionPaths_triggered() {
+void MainWindow::on_actionSettings_triggered() {
     assert(currently_in_gui_thread());
-    //  Utility::thread_call(this, nullptr, [this] {
-    path_dialog = new PathSettingsWindow(this);
+    path_dialog = new SettingsForm(this);
     path_dialog->show();
-    //   / });
 }
 
 bool MainWindow::remove_device_item_recursion(QTreeWidgetItem *root_item, QTreeWidgetItem *child_to_remove, bool remove_if_existing) {
@@ -570,47 +610,66 @@ QList<QTreeWidgetItem *> MainWindow::get_devices_to_forget_by_root_treewidget(QT
 
 void MainWindow::refresh_devices(bool only_duts) {
     assert(currently_in_gui_thread());
-
     statusBar()->showMessage(tr("Refreshing devices.."));
-    ui->btn_refresh_all->setEnabled(false);
-    ui->btn_refresh_dut->setEnabled(false);
-
+    ui->actionrefresh_devices_dut->setEnabled(false);
+    ui->actionrefresh_devices_all->setEnabled(false);
     QTreeWidgetItem *root = ui->devices_list->invisibleRootItem();
-
     device_worker->refresh_devices(root, only_duts);
 }
 
 void MainWindow::slot_device_discovery_done() {
-    ui->btn_refresh_all->setEnabled(true);
-    ui->btn_refresh_dut->setEnabled(true);
+    ui->actionrefresh_devices_dut->setEnabled(true);
+    ui->actionrefresh_devices_all->setEnabled(true);
     statusBar()->showMessage(tr(""));
+    set_enabled_states_for_matchable_scripts();
 }
 
-void MainWindow::on_btn_refresh_all_clicked() {
+void MainWindow::on_actionRunSelectedScript_triggered() {
+    assert(currently_in_gui_thread());
+
+    TestDescriptionLoader *test = nullptr;
+    if (ui->tests_advanced_view->isVisible()) {
+        auto item = ui->tests_advanced_view->selectedItems()[0];
+        test = get_test_from_tree_widget(item);
+    } else if (ui->test_simple_view->isVisible()) {
+        auto item = ui->test_simple_view->selectedItems()[0];
+        test = get_test_from_listViewItem(item);
+    }
+    if (test) {
+        run_test_script(test);
+    }
+}
+
+void MainWindow::on_actionedit_script_triggered() {
+    assert(currently_in_gui_thread());
+
+    TestDescriptionLoader *test = nullptr;
+    if (ui->tests_advanced_view->isVisible()) {
+        auto item = ui->tests_advanced_view->selectedItems()[0];
+        test = get_test_from_tree_widget(item);
+    } else if (ui->test_simple_view->isVisible()) {
+        auto item = ui->test_simple_view->selectedItems()[0];
+        test = get_test_from_listViewItem(item);
+    }
+    if (test) {
+        test->launch_editor();
+    }
+}
+
+void MainWindow::on_actionrefresh_devices_all_triggered() {
     refresh_devices(false);
 }
 
-void MainWindow::on_btn_refresh_dut_clicked() {
+void MainWindow::on_actionrefresh_devices_dut_triggered() {
     refresh_devices(true);
-}
-
-void MainWindow::on_run_test_script_button_clicked() {
-    assert(currently_in_gui_thread());
-
-    if (ui->tests_advanced_view->isVisible()) {
-        auto item = ui->tests_advanced_view->selectedItems()[0];
-        auto test = get_test_from_tree_widget(item);
-        run_test_script(test);
-    } else if (ui->test_simple_view->isVisible()) {
-        auto item = ui->test_simple_view->selectedItems()[0];
-        auto test = get_test_from_listViewItem(item);
-        run_test_script(test);
-    }
 }
 
 TestDescriptionLoader *MainWindow::get_test_from_tree_widget(const QTreeWidgetItem *item) {
     if (item == nullptr) {
         item = ui->tests_advanced_view->currentItem();
+    }
+    if (item->childCount() > 0) {
+        item = nullptr;
     }
     if (item == nullptr) {
         return nullptr;
@@ -619,13 +678,18 @@ TestDescriptionLoader *MainWindow::get_test_from_tree_widget(const QTreeWidgetIt
     return Utility::from_qvariant<TestDescriptionLoader>(data);
 }
 
+QTreeWidgetItem *MainWindow::get_treewidgetitem_from_listViewItem(QListWidgetItem *item) {
+    return Utility::from_qvariant<QTreeWidgetItem>(item->data(Qt::UserRole));
+}
+
 TestDescriptionLoader *MainWindow::get_test_from_listViewItem(QListWidgetItem *item) {
-    QTreeWidgetItem *parent_tree_widget_item = Utility::from_qvariant<QTreeWidgetItem>(item->data(Qt::UserRole));
+    QTreeWidgetItem *parent_tree_widget_item = get_treewidgetitem_from_listViewItem(item);
     return get_test_from_tree_widget(parent_tree_widget_item);
 }
 
 void MainWindow::run_test_script(TestDescriptionLoader *test) {
     assert(currently_in_gui_thread());
+
     if (test == nullptr) {
         return;
     }
@@ -642,6 +706,9 @@ void MainWindow::run_test_script(TestDescriptionLoader *test) {
     device_matcher.match_devices(*device_worker, runner, *test);
     auto devices = device_matcher.get_matched_devices();
     if (device_matcher.was_successful()) {
+        if (QSettings{}.value(Globals::collapse_script_explorer_on_scriptstart_key, false).toBool()) {
+            set_script_view_collapse_state(true);
+        }
         runner.run_script(devices, *device_worker);
     } else {
         runner.interrupt();
@@ -649,39 +716,81 @@ void MainWindow::run_test_script(TestDescriptionLoader *test) {
 }
 
 void MainWindow::on_test_simple_view_itemDoubleClicked(QListWidgetItem *item) {
-    run_test_script(get_test_from_listViewItem(item));
+    (void)item;
+    on_actionRunSelectedScript_triggered();
+}
+
+bool MainWindow::eventFilter(QObject *target, QEvent *event) {
+    if (target == ui->test_simple_view) {
+        if (event->type() == QEvent::KeyPress) {
+            QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+            if (keyEvent->key() == Qt::Key_Delete) {
+                //qDebug() << "Qt::Key_Delete";
+                remove_favorite_based_on_simple_view_selection();
+                return true;
+            }
+        }
+    }
+    return QMainWindow::eventFilter(target, event);
+}
+
+void MainWindow::on_test_simple_view_itemSelectionChanged() {
+    assert(currently_in_gui_thread());
+    enable_run_test_button_by_script_selection();
 }
 
 void MainWindow::on_tests_advanced_view_itemClicked(QTreeWidgetItem *item, int column) {
-    assert(currently_in_gui_thread());
-    (void)column;
-    //Utility::thread_call(this, nullptr, [this, item] {
-    auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
-    if (test == nullptr) {
-        return;
+    if (column == 4) {
+        auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
+        if (test) {
+            QString test_name = test->get_name();
+            if (favorite_scripts.is_favorite(test_name)) {
+                favorite_scripts.remove_favorite(test_name);
+            } else {
+                favorite_scripts.add_favorite(test_name);
+            }
+            load_favorites();
+            return;
+        }
     }
-    Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
-    ui->test_tabs->setCurrentIndex(0);
-    // });
+}
+
+void MainWindow::on_tests_advanced_view_itemSelectionChanged() {
+    assert(currently_in_gui_thread());
+    auto item = ui->tests_advanced_view->currentItem();
+    if (item) {
+        if (item->childCount() == 0) {
+            auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
+            if (test == nullptr) {
+                return;
+            }
+            Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
+            ui->test_tabs->setCurrentIndex(0);
+        }
+    }
+    enable_run_test_button_by_script_selection();
+}
+
+void MainWindow::on_tests_advanced_view_itemDoubleClicked(QTreeWidgetItem *item, int column) {
+    (void)item;
+    (void)column;
+    on_actionRunSelectedScript_triggered();
 }
 
 void MainWindow::on_tests_advanced_view_customContextMenuRequested(const QPoint &pos) {
     assert(currently_in_gui_thread());
-    // Utility::thread_call(this, nullptr, [this, pos] {
     auto item = ui->tests_advanced_view->itemAt(pos);
     if (item && get_test_from_tree_widget()) {
         while (ui->tests_advanced_view->indexOfTopLevelItem(item) == -1) {
             item = item->parent();
         }
-
-        emit on_tests_advanced_view_itemClicked(item, 0);
-
+        emit on_tests_advanced_view_itemSelectionChanged();
         auto test = get_test_from_tree_widget();
 
         QMenu menu(this);
 
         QAction action_run(tr("Run"), nullptr);
-        connect(&action_run, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
+        connect(&action_run, &QAction::triggered, [this] { on_actionRunSelectedScript_triggered(); });
         menu.addAction(&action_run);
 
         QAction action_reload(tr("Reload"), nullptr);
@@ -689,7 +798,7 @@ void MainWindow::on_tests_advanced_view_customContextMenuRequested(const QPoint 
         menu.addAction(&action_reload);
 
         QAction action_editor(tr("Open in Editor"), nullptr);
-        connect(&action_editor, &QAction::triggered, [test] { test->launch_editor(); });
+        connect(&action_editor, &QAction::triggered, [this] { on_actionedit_script_triggered(); });
         menu.addAction(&action_editor);
 
         QAction action_favorite(tr("Add to favorites"), nullptr);
@@ -706,15 +815,34 @@ void MainWindow::on_tests_advanced_view_customContextMenuRequested(const QPoint 
         QMenu menu(this);
 
         QAction action(tr("Reload all scripts"), nullptr);
-        connect(&action, &QAction::triggered, [this] {
-            test_descriptions.clear();
-            load_scripts();
-        });
+        connect(&action, &QAction::triggered, [this] { on_tbtn_refresh_scripts_clicked(); });
         menu.addAction(&action);
 
         menu.exec(ui->tests_advanced_view->mapToGlobal(pos));
     }
-    //  });
+}
+
+void MainWindow::on_tbtn_refresh_scripts_clicked() {
+    load_scripts();
+}
+
+void MainWindow::on_actionReload_All_Scripts_triggered() {
+    on_tbtn_refresh_scripts_clicked();
+}
+
+void MainWindow::remove_favorite_based_on_simple_view_selection() {
+    auto items = ui->test_simple_view->selectedItems();
+    bool modified = false;
+    for (auto item : items) {
+        auto test = get_test_from_listViewItem(item);
+        if (test) {
+            favorite_scripts.remove_favorite(test->get_name());
+            modified = true;
+        }
+    }
+    if (modified) {
+        load_favorites();
+    }
 }
 
 void MainWindow::on_test_simple_view_customContextMenuRequested(const QPoint &pos) {
@@ -723,22 +851,18 @@ void MainWindow::on_test_simple_view_customContextMenuRequested(const QPoint &po
     if (item == nullptr) {
         return;
     }
-    auto test = get_test_from_listViewItem(item);
     QMenu menu(this);
 
     QAction action_run(tr("Run"), nullptr);
-    connect(&action_run, &QAction::triggered, [test, this] { run_test_script(test); });
+    connect(&action_run, &QAction::triggered, [this] { on_actionRunSelectedScript_triggered(); });
     menu.addAction(&action_run);
 
     QAction action_editor(tr("Open in Editor"), nullptr);
-    connect(&action_editor, &QAction::triggered, [test] { test->launch_editor(); });
+    connect(&action_editor, &QAction::triggered, [this] { on_actionedit_script_triggered(); });
     menu.addAction(&action_editor);
 
     QAction action_remove(tr("Remove from Favorites"), nullptr);
-    connect(&action_remove, &QAction::triggered, [test, this] {
-        favorite_scripts.remove_favorite(test->get_name());
-        load_favorites();
-    });
+    connect(&action_remove, &QAction::triggered, [this] { remove_favorite_based_on_simple_view_selection(); });
     menu.addAction(&action_remove);
 
     menu.exec(ui->test_simple_view->mapToGlobal(pos));
@@ -814,6 +938,7 @@ void MainWindow::close_finished_tests() {
                                           return true;
                                       }),
                        std::end(test_runners));
+    enable_closed_finished_test_button_script_states();
 }
 
 void MainWindow::on_test_tabs_tabCloseRequested(int index) {
@@ -876,7 +1001,8 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
         QMenu menu(this);
 
         QAction action_close_finished(tr("Close finished Tests"), nullptr);
-        connect(&action_close_finished, &QAction::triggered, &close_finished_tests);
+        //connect(&action_close_finished, &QAction::triggered, &close_finished_tests);
+        connect(&action_close_finished, &QAction::triggered, [this] { close_finished_tests(); });
         menu.addAction(&action_close_finished);
 
         menu.exec(ui->test_tabs->mapToGlobal(pos));
@@ -911,11 +1037,6 @@ void MainWindow::on_console_tabs_customContextMenuRequested(const QPoint &pos) {
     menu.exec(ui->console_tabs->mapToGlobal(pos));
 }
 
-void MainWindow::on_actionHotkey_triggered() {
-    Hotkey_picker hp{this};
-    hp.exec();
-}
-
 void MainWindow::poll_sg04_counts() {
 #if 1
     assert(currently_in_gui_thread());
@@ -934,11 +1055,6 @@ void MainWindow::poll_sg04_counts() {
 #endif
 }
 
-void MainWindow::on_close_finished_tests_button_clicked() {
-    close_finished_tests();
-    qDebug() << get_treeview_selection_path();
-}
-
 void MainWindow::on_actionDummy_Data_Creator_for_print_templates_triggered() {
     DummyDataCreator *dummydatacreator = new DummyDataCreator(this);
     if (dummydatacreator->get_is_valid_data_engine()) {
@@ -951,26 +1067,126 @@ void MainWindow::on_actionInfo_triggered() {
     infowindow->show();
 }
 
-void MainWindow::on_action_view_all_scripts_triggered() {
-    enable_all_script_view();
-}
-
-void MainWindow::on_action_view_favorite_scripts_triggered() {
-    enable_favorite_view();
-}
-
 void MainWindow::enable_favorite_view() {
-    ui->action_view_all_scripts->setChecked(false);
-    ui->action_view_favorite_scripts->setChecked(true);
+    assert(currently_in_gui_thread());
+    ui->tbtn_view_all_scripts->setChecked(false);
+    ui->tbtn_view_favorite_scripts->setChecked(true);
     ui->test_simple_view->setVisible(true);
     ui->tests_advanced_view->setVisible(false);
     view_mode_m = ViewMode::FavoriteScripts;
+    enable_run_test_button_by_script_selection();
 }
 
 void MainWindow::enable_all_script_view() {
-    ui->action_view_all_scripts->setChecked(true);
-    ui->action_view_favorite_scripts->setChecked(false);
+    assert(currently_in_gui_thread());
+    ui->tbtn_view_all_scripts->setChecked(true);
+    ui->tbtn_view_favorite_scripts->setChecked(false);
     ui->test_simple_view->setVisible(false);
     ui->tests_advanced_view->setVisible(true);
     view_mode_m = ViewMode::AllScripts;
+    enable_run_test_button_by_script_selection();
+}
+
+void MainWindow::enable_run_test_button_by_script_selection() {
+    assert(currently_in_gui_thread());
+    bool enabled = false;
+    bool script_matchable = false;
+    if (view_mode_m == ViewMode::AllScripts) {
+        if (ui->tests_advanced_view->currentItem() == nullptr) {
+            enabled = false;
+        } else {
+            if ((ui->tests_advanced_view->currentItem()->childCount() == 0)) {
+                auto item = ui->tests_advanced_view->currentItem();
+                TestDescriptionLoader *test = get_test_from_tree_widget(item);
+                if (test) {
+                    enabled = true;
+                }
+                if (item->foreground(0) == palette().color(QPalette::Active, QPalette::Text)) { //quite ugly
+                    script_matchable = true;
+                }
+            }
+        }
+    } else {
+        if (ui->test_simple_view->selectedItems().count() == 1) {
+            auto item = ui->test_simple_view->currentItem();
+            if (item) {
+                if (item->flags() & Qt::ItemIsEnabled) {
+                    script_matchable = true;
+                }
+                enabled = true;
+            }
+        } else {
+            enabled = false;
+        }
+    }
+    if (script_view_is_collapsed) {
+        enabled = false;
+    }
+    ui->actionRunSelectedScript->setEnabled(enabled && script_matchable);
+    ui->actionedit_script->setEnabled(enabled);
+    if (enabled && script_matchable) {
+        ui->actionRunSelectedScript->setToolTip(tr("Run selected Script"));
+    } else {
+        ui->actionRunSelectedScript->setToolTip(tr("Run(no script is selected)"));
+    }
+}
+
+void MainWindow::enable_closed_finished_test_button_script_states() {
+    assert(currently_in_gui_thread());
+    bool enabled = false;
+    for (const auto &tr : test_runners) {
+        if (tr->is_running() == false) {
+            enabled = true;
+        }
+    }
+    ui->actionClose_finished_Tests->setEnabled(enabled);
+    if (enabled) {
+        ui->actionClose_finished_Tests->setToolTip(tr("Close finished script tabs"));
+    } else {
+        ui->actionClose_finished_Tests->setToolTip(tr("Close finished scripts(no script is finished)"));
+    }
+}
+
+void MainWindow::set_script_view_collapse_state(bool collapse_state) {
+    assert(currently_in_gui_thread());
+    static QList<int> old_sizes;
+    if (script_view_is_collapsed == false) {
+        old_sizes = ui->splitter_script_view->sizes();
+    }
+    ui->frame_scripts->setVisible(!collapse_state);
+    ui->frame_scripts_buttons->setVisible(!collapse_state);
+    ui->frame_complete_script_panel->adjustSize();
+    QIcon icon;
+    if (collapse_state) {
+        icon = QIcon{"://src/icons/if_bullet_arrow_down_5071.ico"};
+        ui->tbtn_collapse_script_view->setIcon(icon);
+        ui->splitter_script_view->setSizes(QList<int>{1, 50000});
+    } else {
+        icon = QIcon{"://src/icons/if_bullet_arrow_up_5073.ico"};
+        ui->splitter_script_view->setSizes(old_sizes);
+    }
+
+    //  qDebug() << ui->splitter_script_view->sizes();
+    ui->tbtn_collapse_script_view->setIcon(icon);
+    script_view_is_collapsed = collapse_state;
+    enable_run_test_button_by_script_selection();
+}
+
+void MainWindow::on_tbtn_collapse_script_view_clicked() {
+    set_script_view_collapse_state(!script_view_is_collapsed);
+}
+
+void MainWindow::on_tbtn_view_all_scripts_clicked() {
+    assert(currently_in_gui_thread());
+    enable_all_script_view();
+}
+
+void MainWindow::on_tbtn_view_favorite_scripts_clicked() {
+    assert(currently_in_gui_thread());
+    enable_favorite_view();
+}
+
+void MainWindow::on_actionClose_finished_Tests_triggered() {
+    assert(currently_in_gui_thread());
+    close_finished_tests();
 }

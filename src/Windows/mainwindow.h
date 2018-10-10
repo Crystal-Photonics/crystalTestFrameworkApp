@@ -78,34 +78,57 @@ public slots:
     void slot_device_discovery_done();
     void load_scripts();
 
-    void on_actionPaths_triggered();
-    void on_run_test_script_button_clicked();
-    void on_tests_advanced_view_itemClicked(QTreeWidgetItem *item, int column);
+    void on_actionSettings_triggered();
     void on_tests_advanced_view_customContextMenuRequested(const QPoint &pos);
     void on_test_tabs_tabCloseRequested(int index);
     void on_test_tabs_customContextMenuRequested(const QPoint &pos);
     void on_use_human_readable_encoding_toggled(bool checked);
     void on_console_tabs_customContextMenuRequested(const QPoint &pos);
-    void on_actionHotkey_triggered();
-    void on_close_finished_tests_button_clicked();
     void on_actionDummy_Data_Creator_for_print_templates_triggered();
-    void on_btn_refresh_dut_clicked();
-    void on_btn_refresh_all_clicked();
     void on_actionInfo_triggered();
-
     void poll_sg04_counts();
-
     void closeEvent(QCloseEvent *event) override;
 
-    void on_action_view_all_scripts_triggered();
 
-    void on_action_view_favorite_scripts_triggered();
+
+
 
     void on_test_simple_view_itemDoubleClicked(QListWidgetItem *item);
 
     void on_test_simple_view_customContextMenuRequested(const QPoint &pos);
 
    void on_test_simple_view_itemChanged(QListWidgetItem *item);
+
+
+
+   void on_tbtn_view_all_scripts_clicked();
+
+   void on_tbtn_view_favorite_scripts_clicked();
+
+   void on_actionRunSelectedScript_triggered();
+
+   void on_actionrefresh_devices_all_triggered();
+
+   void on_actionrefresh_devices_dut_triggered();
+
+   void on_actionClose_finished_Tests_triggered();
+
+   void on_test_simple_view_itemSelectionChanged();
+
+   void on_tests_advanced_view_itemSelectionChanged();
+
+   void on_tests_advanced_view_itemDoubleClicked(QTreeWidgetItem *item, int column);
+
+   void on_tbtn_collapse_script_view_clicked();
+
+
+   void on_tests_advanced_view_itemClicked(QTreeWidgetItem *item, int column);
+
+   void on_actionedit_script_triggered();
+
+   void on_tbtn_refresh_scripts_clicked();
+
+   void on_actionReload_All_Scripts_triggered();
 
 private:
     FavoriteScripts favorite_scripts;
@@ -122,7 +145,7 @@ private:
    // TestDescriptionLoader *get_test_from_ui(const QTreeWidgetItem *item = nullptr);
     TestRunner *get_runner_from_tab_index(int index);
 
-    static void close_finished_tests();
+    void close_finished_tests();
     void get_devices_to_forget_by_root_treewidget_recursion(QList<QTreeWidgetItem *> &list, QTreeWidgetItem *root_item);
     bool remove_device_item_recursion(QTreeWidgetItem *root_item, QTreeWidgetItem *child_to_remove, bool remove_if_existing);
     std::unique_ptr<QTreeWidgetItem> manual_devices_parent_item;
@@ -149,6 +172,15 @@ private:
     void set_treeview_selection_from_path_recursion(QTreeWidgetItem *root_item, const QStringList &child_texts, int index);
     QString get_list_selection_path();
     void set_list_selection_from_path(QString path);
+    void enable_run_test_button_by_script_selection();
+    void enable_closed_finished_test_button_script_states();
+    void set_script_view_collapse_state(bool collapse_state);
+    bool script_view_is_collapsed = false;
+    bool eventFilter(QObject *target, QEvent *event);
+
+    void remove_favorite_based_on_simple_view_selection();
+    void set_enabled_states_for_matchable_scripts();
+    QTreeWidgetItem *get_treewidgetitem_from_listViewItem(QListWidgetItem *item);
 };
 
 template <class T>

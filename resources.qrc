@@ -21,5 +21,22 @@
         <file>examples/scripts/example/test_external_tool/test_exernal_bat.lua</file>
         <file>src/file_icon.ico</file>
         <file>examples/settings/favorite_scripts.json</file>
+        <file>src/icons/if_arrow_state_grey_expanded_16.png</file>
+        <file>src/icons/if_bullet_arrow_up_5073.png</file>
+        <file>src/icons/if_arrow_circle_double_16.ico</file>
+        <file>src/icons/if_arrow_circle_double_16_all.ico</file>
+        <file>src/icons/if_arrow_circle_double_16_dut.ico</file>
+        <file>src/icons/if_arrow_state_grey_collapsed_16.ico</file>
+        <file>src/icons/if_arrow_state_grey_expanded_16.ico</file>
+        <file>src/icons/if_broom_16.ico</file>
+        <file>src/icons/if_broom--exclamation_16.ico</file>
+        <file>src/icons/if_bullet_arrow_down_5071.ico</file>
+        <file>src/icons/if_bullet_arrow_up_5073.ico</file>
+        <file>src/icons/if_folder-tree_16.ico</file>
+        <file>src/icons/if_play-green_84841.ico</file>
+        <file>src/icons/star_16.ico</file>
+        <file>src/icons/if_exclamation_16.ico</file>
+        <file>src/icons/if_star_empty_16.png</file>
+        <file>src/icons/if_page_white_edit_16.ico</file>
     </qresource>
 </RCC>
