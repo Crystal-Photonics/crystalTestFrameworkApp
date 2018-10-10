@@ -4,9 +4,9 @@
 #include "LuaUI/plot.h"
 #include "LuaUI/window.h"
 #include "Protocols/sg04countprotocol.h"
-#include "SettingsForm.h"
 #include "Windows/dummydatacreator.h"
 #include "Windows/infowindow.h"
+#include "Windows/settingsform.h"
 #include "config.h"
 #include "console.h"
 #include "devicematcher.h"
@@ -322,6 +322,7 @@ MainWindow::MainWindow(QWidget *parent)
         vm = ViewMode::AllScripts;
     }
     set_view_mode(vm);
+    set_console_view_collapse_state(QSettings{}.value(Globals::console_is_collapsed_key, true).toBool());
     expand_from_stringlist(QSettings{}.value(Globals::expanded_paths_key, QStringList{}).toStringList());
     set_treeview_selection_from_path(QSettings{}.value(Globals::current_tree_view_selection_key, "").toString());
     set_list_selection_from_path(QSettings{}.value(Globals::current_list_view_selection_key, "").toString());
@@ -334,7 +335,7 @@ MainWindow::~MainWindow() {
     QSettings{}.setValue(Globals::expanded_paths_key, get_expanded_tree_view_paths());
     QSettings{}.setValue(Globals::current_tree_view_selection_key, get_treeview_selection_path());
     QSettings{}.setValue(Globals::current_list_view_selection_key, get_list_selection_path());
-
+    QSettings{}.setValue(Globals::console_is_collapsed_key, console_view_is_collapsed);
     for (auto &test : test_runners) {
         if (test->is_running()) {
             test->interrupt();
@@ -1009,10 +1010,6 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
     }
 }
 
-void MainWindow::on_use_human_readable_encoding_toggled(bool checked) {
-    Console::use_human_readable_encoding = checked;
-}
-
 void MainWindow::on_console_tabs_customContextMenuRequested(const QPoint &pos) {
     auto tab_index = ui->console_tabs->tabBar()->tabAt(pos);
     ui->console_tabs->setCurrentIndex(tab_index);
@@ -1170,6 +1167,31 @@ void MainWindow::set_script_view_collapse_state(bool collapse_state) {
     ui->tbtn_collapse_script_view->setIcon(icon);
     script_view_is_collapsed = collapse_state;
     enable_run_test_button_by_script_selection();
+}
+
+void MainWindow::set_console_view_collapse_state(bool collapse_state) {
+    assert(currently_in_gui_thread());
+    static QList<int> old_sizes;
+    if (console_view_is_collapsed == false) {
+        old_sizes = ui->splitter_devices->sizes();
+    }
+    ui->console_tabs->setVisible(!collapse_state);
+    QIcon icon;
+    if (collapse_state) {
+        icon = QIcon{"://src/icons/if_bullet_arrow_up_5073.ico"};
+        ui->tbtn_collapse_script_view->setIcon(icon);
+        ui->splitter_devices->setSizes(QList<int>{50000, 1});
+    } else {
+        icon = QIcon{"://src/icons/if_bullet_arrow_down_5071.ico"};
+        ui->splitter_devices->setSizes(old_sizes);
+    }
+
+    ui->tbtn_collapse_console->setIcon(icon);
+    console_view_is_collapsed = collapse_state;
+}
+
+void MainWindow::on_tbtn_collapse_console_clicked() {
+    set_console_view_collapse_state(!console_view_is_collapsed);
 }
 
 void MainWindow::on_tbtn_collapse_script_view_clicked() {

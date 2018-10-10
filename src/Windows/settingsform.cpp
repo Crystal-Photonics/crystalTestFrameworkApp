@@ -27,6 +27,7 @@ void SettingsForm::write_ui_to_settings(QSettings &q_settings) {
         q_settings.setValue(conf.second, conf.first->text());
     }
     q_settings.setValue(Globals::collapse_script_explorer_on_scriptstart_key, ui->cbox_collapse_script_explorer_by_start->isChecked());
+    q_settings.setValue(Globals::console_human_readable_view_key, ui->cbtn_console_human_readable->isChecked());
     for (const auto &ks : get_key_sequence_config()) {
         q_settings.setValue(ks.config, ks.edit_field->keySequence().toString(QKeySequence::PortableText));
     }
@@ -37,6 +38,7 @@ void SettingsForm::load_ui_from_settings(QSettings &q_settings) {
         conf.first->setText(q_settings.value(conf.second, "").toString());
     }
     ui->cbox_collapse_script_explorer_by_start->setChecked(q_settings.value(Globals::collapse_script_explorer_on_scriptstart_key, false).toBool());
+    ui->cbtn_console_human_readable->setChecked(q_settings.value(Globals::console_human_readable_view_key, false).toBool());
     for (const auto &ks : get_key_sequence_config()) {
         ks.edit_field->setKeySequence(QKeySequence::fromString(q_settings.value(ks.config, ks.default_key).toString()));
     }

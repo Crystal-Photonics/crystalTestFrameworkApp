@@ -82,7 +82,6 @@ public slots:
     void on_tests_advanced_view_customContextMenuRequested(const QPoint &pos);
     void on_test_tabs_tabCloseRequested(int index);
     void on_test_tabs_customContextMenuRequested(const QPoint &pos);
-    void on_use_human_readable_encoding_toggled(bool checked);
     void on_console_tabs_customContextMenuRequested(const QPoint &pos);
     void on_actionDummy_Data_Creator_for_print_templates_triggered();
     void on_actionInfo_triggered();
@@ -130,6 +129,8 @@ public slots:
 
    void on_actionReload_All_Scripts_triggered();
 
+   void on_tbtn_collapse_console_clicked();
+
 private:
     FavoriteScripts favorite_scripts;
     void refresh_devices(bool only_duts);
@@ -176,6 +177,8 @@ private:
     void enable_closed_finished_test_button_script_states();
     void set_script_view_collapse_state(bool collapse_state);
     bool script_view_is_collapsed = false;
+    void set_console_view_collapse_state(bool collapse_state);
+    bool console_view_is_collapsed = false;
     bool eventFilter(QObject *target, QEvent *event);
 
     void remove_favorite_based_on_simple_view_selection();

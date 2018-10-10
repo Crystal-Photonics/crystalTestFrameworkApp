@@ -116,23 +116,6 @@
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_4">
            <item>
-            <widget class="QRadioButton" name="use_human_readable_encoding">
-             <property name="text">
-              <string>Human Readable</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QRadioButton" name="use_compiler_readable_encoding">
-             <property name="text">
-              <string>Compiler Readable</string>
-             </property>
-            </widget>
-           </item>
-           <item>
             <spacer name="horizontalSpacer_3">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -144,6 +127,17 @@
               </size>
              </property>
             </spacer>
+           </item>
+           <item>
+            <widget class="QToolButton" name="tbtn_collapse_console">
+             <property name="text">
+              <string>...</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../../resources.qrc">
+               <normaloff>:/src/icons/if_bullet_arrow_down_5071.ico</normaloff>:/src/icons/if_bullet_arrow_down_5071.ico</iconset>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>

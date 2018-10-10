@@ -7,7 +7,6 @@
 
 QPlainTextEdit *Console::console = nullptr;
 MainWindow *Console::mw = nullptr;
-bool Console::use_human_readable_encoding = true;
 
 Console::ConsoleProxy Console::warning(QPlainTextEdit *console) {
     if (console) {

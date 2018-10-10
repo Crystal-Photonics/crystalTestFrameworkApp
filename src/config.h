@@ -23,6 +23,8 @@ namespace Globals {
     static const auto current_tree_view_selection_key = "current_tree_view_selection_key";
     static const auto current_list_view_selection_key = "current_list_view_selection_key";
     static const auto collapse_script_explorer_on_scriptstart_key = "collapse_script_explorer_on_scriptstart_key";
+    static const auto console_is_collapsed_key = "console_is_collapsed_key";
+    static const auto console_human_readable_view_key = "console_human_readable_view_key";
 
     static const auto ui_blink_ratio = 8;
 
