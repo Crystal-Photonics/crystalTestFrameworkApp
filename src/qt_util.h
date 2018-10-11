@@ -1,6 +1,7 @@
 #ifndef QT_UTIL_H
 #define QT_UTIL_H
 
+#include <QApplication>
 #include <QCoreApplication>
 #include <QEvent>
 #include <QFrame>
@@ -122,6 +123,9 @@ namespace Utility {
                 promise.set_exception(std::current_exception());
             }
         });
+		while (future.wait_for(std::chrono::milliseconds{16}) == std::future_status::timeout) {
+			QApplication::processEvents();
+		}
         return future.get();
     }
 }
