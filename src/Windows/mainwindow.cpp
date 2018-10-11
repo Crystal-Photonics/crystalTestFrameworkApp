@@ -308,6 +308,7 @@ MainWindow::MainWindow(QWidget *parent)
     // connect(&action_run, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
 
     ui->test_simple_view->setVisible(false);
+    add_clear_button_to_console(ui->console_edit);
     devices_thread.start();
     connect(device_worker.get(), SIGNAL(device_discrovery_done()), this, SLOT(slot_device_discovery_done()));
     refresh_devices(false);
@@ -344,12 +345,14 @@ MainWindow::~MainWindow() {
     for (auto &test : test_runners) {
         test->join();
     }
+
     QApplication::processEvents();
     test_runners.clear();
     QApplication::processEvents();
     devices_thread.quit();
     devices_thread.wait();
     QApplication::processEvents();
+    QObject::disconnect(ui->tests_advanced_view, QTreeWidget::itemSelectionChanged, this, on_tests_advanced_view_itemSelectionChanged);
     delete ui;
 }
 
@@ -407,6 +410,8 @@ void MainWindow::load_scripts() {
 void MainWindow::load_favorites() {
     assert(currently_in_gui_thread());
     ui->test_simple_view->clear();
+    QIcon icon_star = QIcon{"://src/icons/star_16.ico"};
+    QIcon icon_empty_star = QIcon{"://src/icons/if_star_empty_16.png"};
     for (TestDescriptionLoader &test : test_descriptions) {
         const ScriptEntry favorite_entry = favorite_scripts.get_entry(test.get_name());
         if (favorite_entry.valid) {
@@ -422,9 +427,9 @@ void MainWindow::load_favorites() {
             QImage img = ident_icon.toImage(SCALE_FACTOR);
             item->setIcon(QPixmap::fromImage(img));
             ui->test_simple_view->addItem(item);
-            test.ui_entry->setIcon(4, QIcon{"://src/icons/star_16.ico"});
+            test.ui_entry->setIcon(4, icon_star);
         } else {
-            test.ui_entry->setIcon(4, QIcon{"://src/icons/if_star_empty_16.png"});
+            test.ui_entry->setIcon(4, icon_empty_star);
         }
     }
 }
@@ -456,8 +461,8 @@ void MainWindow::set_enabled_states_for_matchable_scripts() {
 }
 
 void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *communication_device) {
-    //called from device worker
-    Utility::thread_call(this, nullptr, [this, parent, child, tab_name, communication_device] {
+    assert(currently_in_gui_thread() == false);
+    Utility::promised_thread_call(this, [this, parent, child, tab_name, communication_device] {
         assert(currently_in_gui_thread());
         if (parent) {
             parent->addChild(child);
@@ -466,14 +471,37 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
         }
         align_columns();
         if (communication_device) {
-            auto console = new QPlainTextEdit(ui->console_tabs);
-            console->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
-            console->setReadOnly(true);
-            console->setMaximumBlockCount(1000);
-            ui->console_tabs->addTab(console, tab_name);
+            int index = -1;
+            for (int i = 0; i < ui->console_tabs->count(); i++) {
+                if (ui->console_tabs->tabText(i) == tab_name) {
+                    index = i;
+                }
+            }
+
+            QPlainTextEdit *console = nullptr;
+            if (index == -1) {
+                console = new QPlainTextEdit(ui->console_tabs);
+                console->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
+                console->setReadOnly(true);
+                console->setMaximumBlockCount(1000);
+                ui->console_tabs->addTab(console, tab_name);
+                add_clear_button_to_console(console);
+            } else {
+                console = dynamic_cast<QPlainTextEdit *>(ui->console_tabs->widget(index));
+            }
             device_worker->connect_to_device_console(console, communication_device);
         }
     });
+}
+
+void MainWindow::add_clear_button_to_console(QPlainTextEdit *console) {
+    QIcon icon_eraser = QIcon("://src/icons/if_eraser-small.ico");
+    QToolButton *tbtn = new QToolButton(console);
+    tbtn->setIcon(icon_eraser);
+    tbtn->setToolTip(tr("Clear console content"));
+    console->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    console->setCornerWidget(tbtn);
+    connect(tbtn, &QToolButton::clicked, [ this, console = console ] { console->clear(); });
 }
 
 void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State state) {
@@ -514,11 +542,12 @@ void MainWindow::adopt_testrunner(TestRunner *testrunner, QString title) {
 
 void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *communication_device) {
     //called from device worker
+    assert(currently_in_gui_thread() == false);
     add_device_child_item(nullptr, item, tab_name, communication_device);
 }
 
 void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
-    //is called from other threads
+    //might be called from other threads
     Utility::thread_call(this, nullptr, [this, text, console] {
         assert(currently_in_gui_thread());
         if (console) {
@@ -531,6 +560,7 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 
 void MainWindow::show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon) {
     //is called from other threads
+    assert(currently_in_gui_thread() == false);
     Utility::thread_call(this, nullptr, [this, title, message, icon] {
         switch (icon) {
             default:

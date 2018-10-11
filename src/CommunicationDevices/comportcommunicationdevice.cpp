@@ -25,14 +25,28 @@ bool ComportCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo
     this->portinfo = portinfo_;
     return Utility::promised_thread_call(this, [this, portinfo_] {
         assert(portinfo_.contains(HOST_NAME_TAG));
-        assert(portinfo_.contains("baudrate"));
+        assert(portinfo_.contains(BAUD_RATE_TAG));
         assert(portinfo_[HOST_NAME_TAG].type() == QVariant::String);
-        assert(portinfo_["baudrate"].type() == QVariant::Int);
+        assert(portinfo_[BAUD_RATE_TAG].type() == QVariant::Int);
 
+    //    qDebug() << QString("opening: ") + portinfo_[HOST_NAME_TAG].toString();
         port.setPortName(portinfo_[HOST_NAME_TAG].toString());
-        port.setBaudRate(portinfo_["baudrate"].toInt());
-
-        return port.open(QIODevice::ReadWrite);
+        port.setBaudRate(portinfo_[BAUD_RATE_TAG].toInt());
+        bool result = port.open(QIODevice::ReadWrite);
+        if (result) {
+            QString protocol_name = portinfo_[TYPE_NAME_TAG].toString();
+            QString text;
+            if (protocol_name.count()) {
+                text = protocol_name + ", ";
+            }
+            text += portinfo_[HOST_NAME_TAG].toString() + ", bd: " + portinfo_[BAUD_RATE_TAG].toString();
+            auto ba = QByteArray();
+            ba.append(text);
+            emit connected(ba);
+        } else {
+            qDebug() << QString("could not open ") + portinfo_[HOST_NAME_TAG].toString();
+        }
+        return result;
     });
 }
 
@@ -139,7 +153,13 @@ void ComportCommunicationDevice::send(const QByteArray &data, const QByteArray &
 }
 
 void ComportCommunicationDevice::close() {
-    return Utility::promised_thread_call(this, [this] { port.close(); });
+    return Utility::promised_thread_call(this, [this] { //
+        //qDebug() << QString("closing: ") + portinfo[HOST_NAME_TAG].toString();
+        port.close();
+        QByteArray ar;
+        ar.append(portinfo[HOST_NAME_TAG].toString());
+        emit disconnected(ar);
+    });
 }
 
 QString ComportCommunicationDevice::getName() {

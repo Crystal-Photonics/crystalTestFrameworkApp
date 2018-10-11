@@ -2,7 +2,7 @@
 #include <memory>
 
 EchoCommunicationDevice::EchoCommunicationDevice() {
-    emit connected();
+    emit connected(QByteArray(""));
 }
 
 bool EchoCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo_)

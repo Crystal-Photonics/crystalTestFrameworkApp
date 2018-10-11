@@ -184,6 +184,7 @@ private:
     void remove_favorite_based_on_simple_view_selection();
     void set_enabled_states_for_matchable_scripts();
     QTreeWidgetItem *get_treewidgetitem_from_listViewItem(QListWidgetItem *item);
+    void add_clear_button_to_console(QPlainTextEdit *console);
 };
 
 template <class T>

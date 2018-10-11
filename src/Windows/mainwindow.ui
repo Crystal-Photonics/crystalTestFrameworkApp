@@ -116,17 +116,37 @@
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_4">
            <item>
-            <spacer name="horizontalSpacer_3">
+            <widget class="Line" name="line_2">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>Communication console</string>
              </property>
-            </spacer>
+            </widget>
+           </item>
+           <item>
+            <widget class="Line" name="line">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QToolButton" name="tbtn_collapse_console">
@@ -152,14 +172,20 @@
            <property name="contextMenuPolicy">
             <enum>Qt::CustomContextMenu</enum>
            </property>
+           <property name="tabShape">
+            <enum>QTabWidget::Rounded</enum>
+           </property>
            <property name="currentIndex">
             <number>0</number>
            </property>
+           <property name="elideMode">
+            <enum>Qt::ElideNone</enum>
+           </property>
            <property name="tabsClosable">
-            <bool>true</bool>
+            <bool>false</bool>
            </property>
            <property name="movable">
-            <bool>true</bool>
+            <bool>false</bool>
            </property>
            <widget class="QWidget" name="ConsoleTab">
             <attribute name="title">
@@ -173,6 +199,9 @@
                  <horstretch>0</horstretch>
                  <verstretch>1</verstretch>
                 </sizepolicy>
+               </property>
+               <property name="verticalScrollBarPolicy">
+                <enum>Qt::ScrollBarAlwaysOn</enum>
                </property>
                <property name="readOnly">
                 <bool>true</bool>

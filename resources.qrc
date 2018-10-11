@@ -38,5 +38,6 @@
         <file>src/icons/if_exclamation_16.ico</file>
         <file>src/icons/if_star_empty_16.png</file>
         <file>src/icons/if_page_white_edit_16.ico</file>
+        <file>src/icons/if_eraser-small.ico</file>
     </qresource>
 </RCC>

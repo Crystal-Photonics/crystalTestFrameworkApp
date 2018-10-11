@@ -11,6 +11,8 @@
 
 class QByteArray;
 const QString HOST_NAME_TAG = "host-name";
+const QString TYPE_NAME_TAG = "protocol-name";
+const QString BAUD_RATE_TAG = "baudrate";
 const QString DEVICE_MANUAL_NAME_TAG = "manual-name";
 const QString DEVICE_MANUAL_SN_TAG = "sn";
 
@@ -40,8 +42,8 @@ class EXPORT CommunicationDevice : public QObject {
     virtual bool connect(const QMap<QString, QVariant> &portinfo_) = 0;
     QString proposed_alias{};
     signals:
-    void connected();
-    void disconnected();
+    void connected(const QByteArray &);
+    void disconnected(const QByteArray &);
     void received(const QByteArray &);
     void sent(const QByteArray &);
     void decoded_sent(const QByteArray &);

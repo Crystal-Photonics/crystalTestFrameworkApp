@@ -37,7 +37,7 @@ SocketCommunicationDevice::SocketCommunicationDevice()
             throw std::runtime_error("Failed opening " + ip.toStdString() + ':' + std::to_string(port));
         callSetSocket = [this]() {
             this->setSocket();
-            this->connected();
+            this->connected(QByteArray(""));
         };
         connectedSlot = QObject::connect(&server, &QTcpServer::newConnection, callSetSocket);
         assert(connectedSlot);

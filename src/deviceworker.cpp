@@ -13,6 +13,8 @@
 #include "config.h"
 #include "console.h"
 #include "util.h"
+#include <QChar>
+#include <QString>
 
 #include <QSettings>
 #include <QTreeWidgetItem>
@@ -37,6 +39,40 @@ static bool is_valid_baudrate(QSerialPort::BaudRate baudrate) {
     return false;
 }
 
+#if 0
+const static QVector<QChar> spinner_characters = {'-', '\\', '|', '/'};
+
+static QString progress_spinner(QString in) {
+    if (in.size() == 0) {
+        return in;
+    }
+    int index = spinner_characters.indexOf(in[in.size() - 1]);
+    if (index > -1) {
+        index++;
+        if (index >= spinner_characters.size()) {
+            index = 0;
+        }
+        in[in.size() - 1] = spinner_characters[index];
+    } else {
+        in = in + " " + spinner_characters[0];
+    }
+    return in;
+}
+
+static QString remove_spinner(QString in) {
+    if (in.size() == 0) {
+        return in;
+    }
+    int index = spinner_characters.indexOf(in[in.size() - 1]);
+    if (index > -1) {
+        auto ch = spinner_characters[index];
+        if (in.endsWith(QString(" ") + ch)) {
+            in.remove(in.size() - 2, 2);
+        }
+    }
+    return in;
+}
+#endif
 void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
     auto device_protocol_settings_file = QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString();
     if (device_protocol_settings_file.isEmpty()) {
@@ -65,7 +101,8 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
                     QMessageBox::Critical);
                 continue;
             }
-            device.port_info.insert("baudrate", rpc_device.baud); //TODO: crash bei einem ttyUSB0, kubuntu16.04 ??
+            device.port_info.insert(TYPE_NAME_TAG, "rpc");
+            device.port_info.insert(BAUD_RATE_TAG, rpc_device.baud); //TODO: crash bei einem ttyUSB0, kubuntu16.04 ??
             if (device.device->connect(device.port_info) == false) {
                 auto display_string = device.device->get_identifier_display_string();
                 Utility::thread_call(MainWindow::mw, nullptr,
@@ -74,7 +111,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
                                      });
                 return;
             }
-			std::unique_ptr<RPCProtocol> protocol = std::make_unique<RPCProtocol>(*device.device, rpc_device);
+            std::unique_ptr<RPCProtocol> protocol = std::make_unique<RPCProtocol>(*device.device, rpc_device);
             if (protocol->is_correct_protocol()) {
                 MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
                     if (MainWindow::mw->device_item_exists(ui_entry)) {
@@ -102,7 +139,8 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
                         QMessageBox::Critical);
                     continue;
                 }
-                device.port_info.insert("baudrate", baudrate);
+                device.port_info.insert(TYPE_NAME_TAG, "scpi");
+                device.port_info.insert(BAUD_RATE_TAG, baudrate);
             }
             if (device.device->connect(device.port_info) == false) {
                 auto display_string = device.device->get_identifier_display_string();
@@ -146,7 +184,8 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
                     QMessageBox::Critical);
                 continue;
             }
-            device.port_info.insert("baudrate", baudrate);
+            device.port_info.insert(BAUD_RATE_TAG, baudrate);
+            device.port_info.insert(TYPE_NAME_TAG, "sg04");
             if (device.device->connect(device.port_info) == false) {
                 auto display_string = device.device->get_identifier_display_string();
                 Utility::thread_call(MainWindow::mw, nullptr,
@@ -235,6 +274,7 @@ DeviceWorker::DeviceWorker() {}
 DeviceWorker::~DeviceWorker() {}
 
 void DeviceWorker::refresh_devices(QTreeWidgetItem *root, bool dut_only) {
+    assert(currently_in_gui_thread() == true);
     refresh_semaphore.acquire();
     QList<QTreeWidgetItem *> device_items = MainWindow::mw->get_devices_to_forget_by_root_treewidget(root);
 
@@ -272,6 +312,7 @@ void DeviceWorker::refresh_devices(QTreeWidgetItem *root, bool dut_only) {
         }
         device_meta_data.reload(QSettings{}.value(Globals::measurement_equipment_meta_data_path_key, "").toString());
         update_devices();
+        QApplication::processEvents();
         detect_devices();
         emit device_discrovery_done();
         refresh_semaphore.release();
@@ -359,9 +400,11 @@ void DeviceWorker::update_devices() {
             continue;
         }
 
+
         communication_devices.push_back(PortDescription{
             std::make_unique<ComportCommunicationDevice>(), port_info,
             std::make_unique<QTreeWidgetItem>(QStringList{} << port.portName() + " " + port.description()).release(), nullptr, CommunicationDeviceType::COM});
+
         PortDescription *port_desc = &communication_devices.back();
         CommunicationDevice *device = port_desc->device.get();
         MainWindow::mw->add_device_item(port_desc->ui_entry, port.portName() + " " + port.description(), device);
@@ -454,29 +497,89 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
         if (is_dummy) {
             return;
         }
-        struct Data {
+        struct DataByteArgument {
             void (CommunicationDevice::*signal)(const QByteArray &);
             QColor color;
             bool fat;
         };
-        Data data[] = {{&CommunicationDevice::received, Qt::darkGreen, false},
-                       {&CommunicationDevice::decoded_received, Qt::darkGreen, true},
-                       {&CommunicationDevice::message, Qt::black, false},
-                       {&CommunicationDevice::sent, Qt::darkRed, false},
-                       {&CommunicationDevice::decoded_sent, Qt::darkRed, true}};
+
+        struct DataNoArguement {
+            void (CommunicationDevice::*signal)();
+            QColor color;
+            bool fat;
+            QString text;
+        };
+        DataByteArgument data_byte_arguement[] = {{&CommunicationDevice::received, Qt::darkGreen, false},        //
+                                                  {&CommunicationDevice::decoded_received, Qt::darkGreen, true}, //
+                                                  {&CommunicationDevice::message, Qt::black, false},
+                                                  {&CommunicationDevice::sent, Qt::darkRed, false},
+                                                  {&CommunicationDevice::decoded_sent, Qt::darkRed, true},
+                                                  {&CommunicationDevice::disconnected, Qt::black, true},
+                                                  {&CommunicationDevice::connected, Qt::black, true}};
 
         static const QString normal_html = R"(<font color="#%1"><plaintext>%2</plaintext></font>)";
         static const QString fat_html = R"(<font color="#%1"><b><plaintext>%2</plaintext></b></font>)";
 
-        for (auto &d : data) {
-            connect(comport, d.signal, [ console = console, color = d.color, fat = d.fat ](const QByteArray &data) {
-                MainWindow::mw->append_html_to_console((fat ? fat_html : normal_html)
-                                                           .arg(QString::number(color.rgb(), 16), QSettings{}.value(Globals::console_human_readable_view_key, false).toBool() ?
-                                                                                                      Utility::to_human_readable_binary_data(data) :
-                                                                                                      Utility::to_C_hex_encoding(data)),
-                                                       console);
+        for (auto &d : data_byte_arguement) {
+            connect(comport, d.signal, [ signal = d.signal, console = console, color = d.color, fat = d.fat ](const QByteArray &data) {
+                QString display_text = data;
+                bool is_human_readable = QSettings{}.value(Globals::console_human_readable_view_key, false).toBool();
+                bool is_connect_signal = signal == CommunicationDevice::connected;
+                bool is_disconnect_signal = signal == CommunicationDevice::disconnected;
+                if (is_connect_signal) {
+                    if (display_text.count()) {
+                        display_text = "connected(" + display_text + ")";
+                    } else {
+                        display_text = "connected";
+                    }
+                    is_human_readable = true;
+                }
+                if (is_disconnect_signal) {
+                    if (display_text.count()) {
+                        display_text = "disconnected(" + display_text + ")";
+                    } else {
+                        display_text = "disconnected";
+                    }
+                    is_human_readable = true;
+                }
+                auto display_data = QByteArray();
+                display_data.append(display_text);
+                MainWindow::mw->append_html_to_console(
+
+                    (fat ? fat_html : normal_html)
+                        .arg(QString::number(color.rgb(), 16),
+                             is_human_readable ? Utility::to_human_readable_binary_data(display_data) : Utility::to_C_hex_encoding(display_data)),
+                    console);
+                if (is_connect_signal || is_disconnect_signal) {
+                    QWidget *qt_tabwidget_stackedwidget = console->parentWidget();
+                    QWidget *parent_widget = qt_tabwidget_stackedwidget->parentWidget();
+                    QTabWidget *tab_widget = dynamic_cast<QTabWidget *>(parent_widget);
+
+                    if (tab_widget) {
+                        const auto runner_index = tab_widget->indexOf(console);
+                        if (runner_index > -1) {
+                            QColor color;
+                            if (is_connect_signal) {
+                                color = tab_widget->palette().color(QPalette::Active, QPalette::Text);
+                            }
+                            if (is_disconnect_signal) {
+                                color = tab_widget->palette().color(QPalette::Disabled, QPalette::Text);
+                            }
+                            tab_widget->tabBar()->setTabTextColor(runner_index, color);
+                        } else {
+                            qDebug() << "CommunicationDevice"
+                                     << "could not find console" << console;
+                        }
+
+                    } else {
+                        qDebug() << "CommunicationDevice"
+                                 << "could not find tabwidget" << console << qt_tabwidget_stackedwidget << parent_widget << tab_widget;
+                    }
+                }
+
             });
         }
+
     });
 }
 
@@ -496,6 +599,7 @@ std::vector<PortDescription *> DeviceWorker::get_devices_with_protocol(const QSt
             QString device_name;
             if (scpi_protocol) {
                 device_name = QString().fromStdString(scpi_protocol->get_name());
+
             } else if (rpc_protocol) {
                 device_name = QString().fromStdString(rpc_protocol->get_name());
             } else if (manual_protocol) {
