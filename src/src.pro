@@ -92,7 +92,8 @@ HEADERS += \
     data_engine/exceptionalapproval.h \
         identicon/identicon.h \
 favorite_scripts.h \
-    Windows/settingsform.h
+    Windows/settingsform.h \
+    userentrystorage.h
 
 HEADERS +=    Windows/exceptiontalapprovaldialog.h
 #HEADERS +=    data_engine/data_engine_strings.h
@@ -158,7 +159,8 @@ SOURCES += \
     Windows/infowindow.cpp \ 
     identicon/identicon.cpp \
     favorite_scripts.cpp \
-    Windows/settingsform.cpp
+    Windows/settingsform.cpp \
+    userentrystorage.cpp
 
 win32 {
     system($$system_quote($$SH) $$PWD/../git_win.sh)

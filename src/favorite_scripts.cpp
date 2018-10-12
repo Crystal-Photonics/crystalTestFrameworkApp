@@ -5,13 +5,11 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QObject>
 
-FavoriteScripts::FavoriteScripts() {
+FavoriteScripts::FavoriteScripts() {}
 
-}
-
-void FavoriteScripts::load_from_file(QString file_name)
-{
+void FavoriteScripts::load_from_file(QString file_name) {
     file_name_m = file_name;
     if (file_name == "") {
         return;
@@ -20,7 +18,8 @@ void FavoriteScripts::load_from_file(QString file_name)
 
     if (!QFile::exists(file_name)) {
         Utility::thread_call(MainWindow::mw, nullptr, [file_name] {
-            QMessageBox::warning(MainWindow::mw, "Can't open favorite scripte file", "Can't open favorite scripte file. File does not exist: " + file_name);
+            QMessageBox::warning(MainWindow::mw, QObject::tr("Can't open favorite scripte file"),
+                                 QObject::tr("Can't open favorite scripte file. File does not exist: ") + file_name);
         });
 
         return;
@@ -29,7 +28,8 @@ void FavoriteScripts::load_from_file(QString file_name)
     file.setFileName(file_name);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         Utility::thread_call(MainWindow::mw, nullptr, [file_name] {
-            QMessageBox::warning(MainWindow::mw, "Can't open favorite scripte file", "Can't open favorite scripte file: " + file_name);
+            QMessageBox::warning(MainWindow::mw, QObject::tr("Can't open favorite scripte file"),
+                                 QObject::tr("Can't open favorite scripte file: ") + file_name);
         });
 
         return;
@@ -39,8 +39,8 @@ void FavoriteScripts::load_from_file(QString file_name)
     QJsonDocument j_doc = QJsonDocument::fromJson(json_string.toUtf8());
     if (j_doc.isNull()) {
         Utility::thread_call(MainWindow::mw, nullptr, [file_name] {
-            QMessageBox::warning(MainWindow::mw, "could not parse file with favorite scripts",
-                                 "could not parse file with favorite scripts. Seems the json is broken: " + file_name);
+            QMessageBox::warning(MainWindow::mw, QObject::tr("could not parse file with favorite scripts"),
+                                 QObject::tr("could not parse file with favorite scripts. Seems the json is broken: ") + file_name);
         });
         return;
     }
@@ -59,12 +59,12 @@ void FavoriteScripts::load_from_file(QString file_name)
     }
 }
 
-void FavoriteScripts::save_to_file() {
+bool FavoriteScripts::save_to_file(QList<ScriptEntry> script_entries) {
     if (file_name_m == "") {
-        return;
+        return false;
     }
     QJsonArray array{};
-    for (const ScriptEntry &entry : script_entries_m) {
+    for (const ScriptEntry &entry : script_entries) {
         QJsonObject obj{};
         obj["script_path"] = entry.script_path;
         obj["alternative_name"] = entry.alternative_name;
@@ -76,9 +76,14 @@ void FavoriteScripts::save_to_file() {
     QJsonDocument saveDoc(obj);
     QFile saveFile(file_name_m);
     if (!saveFile.open(QIODevice::WriteOnly)) {
-        return;
+        Utility::thread_call(MainWindow::mw, nullptr, [this] {
+            QMessageBox::warning(MainWindow::mw, QObject::tr("Could not save file with favorite scripts"),
+                                 QObject::tr("Could not save file for favorite scripts. Is it write protected?\n") + file_name_m);
+        });
+        return false;
     }
     saveFile.write(saveDoc.toJson());
+    return true;
 }
 
 ScriptEntry FavoriteScripts::get_entry(QString script_path) {
@@ -90,30 +95,52 @@ ScriptEntry FavoriteScripts::get_entry(QString script_path) {
     return entry;
 }
 
-void FavoriteScripts::add_favorite(QString script_path) {
+bool FavoriteScripts::add_favorite(QString script_path) {
     if (!is_favorite(script_path)) {
         ScriptEntry entry{};
         entry.script_path = script_path;
         entry.valid = true;
+        QList<ScriptEntry> script_entries = script_entries_m;
         script_entries_m.append(entry);
-        save_to_file();
+        bool result = save_to_file(script_entries);
+        if (result) {
+            script_entries_m = script_entries;
+        }
+        return result;
     }
+    return true;
 }
 
-void FavoriteScripts::set_alternative_name(QString script_path, QString alternative_name) {
+bool FavoriteScripts::set_alternative_name(QString script_path, QString alternative_name) {
     int index = get_index_by_path(script_path);
     if (index > -1) {
-        script_entries_m[index].alternative_name = alternative_name;
-        save_to_file();
+        if (script_entries_m[index].alternative_name != alternative_name) {
+            QString old_name = script_entries_m[index].alternative_name;
+            script_entries_m[index].alternative_name = alternative_name;
+            bool result = save_to_file(script_entries_m);
+            if (!result) {
+                script_entries_m[index].alternative_name = old_name;
+            }
+            return result;
+        } else {
+            return true;
+        }
     }
+    return true;
 }
 
-void FavoriteScripts::remove_favorite(QString script_path) {
+bool FavoriteScripts::remove_favorite(QString script_path) {
     int index = get_index_by_path(script_path);
     if (index > -1) {
-        script_entries_m.removeAt(index);
-        save_to_file();
+        QList<ScriptEntry> script_entries = script_entries_m;
+        script_entries.removeAt(index);
+        bool result = save_to_file(script_entries);
+        if (result) {
+            script_entries_m = script_entries;
+        }
+        return result;
     }
+    return true;
 }
 
 bool FavoriteScripts::is_favorite(QString script_path) {

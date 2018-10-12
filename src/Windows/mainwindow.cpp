@@ -353,6 +353,8 @@ MainWindow::~MainWindow() {
     devices_thread.wait();
     QApplication::processEvents();
     QObject::disconnect(ui->tests_advanced_view, QTreeWidget::itemSelectionChanged, this, on_tests_advanced_view_itemSelectionChanged);
+    QObject::disconnect(ui->test_simple_view, QListWidget::itemSelectionChanged, this, on_test_simple_view_itemSelectionChanged);
+
     delete ui;
 }
 
@@ -401,7 +403,6 @@ void MainWindow::load_scripts() {
         test_descriptions.push_back(TestDescriptionLoader{ui->tests_advanced_view, file_path, QDir{dir}.relativeFilePath(file_path)});
     }
     load_favorites();
-    set_enabled_states_for_matchable_scripts();
     statusBar()->showMessage(tr(""));
     ui->tbtn_refresh_scripts->setEnabled(enabled_a);
     ui->actionReload_All_Scripts->setEnabled(enabled_b);
@@ -432,12 +433,13 @@ void MainWindow::load_favorites() {
             test.ui_entry->setIcon(4, icon_empty_star);
         }
     }
+    set_enabled_states_for_matchable_scripts();
 }
 
 void MainWindow::set_enabled_states_for_matchable_scripts() {
     assert(currently_in_gui_thread());
+    DeviceMatcher device_matcher(this);
     for (TestDescriptionLoader &test : test_descriptions) {
-        DeviceMatcher device_matcher(this);
         bool is_matchable = device_matcher.is_match_possible(*device_worker.get(), test);
         if (is_matchable) {
             test.ui_entry->setForeground(0, palette().color(QPalette::Active, QPalette::Text));
@@ -453,9 +455,9 @@ void MainWindow::set_enabled_states_for_matchable_scripts() {
         auto item = ui->test_simple_view->item(i);
         QTreeWidgetItem *tree_item = get_treewidgetitem_from_listViewItem(item);
         if (tree_item->foreground(0) == palette().color(QPalette::Active, QPalette::Text)) {
-            item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+            item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable);
         } else {
-            item->setFlags(Qt::ItemIsSelectable);
+            item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEditable);
         }
     }
 }
@@ -775,12 +777,15 @@ void MainWindow::on_tests_advanced_view_itemClicked(QTreeWidgetItem *item, int c
         auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
         if (test) {
             QString test_name = test->get_name();
+            bool modified = false;
             if (favorite_scripts.is_favorite(test_name)) {
-                favorite_scripts.remove_favorite(test_name);
+                modified = favorite_scripts.remove_favorite(test_name);
             } else {
-                favorite_scripts.add_favorite(test_name);
+                modified = favorite_scripts.add_favorite(test_name);
             }
-            load_favorites();
+            if (modified) {
+                load_favorites();
+            }
             return;
         }
     }
@@ -867,8 +872,9 @@ void MainWindow::remove_favorite_based_on_simple_view_selection() {
     for (auto item : items) {
         auto test = get_test_from_listViewItem(item);
         if (test) {
-            favorite_scripts.remove_favorite(test->get_name());
-            modified = true;
+            if (favorite_scripts.remove_favorite(test->get_name())) {
+                modified = true;
+            }
         }
     }
     if (modified) {
