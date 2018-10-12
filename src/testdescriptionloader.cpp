@@ -55,7 +55,6 @@ TestDescriptionLoader::TestDescriptionLoader(QTreeWidget *test_list, const QStri
     }
     ui_entry.reset(add_entry(test_list, display_name.split('/')));
     ui_entry->setData(0, Qt::UserRole, Utility::make_qvariant(this));
-    //qDebug() << get_name() << ui_entry->data(0, Qt::UserRole);
     reload();
 }
 
