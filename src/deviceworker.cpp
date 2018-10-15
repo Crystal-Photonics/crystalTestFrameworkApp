@@ -400,7 +400,6 @@ void DeviceWorker::update_devices() {
             continue;
         }
 
-
         communication_devices.push_back(PortDescription{
             std::make_unique<ComportCommunicationDevice>(), port_info,
             std::make_unique<QTreeWidgetItem>(QStringList{} << port.portName() + " " + port.description()).release(), nullptr, CommunicationDeviceType::COM});
@@ -524,8 +523,8 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
             connect(comport, d.signal, [ signal = d.signal, console = console, color = d.color, fat = d.fat ](const QByteArray &data) {
                 QString display_text = data;
                 bool is_human_readable = QSettings{}.value(Globals::console_human_readable_view_key, false).toBool();
-                bool is_connect_signal = signal == CommunicationDevice::connected;
-                bool is_disconnect_signal = signal == CommunicationDevice::disconnected;
+				bool is_connect_signal = signal == &CommunicationDevice::connected;
+				bool is_disconnect_signal = signal == &CommunicationDevice::disconnected;
                 if (is_connect_signal) {
                     if (display_text.count()) {
                         display_text = "connected(" + display_text + ")";
