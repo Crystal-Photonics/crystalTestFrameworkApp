@@ -87,13 +87,13 @@ QMAKE_CXXFLAGS += -Werror
 
 QMAKE_CXXFLAGS_DEBUG += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare
 unix {
-	eval("NO_UBSAN = $$(DISABLE_UBSAN)")
-	equals(NO_UBSAN, true) {
-		QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined
-		QMAKE_LFLAGS_DEBUG += -fsanitize=undefined
-	} else {
+	eval("SANITIZERS = $$(SANITIZER)")
+	equals(SANITIZERS, "") {
 		QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
 		QMAKE_LFLAGS_DEBUG += -fsanitize=undefined,address
+	} else {
+		QMAKE_CXXFLAGS_DEBUG += -fsanitize=$$SANITIZERS
+		QMAKE_LFLAGS_DEBUG += -fsanitize=$$SANITIZERS
 	}
 	QMAKE_LFLAGS_DEBUG += -fuse-ld=gold -L/usr/local/lib
 } else {
