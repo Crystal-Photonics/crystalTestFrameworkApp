@@ -352,8 +352,8 @@ MainWindow::~MainWindow() {
     devices_thread.quit();
     devices_thread.wait();
     QApplication::processEvents();
-    QObject::disconnect(ui->tests_advanced_view, QTreeWidget::itemSelectionChanged, this, on_tests_advanced_view_itemSelectionChanged);
-    QObject::disconnect(ui->test_simple_view, QListWidget::itemSelectionChanged, this, on_test_simple_view_itemSelectionChanged);
+	QObject::disconnect(ui->tests_advanced_view, &QTreeWidget::itemSelectionChanged, this, &MainWindow::on_tests_advanced_view_itemSelectionChanged);
+	QObject::disconnect(ui->test_simple_view, &QListWidget::itemSelectionChanged, this, &MainWindow::on_test_simple_view_itemSelectionChanged);
 
     delete ui;
 }
