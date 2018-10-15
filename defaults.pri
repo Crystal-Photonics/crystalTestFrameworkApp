@@ -99,9 +99,9 @@ unix {
 } else {
 	QMAKE_CXXFLAGS_DEBUG += -fsanitize-undefined-trap-on-error
 }
-QMAKE_CXXFLAGS_RELEASE += -Wall -Wunused-function -Wunused-parameter -Wunused-variable
+QMAKE_CXXFLAGS_RELEASE += -Wall -Wunused-function -Wunused-parameter -Wunused-variable -Wa,-mbig-obj
 
-QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer
+QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer -Wa,-mbig-obj
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
 #QMAKE_CXXFLAGS_DEBUG += -static-libasan -static-libubsan #some day windows will support a reasonable development environment ...
 

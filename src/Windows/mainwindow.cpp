@@ -352,8 +352,8 @@ MainWindow::~MainWindow() {
     devices_thread.quit();
     devices_thread.wait();
     QApplication::processEvents();
-	QObject::disconnect(ui->tests_advanced_view, &QTreeWidget::itemSelectionChanged, this, &MainWindow::on_tests_advanced_view_itemSelectionChanged);
-	QObject::disconnect(ui->test_simple_view, &QListWidget::itemSelectionChanged, this, &MainWindow::on_test_simple_view_itemSelectionChanged);
+    QObject::disconnect(ui->tests_advanced_view, &QTreeWidget::itemSelectionChanged, this, &MainWindow::on_tests_advanced_view_itemSelectionChanged);
+    QObject::disconnect(ui->test_simple_view, &QListWidget::itemSelectionChanged, this, &MainWindow::on_test_simple_view_itemSelectionChanged);
 
     delete ui;
 }
@@ -403,7 +403,7 @@ void MainWindow::load_scripts() {
         test_descriptions.push_back(TestDescriptionLoader{ui->tests_advanced_view, file_path, QDir{dir}.relativeFilePath(file_path)});
     }
     load_favorites();
-    statusBar()->showMessage(tr(""));
+    statusBar()->clearMessage();
     ui->tbtn_refresh_scripts->setEnabled(enabled_a);
     ui->actionReload_All_Scripts->setEnabled(enabled_b);
 }
@@ -503,7 +503,7 @@ void MainWindow::add_clear_button_to_console(QPlainTextEdit *console) {
     tbtn->setToolTip(tr("Clear console content"));
     console->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     console->setCornerWidget(tbtn);
-    connect(tbtn, &QToolButton::clicked, [ this, console = console ] { console->clear(); });
+    connect(tbtn, &QToolButton::clicked, [console = console] { console->clear(); });
 }
 
 void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State state) {
@@ -542,6 +542,13 @@ void MainWindow::adopt_testrunner(TestRunner *testrunner, QString title) {
     ui->test_tabs->addTab(testrunner->get_lua_ui_container(), title);
 }
 
+void MainWindow::show_status_bar_massage(QString msg, int timeout_ms) {
+    Utility::thread_call(this, nullptr, [this, msg, timeout_ms] {
+        assert(currently_in_gui_thread());
+        statusBar()->showMessage(msg, timeout_ms);
+    });
+}
+
 void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *communication_device) {
     //called from device worker
     assert(currently_in_gui_thread() == false);
@@ -550,7 +557,7 @@ void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name,
 
 void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
     //might be called from other threads
-    Utility::thread_call(this, nullptr, [this, text, console] {
+    Utility::thread_call(this, nullptr, [text, console] {
         assert(currently_in_gui_thread());
         if (console) {
             console->appendHtml(text);
@@ -653,7 +660,7 @@ void MainWindow::refresh_devices(bool only_duts) {
 void MainWindow::slot_device_discovery_done() {
     ui->actionrefresh_devices_dut->setEnabled(true);
     ui->actionrefresh_devices_all->setEnabled(true);
-    statusBar()->showMessage(tr(""));
+    statusBar()->clearMessage();
     set_enabled_states_for_matchable_scripts();
 }
 

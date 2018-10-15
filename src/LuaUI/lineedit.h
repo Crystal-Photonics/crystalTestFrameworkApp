@@ -1,11 +1,11 @@
 #ifndef LINEEDIT_H
 #define LINEEDIT_H
 
+#include "scriptengine.h"
+#include "ui_container.h"
 #include <QMetaObject>
 #include <functional>
 #include <string>
-#include "scriptengine.h"
-#include "ui_container.h"
 
 class QLabel;
 class QSplitter;
@@ -15,7 +15,7 @@ class QWidget;
 /** \ingroup ui
  *  \{
  */
-class LineEdit: public UI_widget {
+class LineEdit : public UI_widget {
     public:
     ///\cond HIDDEN_SYMBOLS
     LineEdit(UI_container *parent, ScriptEngine *script_engine);
@@ -90,18 +90,20 @@ class LineEdit: public UI_widget {
                                   //! \sa set_name()
 
     void set_caption(const std::string &caption); //!<\brief Sets the caption of an line edit object.
-                                            //!< \param caption String value. The caption of the line edit object.
-                                            //!< \details Caption is displayed as a title of the line edit.
-                                            //! \sa get_caption()
-                                            //!< \par examples:
-                                            //!< \code
-                                            //!  	local le = Ui.LineEdit.new()
-                                            //!  	le:set_caption("TestEdit")
-                                            //! \endcode
+                                                  //!< \param caption String value. The caption of the line edit object.
+                                                  //!< \details Caption is displayed as a title of the line edit.
+                                                  //! \sa get_caption()
+                                                  //!< \par examples:
+                                                  //!< \code
+                                                  //!  	local le = Ui.LineEdit.new()
+                                                  //!  	le:set_caption("TestEdit")
+                                                  //! \endcode
 
     std::string get_caption() const; //!<\brief Returns the caption.
-                                  //!< \return the caption of the line edit object set by set_caption() as a string value.
-                                  //! \sa set_caption()
+                                     //!< \return the caption of the line edit object set by set_caption() as a string value.
+                                     //! \sa set_caption()
+    void load_from_cache(void);
+    void save_to_cache();
 
     void set_focus();
     void await_return();
@@ -119,13 +121,14 @@ class LineEdit: public UI_widget {
 
     void set_visible(bool visible);
     void set_enabled(bool enabled);
-private:
-	QLabel *label = nullptr;
+
+    private:
+    QLabel *label = nullptr;
     QLineEdit *edit = nullptr;
 
-    std::string name;
+    std::string name_m;
+    std::string caption_m;
     ScriptEngine *script_engine;
-
 };
 /** \} */ // end of group ui
-#endif // LINEEDIT_H
+#endif    // LINEEDIT_H

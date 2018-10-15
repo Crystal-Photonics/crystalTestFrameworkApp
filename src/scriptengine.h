@@ -2,7 +2,6 @@
 #define SCRIPTENGINE_H
 
 #include "sol.hpp"
-
 #include <QDebug>
 #include <QEventLoop>
 #include <QList>
@@ -25,7 +24,6 @@ struct MatchedDevice;
 
 QString get_absolute_file_path(const QString &script_path, const QString &file_to_open);
 std::string get_absolute_file_path(const QString &script_path, const std::string &file_to_open);
-
 
 class DeviceRequirements {
     public:
@@ -70,7 +68,7 @@ class ScriptEngine {
     void ui_event_queue_send();
     void event_queue_interrupt();
 
-    void load_script(const QString &path);
+    void load_script(const std::string &path);
     static void launch_editor(QString path, int error_line = 1);
     void launch_editor() const;
     static std::string to_string(double d);
@@ -90,7 +88,7 @@ class ScriptEngine {
     void set_error_line(const sol::error &error);
 
     std::unique_ptr<sol::state> lua{};
-    QString path{};
+    QString path_m{};
     int error_line{0};
     UI_container *parent{nullptr};
     QPlainTextEdit *console{nullptr};

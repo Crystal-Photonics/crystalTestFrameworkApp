@@ -42,11 +42,11 @@ void LineEdit::set_text(const std::string &text) {
 }
 
 void LineEdit::set_name(const std::string &name) {
-    this->name = name;
+    this->name_m = name;
 }
 
 std::string LineEdit::get_name() const {
-    return name;
+    return name_m;
 }
 
 void LineEdit::set_caption(const std::string &caption) {
@@ -71,6 +71,31 @@ std::string LineEdit::get_caption() const {
     return label->text().toStdString();
 }
 
+void LineEdit::load_from_cache() {
+#if 0
+    if (name_m == "") {
+        throw std::runtime_error("Lineedit " + caption_m + " has no name but needs one in order to load content from cache.");
+    }
+    if (parent->user_entry_cache.key_already_used(UserEntryCache::AccessDirection::read_access, QString::fromStdString(name_m))) {
+        throw std::runtime_error("Lineedit " + caption_m + " uses the already used field name: \"" + name_m + "\" in order to load content from cache.");
+    }
+    QString value = parent->user_entry_cache.get_value(QString::fromStdString(name_m));
+    edit->setText(value);
+#endif
+}
+
+void LineEdit::save_to_cache() {
+#if 0
+    if (name_m == "") {
+        throw std::runtime_error("Lineedit " + caption_m + " has no name but needs one in order to store content to cache.");
+    }
+    if (parent->user_entry_cache.key_already_used(UserEntryCache::AccessDirection::read_access, QString::fromStdString(name_m))) {
+        throw std::runtime_error("Lineedit " + caption_m + " uses the already used field name: \"" + name_m + "\" in order to load content from cache.");
+    }
+    parent->user_entry_cache.set_value(QString::fromStdString(name_m), edit->text());
+#endif
+}
+
 void LineEdit::set_focus() {
     edit->setFocus();
 }
@@ -85,7 +110,7 @@ double LineEdit::get_number() const {
     bool ok = true;
     double retval = edit->text().toDouble(&ok);
     if (ok == false) {
-        retval = QInputDialog::getDouble(edit, "Invalid value", "Der Wert \"" + edit->text() + "\" im Feld \"" + QString::fromStdString(name) +
+        retval = QInputDialog::getDouble(edit, "Invalid value", "Der Wert \"" + edit->text() + "\" im Feld \"" + QString::fromStdString(name_m) +
                                                                     "\" ist keine Nummer. Bitte tragen Sie die nach.");
     }
     return retval;

@@ -30,7 +30,7 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
     moveToThread(&thread);
     thread.start();
     try {
-        script.load_script(description.get_filepath());
+        script.load_script(description.get_filepath().toStdString());
     } catch (const std::runtime_error &e) {
         thread.quit();
         throw;
@@ -72,18 +72,18 @@ UI_container *TestRunner::get_lua_ui_container() const {
 }
 
 void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &device_worker) {
-	//    qDebug() << "run_script called@TestRunner";
+    //    qDebug() << "run_script called@TestRunner";
     Utility::thread_call(this, nullptr, [ this, devices = std::move(devices), &device_worker ]() mutable {
         for (auto &dev_prot : devices) {
             device_worker.set_currently_running_test(dev_prot.device, name);
         }
         try {
-			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, State::running); });
-			script.run(devices);
-			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, State::finished); });
-		} catch (const std::runtime_error &e) {
-			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, State::error); });
-			qDebug() << "runtime_error caught @TestRunner::run_script";
+            MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, State::running); });
+            script.run(devices);
+            MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, State::finished); });
+        } catch (const std::runtime_error &e) {
+            MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, State::error); });
+            qDebug() << "runtime_error caught @TestRunner::run_script";
             MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] {
                 assert(console);
                 Console::error(console) << message;

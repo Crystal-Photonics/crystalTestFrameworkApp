@@ -101,7 +101,7 @@ bool FavoriteScripts::add_favorite(QString script_path) {
         entry.script_path = script_path;
         entry.valid = true;
         QList<ScriptEntry> script_entries = script_entries_m;
-        script_entries_m.append(entry);
+        script_entries.append(entry);
         bool result = save_to_file(script_entries);
         if (result) {
             script_entries_m = script_entries;

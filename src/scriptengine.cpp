@@ -627,6 +627,8 @@ ScriptEngine::ScriptEngine(TestRunner *owner, UI_container *parent, QPlainTextEd
     , owner{owner} {}
 
 ScriptEngine::~ScriptEngine() { //
+    // qDebug() << "script destruktor " << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") <<
+    // QThread::currentThread();
 }
 
 void ScriptEngine::pause_timer() {
@@ -837,7 +839,7 @@ std::string ScriptEngine::to_string(const sol::stack_proxy &object) {
 }
 
 QString ScriptEngine::get_absolute_filename(QString file_to_open) {
-    return get_absolute_file_path(path, file_to_open);
+    return get_absolute_file_path(path_m, file_to_open);
 }
 
 struct Data_engine_handle {
@@ -845,16 +847,17 @@ struct Data_engine_handle {
     Data_engine_handle() = delete;
 };
 
-void ScriptEngine::load_script(const QString &path) {
-    //qDebug() << "load_script ";
-    //qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
+void ScriptEngine::load_script(const std::string &path) {
+    //  qDebug() << "load_script " << QString::fromStdString(path);
+    //  qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
 
-    this->path = path;
+    this->path_m = QString::fromStdString(path);
 
     EnvironmentVariables env_variables(QSettings{}.value(Globals::path_to_environment_variables_key, "").toString());
     if (data_engine) {
-        data_engine->set_script_path(this->path);
+        data_engine->set_script_path(path_m);
     }
+
     try {
         //load the standard libs if necessary
         lua->open_libraries();
@@ -864,18 +867,18 @@ void ScriptEngine::load_script(const QString &path) {
         {
             (*lua)["show_file_save_dialog"] = [path](const std::string &title, const std::string &preselected_path, sol::table filters) {
 
-                return show_file_save_dialog(title, get_absolute_file_path(path, preselected_path), filters);
+                return show_file_save_dialog(title, get_absolute_file_path(QString::fromStdString(path), preselected_path), filters);
             };
             (*lua)["show_question"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table) {
-                return show_question(path, title, message, button_table);
+                return show_question(QString::fromStdString(path), title, message, button_table);
             };
 
             (*lua)["show_info"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
-                show_info(path, title, message);
+                show_info(QString::fromStdString(path), title, message);
             };
 
             (*lua)["show_warning"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
-                show_warning(path, title, message);
+                show_warning(QString::fromStdString(path), title, message);
             };
 
             (*lua)["print"] = [console = console](const sol::variadic_args &args) {
@@ -891,7 +894,7 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["current_date_time_ms"] = []() { return current_date_time_ms(); };
             (*lua)["round"] = [](const double value, const unsigned int precision = 0) { return round_double(value, precision); };
             (*lua)["require"] = [ path = path, &lua = *lua ](const std::string &file) {
-                QDir dir(path);
+                QDir dir(QString::fromStdString(path));
                 dir.cdUp();
                 lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
             };
@@ -914,10 +917,10 @@ void ScriptEngine::load_script(const QString &path) {
         //table functions
         {
             (*lua)["table_save_to_file"] = [ console = console, path = path ](const std::string file_name, sol::table input_table, bool over_write_file) {
-                table_save_to_file(console, get_absolute_file_path(path, file_name), input_table, over_write_file);
+                table_save_to_file(console, get_absolute_file_path(QString::fromStdString(path), file_name), input_table, over_write_file);
             };
             (*lua)["table_load_from_file"] = [&lua = *lua, console = console, path = path ](const std::string file_name) {
-                return table_load_from_file(console, lua, get_absolute_file_path(path, file_name));
+                return table_load_from_file(console, lua, get_absolute_file_path(QString::fromStdString(path), file_name));
             };
             (*lua)["table_sum"] = [](sol::table table) { return table_sum(table); };
 
@@ -1001,15 +1004,16 @@ void ScriptEngine::load_script(const QString &path) {
             };
 
             (*lua)["propose_unique_filename_by_datetime"] = [path = path](const std::string &dir_path, const std::string &prefix, const std::string &suffix) {
-                return propose_unique_filename_by_datetime(get_absolute_file_path(path, dir_path), prefix, suffix);
+                return propose_unique_filename_by_datetime(get_absolute_file_path(QString::fromStdString(path), dir_path), prefix, suffix);
             };
             (*lua)["git_info"] = [&lua = *lua, path = path ](std::string dir_path, bool allow_modified) {
-                return git_info(lua, get_absolute_file_path(path, dir_path), allow_modified);
+                return git_info(lua, get_absolute_file_path(QString::fromStdString(path), dir_path), allow_modified);
             };
             (*lua)["run_external_tool"] =
                 [&lua = *lua, path = path ](const std::string &execute_directory, const std::string &executable, const sol::table &arguments, uint timeout_s) {
-                return run_external_tool(path, QString::fromStdString(get_absolute_file_path(path, execute_directory)), QString::fromStdString(executable),
-                                         arguments, timeout_s)
+                return run_external_tool(QString::fromStdString(path),
+                                         QString::fromStdString(get_absolute_file_path(QString::fromStdString(path), execute_directory)),
+                                         QString::fromStdString(executable), arguments, timeout_s)
                     .toStdString();
             };
 
@@ -1034,7 +1038,8 @@ void ScriptEngine::load_script(const QString &path) {
                 "DataLogger", //
                 sol::meta_function::construct,
                 [ console = console, path = path ](const std::string &file_name, char seperating_character, sol::table field_names, bool over_write_file) {
-                    return DataLogger{console, get_absolute_file_path(path, file_name), seperating_character, field_names, over_write_file};
+                    return DataLogger{console, get_absolute_file_path(QString::fromStdString(path), file_name), seperating_character, field_names,
+                                      over_write_file};
                 }, //
 
                 "append_data",
@@ -1044,8 +1049,8 @@ void ScriptEngine::load_script(const QString &path) {
         }
         //bind charge counter
         {
-            lua->new_usertype<ChargeCounter>("ChargeCounter",                                                                  //
-                                             sol::meta_function::construct, [console = console]() { return ChargeCounter{}; }, //
+            lua->new_usertype<ChargeCounter>("ChargeCounter",                                                 //
+                                             sol::meta_function::construct, []() { return ChargeCounter{}; }, //
 
                                              "add_current", [](ChargeCounter &handle, const double current) { return handle.add_current(current); }, //
                                              "reset",
@@ -1064,9 +1069,9 @@ void ScriptEngine::load_script(const QString &path) {
                 sol::meta_function::construct,
                 [ data_engine = data_engine, path = path, this ](const std::string &pdf_template_file, const std::string &json_file,
                                                                  const std::string &auto_json_dump_path, const sol::table &dependency_tags) {
-                    auto file_path = get_absolute_file_path(path, json_file);
-                    auto xml_file = get_absolute_file_path(path, pdf_template_file);
-                    auto auto_dump_path = get_absolute_file_path(path, auto_json_dump_path);
+                    auto file_path = get_absolute_file_path(QString::fromStdString(path), json_file);
+                    auto xml_file = get_absolute_file_path(QString::fromStdString(path), pdf_template_file);
+                    auto auto_dump_path = get_absolute_file_path(QString::fromStdString(path), auto_json_dump_path);
                     std::ifstream f(file_path);
                     if (!f) {
                         throw std::runtime_error("Failed opening file " + file_path);
@@ -1158,13 +1163,13 @@ void ScriptEngine::load_script(const QString &path) {
                 },
                 "save_to_json",
                 [path = path](Data_engine_handle & handle, const std::string &file_name) {
-                    auto fn = get_absolute_file_path(path, file_name);
+                    auto fn = get_absolute_file_path(QString::fromStdString(path), file_name);
                     handle.data_engine->save_to_json(QString::fromStdString(fn));
                 },
                 "add_extra_pdf_path", [ path = path, this ](Data_engine_handle & handle, const std::string &file_name) {
                     (void)handle;
                     // data_engine_auto_dump_path = QString::fromStdString(auto_dump_path);
-                    additional_pdf_path = QString::fromStdString(get_absolute_file_path(path, file_name));
+                    additional_pdf_path = QString::fromStdString(get_absolute_file_path(QString::fromStdString(path), file_name));
                     //  handle.data_engine->save_to_json(QString::fromStdString(fn));
                 },
                 "set_open_pdf_on_pdf_creation",
@@ -1219,6 +1224,14 @@ void ScriptEngine::load_script(const QString &path) {
             ui_table["set_column_count"] = [ container = parent, this ](int count) {
                 Utility::thread_call(MainWindow::mw, this, [container, count] { container->set_column_count(count); });
             };
+#if 1
+            ui_table["load_user_entry_cache"] = [ container = parent, this ](const std::string &dut_id) {
+                (void)container;
+                (void)this;
+                (void)dut_id;
+                // container->user_entry_cache.load_storage_for_script(this->path_m, QString::fromStdString(dut_id));
+            };
+#endif
         }
 
         //bind plot
@@ -1398,7 +1411,7 @@ void ScriptEngine::load_script(const QString &path) {
                     for (const auto &item : filters) {
                         sl.append(QString::fromStdString(item.second.as<std::string>()));
                     }
-                    return Lua_UI_Wrapper<ComboBoxFileSelector>{parent, this, get_absolute_file_path(path, directory), sl};
+                    return Lua_UI_Wrapper<ComboBoxFileSelector>{parent, this, get_absolute_file_path(QString::fromStdString(path), directory), sl};
                 }, //
                 "get_selected_file",
                 thread_call_wrapper(&ComboBoxFileSelector::get_selected_file),           //
@@ -1517,7 +1530,7 @@ void ScriptEngine::load_script(const QString &path) {
 
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image", sol::meta_function::construct, [ parent = this->parent, path = path, this ]() {
-                return Lua_UI_Wrapper<Image>{parent, this, path}; //
+                return Lua_UI_Wrapper<Image>{parent, this, QString::fromStdString(path)}; //
             },
                                                          "load_image_file", thread_call_wrapper(&Image::load_image_file), //
                                                          "set_visible", thread_call_wrapper(&Image::set_visible)          //
@@ -1553,7 +1566,8 @@ void ScriptEngine::load_script(const QString &path) {
                                                             "set_enabled", thread_call_wrapper(&LineEdit::set_enabled),                               //
                                                             "set_visible", thread_call_wrapper(&LineEdit::set_visible),                               //
                                                             "set_focus", thread_call_wrapper(&LineEdit::set_focus),                                   //
-                                                            "await_return", non_gui_call_wrapper(&LineEdit::await_return)                             //
+                                                            "await_return", non_gui_call_wrapper(&LineEdit::await_return),                            //
+                                                            "load_from_cache", non_gui_call_wrapper(&LineEdit::load_from_cache)                       //
                                                             );
         }
         {
@@ -1611,7 +1625,9 @@ void ScriptEngine::load_script(const QString &path) {
 
                                             );
         }
-        lua->script_file(path.toStdString());
+        lua->script_file(path);
+
+        //    qDebug() << "laoded script"; // << lua->;
     } catch (const sol::error &error) {
         qDebug() << "caught sol::error@load_script";
         set_error_line(error);
@@ -1646,7 +1662,7 @@ void ScriptEngine::launch_editor(QString path, int error_line) {
 }
 
 void ScriptEngine::launch_editor() const {
-    launch_editor(path, error_line);
+    launch_editor(path_m, error_line);
 }
 
 sol::table ScriptEngine::create_table() {

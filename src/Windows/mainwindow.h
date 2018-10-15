@@ -7,6 +7,7 @@
 
 #include "favorite_scripts.h"
 #include <QDebug>
+#include <QListWidgetItem>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QThread>
@@ -15,7 +16,6 @@
 #include <map>
 #include <memory>
 #include <vector>
-#include <QListWidgetItem>
 
 class CommunicationDevice;
 class ComportCommunicationDevice;
@@ -35,7 +35,6 @@ namespace Ui {
 bool currently_in_gui_thread();
 
 class EXPORT MainWindow : public QMainWindow {
-
     Q_OBJECT
 
     enum class ViewMode { None, AllScripts, FavoriteScripts };
@@ -67,8 +66,9 @@ class EXPORT MainWindow : public QMainWindow {
     void add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *communication_device);
     void set_testrunner_state(TestRunner *testrunner, TestRunner::State state);
     void adopt_testrunner(TestRunner *testrunner, QString title);
+    void show_status_bar_massage(QString msg, int timeout_ms);
 
-public slots:
+    public slots:
     void align_columns();
 
     void add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *communication_device);
@@ -88,50 +88,43 @@ public slots:
     void poll_sg04_counts();
     void closeEvent(QCloseEvent *event) override;
 
-
-
-
-
     void on_test_simple_view_itemDoubleClicked(QListWidgetItem *item);
 
     void on_test_simple_view_customContextMenuRequested(const QPoint &pos);
 
-   void on_test_simple_view_itemChanged(QListWidgetItem *item);
+    void on_test_simple_view_itemChanged(QListWidgetItem *item);
 
+    void on_tbtn_view_all_scripts_clicked();
 
+    void on_tbtn_view_favorite_scripts_clicked();
 
-   void on_tbtn_view_all_scripts_clicked();
+    void on_actionRunSelectedScript_triggered();
 
-   void on_tbtn_view_favorite_scripts_clicked();
+    void on_actionrefresh_devices_all_triggered();
 
-   void on_actionRunSelectedScript_triggered();
+    void on_actionrefresh_devices_dut_triggered();
 
-   void on_actionrefresh_devices_all_triggered();
+    void on_actionClose_finished_Tests_triggered();
 
-   void on_actionrefresh_devices_dut_triggered();
+    void on_test_simple_view_itemSelectionChanged();
 
-   void on_actionClose_finished_Tests_triggered();
+    void on_tests_advanced_view_itemSelectionChanged();
 
-   void on_test_simple_view_itemSelectionChanged();
+    void on_tests_advanced_view_itemDoubleClicked(QTreeWidgetItem *item, int column);
 
-   void on_tests_advanced_view_itemSelectionChanged();
+    void on_tbtn_collapse_script_view_clicked();
 
-   void on_tests_advanced_view_itemDoubleClicked(QTreeWidgetItem *item, int column);
+    void on_tests_advanced_view_itemClicked(QTreeWidgetItem *item, int column);
 
-   void on_tbtn_collapse_script_view_clicked();
+    void on_actionedit_script_triggered();
 
+    void on_tbtn_refresh_scripts_clicked();
 
-   void on_tests_advanced_view_itemClicked(QTreeWidgetItem *item, int column);
+    void on_actionReload_All_Scripts_triggered();
 
-   void on_actionedit_script_triggered();
+    void on_tbtn_collapse_console_clicked();
 
-   void on_tbtn_refresh_scripts_clicked();
-
-   void on_actionReload_All_Scripts_triggered();
-
-   void on_tbtn_collapse_console_clicked();
-
-private:
+    private:
     FavoriteScripts favorite_scripts;
     void refresh_devices(bool only_duts);
     std::vector<TestDescriptionLoader> test_descriptions;
@@ -143,7 +136,7 @@ private:
     QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;
 
-   // TestDescriptionLoader *get_test_from_ui(const QTreeWidgetItem *item = nullptr);
+    // TestDescriptionLoader *get_test_from_ui(const QTreeWidgetItem *item = nullptr);
     TestRunner *get_runner_from_tab_index(int index);
 
     void close_finished_tests();

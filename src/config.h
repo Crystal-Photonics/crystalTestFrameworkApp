@@ -25,9 +25,9 @@ namespace Globals {
     static const auto collapse_script_explorer_on_scriptstart_key = "collapse_script_explorer_on_scriptstart_key";
     static const auto console_is_collapsed_key = "console_is_collapsed_key";
     static const auto console_human_readable_view_key = "console_human_readable_view_key";
+    static const auto user_entry_cache_path_key = "user_entry_cache_path_key";
 
     static const auto ui_blink_ratio = 8;
-
 }
 
 #endif // CONFIG_H
