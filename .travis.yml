@@ -124,6 +124,7 @@ script:
   - xvfb-run --auto-servernum gdb -q --return-child-result -ex "set confirm off" -ex "set pagination off" -ex "set print thread-events off" -ex "run" -ex "bt" -ex "quit" ./tests
 
   # without gdb with asan
+  - rm .qmake.stash
   - export SANITIZER=undefined,address
   - cd $TRAVIS_BUILD_DIR
   - make clean
@@ -133,6 +134,7 @@ script:
   - xvfb-run --auto-servernum ./tests
 
   # without gdb with tsan
+  - rm .qmake.stash
   - export SANITIZER=thread
   - cd $TRAVIS_BUILD_DIR
   - make clean
