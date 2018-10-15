@@ -99,6 +99,7 @@ script:
   
 #build testframework  
   - cd $TRAVIS_BUILD_DIR
+  - export DISABLE_UBSAN=true
   - qmake "CONFIG+=debug"
   - make -j$(nproc)
   #- tree $TRAVIS_BUILD_DIR
@@ -119,7 +120,16 @@ script:
   - echo $LSAN_OPTIONS
 
   # without xvfb: QFATAL : Test_Data_engine::test_preview() QXcbConnection: Could not connect to display
+  # with gdb without asan
   - xvfb-run --auto-servernum gdb -q --return-child-result -ex "set confirm off" -ex "set pagination off" -ex "set print thread-events off" -ex "run" -ex "bt" -ex "quit" ./tests
+
+
+  # without gdb with asan
+  - unset DISABLE_UBSAN
+  - make clean
+  - qmake "CONFIG+=debug"
+  - make -j$(nproc)
+  - xvfb-run --auto-servernum ./tests
 
 after_script:
   # print ccache stats
