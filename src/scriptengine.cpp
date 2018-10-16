@@ -848,8 +848,8 @@ struct Data_engine_handle {
 };
 
 void ScriptEngine::load_script(const std::string &path) {
-    //  qDebug() << "load_script " << QString::fromStdString(path);
-    //  qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
+    qDebug() << "load_script " << QString::fromStdString(path);
+    qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
 
     this->path_m = QString::fromStdString(path);
 
@@ -1062,6 +1062,7 @@ void ScriptEngine::load_script(const std::string &path) {
                                              [](ChargeCounter &handle) { return handle.get_current_hours(); } //
                                              );
         }
+
         //bind data engine
         {
             lua->new_usertype<Data_engine_handle>(
@@ -1224,7 +1225,7 @@ void ScriptEngine::load_script(const std::string &path) {
             ui_table["set_column_count"] = [ container = parent, this ](int count) {
                 Utility::thread_call(MainWindow::mw, this, [container, count] { container->set_column_count(count); });
             };
-#if 1
+#if 0
             ui_table["load_user_entry_cache"] = [ container = parent, this ](const std::string &dut_id) {
                 (void)container;
                 (void)this;
@@ -1234,6 +1235,16 @@ void ScriptEngine::load_script(const std::string &path) {
 #endif
         }
 
+#if 0
+        //bind charge UserEntryCache
+        {
+            lua->new_usertype<UserEntryCache>("UserEntryCache", //
+                                              sol::meta_function::construct,
+                                              []() { //
+                                                  return UserEntryCache{};
+                                              });
+        }
+#endif
         //bind plot
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Curve>>(
@@ -1627,7 +1638,7 @@ void ScriptEngine::load_script(const std::string &path) {
         }
         lua->script_file(path);
 
-        //    qDebug() << "laoded script"; // << lua->;
+        qDebug() << "laoded script"; // << lua->;
     } catch (const sol::error &error) {
         qDebug() << "caught sol::error@load_script";
         set_error_line(error);

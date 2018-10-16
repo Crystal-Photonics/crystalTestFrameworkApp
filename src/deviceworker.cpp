@@ -549,32 +549,33 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
                         .arg(QString::number(color.rgb(), 16),
                              is_human_readable ? Utility::to_human_readable_binary_data(display_data) : Utility::to_C_hex_encoding(display_data)),
                     console);
-                if (is_connect_signal || is_disconnect_signal) {
-                    QWidget *qt_tabwidget_stackedwidget = console->parentWidget();
-                    QWidget *parent_widget = qt_tabwidget_stackedwidget->parentWidget();
-                    QTabWidget *tab_widget = dynamic_cast<QTabWidget *>(parent_widget);
+                Utility::thread_call(MainWindow::mw, nullptr, [console, is_connect_signal, is_disconnect_signal] {
+                    if (is_connect_signal || is_disconnect_signal) {
+                        QWidget *qt_tabwidget_stackedwidget = console->parentWidget();
+                        QWidget *parent_widget = qt_tabwidget_stackedwidget->parentWidget();
+                        QTabWidget *tab_widget = dynamic_cast<QTabWidget *>(parent_widget);
+                        if (tab_widget) {
+                            const auto runner_index = tab_widget->indexOf(console);
+                            if (runner_index > -1) {
+                                QColor color;
+                                if (is_connect_signal) {
+                                    color = tab_widget->palette().color(QPalette::Active, QPalette::Text);
+                                }
+                                if (is_disconnect_signal) {
+                                    color = tab_widget->palette().color(QPalette::Disabled, QPalette::Text);
+                                }
+                                tab_widget->tabBar()->setTabTextColor(runner_index, color);
+                            } else {
+                                qDebug() << "CommunicationDevice"
+                                         << "could not find console" << console;
+                            }
 
-                    if (tab_widget) {
-                        const auto runner_index = tab_widget->indexOf(console);
-                        if (runner_index > -1) {
-                            QColor color;
-                            if (is_connect_signal) {
-                                color = tab_widget->palette().color(QPalette::Active, QPalette::Text);
-                            }
-                            if (is_disconnect_signal) {
-                                color = tab_widget->palette().color(QPalette::Disabled, QPalette::Text);
-                            }
-                            tab_widget->tabBar()->setTabTextColor(runner_index, color);
                         } else {
                             qDebug() << "CommunicationDevice"
-                                     << "could not find console" << console;
+                                     << "could not find tabwidget" << console << qt_tabwidget_stackedwidget << parent_widget << tab_widget;
                         }
-
-                    } else {
-                        qDebug() << "CommunicationDevice"
-                                 << "could not find tabwidget" << console << qt_tabwidget_stackedwidget << parent_widget << tab_widget;
                     }
-                }
+                });
 
             });
         }

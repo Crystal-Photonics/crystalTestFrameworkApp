@@ -6,15 +6,17 @@ QT += script sql printsupport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+GCC_MACHINE = $$system("g++ -dumpmachine")
+message($$GCC_MACHINE)
+
 INCLUDEPATH += $$PWD/src
 INCLUDEPATH += ../libs/luasol/include
 
 
 win32 {
-    QWT_DIR = $$PWD/libs/qwt
+    QWT_DIR = $$PWD/libs/qwt/
     INCLUDEPATH += $$QWT_DIR/include
-    #INCLUDEPATH += $$QWT_DIR/include/qwt
-    LIBS += -L$$QWT_DIR/lib
+    LIBS += -L$$QWT_DIR/lib/$${QT_VERSION}
 
     CONFIG(debug, debug|release) {
         LIBS += -lqwtd
@@ -23,8 +25,14 @@ win32 {
         LIBS += -lqwt
         LIBS += -L$$PWD/libs/LimeReport/build/$${QT_VERSION}/win32/release/lib
     }
-
-    LIBS += -L$$PWD/libs/luasol
+    equals(GCC_MACHINE,  x86_64-w64-mingw32){
+        LIBS += -L$$PWD/libs/luasol/win64
+        message(Win32 64bit)
+    }
+    equals(GCC_MACHINE, i686-w64-mingw32){
+        LIBS += -L$$PWD/libs/luasol/win32
+        message(Win32 32bit)
+    }
     LIBS += -llua53
     SH = C:/Program Files/Git/bin/sh.exe
 
@@ -32,8 +40,6 @@ win32 {
     CONFIG += qwt
     LIBS += -lqwt
     LIBS += -llua5.3
-   # LIBS += -L/usr/local/qwt-svn/lib
-   # LIBS += -L/usr/local/qwt-svn/lib
 
     #error("fill in the correct path for linux")
     CONFIG(debug, debug|release) {
@@ -52,7 +58,15 @@ win32 {
 win32 {
     INCLUDEPATH += $$PWD/libs/libusb-1.0.21/include/
     #message($$INCLUDEPATH)
-    LIBS += -L$$PWD/libs/libusb-1.0.21/MinGW32/static/
+    equals(GCC_MACHINE,  x86_64-w64-mingw32){
+        LIBS += -L$$PWD/libs/libusb-1.0.21/MinGW64/static/
+      #  message(Win32 64bit)
+    }
+    equals(GCC_MACHINE, i686-w64-mingw32){
+        LIBS += -L$$PWD/libs/libusb-1.0.21/MinGW32/static/
+       # message(Win32 32bit)
+    }
+
     LIBS += -llibusb-1.0
 }else{
     INCLUDEPATH += $$PWD/libs/libusb-1.0.21/include/
@@ -100,9 +114,8 @@ unix {
 } else {
 	QMAKE_CXXFLAGS_DEBUG += -fsanitize-undefined-trap-on-error
 }
-QMAKE_CXXFLAGS_RELEASE += -Wall -Wunused-function -Wunused-parameter -Wunused-variable -Wa,-mbig-obj
-
-QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer -Wa,-mbig-obj
+QMAKE_CXXFLAGS_RELEASE += -Wall -Wunused-function -Wunused-parameter -Wunused-variable -O1
+QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer -O1
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
 #QMAKE_CXXFLAGS_DEBUG += -static-libasan -static-libubsan #some day windows will support a reasonable development environment ...
 

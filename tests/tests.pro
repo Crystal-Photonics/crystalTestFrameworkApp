@@ -25,7 +25,19 @@ INCLUDEPATH += $$PWD/../libs/googletest/googletest/include
 INCLUDEPATH += $$PWD/../libs/googletest/googlemock/include
 
 LIBS += -L$$BINDIR
-LIBS += -L$$PWD/../libs/googletest/build
+
+win32 {
+    equals(GCC_MACHINE,  x86_64-w64-mingw32){
+        LIBS += -L$$PWD/../libs/googletest/build/win64
+    }
+    equals(GCC_MACHINE, i686-w64-mingw32){
+        LIBS += -L$$PWD/../libs/googletest/build/win32
+    }
+
+}else{
+    LIBS += -L$$PWD/../libs/googletest/build/
+}
+
 LIBS += -lgmock
 LIBS += -lgtest
 
