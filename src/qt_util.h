@@ -70,7 +70,10 @@ namespace Utility {
         if (obj->thread() == nullptr) {
             qDebug() << "isRunning" << obj->thread()->isRunning();
         }
-        assert(obj->thread() == nullptr || obj->thread()->isRunning());
+		if (obj->thread() != nullptr && not obj->thread()->isRunning()) {
+			//if the target thread is dead, do not pass it messages
+			throw std::runtime_error("Attempted to make a thread-call to a dead thread");
+		}
 
         struct Event : public QEvent {
             ScriptEngine *script_engine_to_terminate_on_exception__ = nullptr;

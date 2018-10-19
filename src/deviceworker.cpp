@@ -13,10 +13,11 @@
 #include "config.h"
 #include "console.h"
 #include "util.h"
-#include <QChar>
-#include <QString>
 
+#include <QChar>
+#include <QDebug>
 #include <QSettings>
+#include <QString>
 #include <QTreeWidgetItem>
 #include <functional>
 #include <initializer_list>
@@ -584,49 +585,54 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
 }
 
 std::vector<PortDescription *> DeviceWorker::get_devices_with_protocol(const QString &protocol, const QStringList device_names) {
-    return Utility::promised_thread_call(this, [this, protocol, device_names]() mutable {
-        assert(currently_in_gui_thread() == false);
-        std::vector<PortDescription *> candidates;
-        for (auto &device : communication_devices) { //TODO: do not only loop over comport_devices, but other devices as well
-            if (device.protocol == nullptr) {
-                continue;
-            }
-            auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
-            auto scpi_protocol = dynamic_cast<SCPIProtocol *>(device.protocol.get());
-            auto manual_protocol = dynamic_cast<ManualProtocol *>(device.protocol.get());
+	try {
+		return Utility::promised_thread_call(this, [this, protocol, device_names]() mutable {
+			assert(currently_in_gui_thread() == false);
+			std::vector<PortDescription *> candidates;
+			for (auto &device : communication_devices) { //TODO: do not only loop over comport_devices, but other devices as well
+				if (device.protocol == nullptr) {
+					continue;
+				}
+				auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
+				auto scpi_protocol = dynamic_cast<SCPIProtocol *>(device.protocol.get());
+				auto manual_protocol = dynamic_cast<ManualProtocol *>(device.protocol.get());
 
-            bool device_name_match = false;
-            QString device_name;
-            if (scpi_protocol) {
-                device_name = QString().fromStdString(scpi_protocol->get_name());
+				bool device_name_match = false;
+				QString device_name;
+				if (scpi_protocol) {
+					device_name = QString().fromStdString(scpi_protocol->get_name());
 
-            } else if (rpc_protocol) {
-                device_name = QString().fromStdString(rpc_protocol->get_name());
-            } else if (manual_protocol) {
-                device_name = QString().fromStdString(manual_protocol->get_name());
-            }
-            if (device_names.indexOf(device_name) > -1) {
-                device_name_match = true;
-            }
-            if (device_names.count() == 0) {
-                device_name_match = true;
-            }
-            for (auto s : device_names) {
-                if (s == "*") {
+				} else if (rpc_protocol) {
+					device_name = QString().fromStdString(rpc_protocol->get_name());
+				} else if (manual_protocol) {
+					device_name = QString().fromStdString(manual_protocol->get_name());
+				}
+				if (device_names.indexOf(device_name) > -1) {
                     device_name_match = true;
-                    break;
                 }
-                if (s == "") {
+				if (device_names.count() == 0) {
                     device_name_match = true;
-                    break;
                 }
+				for (auto s : device_names) {
+					if (s == "*") {
+						device_name_match = true;
+						break;
+					}
+					if (s == "") {
+						device_name_match = true;
+						break;
+					}
+				}
+				if ((device.protocol->type == protocol) && (device_name_match)) {
+					candidates.push_back(&device);
+				}
             }
-            if ((device.protocol->type == protocol) && (device_name_match)) {
-                candidates.push_back(&device);
-            }
-        }
-        return candidates;
-    });
+			return candidates;
+		});
+	} catch (std::runtime_error &e) {
+		qDebug() << e.what();
+	}
+	return {};
 }
 
 void DeviceWorker::set_currently_running_test(CommunicationDevice *com_device, const QString &test_name) {
