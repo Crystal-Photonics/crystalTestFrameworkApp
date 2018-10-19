@@ -1226,7 +1226,7 @@ void ScriptEngine::load_script(const std::string &path) {
                 Utility::thread_call(MainWindow::mw, this, [container, count] { container->set_column_count(count); });
             };
 #if 0
-            ui_table["load_user_entry_cache"] = [ container = parent, this ](const std::string &dut_id) {
+            ui_table["load_user_entry_cache"] = [ container = parent, this ](const std::string dut_id) {
                 (void)container;
                 (void)this;
                 (void)dut_id;

@@ -148,16 +148,15 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
     button_exceptional_approval->setSizePolicy(sp_w, sp_h);
     lineedit->setSizePolicy(sp_w, sp_h);
 
- //   label_exceptional_approval->setSizePolicy(sp_w, sp_h);
+    //   label_exceptional_approval->setSizePolicy(sp_w, sp_h);
     label_exceptional_approval->setText(" ");
-//    label_exceptional_approval->setFixedHeight(label_exceptional_approval->height());
-   // label_exceptional_approval->setText(" ");
-   // button_exceptional_approval->setSizePolicy(sp_w, sp_h_f);
+    //    label_exceptional_approval->setFixedHeight(label_exceptional_approval->height());
+    // label_exceptional_approval->setText(" ");
+    // button_exceptional_approval->setSizePolicy(sp_w, sp_h_f);
 
-   // button_yes->setFixedHeight(button_exceptional_approval->height());
-  //  button_no->setFixedHeight(button_exceptional_approval->height());
-  //  button_next->setFixedHeight(button_exceptional_approval->height());
-
+    // button_yes->setFixedHeight(button_exceptional_approval->height());
+    //  button_no->setFixedHeight(button_exceptional_approval->height());
+    //  button_next->setFixedHeight(button_exceptional_approval->height());
 
     callback_bool_no = QObject::connect(button_no, &QPushButton::clicked,
                                         [script_engine = this->script_engine]() { script_engine->hotkey_event_queue_send_event(HotKeyEvent::cancel_pressed); });
@@ -294,6 +293,9 @@ void DataEngineInput::sleep_ms(uint timeout_ms) {
         is_waiting = false;
     });
     set_ui_visibility();
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        throw sol::error("Abort Requested");
+    }
 }
 
 void DataEngineInput::await_event() {

@@ -525,6 +525,9 @@ sleep_ms(int timeout_ms);
 /// @cond HIDDEN_SYMBOLS
 void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms) {
     scriptengine->timer_event_queue_run(timeout_ms);
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        throw sol::error("Abort Requested");
+    }
 #if 0
     QEventLoop event_loop;
     static const auto secret_exit_code = -0xF42F;
@@ -1654,20 +1657,19 @@ text propose_unique_filename_by_datetime(text dir_path, text prefix, text suffix
 
 /// @cond HIDDEN_SYMBOLS
 
-static QString get_unique_file_name_date_time_format(){
+static QString get_unique_file_name_date_time_format() {
     return "-yyyy_MM_dd-HH_mm_ss-";
 }
 
-
-QDateTime decode_date_time_from_file_name( const std::string &file_name, const std::string &prefix) {
-    QString str =  QString::fromStdString(file_name);
+QDateTime decode_date_time_from_file_name(const std::string &file_name, const std::string &prefix) {
+    QString str = QString::fromStdString(file_name);
     str = QFileInfo{str}.baseName();
-  //  qDebug() << str;
+    //  qDebug() << str;
     str = str.remove(QString::fromStdString(prefix));
     str = str.left(get_unique_file_name_date_time_format().size());
-   // qDebug() << str;
+    // qDebug() << str;
     QDateTime result = QDateTime::fromString(str, get_unique_file_name_date_time_format());
-   // qDebug() << result.toString();
+    // qDebug() << result.toString();
     return result;
 }
 
