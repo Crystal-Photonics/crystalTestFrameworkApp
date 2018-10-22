@@ -53,5 +53,7 @@ int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
     MainWindow w;
     w.showMaximized();
-    return a.exec();
+	auto retval = a.exec();
+	w.shutdown();
+	return retval;
 }

@@ -42,6 +42,7 @@ class EXPORT MainWindow : public QMainWindow {
     public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+	void shutdown();
     static MainWindow *mw;
     static QThread *gui_thread;
 
@@ -85,43 +86,27 @@ class EXPORT MainWindow : public QMainWindow {
     void on_console_tabs_customContextMenuRequested(const QPoint &pos);
     void on_actionDummy_Data_Creator_for_print_templates_triggered();
     void on_actionInfo_triggered();
-    void poll_sg04_counts();
+
+	void poll_sg04_counts();
     void closeEvent(QCloseEvent *event) override;
 
     void on_test_simple_view_itemDoubleClicked(QListWidgetItem *item);
-
     void on_test_simple_view_customContextMenuRequested(const QPoint &pos);
-
     void on_test_simple_view_itemChanged(QListWidgetItem *item);
-
     void on_tbtn_view_all_scripts_clicked();
-
     void on_tbtn_view_favorite_scripts_clicked();
-
     void on_actionRunSelectedScript_triggered();
-
     void on_actionrefresh_devices_all_triggered();
-
     void on_actionrefresh_devices_dut_triggered();
-
     void on_actionClose_finished_Tests_triggered();
-
     void on_test_simple_view_itemSelectionChanged();
-
     void on_tests_advanced_view_itemSelectionChanged();
-
     void on_tests_advanced_view_itemDoubleClicked(QTreeWidgetItem *item, int column);
-
     void on_tbtn_collapse_script_view_clicked();
-
     void on_tests_advanced_view_itemClicked(QTreeWidgetItem *item, int column);
-
     void on_actionedit_script_triggered();
-
     void on_tbtn_refresh_scripts_clicked();
-
     void on_actionReload_All_Scripts_triggered();
-
     void on_tbtn_collapse_console_clicked();
 
     private:

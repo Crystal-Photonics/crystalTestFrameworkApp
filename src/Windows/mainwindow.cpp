@@ -332,30 +332,44 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 MainWindow::~MainWindow() {
-    QSettings{}.setValue(Globals::last_view_mode_key, view_mode_to_string(view_mode_m));
-    QSettings{}.setValue(Globals::expanded_paths_key, get_expanded_tree_view_paths());
-    QSettings{}.setValue(Globals::current_tree_view_selection_key, get_treeview_selection_path());
-    QSettings{}.setValue(Globals::current_list_view_selection_key, get_list_selection_path());
-    QSettings{}.setValue(Globals::console_is_collapsed_key, console_view_is_collapsed);
-    for (auto &test : test_runners) {
-        if (test->is_running()) {
-            test->interrupt();
-        }
-    }
-    for (auto &test : test_runners) {
-        test->join();
-    }
+	delete ui;
+}
 
-    QApplication::processEvents();
-    test_runners.clear();
-    QApplication::processEvents();
-    devices_thread.quit();
-    devices_thread.wait();
-    QApplication::processEvents();
-    QObject::disconnect(ui->tests_advanced_view, &QTreeWidget::itemSelectionChanged, this, &MainWindow::on_tests_advanced_view_itemSelectionChanged);
-    QObject::disconnect(ui->test_simple_view, &QListWidget::itemSelectionChanged, this, &MainWindow::on_test_simple_view_itemSelectionChanged);
+void MainWindow::shutdown() {
+	/*
+	 * This function should be the destructor.
+	 * However, according to http://eel.is/c++draft/basic.life#1.3 the lifetime of the MainWindow ends when it enters the destructor.
+	 * We need MainWindow to stay alive until all other threads end, so we cannot end other thread in ~MainWindow, so we use shutdown instead.
+	 * It is believed that using the destructor instead of shutdown has caused segfaults and race conditions in practice.
+	 */
+	assert(currently_in_gui_thread());
+	QSettings{}.setValue(Globals::last_view_mode_key, view_mode_to_string(view_mode_m));
+	QSettings{}.setValue(Globals::expanded_paths_key, get_expanded_tree_view_paths());
+	QSettings{}.setValue(Globals::current_tree_view_selection_key, get_treeview_selection_path());
+	QSettings{}.setValue(Globals::current_list_view_selection_key, get_list_selection_path());
+	QSettings{}.setValue(Globals::console_is_collapsed_key, console_view_is_collapsed);
+	for (auto &test : test_runners) {
+		if (test->is_running()) {
+			test->interrupt();
+		}
+	}
+	devices_thread.quit();
 
-    delete ui;
+	auto done = std::async(std::launch::async, [this] {
+		for (auto &test : test_runners) {
+			test->join();
+		}
+		test_runners.clear();
+		devices_thread.wait();
+	});
+	while (done.wait_for(std::chrono::milliseconds(16)) != std::future_status::ready) {
+		QApplication::processEvents();
+	}
+	done.wait();
+
+	QObject::disconnect(ui->tests_advanced_view, &QTreeWidget::itemSelectionChanged, this, &MainWindow::on_tests_advanced_view_itemSelectionChanged);
+	QObject::disconnect(ui->test_simple_view, &QListWidget::itemSelectionChanged, this, &MainWindow::on_test_simple_view_itemSelectionChanged);
+	QApplication::processEvents();
 }
 
 void MainWindow::align_columns() {
