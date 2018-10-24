@@ -8,6 +8,7 @@
 TARGET = crystalTestFrameworkApp
 TEMPLATE = subdirs
 
+
 SUBDIRS += app
 SUBDIRS += src
 SUBDIRS += tests
