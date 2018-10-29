@@ -106,7 +106,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             device.port_info.insert(BAUD_RATE_TAG, rpc_device.baud); //TODO: crash bei einem ttyUSB0, kubuntu16.04 ??
             if (device.device->connect(device.port_info) == false) {
                 auto display_string = device.device->get_identifier_display_string();
-                Utility::thread_call(MainWindow::mw, nullptr,
+				Utility::thread_call(MainWindow::mw,
                                      [display_string] { //
                                          Console::warning() << tr("Failed opening") << display_string;
                                      });
@@ -189,7 +189,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             device.port_info.insert(TYPE_NAME_TAG, "sg04");
             if (device.device->connect(device.port_info) == false) {
                 auto display_string = device.device->get_identifier_display_string();
-                Utility::thread_call(MainWindow::mw, nullptr,
+				Utility::thread_call(MainWindow::mw,
                                      [display_string] { //
                                          Console::warning() << tr("Failed opening") << display_string;
                                      });
@@ -218,7 +218,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
         }
         if (device.device->connect(device.port_info) == false) {
             auto display_string = device.device->get_identifier_display_string();
-            Utility::thread_call(MainWindow::mw, nullptr,
+			Utility::thread_call(MainWindow::mw,
                                  [display_string] { //
                                      Console::warning() << tr("Failed opening") << display_string;
                                  });
@@ -229,7 +229,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             if (protocol->is_correct_protocol()) {
                 protocol->set_meta_data(
                     device_meta_data.query(device.port_info[DEVICE_MANUAL_SN_TAG].toString(), device.port_info[DEVICE_MANUAL_NAME_TAG].toString()));
-                Utility::thread_call(MainWindow::mw, nullptr, [ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
+				Utility::thread_call(MainWindow::mw, [ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
                     if (MainWindow::mw->device_item_exists(ui_entry)) {
                         protocol->set_ui_description(ui_entry);
                     } //
@@ -262,7 +262,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
         }
         if (device->device->isConnected() == false) { //out of protocols and still not connected
             auto display_string = device->device->get_identifier_display_string();
-            Utility::thread_call(MainWindow::mw, nullptr, [display_string] {
+			Utility::thread_call(MainWindow::mw, [display_string] {
                 assert(currently_in_gui_thread() == true);
                 Console::note() << tr("No protocol found for %1").arg(display_string);
             });
@@ -306,7 +306,7 @@ void DeviceWorker::refresh_devices(QTreeWidgetItem *root, bool dut_only) {
         j++;
     }
 
-    Utility::thread_call(this, nullptr, [this, device_items, dut_only] {
+	Utility::thread_call(this, [this, device_items, dut_only] {
         for (auto &item : device_items) {
             forget_device_(item);
             // qDebug() << "forgetting:" << item->text(0);
@@ -424,7 +424,7 @@ void DeviceWorker::update_devices() {
             auto item_text = QStringList{} << manual_device.commondata.device_name + " (" + manual_device.detail.serial_number + ")";
 
             bool manual_devices_existing = device_meta_data.get_manual_devices().count() > 0;
-            //Utility::thread_call(MainWindow::mw, nullptr, [this, manual_device, item_text, port_info, manual_devices_existing] {
+			//Utility::thread_call(MainWindow::mw, [this, manual_device, item_text, port_info, manual_devices_existing] {
 
             std::unique_ptr<QTreeWidgetItem> *manual_parent_item = MainWindow::mw->get_manual_devices_parent_item();
             if (manual_parent_item->get() == nullptr) {
@@ -491,7 +491,7 @@ void DeviceWorker::detect_device(QTreeWidgetItem *item) {
 }
 
 void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, CommunicationDevice *comport) {
-    Utility::thread_call(this, nullptr, [this, console, comport] {
+	Utility::thread_call(this, [this, console, comport] {
         assert(currently_in_gui_thread() == false);
         DummyCommunicationDevice *is_dummy = dynamic_cast<DummyCommunicationDevice *>(comport);
         if (is_dummy) {
@@ -550,7 +550,7 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
                         .arg(QString::number(color.rgb(), 16),
                              is_human_readable ? Utility::to_human_readable_binary_data(display_data) : Utility::to_C_hex_encoding(display_data)),
                     console);
-                Utility::thread_call(MainWindow::mw, nullptr, [console, is_connect_signal, is_disconnect_signal] {
+				Utility::thread_call(MainWindow::mw, [console, is_connect_signal, is_disconnect_signal] {
                     if (is_connect_signal || is_disconnect_signal) {
                         QWidget *qt_tabwidget_stackedwidget = console->parentWidget();
                         QWidget *parent_widget = qt_tabwidget_stackedwidget->parentWidget();

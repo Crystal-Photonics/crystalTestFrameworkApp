@@ -73,7 +73,7 @@ UI_container *TestRunner::get_lua_ui_container() const {
 
 void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &device_worker) {
     //    qDebug() << "run_script called@TestRunner";
-    Utility::thread_call(this, nullptr, [ this, devices = std::move(devices), &device_worker ]() mutable {
+	Utility::thread_call(this, [ this, devices = std::move(devices), &device_worker ]() mutable {
         for (auto &dev_prot : devices) {
             device_worker.set_currently_running_test(dev_prot.device, name);
         }
