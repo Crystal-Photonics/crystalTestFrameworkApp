@@ -353,13 +353,16 @@ void MainWindow::shutdown() {
 			test->interrupt();
 		}
 	}
-	devices_thread.quit();
 
 	auto done = std::async(std::launch::async, [this] {
 		for (auto &test : test_runners) {
 			test->join();
 		}
 		test_runners.clear();
+		Utility::promised_thread_call(this, [&] {
+			test_descriptions.clear(); //must clear descriptions in GUI thread because it touches GUI
+		});
+		devices_thread.quit();
 		devices_thread.wait();
 	});
 	while (done.wait_for(std::chrono::milliseconds(16)) != std::future_status::ready) {
