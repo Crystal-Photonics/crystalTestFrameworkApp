@@ -14,7 +14,7 @@ copy %QWT_PATH%\lib\5.8.0\qwt.dll %CTFW_RELEASE_PATH_local%\ || GOTO :FAIL
 
 C:\Qt\5.8\mingw53_32\bin\windeployqt -network -serialport -sql -opengl -printsupport -script -xml -test %CTFW_RELEASE_PATH_local%\crystalTestFramework.exe  || GOTO :FAIL
 
-xco_py /s /Y %CTFW_RELEASE_PATH_local% %CTFW_RELEASE_PATH_remote%
+xcopy /s /Y %CTFW_RELEASE_PATH_local% %CTFW_RELEASE_PATH_remote%
 
 @goto :EOF
 :FAIL

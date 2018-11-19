@@ -1578,7 +1578,12 @@ void ScriptEngine::load_script(const std::string &path) {
                                                             "set_visible", thread_call_wrapper(&LineEdit::set_visible),                               //
                                                             "set_focus", thread_call_wrapper(&LineEdit::set_focus),                                   //
                                                             "await_return", non_gui_call_wrapper(&LineEdit::await_return),                            //
-                                                            "load_from_cache", non_gui_call_wrapper(&LineEdit::load_from_cache)                       //
+                                                            "get_date", thread_call_wrapper(&LineEdit::get_date),                                     //
+                                                            "set_date", thread_call_wrapper(&LineEdit::set_date),                                     //
+                                                            "set_date_mode", thread_call_wrapper(&LineEdit::set_date_mode),                           //
+                                                            "set_text_mode", thread_call_wrapper(&LineEdit::set_text_mode),                           //
+
+                                                            "load_from_cache", non_gui_call_wrapper(&LineEdit::load_from_cache) //
                                                             );
         }
         {
