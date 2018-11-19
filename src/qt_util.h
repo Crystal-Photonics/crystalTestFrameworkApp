@@ -33,7 +33,7 @@ namespace Utility {
     }
 
     template <typename Fun>
-    void thread_call(QObject *obj, ScriptEngine *script_engine_to_terminate_on_exception, Fun &&fun); //calls fun in the thread that owns obj
+	void thread_call(QObject *obj, Fun &&fun, ScriptEngine *script_engine_to_terminate_on_exception = nullptr); //calls fun in the thread that owns obj
 
     template <class T, class Fun>
     struct ValueSetter;
@@ -61,7 +61,7 @@ namespace Utility {
 	 *************************************************************************************************************************/
 
     template <typename Fun>
-    void thread_call(QObject *obj, ScriptEngine *script_engine_to_terminate_on_exception, Fun &&fun) {
+	void thread_call(QObject *obj, Fun &&fun, ScriptEngine *script_engine_to_terminate_on_exception) {
         assert(obj->thread() || (qApp && (qApp->thread() == QThread::currentThread())));
         if (obj->thread() == QThread::currentThread()) {
             return fun();
@@ -119,7 +119,7 @@ namespace Utility {
     auto promised_thread_call(QObject *object, Fun &&f) -> decltype(f()) {
         std::promise<decltype(f())> promise;
         auto future = promise.get_future();
-        thread_call(object, nullptr, [&f, &promise] {
+		thread_call(object, [&f, &promise] {
             try {
                 Utility::ValueSetter<decltype(f()), Fun>::set_value(promise, std::forward<Fun>(f));
             } catch (...) {

@@ -60,8 +60,8 @@ struct Lua_UI_Wrapper {
     template <class... Args>
     Lua_UI_Wrapper(UI_container *parent, ScriptEngine *script_engine_to_terminate_on_exception, Args &&... args) {
         this->script_engine_to_terminate_on_exception = script_engine_to_terminate_on_exception;
-        Utility::thread_call(MainWindow::mw, script_engine_to_terminate_on_exception,
-                             [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); });
+		Utility::thread_call(MainWindow::mw, [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); },
+							 script_engine_to_terminate_on_exception);
     }
     Lua_UI_Wrapper(Lua_UI_Wrapper &&other)
         : id(other.id)
@@ -73,7 +73,7 @@ struct Lua_UI_Wrapper {
     }
     ~Lua_UI_Wrapper() {
         if (id != -1) {
-            Utility::thread_call(MainWindow::mw, script_engine_to_terminate_on_exception, [id = this->id] { MainWindow::mw->remove_lua_UI_class<T>(id); });
+			Utility::thread_call(MainWindow::mw, [id = this->id] { MainWindow::mw->remove_lua_UI_class<T>(id); }, script_engine_to_terminate_on_exception);
         }
     }
 
@@ -304,11 +304,11 @@ auto thread_call_wrapper_non_waiting(ScriptEngine *script_engine_to_terminate_on
         throw sol::error("Abort Requested");
     }
     return [function, script_engine_to_terminate_on_exception](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
-        Utility::thread_call(MainWindow::mw, script_engine_to_terminate_on_exception,
-                             [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
-                                 UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
-                                 return detail::call(function, ui, std::move(args));
-                             });
+		Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
+			UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
+			return detail::call(function, ui, std::move(args));
+		},
+							 script_engine_to_terminate_on_exception);
     };
 }
 
@@ -688,19 +688,21 @@ TimerEvent::TimerEvent ScriptEngine::timer_event_queue_run(int timeout_ms) {
 
         callback_timer = QObject::connect(timer.get(), &QTimer::timeout, [this] {
             QObject *owner_obj = owner->obj();
-            Utility::thread_call(owner_obj, this, [this] {
+			Utility::thread_call(owner_obj,
+								 [this] {
 #if 0
                 qDebug() << "quitting timer event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
                          << "Current Thread:" << QThread::currentThreadId()
                          << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-                timer_pause_mutex.lock();
-                if (timer_pause_condition) {
-                    timer_pause.wait(&timer_pause_mutex);
-                }
-                event_loop.exit(TimerEvent::TimerEvent::expired);
-                timer_pause_mutex.unlock();
-            });
+									 timer_pause_mutex.lock();
+									 if (timer_pause_condition) {
+										 timer_pause.wait(&timer_pause_mutex);
+									 }
+									 event_loop.exit(TimerEvent::TimerEvent::expired);
+									 timer_pause_mutex.unlock();
+								 },
+								 this);
         });
 
     });
@@ -730,14 +732,16 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
         for (std::size_t i = 0; i < shortcuts.size(); i++) {
             shortcuts[i] = std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
             QObject::connect(shortcuts[i].get(), &QShortcut::activated, [this, i] {
-                Utility::thread_call(owner->obj(), this, [this, i] {
+				Utility::thread_call(owner->obj(),
+									 [this, i] {
 #if 0
                     qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
                              << "Current Thread:" << QThread::currentThreadId()
                              << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-                    event_loop.exit(i);
-                });
+										 event_loop.exit(i);
+									 },
+									 this);
             });
         }
 
@@ -749,39 +753,45 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
 }
 
 void ScriptEngine::ui_event_queue_send() {
-    Utility::thread_call(this->owner->obj(), this, [this]() { //
-        event_loop.exit(UiEvent::UiEvent::activated);
-    }); //calls fun in the thread that owns obj
+	Utility::thread_call(this->owner->obj(),
+						 [this]() { //
+							 event_loop.exit(UiEvent::UiEvent::activated);
+						 },
+						 this); //calls fun in the thread that owns obj
 }
 
 void ScriptEngine::hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent event) {
-    Utility::thread_call(this->owner->obj(), this, [this, event]() {
+	Utility::thread_call(this->owner->obj(),
+						 [this, event]() {
 #if 0
         qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "by event"
                  << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
                  << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-        this->event_loop.exit(event);
-    }); //calls fun in the thread that owns obj
+							 this->event_loop.exit(event);
+						 },
+						 this); //calls fun in the thread that owns obj
 }
 
 void ScriptEngine::event_queue_interrupt() {
     //qDebug() << "event_queue_interrupt called";
-    Utility::thread_call(this->owner->obj(), this, [this]() { //
+	Utility::thread_call(this->owner->obj(),
+						 [this]() { //
 #if 0
         qDebug() << "interrupting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "by event"
                  << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
                  << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-        // qDebug() << "event_queue_interrupt entered thread_call"
-        //          << "eventloop running:" << event_loop.isRunning();
-        if (event_loop.isRunning()) {
-            //  qDebug() << "event_queue_interrupt exit calling..";
-            event_loop.exit(-1);
-            // qDebug() << "event_queue_interrupt called.";
-        }
-    }); //calls fun in the thread that owns obj
-        //  qDebug() << "event_queue_interrupt finished";
+							 // qDebug() << "event_queue_interrupt entered thread_call"
+							 //          << "eventloop running:" << event_loop.isRunning();
+							 if (event_loop.isRunning()) {
+								 //  qDebug() << "event_queue_interrupt exit calling..";
+								 event_loop.exit(-1);
+								 // qDebug() << "event_queue_interrupt called.";
+							 }
+						 },
+						 this); //calls fun in the thread that owns obj
+								//  qDebug() << "event_queue_interrupt finished";
 }
 
 std::string ScriptEngine::to_string(double d) {
@@ -1223,7 +1233,7 @@ void ScriptEngine::load_script(const std::string &path) {
         //UI functions
         {
             ui_table["set_column_count"] = [ container = parent, this ](int count) {
-                Utility::thread_call(MainWindow::mw, this, [container, count] { container->set_column_count(count); });
+				Utility::thread_call(MainWindow::mw, [container, count] { container->set_column_count(count); }, this);
             };
 #if 0
             ui_table["load_user_entry_cache"] = [ container = parent, this ](const std::string dut_id) {
@@ -1258,10 +1268,11 @@ void ScriptEngine::load_script(const std::string &path) {
                     for (auto &i : table) {
                         data.push_back(i.second.as<double>());
                     }
-                    Utility::thread_call(MainWindow::mw, this, [ id = curve.id, data = std::move(data) ] {
+					Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data) ] {
                         auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
                         curve.add(data);
-                    });
+					},
+										 this);
                 }, //
                 "add_spectrum_at",
                 [this](Lua_UI_Wrapper<Curve> &curve, const unsigned int spectrum_start_channel, const sol::table &table) {
@@ -1270,10 +1281,11 @@ void ScriptEngine::load_script(const std::string &path) {
                     for (auto &i : table) {
                         data.push_back(i.second.as<double>());
                     }
-                    Utility::thread_call(MainWindow::mw, this, [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
+					Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
                         auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
                         curve.add_spectrum_at(spectrum_start_channel, data);
-                    });
+					},
+										 this);
                 }, //
 
                 "clear",
@@ -1293,14 +1305,15 @@ void ScriptEngine::load_script(const std::string &path) {
                     QThread *thread = QThread::currentThread();
                     std::promise<double> x_selection_promise;
                     std::future<double> x_selection_future = x_selection_promise.get_future();
-                    Utility::thread_call(MainWindow::mw, this, [&lua_curve, thread, x_selection_promise = &x_selection_promise ]() mutable {
+					Utility::thread_call(MainWindow::mw, [&lua_curve, thread, x_selection_promise = &x_selection_promise ]() mutable {
                         Curve &curve = MainWindow::mw->get_lua_UI_class<Curve>(lua_curve.id);
                         curve.set_onetime_click_callback([thread, x_selection_promise](double x, double y) mutable {
                             (void)y;
                             x_selection_promise->set_value(x);
-                            Utility::thread_call(thread, nullptr, [thread] { thread->exit(1234); });
+							Utility::thread_call(thread, [thread] { thread->exit(1234); });
                         });
-                    });
+					},
+										 this);
                     if (QEventLoop{}.exec() == 1234) {
                         double result = x_selection_future.get();
                         return result;
@@ -1661,7 +1674,7 @@ void ScriptEngine::set_error_line(const sol::error &error) {
 }
 
 void ScriptEngine::interrupt(QString msg) {
-    Utility::thread_call(MainWindow::mw, nullptr, [this, msg] { Console::error(console) << msg; });
+	Utility::thread_call(MainWindow::mw, [this, msg] { Console::error(console) << msg; });
     qDebug() << "script interrupted";
     if (owner) {
         owner->interrupt();

@@ -177,7 +177,7 @@ bool operator==(const T *lhs, const std::unique_ptr<T> &rhs) {
 
 template <class Function>
 void MainWindow::execute_in_gui_thread(Function f) {
-    Utility::thread_call(this, nullptr, std::move(f));
+	Utility::thread_call(this, std::move(f));
 }
 
 template <class Lua_UI_class>

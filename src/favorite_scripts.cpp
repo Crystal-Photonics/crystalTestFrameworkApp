@@ -17,7 +17,7 @@ void FavoriteScripts::load_from_file(QString file_name) {
     QFile file;
 
     if (!QFile::exists(file_name)) {
-        Utility::thread_call(MainWindow::mw, nullptr, [file_name] {
+		Utility::thread_call(MainWindow::mw, [file_name] {
             QMessageBox::warning(MainWindow::mw, QObject::tr("Can't open favorite scripte file"),
                                  QObject::tr("Can't open favorite scripte file. File does not exist: ") + file_name);
         });
@@ -27,7 +27,7 @@ void FavoriteScripts::load_from_file(QString file_name) {
 
     file.setFileName(file_name);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        Utility::thread_call(MainWindow::mw, nullptr, [file_name] {
+		Utility::thread_call(MainWindow::mw, [file_name] {
             QMessageBox::warning(MainWindow::mw, QObject::tr("Can't open favorite scripte file"),
                                  QObject::tr("Can't open favorite scripte file: ") + file_name);
         });
@@ -38,7 +38,7 @@ void FavoriteScripts::load_from_file(QString file_name) {
     file.close();
     QJsonDocument j_doc = QJsonDocument::fromJson(json_string.toUtf8());
     if (j_doc.isNull()) {
-        Utility::thread_call(MainWindow::mw, nullptr, [file_name] {
+		Utility::thread_call(MainWindow::mw, [file_name] {
             QMessageBox::warning(MainWindow::mw, QObject::tr("could not parse file with favorite scripts"),
                                  QObject::tr("could not parse file with favorite scripts. Seems the json is broken: ") + file_name);
         });
@@ -76,7 +76,7 @@ bool FavoriteScripts::save_to_file(QList<ScriptEntry> script_entries) {
     QJsonDocument saveDoc(obj);
     QFile saveFile(file_name_m);
     if (!saveFile.open(QIODevice::WriteOnly)) {
-        Utility::thread_call(MainWindow::mw, nullptr, [this] {
+		Utility::thread_call(MainWindow::mw, [this] {
             QMessageBox::warning(MainWindow::mw, QObject::tr("Could not save file with favorite scripts"),
                                  QObject::tr("Could not save file for favorite scripts. Is it write protected?\n") + file_name_m);
         });

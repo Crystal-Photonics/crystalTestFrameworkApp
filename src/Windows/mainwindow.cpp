@@ -353,13 +353,16 @@ void MainWindow::shutdown() {
 			test->interrupt();
 		}
 	}
-	devices_thread.quit();
 
 	auto done = std::async(std::launch::async, [this] {
 		for (auto &test : test_runners) {
 			test->join();
 		}
 		test_runners.clear();
+		Utility::promised_thread_call(this, [&] {
+			test_descriptions.clear(); //must clear descriptions in GUI thread because it touches GUI
+		});
+		devices_thread.quit();
 		devices_thread.wait();
 	});
 	while (done.wait_for(std::chrono::milliseconds(16)) != std::future_status::ready) {
@@ -557,7 +560,7 @@ void MainWindow::adopt_testrunner(TestRunner *testrunner, QString title) {
 }
 
 void MainWindow::show_status_bar_massage(QString msg, int timeout_ms) {
-    Utility::thread_call(this, nullptr, [this, msg, timeout_ms] {
+	Utility::thread_call(this, [this, msg, timeout_ms] {
         assert(currently_in_gui_thread());
         statusBar()->showMessage(msg, timeout_ms);
     });
@@ -571,7 +574,7 @@ void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name,
 
 void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
     //might be called from other threads
-    Utility::thread_call(this, nullptr, [text, console] {
+	Utility::thread_call(this, [text, console] {
         assert(currently_in_gui_thread());
         if (console) {
             console->appendHtml(text);
@@ -584,7 +587,7 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 void MainWindow::show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon) {
     //is called from other threads
     assert(currently_in_gui_thread() == false);
-    Utility::thread_call(this, nullptr, [this, title, message, icon] {
+	Utility::thread_call(this, [this, title, message, icon] {
         switch (icon) {
             default:
             case QMessageBox::Critical:
