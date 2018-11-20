@@ -13,4 +13,5 @@ function run(devices)
 	local date_value = date_line_edit:get_date()
 	print(os.date("%d.%m.%Y", date_value))
 	print(date_line_edit:get_text())
+	date_line_edit:set_visible(false)
 end
