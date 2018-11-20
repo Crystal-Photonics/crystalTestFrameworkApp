@@ -104,6 +104,7 @@ void LineEdit::set_caption(const std::string &caption) {
 void LineEdit::set_visible(bool visible) {
     label->setVisible(visible);
     text_edit->setVisible(visible);
+    date_edit->setVisible(visible);
 }
 
 void LineEdit::set_enabled(bool enabled) {
