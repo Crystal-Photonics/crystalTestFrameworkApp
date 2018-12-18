@@ -60,8 +60,8 @@ struct Lua_UI_Wrapper {
     template <class... Args>
     Lua_UI_Wrapper(UI_container *parent, ScriptEngine *script_engine_to_terminate_on_exception, Args &&... args) {
         this->script_engine_to_terminate_on_exception = script_engine_to_terminate_on_exception;
-		Utility::thread_call(MainWindow::mw, [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); },
-							 script_engine_to_terminate_on_exception);
+        Utility::thread_call(MainWindow::mw, [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); },
+                             script_engine_to_terminate_on_exception);
     }
     Lua_UI_Wrapper(Lua_UI_Wrapper &&other)
         : id(other.id)
@@ -73,7 +73,7 @@ struct Lua_UI_Wrapper {
     }
     ~Lua_UI_Wrapper() {
         if (id != -1) {
-			Utility::thread_call(MainWindow::mw, [id = this->id] { MainWindow::mw->remove_lua_UI_class<T>(id); }, script_engine_to_terminate_on_exception);
+            Utility::thread_call(MainWindow::mw, [id = this->id] { MainWindow::mw->remove_lua_UI_class<T>(id); }, script_engine_to_terminate_on_exception);
         }
     }
 
@@ -304,11 +304,11 @@ auto thread_call_wrapper_non_waiting(ScriptEngine *script_engine_to_terminate_on
         throw sol::error("Abort Requested");
     }
     return [function, script_engine_to_terminate_on_exception](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
-		Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
-			UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
-			return detail::call(function, ui, std::move(args));
-		},
-							 script_engine_to_terminate_on_exception);
+        Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
+            UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
+            return detail::call(function, ui, std::move(args));
+        },
+                             script_engine_to_terminate_on_exception);
     };
 }
 
@@ -688,21 +688,21 @@ TimerEvent::TimerEvent ScriptEngine::timer_event_queue_run(int timeout_ms) {
 
         callback_timer = QObject::connect(timer.get(), &QTimer::timeout, [this] {
             QObject *owner_obj = owner->obj();
-			Utility::thread_call(owner_obj,
-								 [this] {
+            Utility::thread_call(owner_obj,
+                                 [this] {
 #if 0
                 qDebug() << "quitting timer event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
                          << "Current Thread:" << QThread::currentThreadId()
                          << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-									 timer_pause_mutex.lock();
-									 if (timer_pause_condition) {
-										 timer_pause.wait(&timer_pause_mutex);
-									 }
-									 event_loop.exit(TimerEvent::TimerEvent::expired);
-									 timer_pause_mutex.unlock();
-								 },
-								 this);
+                                     timer_pause_mutex.lock();
+                                     if (timer_pause_condition) {
+                                         timer_pause.wait(&timer_pause_mutex);
+                                     }
+                                     event_loop.exit(TimerEvent::TimerEvent::expired);
+                                     timer_pause_mutex.unlock();
+                                 },
+                                 this);
         });
 
     });
@@ -732,16 +732,16 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
         for (std::size_t i = 0; i < shortcuts.size(); i++) {
             shortcuts[i] = std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
             QObject::connect(shortcuts[i].get(), &QShortcut::activated, [this, i] {
-				Utility::thread_call(owner->obj(),
-									 [this, i] {
+                Utility::thread_call(owner->obj(),
+                                     [this, i] {
 #if 0
                     qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
                              << "Current Thread:" << QThread::currentThreadId()
                              << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-										 event_loop.exit(i);
-									 },
-									 this);
+                                         event_loop.exit(i);
+                                     },
+                                     this);
             });
         }
 
@@ -753,45 +753,45 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
 }
 
 void ScriptEngine::ui_event_queue_send() {
-	Utility::thread_call(this->owner->obj(),
-						 [this]() { //
-							 event_loop.exit(UiEvent::UiEvent::activated);
-						 },
-						 this); //calls fun in the thread that owns obj
+    Utility::thread_call(this->owner->obj(),
+                         [this]() { //
+                             event_loop.exit(UiEvent::UiEvent::activated);
+                         },
+                         this); //calls fun in the thread that owns obj
 }
 
 void ScriptEngine::hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent event) {
-	Utility::thread_call(this->owner->obj(),
-						 [this, event]() {
+    Utility::thread_call(this->owner->obj(),
+                         [this, event]() {
 #if 0
         qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "by event"
                  << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
                  << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-							 this->event_loop.exit(event);
-						 },
-						 this); //calls fun in the thread that owns obj
+                             this->event_loop.exit(event);
+                         },
+                         this); //calls fun in the thread that owns obj
 }
 
 void ScriptEngine::event_queue_interrupt() {
     //qDebug() << "event_queue_interrupt called";
-	Utility::thread_call(this->owner->obj(),
-						 [this]() { //
+    Utility::thread_call(this->owner->obj(),
+                         [this]() { //
 #if 0
         qDebug() << "interrupting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "by event"
                  << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
                  << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-							 // qDebug() << "event_queue_interrupt entered thread_call"
-							 //          << "eventloop running:" << event_loop.isRunning();
-							 if (event_loop.isRunning()) {
-								 //  qDebug() << "event_queue_interrupt exit calling..";
-								 event_loop.exit(-1);
-								 // qDebug() << "event_queue_interrupt called.";
-							 }
-						 },
-						 this); //calls fun in the thread that owns obj
-								//  qDebug() << "event_queue_interrupt finished";
+                             // qDebug() << "event_queue_interrupt entered thread_call"
+                             //          << "eventloop running:" << event_loop.isRunning();
+                             if (event_loop.isRunning()) {
+                                 //  qDebug() << "event_queue_interrupt exit calling..";
+                                 event_loop.exit(-1);
+                                 // qDebug() << "event_queue_interrupt called.";
+                             }
+                         },
+                         this); //calls fun in the thread that owns obj
+                                //  qDebug() << "event_queue_interrupt finished";
 }
 
 std::string ScriptEngine::to_string(double d) {
@@ -1044,23 +1044,23 @@ void ScriptEngine::load_script(const std::string &path) {
         }
         //bind DataLogger
         {
-            lua->new_usertype<DataLogger>(
-                "DataLogger", //
-                sol::meta_function::construct,
-                [ console = console, path = path ](const std::string &file_name, char seperating_character, sol::table field_names, bool over_write_file) {
-                    return DataLogger{console, get_absolute_file_path(QString::fromStdString(path), file_name), seperating_character, field_names,
-                                      over_write_file};
-                }, //
+            lua->new_usertype<DataLogger>("DataLogger", //
+                                          sol::meta_function::construct,
+                                          sol::factories([ console = console, path = path ](const std::string &file_name, char seperating_character,
+                                                                                            sol::table field_names, bool over_write_file) {
+                                              return DataLogger{console, get_absolute_file_path(QString::fromStdString(path), file_name), seperating_character,
+                                                                field_names, over_write_file};
+                                          }), //
 
-                "append_data",
-                [](DataLogger &handle, const sol::table &data_record) { return handle.append_data(data_record); }, //
-                "save", [](DataLogger &handle) { handle.save(); }                                                  //
-                );
+                                          "append_data",
+                                          [](DataLogger &handle, const sol::table &data_record) { return handle.append_data(data_record); }, //
+                                          "save", [](DataLogger &handle) { handle.save(); }                                                  //
+                                          );
         }
         //bind charge counter
         {
-            lua->new_usertype<ChargeCounter>("ChargeCounter",                                                 //
-                                             sol::meta_function::construct, []() { return ChargeCounter{}; }, //
+            lua->new_usertype<ChargeCounter>("ChargeCounter",                                                                 //
+                                             sol::meta_function::construct, sol::factories([]() { return ChargeCounter{}; }), //
 
                                              "add_current", [](ChargeCounter &handle, const double current) { return handle.add_current(current); }, //
                                              "reset",
@@ -1078,8 +1078,8 @@ void ScriptEngine::load_script(const std::string &path) {
             lua->new_usertype<Data_engine_handle>(
                 "Data_engine", //
                 sol::meta_function::construct,
-                [ data_engine = data_engine, path = path, this ](const std::string &pdf_template_file, const std::string &json_file,
-                                                                 const std::string &auto_json_dump_path, const sol::table &dependency_tags) {
+                sol::factories([ data_engine = data_engine, path = path, this ](const std::string &pdf_template_file, const std::string &json_file,
+                                                                                const std::string &auto_json_dump_path, const sol::table &dependency_tags) {
                     auto file_path = get_absolute_file_path(QString::fromStdString(path), json_file);
                     auto xml_file = get_absolute_file_path(QString::fromStdString(path), pdf_template_file);
                     auto auto_dump_path = get_absolute_file_path(QString::fromStdString(path), auto_json_dump_path);
@@ -1131,7 +1131,7 @@ void ScriptEngine::load_script(const std::string &path) {
                     //*form_filepath = get_absolute_file_path(path, xml_file);
 
                     return Data_engine_handle{data_engine};
-                }, //
+                }), //
                 "set_start_time_seconds_since_epoch",
                 [](Data_engine_handle &handle, const double start_time) { return handle.data_engine->set_start_time_seconds_since_epoch(start_time); },
                 "use_instance",
@@ -1233,7 +1233,7 @@ void ScriptEngine::load_script(const std::string &path) {
         //UI functions
         {
             ui_table["set_column_count"] = [ container = parent, this ](int count) {
-				Utility::thread_call(MainWindow::mw, [container, count] { container->set_column_count(count); }, this);
+                Utility::thread_call(MainWindow::mw, [container, count] { container->set_column_count(count); }, this);
             };
 #if 0
             ui_table["load_user_entry_cache"] = [ container = parent, this ](const std::string dut_id) {
@@ -1249,10 +1249,10 @@ void ScriptEngine::load_script(const std::string &path) {
         //bind charge UserEntryCache
         {
             lua->new_usertype<UserEntryCache>("UserEntryCache", //
-                                              sol::meta_function::construct,
+                                              sol::meta_function::construct,sol::factories(
                                               []() { //
                                                   return UserEntryCache{};
-                                              });
+                                              }));
         }
 #endif
         //bind plot
@@ -1268,11 +1268,11 @@ void ScriptEngine::load_script(const std::string &path) {
                     for (auto &i : table) {
                         data.push_back(i.second.as<double>());
                     }
-					Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data) ] {
+                    Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data) ] {
                         auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
                         curve.add(data);
-					},
-										 this);
+                    },
+                                         this);
                 }, //
                 "add_spectrum_at",
                 [this](Lua_UI_Wrapper<Curve> &curve, const unsigned int spectrum_start_channel, const sol::table &table) {
@@ -1281,11 +1281,11 @@ void ScriptEngine::load_script(const std::string &path) {
                     for (auto &i : table) {
                         data.push_back(i.second.as<double>());
                     }
-					Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
+                    Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
                         auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
                         curve.add_spectrum_at(spectrum_start_channel, data);
-					},
-										 this);
+                    },
+                                         this);
                 }, //
 
                 "clear",
@@ -1305,15 +1305,15 @@ void ScriptEngine::load_script(const std::string &path) {
                     QThread *thread = QThread::currentThread();
                     std::promise<double> x_selection_promise;
                     std::future<double> x_selection_future = x_selection_promise.get_future();
-					Utility::thread_call(MainWindow::mw, [&lua_curve, thread, x_selection_promise = &x_selection_promise ]() mutable {
+                    Utility::thread_call(MainWindow::mw, [&lua_curve, thread, x_selection_promise = &x_selection_promise ]() mutable {
                         Curve &curve = MainWindow::mw->get_lua_UI_class<Curve>(lua_curve.id);
                         curve.set_onetime_click_callback([thread, x_selection_promise](double x, double y) mutable {
                             (void)y;
                             x_selection_promise->set_value(x);
-							Utility::thread_call(thread, [thread] { thread->exit(1234); });
+                            Utility::thread_call(thread, [thread] { thread->exit(1234); });
                         });
-					},
-										 this);
+                    },
+                                         this);
                     if (QEventLoop{}.exec() == 1234) {
                         double result = x_selection_future.get();
                         return result;
@@ -1325,9 +1325,10 @@ void ScriptEngine::load_script(const std::string &path) {
 #endif
                 );
             ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot", //
-                                                        sol::meta_function::construct, [ parent = this->parent, this ] {
+
+                                                        sol::meta_function::construct, sol::factories([ parent = this->parent, this ] {
                                                             return Lua_UI_Wrapper<Plot>{parent, this};
-                                                        }, //
+                                                        }), //
                                                         "clear",
                                                         thread_call_wrapper(&Plot::clear), //
                                                         "add_curve", [ parent = this->parent, this ](Lua_UI_Wrapper<Plot> & lua_plot)->Lua_UI_Wrapper<Curve> {
@@ -1355,34 +1356,33 @@ void ScriptEngine::load_script(const std::string &path) {
         }
         //bind PollDataEngine
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<PollDataEngine>>("PollDataEngine", //
-                                                                  sol::meta_function::construct,
-                                                                  [ parent = this->parent, this ](Data_engine_handle & handle, const sol::table items) {
-                                                                      QStringList sl;
-                                                                      for (const auto &item : items) {
-                                                                          sl.append(QString::fromStdString(item.second.as<std::string>()));
-                                                                      }
-                                                                      return Lua_UI_Wrapper<PollDataEngine>{parent, this, this, handle.data_engine, sl};
-                                                                  }, //
+            ui_table.new_usertype<Lua_UI_Wrapper<PollDataEngine>>(
+                "PollDataEngine", //
+                sol::meta_function::construct, sol::factories([ parent = this->parent, this ](Data_engine_handle & handle, const sol::table items) {
+                    QStringList sl;
+                    for (const auto &item : items) {
+                        sl.append(QString::fromStdString(item.second.as<std::string>()));
+                    }
+                    return Lua_UI_Wrapper<PollDataEngine>{parent, this, this, handle.data_engine, sl};
+                }), //
 
-                                                                  "set_visible",
-                                                                  thread_call_wrapper(&PollDataEngine::set_visible),                //
-                                                                  "refresh", thread_call_wrapper(&PollDataEngine::refresh),         //
-                                                                  "set_enabled", thread_call_wrapper(&PollDataEngine::set_enabled), //
-                                                                  "is_in_range", thread_call_wrapper(&PollDataEngine::is_in_range)
-
-                                                                      );
+                "set_visible",
+                thread_call_wrapper(&PollDataEngine::set_visible),                //
+                "refresh", thread_call_wrapper(&PollDataEngine::refresh),         //
+                "set_enabled", thread_call_wrapper(&PollDataEngine::set_enabled), //
+                "is_in_range", thread_call_wrapper(&PollDataEngine::is_in_range));
         }
         //bind DataEngineInput
         {
             ui_table.new_usertype<Lua_UI_Wrapper<DataEngineInput>>(
                 "DataEngineInput", //
-                sol::meta_function::construct, [ parent = this->parent, this ](Data_engine_handle & handle, const std::string &field_id,
-                                                                               const std::string &extra_explanation, const std::string &empty_value_placeholder,
-                                                                               const std::string &actual_prefix, const std::string &desired_prefix) {
+                sol::meta_function::construct,
+                sol::factories([ parent = this->parent, this ](Data_engine_handle & handle, const std::string &field_id, const std::string &extra_explanation,
+                                                               const std::string &empty_value_placeholder, const std::string &actual_prefix,
+                                                               const std::string &desired_prefix) {
                     return Lua_UI_Wrapper<DataEngineInput>{
                         parent, this, this, handle.data_engine, field_id, extra_explanation, empty_value_placeholder, actual_prefix, desired_prefix};
-                }, //
+                }), //
                 "load_actual_value",
                 thread_call_wrapper(&DataEngineInput::load_actual_value),                          //
                 "await_event", non_gui_call_wrapper(&DataEngineInput::await_event),                //
@@ -1392,51 +1392,46 @@ void ScriptEngine::load_script(const std::string &path) {
                 "set_editable", thread_call_wrapper(&DataEngineInput::set_editable),               //
                 "sleep_ms", non_gui_call_wrapper(&DataEngineInput::sleep_ms),                      //
                 "is_editable", thread_call_wrapper(&DataEngineInput::get_is_editable),             //
-                "set_explanation_text", thread_call_wrapper(&DataEngineInput::set_explanation_text)
-
-                    );
+                "set_explanation_text", thread_call_wrapper(&DataEngineInput::set_explanation_text));
         }
         //bind UserInstructionLabel
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<UserInstructionLabel>>("UserInstructionLabel", //
-                                                                        sol::meta_function::construct,
-                                                                        [ parent = this->parent, this ](const std::string &instruction_text) {
-                                                                            return Lua_UI_Wrapper<UserInstructionLabel>{parent, this, this, instruction_text};
-                                                                        }, //
-                                                                        "await_event",
-                                                                        non_gui_call_wrapper(&UserInstructionLabel::await_event),                  //
-                                                                        "await_yes_no", non_gui_call_wrapper(&UserInstructionLabel::await_yes_no), //
+            ui_table.new_usertype<Lua_UI_Wrapper<UserInstructionLabel>>(
+                "UserInstructionLabel", //
+                sol::meta_function::construct, sol::factories([ parent = this->parent, this ](const std::string &instruction_text) {
+                    return Lua_UI_Wrapper<UserInstructionLabel>{parent, this, this, instruction_text};
+                }), //
+                "await_event",
+                non_gui_call_wrapper(&UserInstructionLabel::await_event),                  //
+                "await_yes_no", non_gui_call_wrapper(&UserInstructionLabel::await_yes_no), //
 
-                                                                        "set_visible", thread_call_wrapper(&UserInstructionLabel::set_visible), //
-                                                                        "set_enabled", thread_call_wrapper(&UserInstructionLabel::set_enabled), //
-                                                                        "set_instruction_text", thread_call_wrapper(&UserInstructionLabel::set_instruction_text)
-
-                                                                            );
+                "set_visible", thread_call_wrapper(&UserInstructionLabel::set_visible), //
+                "set_enabled", thread_call_wrapper(&UserInstructionLabel::set_enabled), //
+                "set_instruction_text", thread_call_wrapper(&UserInstructionLabel::set_instruction_text));
         }
         //bind UserWaitLabel
         {
             ui_table.new_usertype<Lua_UI_Wrapper<UserWaitLabel>>("UserWaitLabel", //
                                                                  sol::meta_function::construct,
-                                                                 [ parent = this->parent, this ](const std::string &instruction_text) {
+                                                                 sol::factories([ parent = this->parent, this ](const std::string &instruction_text) {
                                                                      return Lua_UI_Wrapper<UserWaitLabel>{parent, this, this, instruction_text};
-                                                                 }, //
+                                                                 }), //
                                                                  "set_enabled",
                                                                  thread_call_wrapper(&UserWaitLabel::set_enabled), //
-                                                                 "set_text", thread_call_wrapper(&UserWaitLabel::set_text)
-
-                                                                     );
+                                                                 "set_text", thread_call_wrapper(&UserWaitLabel::set_text));
         }
         //bind ComboBoxFileSelector
         {
             ui_table.new_usertype<Lua_UI_Wrapper<ComboBoxFileSelector>>(
                 "ComboBoxFileSelector", //
-                sol::meta_function::construct, [ parent = this->parent, path = path, this ](const std::string &directory, const sol::table &filters) {
+                sol::meta_function::construct,
+                sol::factories([ parent = this->parent, path = path, this ](const std::string &directory, const sol::table &filters) {
                     QStringList sl;
                     for (const auto &item : filters) {
                         sl.append(QString::fromStdString(item.second.as<std::string>()));
                     }
                     return Lua_UI_Wrapper<ComboBoxFileSelector>{parent, this, get_absolute_file_path(QString::fromStdString(path), directory), sl};
-                }, //
+                }), //
                 "get_selected_file",
                 thread_call_wrapper(&ComboBoxFileSelector::get_selected_file),           //
                 "set_visible", thread_call_wrapper(&ComboBoxFileSelector::set_visible),  //
@@ -1447,9 +1442,9 @@ void ScriptEngine::load_script(const std::string &path) {
         //bind IsotopeSourceSelector
         {
             ui_table.new_usertype<Lua_UI_Wrapper<IsotopeSourceSelector>>("IsotopeSourceSelector", //
-                                                                         sol::meta_function::construct, [ parent = this->parent, this ]() {
+                                                                         sol::meta_function::construct, sol::factories([ parent = this->parent, this ]() {
                                                                              return Lua_UI_Wrapper<IsotopeSourceSelector>{parent, this};
-                                                                         }, //
+                                                                         }), //
                                                                          "set_visible",
                                                                          thread_call_wrapper(&IsotopeSourceSelector::set_visible),                            //
                                                                          "set_enabled", thread_call_wrapper(&IsotopeSourceSelector::set_enabled),             //
@@ -1464,13 +1459,14 @@ void ScriptEngine::load_script(const std::string &path) {
         //bind ComboBox
         {
             ui_table.new_usertype<Lua_UI_Wrapper<ComboBox>>("ComboBox", //
-                                                            sol::meta_function::construct, [ parent = this->parent, this ](const sol::table &items) {
+                                                            sol::meta_function::construct,
+                                                            sol::factories([ parent = this->parent, this ](const sol::table &items) {
                                                                 QStringList sl;
                                                                 for (const auto &item : items) {
                                                                     sl.append(QString::fromStdString(item.second.as<std::string>()));
                                                                 }
                                                                 return Lua_UI_Wrapper<ComboBox>{parent, this, sl};
-                                                            }, //
+                                                            }), //
                                                             "set_items",
                                                             thread_call_wrapper(&ComboBox::set_items),                   //
                                                             "get_text", thread_call_wrapper(&ComboBox::get_text),        //
@@ -1485,9 +1481,9 @@ void ScriptEngine::load_script(const std::string &path) {
         //bind SpinBox
         {
             ui_table.new_usertype<Lua_UI_Wrapper<SpinBox>>("SpinBox", //
-                                                           sol::meta_function::construct, [ parent = this->parent, this ]() {
+                                                           sol::meta_function::construct, sol::factories([ parent = this->parent, this ]() {
                                                                return Lua_UI_Wrapper<SpinBox>{parent, this}; //
-                                                           },                                                //
+                                                           }),                                               //
                                                            "get_value",
                                                            thread_call_wrapper(&SpinBox::get_value),                      //
                                                            "set_max_value", thread_call_wrapper(&SpinBox::set_max_value), //
@@ -1501,9 +1497,9 @@ void ScriptEngine::load_script(const std::string &path) {
         //bind ProgressBar
         {
             ui_table.new_usertype<Lua_UI_Wrapper<ProgressBar>>("ProgressBar", //
-                                                               sol::meta_function::construct, [ parent = this->parent, this ]() {
+                                                               sol::meta_function::construct, sol::factories([ parent = this->parent, this ]() {
                                                                    return Lua_UI_Wrapper<ProgressBar>{parent, this};
-                                                               }, //
+                                                               }), //
                                                                "set_max_value",
                                                                thread_call_wrapper(&ProgressBar::set_max_value),                      //
                                                                "set_min_value", thread_call_wrapper(&ProgressBar::set_min_value),     //
@@ -1517,9 +1513,10 @@ void ScriptEngine::load_script(const std::string &path) {
         //bind Label
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Label>>("Label", //
-                                                         sol::meta_function::construct, [ parent = this->parent, this ](const std::string &text) {
+                                                         sol::meta_function::construct,
+                                                         sol::factories([ parent = this->parent, this ](const std::string &text) {
                                                              return Lua_UI_Wrapper<Label>{parent, this, text};
-                                                         }, //
+                                                         }), //
                                                          "set_text",
                                                          thread_call_wrapper(&Label::set_text),                       //
                                                          "set_enabled", thread_call_wrapper(&Label::set_enabled),     //
@@ -1530,9 +1527,9 @@ void ScriptEngine::load_script(const std::string &path) {
         //bind hline
         {
             ui_table.new_usertype<Lua_UI_Wrapper<HLine>>("HLine", //
-                                                         sol::meta_function::construct, [ parent = this->parent, this ]() {
+                                                         sol::meta_function::construct, sol::factories([ parent = this->parent, this ]() {
                                                              return Lua_UI_Wrapper<HLine>{parent, this};
-                                                         }, //
+                                                         }), //
 
                                                          "set_visible",
                                                          thread_call_wrapper(&HLine::set_visible));
@@ -1540,9 +1537,10 @@ void ScriptEngine::load_script(const std::string &path) {
         //bind CheckBox
         {
             ui_table.new_usertype<Lua_UI_Wrapper<CheckBox>>("CheckBox", //
-                                                            sol::meta_function::construct, [ parent = this->parent, this ](const std::string &text) {
+                                                            sol::meta_function::construct,
+                                                            sol::factories([ parent = this->parent, this ](const std::string &text) {
                                                                 return Lua_UI_Wrapper<CheckBox>{parent, this, text};
-                                                            }, //
+                                                            }), //
                                                             "set_checked",
                                                             thread_call_wrapper(&CheckBox::set_checked),                //
                                                             "get_checked", thread_call_wrapper(&CheckBox::get_checked), //
@@ -1553,9 +1551,9 @@ void ScriptEngine::load_script(const std::string &path) {
         //bind Image
 
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image", sol::meta_function::construct, [ parent = this->parent, path = path, this ]() {
-                return Lua_UI_Wrapper<Image>{parent, this, QString::fromStdString(path)}; //
-            },
+            ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image", sol::meta_function::construct, sol::factories([ parent = this->parent, path = path, this ]() {
+                                                             return Lua_UI_Wrapper<Image>{parent, this, QString::fromStdString(path)}; //
+                                                         }),
                                                          "load_image_file", thread_call_wrapper(&Image::load_image_file), //
                                                          "set_visible", thread_call_wrapper(&Image::set_visible)          //
                                                          );
@@ -1563,9 +1561,10 @@ void ScriptEngine::load_script(const std::string &path) {
         //bind button
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //
-                                                          sol::meta_function::construct, [ parent = this->parent, this ](const std::string &title) {
+                                                          sol::meta_function::construct,
+                                                          sol::factories([ parent = this->parent, this ](const std::string &title) {
                                                               return Lua_UI_Wrapper<Button>{parent, this, this, title};
-                                                          }, //
+                                                          }), //
                                                           "has_been_clicked",
                                                           thread_call_wrapper(&Button::has_been_clicked),                       //
                                                           "set_visible", thread_call_wrapper(&Button::set_visible),             //
@@ -1576,28 +1575,28 @@ void ScriptEngine::load_script(const std::string &path) {
 
         //bind edit field
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<LineEdit>>("LineEdit", //
-                                                            sol::meta_function::construct,
-                                                            [ parent = this->parent, this ] { return Lua_UI_Wrapper<LineEdit>(parent, this, this); }, //
-                                                            "set_placeholder_text", thread_call_wrapper(&LineEdit::set_placeholder_text),             //
-                                                            "get_text", thread_call_wrapper(&LineEdit::get_text),                                     //
-                                                            "set_text", thread_call_wrapper(&LineEdit::set_text),                                     //
-                                                            "set_name", thread_call_wrapper(&LineEdit::set_name),                                     //
-                                                            "get_name", thread_call_wrapper(&LineEdit::get_name),                                     //
-                                                            "get_number", thread_call_wrapper(&LineEdit::get_number),                                 //
-                                                            "get_caption", thread_call_wrapper(&LineEdit::get_caption),                               //
-                                                            "set_caption", thread_call_wrapper(&LineEdit::set_caption),                               //
-                                                            "set_enabled", thread_call_wrapper(&LineEdit::set_enabled),                               //
-                                                            "set_visible", thread_call_wrapper(&LineEdit::set_visible),                               //
-                                                            "set_focus", thread_call_wrapper(&LineEdit::set_focus),                                   //
-                                                            "await_return", non_gui_call_wrapper(&LineEdit::await_return),                            //
-                                                            "get_date", thread_call_wrapper(&LineEdit::get_date),                                     //
-                                                            "set_date", thread_call_wrapper(&LineEdit::set_date),                                     //
-                                                            "set_date_mode", thread_call_wrapper(&LineEdit::set_date_mode),                           //
-                                                            "set_text_mode", thread_call_wrapper(&LineEdit::set_text_mode),                           //
+            ui_table.new_usertype<Lua_UI_Wrapper<LineEdit>>(
+                "LineEdit",                                                                                                                              //
+                sol::meta_function::construct, sol::factories([ parent = this->parent, this ] { return Lua_UI_Wrapper<LineEdit>(parent, this, this); }), //
+                "set_placeholder_text", thread_call_wrapper(&LineEdit::set_placeholder_text),                                                            //
+                "get_text", thread_call_wrapper(&LineEdit::get_text),                                                                                    //
+                "set_text", thread_call_wrapper(&LineEdit::set_text),                                                                                    //
+                "set_name", thread_call_wrapper(&LineEdit::set_name),                                                                                    //
+                "get_name", thread_call_wrapper(&LineEdit::get_name),                                                                                    //
+                "get_number", thread_call_wrapper(&LineEdit::get_number),                                                                                //
+                "get_caption", thread_call_wrapper(&LineEdit::get_caption),                                                                              //
+                "set_caption", thread_call_wrapper(&LineEdit::set_caption),                                                                              //
+                "set_enabled", thread_call_wrapper(&LineEdit::set_enabled),                                                                              //
+                "set_visible", thread_call_wrapper(&LineEdit::set_visible),                                                                              //
+                "set_focus", thread_call_wrapper(&LineEdit::set_focus),                                                                                  //
+                "await_return", non_gui_call_wrapper(&LineEdit::await_return),                                                                           //
+                "get_date", thread_call_wrapper(&LineEdit::get_date),                                                                                    //
+                "set_date", thread_call_wrapper(&LineEdit::set_date),                                                                                    //
+                "set_date_mode", thread_call_wrapper(&LineEdit::set_date_mode),                                                                          //
+                "set_text_mode", thread_call_wrapper(&LineEdit::set_text_mode),                                                                          //
 
-                                                            "load_from_cache", non_gui_call_wrapper(&LineEdit::load_from_cache) //
-                                                            );
+                "load_from_cache", non_gui_call_wrapper(&LineEdit::load_from_cache) //
+                );
         }
         {
             lua->new_usertype<SCPIDevice>(
@@ -1674,7 +1673,7 @@ void ScriptEngine::set_error_line(const sol::error &error) {
 }
 
 void ScriptEngine::interrupt(QString msg) {
-	Utility::thread_call(MainWindow::mw, [this, msg] { Console::error(console) << msg; });
+    Utility::thread_call(MainWindow::mw, [this, msg] { Console::error(console) << msg; });
     qDebug() << "script interrupted";
     if (owner) {
         owner->interrupt();
@@ -1733,8 +1732,9 @@ int get_quantity_num(sol::object &obj) {
 
 std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const QString &name) {
     std::vector<DeviceRequirements> result{};
-    sol::table protocol_entries = lua->get<sol::table>(name.toStdString());
     try {
+#if 1
+        sol::table protocol_entries = lua->get<sol::table>(name.toStdString());
         if (protocol_entries.valid() == false) {
             return result;
         }
@@ -1788,7 +1788,10 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
             }
             result.push_back(item);
         }
-    } catch (const sol::error &error) {
+#endif
+    }
+
+    catch (const sol::error &error) {
         set_error_line(error);
         throw;
     }
