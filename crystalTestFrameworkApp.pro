@@ -11,11 +11,13 @@ TEMPLATE = subdirs
 
 SUBDIRS += app
 SUBDIRS += src
-SUBDIRS += tests
+#SUBDIRS += tests
 
 #src.depends = comModules/mocklayer/appPlugin
 app.depends = src
 tests.depends = src
+
+message($$QMAKESPEC)
 
 OTHER_FILES += .travis.yml
 OTHER_FILES += lsan.supp

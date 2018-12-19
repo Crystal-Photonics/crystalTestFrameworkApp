@@ -38,7 +38,7 @@ win32 {
 
 }else{
     CONFIG += qwt
-    LIBS += -lqwt
+    LIBS += -lqwt-qt5
     LIBS += -llua5.3
 
     #error("fill in the correct path for linux")
@@ -101,21 +101,22 @@ QMAKE_CXXFLAGS += -Werror
 
 QMAKE_CXXFLAGS_DEBUG += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare
 unix {
-	eval("SANITIZERS = $$(SANITIZER)")
-	message("Using sanitizer $$SANITIZERS")
-	equals(SANITIZERS, "") {
-		QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
-		QMAKE_LFLAGS_DEBUG += -fsanitize=undefined,address
-	} else {
-		QMAKE_CXXFLAGS_DEBUG += -fsanitize=$$SANITIZERS
-		QMAKE_LFLAGS_DEBUG += -fsanitize=$$SANITIZERS
-	}
-	QMAKE_LFLAGS_DEBUG += -fuse-ld=gold -L/usr/local/lib
+    QMAKE_CXXFLAGS_DEBUG += -fno-var-tracking-assignments -fno-merge-debug-strings
+    eval("SANITIZERS = $$(SANITIZER)")
+    message("Using sanitizer $$SANITIZERS")
+    equals(SANITIZERS, "") {
+            QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
+            QMAKE_LFLAGS_DEBUG += -fsanitize=undefined,address
+    } else {
+            QMAKE_CXXFLAGS_DEBUG += -fsanitize=$$SANITIZERS
+            QMAKE_LFLAGS_DEBUG += -fsanitize=$$SANITIZERS
+    }
+    QMAKE_LFLAGS_DEBUG += -fuse-ld=gold -L/usr/local/lib
 } else {
-	QMAKE_CXXFLAGS_DEBUG += -fsanitize-undefined-trap-on-error
+    QMAKE_CXXFLAGS_DEBUG += -fsanitize-undefined-trap-on-error
 }
 QMAKE_CXXFLAGS_RELEASE += -Wall -Wunused-function -Wunused-parameter -Wunused-variable -O1
-QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer -O1
+QMAKE_CXXFLAGS_DEBUG += -g0 -fno-omit-frame-pointer -O1
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
 #QMAKE_CXXFLAGS_DEBUG += -static-libasan -static-libubsan #some day windows will support a reasonable development environment ...
 

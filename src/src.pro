@@ -11,7 +11,7 @@ TEMPLATE = lib
 
 DEFINES += EXPORT_LIBRARY
 
-
+QMAKE_PRE_LINK += mkdir -p $$PWD/../libs/googletest/build && cd $$PWD/../libs/googletest/build && cmake .. && cmake --build .
 
 
 FORMS += \

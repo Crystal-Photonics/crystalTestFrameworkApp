@@ -17,7 +17,7 @@ HEADERS += \
 SOURCES += \
 	test_data_engine.cpp \
 	main.cpp \
-	testgooglemock.cpp \
+        testgooglemock.cpp \
 	testqstring.cpp \
 	testScriptEngine.cpp
 
@@ -35,7 +35,8 @@ win32 {
     }
 
 }else{
-    LIBS += -L$$PWD/../libs/googletest/build/
+    LIBS += -L$$PWD/../libs/googletest/build/googlemock
+    LIBS += -L$$PWD/../libs/googletest/build/googlemock/gtest
 }
 
 LIBS += -lgmock
