@@ -39,7 +39,8 @@ win32 {
 }else{
     CONFIG += qwt
 
-    defined(TRAVIS){
+    TRAVIS = $$(TRAVIS)
+    equals(TRAVIS, true){
         LIBS += -lqwt
     } else{
         LIBS += -lqwt-qt5
