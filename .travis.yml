@@ -86,6 +86,8 @@ install:
   - export CPATH=$QWT_INSTALL_PREFIX/include:$CPATH
   - export LIBRARY_PATH=$QWT_INSTALL_PREFIX/lib:$LIBRARY_PATH 
   - #tree LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt
+  - cd $QWT_INSTALL_PREFIX
+  - ln -s libqwt.a libqwt-qt5.a
   
 
 
