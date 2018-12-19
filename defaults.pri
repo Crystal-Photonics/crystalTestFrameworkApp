@@ -38,7 +38,13 @@ win32 {
 
 }else{
     CONFIG += qwt
-    LIBS += -lqwt-qt5
+
+    defined(TRAVIS){
+        LIBS += -lqwt
+    } else{
+        LIBS += -lqwt-qt5
+    }
+
     LIBS += -llua5.3
 
     #error("fill in the correct path for linux")
