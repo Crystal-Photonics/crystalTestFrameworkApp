@@ -1,0 +1,14 @@
+{
+	"exceptional_approvals":[
+		{
+			"id": 1,
+			"description": "Modifikation nach Kundenwunsch",
+			"hidden": false
+		},
+		{
+			"id": 2,
+			"description": "Falscher Sollwert",
+			"hidden": false
+		}
+	]
+}

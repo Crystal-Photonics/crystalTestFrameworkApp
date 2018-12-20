@@ -1,6 +1,9 @@
 #include "test_data_engine.h"
 #include "data_engine/data_engine.h"
 #include "data_engine/exceptionalapproval.h"
+#include "lua_functions.h"
+
+#include <experimental/optional>
 
 #include "config.h"
 
@@ -8,6 +11,7 @@
 #include <QPair>
 #include <QSettings>
 #include <QString>
+#include <QTemporaryFile>
 #include <sstream>
 
 #define DISABLE_ALL 0
@@ -168,6 +172,14 @@ void Test_Data_engine::check_properties_of_empty_set() {
     QVERIFY(de.is_complete());
     QVERIFY(de.all_values_in_range());
 #endif
+}
+
+void Test_Data_engine::stl_optional_test() {
+    std::experimental::optional<int> desired_value{};
+
+    QVERIFY(desired_value.value_or(100) == 100);
+    desired_value = 10;
+    QVERIFY(desired_value.value_or(100) == 10);
 }
 
 void Test_Data_engine::check_no_data_error_A() {
@@ -590,7 +602,8 @@ void Test_Data_engine::single_numeric_property_test() {
 {
 	"supply":{
 		"data":[
-			{	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	},
+            {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	},
+            {	"name": "voltage_neg",	"value": -100.5,"tolerance": "10%",	"unit": "mV", "si_prefix": 1,	"nice_name": "Betriebsspannung +5V"	},
 			{	"name": "current",	 	"value": 100,	"tolerance": "5%",	"unit": "mA", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	},
 			{	"name": "power",	 	"value": 100,	"tolerance": "+4/*",	"unit": "mW", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
 		]
@@ -608,11 +621,29 @@ void Test_Data_engine::single_numeric_property_test() {
     QCOMPARE(de.get_desired_value_as_string("supply/voltage"), QString("5000 (±200) mV"));
     QCOMPARE(de.get_unit("supply/voltage"), QString{"mV"});
 
+    de.set_actual_number("supply/voltage", NAN);
+    QVERIFY(!de.value_in_range("supply/voltage"));
+
     de.set_actual_number("supply/voltage", 5.201);
     QVERIFY(!de.value_in_range("supply/voltage"));
 
     de.set_actual_number("supply/voltage", 5.200);
     QVERIFY(de.value_in_range("supply/voltage"));
+
+    de.set_actual_number("supply/voltage_neg", -90.44);
+    QVERIFY(!de.value_in_range("supply/voltage_neg"));
+
+    de.set_actual_number("supply/voltage_neg", -90.46);
+    QVERIFY(de.value_in_range("supply/voltage_neg"));
+
+    de.set_actual_number("supply/voltage_neg", -120);
+    QVERIFY(!de.value_in_range("supply/voltage_neg"));
+
+    de.set_actual_number("supply/voltage_neg", -91);
+    QVERIFY(de.value_in_range("supply/voltage_neg"));
+
+    de.set_actual_number("supply/voltage_neg", -109);
+    QVERIFY(de.value_in_range("supply/voltage_neg"));
 
     de.set_actual_number("supply/current", 0.106);
     QVERIFY(!de.value_in_range("supply/current"));
@@ -702,6 +733,47 @@ void Test_Data_engine::test_iterate_entries() {
     QCOMPARE(instances.count(), 1);
     QCOMPARE(instances[0], QString(""));
 
+#endif
+}
+
+void Test_Data_engine::test_section_valid() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "testA":{
+        "data":[
+            {	"name": "idA1",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	},
+            {	"name": "idA2",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	}
+        ]
+    },
+    "testB":{
+            "data":[
+                        {	"name": "idB1_true",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	},
+                        {	"name": "idB2_true",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	},
+                        {	"name": "idB3_true",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	},
+                        {	"name": "idB4_true",	 	"value": "DEV123",	"nice_name": "Betriebsspannung +5V"	}
+            ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    Data_engine de{input, tags};
+
+    QVERIFY(!de.value_complete_in_section("testA"));
+    QVERIFY(!de.value_in_range_in_section("testA"));
+    QVERIFY(!de.values_in_range(QList<FormID>{"testA/idA1", "testA/idA2"}));
+
+    de.set_actual_text("testA/idA1", "DEV123");
+    de.set_actual_text("testA/idA2", "DEV122");
+    QVERIFY(!de.values_in_range(QList<FormID>{"testA/idA1", "testA/idA2"}));
+    QVERIFY(de.value_complete_in_section("testA"));
+    QVERIFY(!de.value_in_range_in_section("testA"));
+    de.set_actual_text("testA/idA2", "DEV123");
+    QVERIFY(de.values_in_range(QList<FormID>{"testA/idA1", "testA/idA2"}));
+    QVERIFY(de.value_in_range_in_section("testA"));
+
+    QVERIFY(!de.value_in_range_in_section("testB"));
 #endif
 }
 
@@ -1064,7 +1136,7 @@ void Test_Data_engine::test_exceptional_approval() {
     QVERIFY(de.is_complete());
     QVERIFY(!de.all_values_in_range());
 
-    // auto filename = QSettings{}.value(Globals::path_to_excpetional_approval_db, "").toString();
+    // auto filename = QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString();
     QString filename = QString{"../../tests/scripts/sonderfreigaben.json"};
     qDebug() << QDir::currentPath();
     ExceptionalApprovalDB ea = ExceptionalApprovalDB{filename};
@@ -2602,6 +2674,19 @@ void Test_Data_engine::test_preview() {
 		}
 	)"};
 
+#if 1
+    QString db_name = "";
+    QTemporaryFile db_file;
+    if (db_file.open()) {
+        db_name = db_file.fileName(); // returns the unique file name
+                                      //The file name of the temporary file can be found by calling fileName().
+                                      //Note that this is only defined after the file is first opened; the
+                                      //function returns an empty string before this.
+    }
+    db_file.close(); //Reopening a QTemporaryFile after calling close() is safe
+                     // QFile::remove(db_name);
+                     // assert(QFile{db_name}.exists() == false);
+#endif
     QSqlDatabase db;
     if (QSqlDatabase::contains()) {
         db = QSqlDatabase::database();
@@ -2609,11 +2694,14 @@ void Test_Data_engine::test_preview() {
         db = QSqlDatabase::addDatabase("QSQLITE");
     }
 
-    const auto db_name = "data engine test database autogenerated.db";
-    QFile::remove(db_name);
-    QVERIFY(QFile{db_name}.exists() == false);
+    qDebug() << db_name;
     db.setDatabaseName(db_name);
-    QVERIFY(db.open());
+    bool opend = db.open();
+    if (!opend) {
+        qDebug() << "SQLConnection error: " << db.lastError().text();
+    }
+
+    QVERIFY(opend);
 
     QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
@@ -2672,5 +2760,17 @@ void Test_Data_engine::test_form_creation() {
     QList<PrintOrderItem> print_order;
     de.generate_template("data engine test form autogenerated.lrxml", "db_name.db", report_title, image_footer_path, image_header_path, "", "", "", "", "", "",
                          print_order);
+#endif
+}
+
+void Test_Data_engine::test_actual_value_statistic_get_latest_file_name() {
+#if !DISABLE_ALL || 0
+    QStringList sl{"C:/8061/33374719363430390605D61/report-2018_07_06-20_01_02-001.json", "C:/8061/33374719363430390605D61/report-2018_07_06-23_01_02-001.json",
+                   "C:/8061/33374719363430390605D61/report-2018_07_06-19_54_22-001.json"};
+    QDateTime dt = decode_date_time_from_file_name(sl[0].toStdString(),"report");
+    QCOMPARE(dt.toString("yyyy_MM_dd-HH_mm_ss"), QString("2018_07_06-20_01_02"));
+    QString result = select_newest_file_name(sl,"report");
+    QCOMPARE(result, QString("C:/8061/33374719363430390605D61/report-2018_07_06-23_01_02-001.json"));
+
 #endif
 }

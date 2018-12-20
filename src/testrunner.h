@@ -1,11 +1,11 @@
 #ifndef TESTRUNNER_H
 #define TESTRUNNER_H
 
-#include "Windows/mainwindow.h"
 #include "data_engine/data_engine.h"
 #include "qt_util.h"
 #include "scriptengine.h"
 #include "sol.hpp"
+
 #include <QObject>
 #include <QPlainTextEdit>
 #include <QThread>
@@ -23,6 +23,7 @@ struct Protocol;
 class TestRunner : QObject {
     Q_OBJECT
     public:
+	enum class State { running, finished, error };
     using Lua_ui_container = QWidget;
     TestRunner(const TestDescriptionLoader &description);
     ~TestRunner();
@@ -36,7 +37,7 @@ class TestRunner : QObject {
     ReturnType call(const char *function_name, Arguments &&... args);
     UI_container *get_lua_ui_container() const;
     void run_script(std::vector<MatchedDevice> devices, DeviceWorker &device_worker);
-    bool is_running();
+    bool is_running() const;
     const QString &get_name() const;
     void launch_editor() const;
 

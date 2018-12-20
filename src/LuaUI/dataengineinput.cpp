@@ -101,19 +101,19 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
     auto *vlayout_no = new QVBoxLayout;
     auto *vlayout_ea = new QVBoxLayout;
 
-    label_next = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence, "").toString() + ")", parent_);
+    label_next = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence_key, "").toString() + ")", parent_);
     button_next = new QPushButton(QObject::tr("Next"), parent_);
     vlayout_next->addWidget(button_next);
     vlayout_next->addWidget(label_next);
     vlayout_next->addStretch();
 
-    label_yes = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence, "").toString() + ")", parent_);
+    label_yes = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence_key, "").toString() + ")", parent_);
     button_yes = new QPushButton(QObject::tr("Yes"), parent_);
     vlayout_yes->addWidget(button_yes);
     vlayout_yes->addWidget(label_yes);
     vlayout_yes->addStretch();
 
-    label_no = new QLabel("(or " + QSettings{}.value(Globals::cancel_key_sequence, "").toString() + ")", parent_);
+    label_no = new QLabel("(or " + QSettings{}.value(Globals::cancel_key_sequence_key, "").toString() + ")", parent_);
     button_no = new QPushButton(QObject::tr("No"), parent_);
     vlayout_no->addWidget(button_no);
     vlayout_no->addWidget(label_no);
@@ -148,16 +148,15 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
     button_exceptional_approval->setSizePolicy(sp_w, sp_h);
     lineedit->setSizePolicy(sp_w, sp_h);
 
- //   label_exceptional_approval->setSizePolicy(sp_w, sp_h);
+    //   label_exceptional_approval->setSizePolicy(sp_w, sp_h);
     label_exceptional_approval->setText(" ");
-//    label_exceptional_approval->setFixedHeight(label_exceptional_approval->height());
-   // label_exceptional_approval->setText(" ");
-   // button_exceptional_approval->setSizePolicy(sp_w, sp_h_f);
+    //    label_exceptional_approval->setFixedHeight(label_exceptional_approval->height());
+    // label_exceptional_approval->setText(" ");
+    // button_exceptional_approval->setSizePolicy(sp_w, sp_h_f);
 
-   // button_yes->setFixedHeight(button_exceptional_approval->height());
-  //  button_no->setFixedHeight(button_exceptional_approval->height());
-  //  button_next->setFixedHeight(button_exceptional_approval->height());
-
+    // button_yes->setFixedHeight(button_exceptional_approval->height());
+    //  button_no->setFixedHeight(button_exceptional_approval->height());
+    //  button_next->setFixedHeight(button_exceptional_approval->height());
 
     callback_bool_no = QObject::connect(button_no, &QPushButton::clicked,
                                         [script_engine = this->script_engine]() { script_engine->hotkey_event_queue_send_event(HotKeyEvent::cancel_pressed); });
@@ -169,7 +168,7 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
                                      [script_engine]() { script_engine->hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent::confirm_pressed); });
 
     callback_exceptional_approval = QObject::connect(button_exceptional_approval, &QPushButton::clicked, [this, script_engine]() {
-        ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db, "").toString()};
+        ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString()};
         if (data_engine->do_exceptional_approval(ea_db, field_id, MainWindow::mw)) {
             if ((field_type == FieldType::Numeric) || (field_type == FieldType::String)) {
                 if (lineedit->text().count() == 0) {
@@ -294,6 +293,9 @@ void DataEngineInput::sleep_ms(uint timeout_ms) {
         is_waiting = false;
     });
     set_ui_visibility();
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        throw sol::error("Abort Requested");
+    }
 }
 
 void DataEngineInput::await_event() {

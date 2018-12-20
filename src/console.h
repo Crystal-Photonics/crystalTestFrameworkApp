@@ -27,7 +27,6 @@ struct Console {
 	static ConsoleProxy debug(std::unique_ptr<QPlainTextEdit> &console);
 	static ConsoleProxy script(QPlainTextEdit *console);
 	static MainWindow *mw;
-	static bool use_human_readable_encoding;
 
 	private:
 	struct ConsoleProxy {
@@ -44,14 +43,14 @@ struct Console {
 	template <class T>
 	static auto qstringlist_appandable(T &&t) -> decltype((QStringList{} << t, std::true_type()));
 	template <class T>
-	static auto append_to(QStringList &s, T &&t) -> std::enable_if_t<decltype(qstringlist_appandable(t))::value> {
-		s << t;
+    static auto append_to(QStringList &s, T &&t) -> std::enable_if_t<decltype(qstringlist_appandable(t))::value> {
+        s << t;
 	}
 	template <class T>
 	static auto append_to(QStringList &s, T &&t) -> std::enable_if_t<decltype(qstringlist_appandable(t))::value == false> {
 		std::stringstream ss;
-		ss << t;
-		s << ss.str().c_str();
+        ss << t;
+        s << ss.str().c_str();
 	}
 };
 

@@ -1,0 +1,161 @@
+language: cpp
+sudo: required
+dist: trusty
+git:
+  submodules: true
+cache:
+  ccache: true
+
+before_install:
+  - which git
+  - sudo add-apt-repository --yes ppa:beineri/opt-qt58-trusty
+  - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+  - sudo add-apt-repository --yes ppa:jonathonf/binutils
+  - sudo apt-get update -qq
+
+install:
+    
+  - sudo apt-get install -qq g++-7 gcc-7 gdb binutils
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 90
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 90
+  - sudo aptitude -f install -q -q -y qt58base qt58serialport qt58script qt58svg qt58tools libusb-1.0-0-dev tree xvfb
+  - g++ --version
+  - gcc --version
+  
+  
+  
+  
+  - source /opt/qt58/bin/qt58-env.sh
+
+  - #install gtest and gmock
+  - cd $TRAVIS_BUILD_DIR/libs/googletest/
+  - mkdir build || true
+  - mkdir build/googletest || true
+  - cd build/googletest
+  - pwd
+  - cmake -DCMAKE_CXX_FLAGS=$CXX_FLAGS ../../../googletest/
+  - make -j$(nproc)      
+  - sudo make install
+ 
+  
+  
+  
+  
+  
+  
+  - # Install libLua5.3 
+  - cd $TRAVIS_BUILD_DIR
+  - mkdir lua_packages
+  - cd $TRAVIS_BUILD_DIR/lua_packages/  
+  - # on newer ubuntu machines executing:  `sudo aptitude -f install liblua5.3-dev` should be enough
+  - wget http://ftp.us.debian.org/debian/pool/main/l/lua5.3/liblua5.3-0_5.3.3-1_amd64.deb
+  - wget http://ftp.br.debian.org/debian/pool/main/l/lua5.3/liblua5.3-dev_5.3.3-1_amd64.deb
+  #- dpkg -c liblua5.3-0_5.3.3-1_amd64.deb
+  - sudo dpkg -i liblua5.3-0_5.3.3-1_amd64.deb
+  - sudo dpkg -i liblua5.3-dev_5.3.3-1_amd64.deb
+  #- ls /usr/lib/x86_64-linux-gnu/ | grep lua
+  - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH
+    
+    
+    
+    
+
+
+  
+  
+
+  
+  
+  
+  
+  - # Install QWT
+  - cd $TRAVIS_BUILD_DIR  
+  - # on machines with qt5 executing:  `sudo aptitude -f install libqwt-dev` should be enough
+ # - svn checkout svn://svn.code.sf.net/p/qwt/code/branches/qwt-6.1 qwt
+  - git clone --single-branch --depth=1 https://github.com/Crystal-Photonics/qwt
+  - cd qwt
+  - cp $TRAVIS_BUILD_DIR/libs/qwt/travis_qwtconfig.pri qwtconfig.pri
+  - QWT_ROOT_DIR=`pwd`
+  - LD_LIBRARY_PATH=$(readlink -f lib):$LD_LIBRARY_PATH
+  - qmake
+  - make -j$(nproc)
+  - sudo make install
+  - QWT_INSTALL_PREFIX=/usr/local/qwt-svn
+  - #defined in travis_qwtconfig.pri
+  - #tree $QWT_INSTALL_PREFIX
+  - export CPATH=$QWT_INSTALL_PREFIX/include:$CPATH
+  - export LIBRARY_PATH=$QWT_INSTALL_PREFIX/lib:$LIBRARY_PATH 
+  - #tree LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt
+  
+
+
+script:
+ # - source /opt/qt58/bin/qt58-env.sh
+ #build limereport
+  - cd $TRAVIS_BUILD_DIR/libs/LimeReport/
+  - cp $TRAVIS_BUILD_DIR/libs/travis_limereport.pro limereport.pro || true
+  - qmake "CONFIG+=debug"
+  - make -j$(nproc)
+  
+#build testframework  
+  - cd $TRAVIS_BUILD_DIR
+  - export SANITIZER=undefined
+  - qmake "CONFIG+=debug"
+  - make -j$(nproc)
+  #- tree $TRAVIS_BUILD_DIR
+  
+  - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/bin/debug/:$LD_LIBRARY_PATH
+  - cd $TRAVIS_BUILD_DIR/libs/LimeReport/build/
+  - pwd
+  - cd $($TRAVIS_BUILD_DIR/./travis_cd_next_directory.sh) #cd to LimeReport/build/5.8.0
+  - cd $($TRAVIS_BUILD_DIR/./travis_cd_next_directory.sh) #cd to LimeReport/build/5.8.0/linux64
+  - pwd
+  - export LD_LIBRARY_PATH=$(pwd)/debug/lib/:$LD_LIBRARY_PATH
+  - echo $LD_LIBRARY_PATH
+  - cd $TRAVIS_BUILD_DIR/bin/debug/
+
+  # sanitizer settings
+  - export UBSAN_OPTIONS=print_stacktrace=1
+  - export LSAN_OPTIONS=suppressions=$TRAVIS_BUILD_DIR/lsan.supp #ignore Qt's memory leaks
+  - echo $LSAN_OPTIONS
+
+  # without xvfb: QFATAL : Test_Data_engine::test_preview() QXcbConnection: Could not connect to display
+  # with gdb without asan
+  - xvfb-run --auto-servernum gdb -q --return-child-result -ex "set confirm off" -ex "set pagination off" -ex "set print thread-events off" -ex "run" -ex "bt" -ex "quit" ./tests
+
+  # without gdb with asan
+  - export SANITIZER=undefined,address
+  - cd $TRAVIS_BUILD_DIR
+  - make clean
+  - rm .qmake.stash
+  - qmake "CONFIG+=debug"
+  - make -j$(nproc)
+  - cd $TRAVIS_BUILD_DIR/bin/debug/
+  - xvfb-run --auto-servernum ./tests
+
+  # without gdb with tsan
+  - export SANITIZER=thread
+  - cd $TRAVIS_BUILD_DIR
+  - make clean
+  - rm .qmake.stash
+  - qmake "CONFIG+=debug"
+  - make -j$(nproc)
+  - cd $TRAVIS_BUILD_DIR/bin/debug/
+  - xvfb-run --auto-servernum ./tests
+
+after_script:
+  # print ccache stats
+  - ccache -s
+  
+notifications:
+  email:
+    recipients:
+      - ak@crystal-photonics.com
+    on_success: always
+    on_failure: always # default: always
+    
+  slack:
+    rooms:
+      - secure: "vUn+qVqHFt9ZYA224ucpNd+KrbZmC2jdwYrWuW2vcOqama7rC00qfyWHS5rNRBlr+AroGMthziW8k6o/Z4dFQbwzPxyRQ/K9WWtB8Dv9rFmxgEUKzuhemKotjQZWSK+4m76aiaVhryiuCirsclO66ZlSo+y/5ku7PfXj0y70V+8HAAGU28F5kX6/x0btPrgtLZ+0qXL2EapoWX+VgPT+ChA6mAImzOcPtk8hJDVNQQl7Z3DUcTwRIDeeoDKjtRKm5GEpJeleeGpaoio5si413+b3D5VFY+tiHnN2fcnMwlwbjOcDlDlZP0X0iO0n6x6Q2o17wReKP8lLwGWxGalMpzQ02wLT5JQxskk3PAgfRLrL7V7QrSRrooWgQZZf4qUiSaFL1YjOH+sEplv0CeZiY8C0DWgEOdJklrKFQAU42aomtTWn1wZwi5J97o2s/Bp+AKARWKM+tUFlRRBW6NgwOni36AQn93lg8GfUz1DBXkz4IKHyfTntZKRKvGpLrmr+DM5wvK75bZqufJ8Z0YXtLPrvIk+lstV2gDnE28P3vJOon8kyWtJPCncBkTFRLqDvmWrVDtoSbBEtNiJ+4MmeLTH2+1GQy0ExS1aICd3imeBqj1Ka15hLpHCisXhZ1j6AHTZR7mpg0FJ/n4d506QBpabLJ9fhcyK/v8tK3VgSpD4="
+    on_success: always
+    on_failure: always # default: always

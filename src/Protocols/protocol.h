@@ -10,7 +10,7 @@ struct Protocol {
     Protocol(QString type)
         : type(type) {}
     bool operator==(const QString &&type) const {
-        return (this->type == type);
+		return this->type == type;
     }
     virtual ~Protocol() = default;
 };

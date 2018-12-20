@@ -38,6 +38,8 @@ void showInGraphicalShell(QWidget *parent, const QString &pathIn) {
     scriptArgs << QLatin1String("-e") << QLatin1String("tell application \"Finder\" to activate");
     QProcess::execute("/usr/bin/osascript", scriptArgs);
 #else
+    Q_UNUSED(parent)
+    Q_UNUSED(pathIn)
     // we cannot select a file here, because no file browser really supports it...
 #if 0
     const QFileInfo fileInfo(pathIn);

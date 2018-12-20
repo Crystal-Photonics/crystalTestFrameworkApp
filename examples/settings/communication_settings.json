@@ -1,0 +1,56 @@
+{
+	"SCPI":[
+		{
+			"_comment":"u1252b",
+			
+			"type": "COM",
+			"com_port_name_regex": "^(COM5)",
+			"baud":9600,
+			"escape": "\\r\\n",
+			"timeout_ms":200,
+			"exclusive":"no",
+			"pause_after_discovery_flush_ms":0,
+			"internet_port":0,
+			"ip_address":""
+		},	
+		{
+			"_comment":"nge100",
+			
+			"type": "TMC",
+			"com_port_name_regex": "^(usbtmc\\/[\\d]+\\.[\\d]+)",
+			"escape": "\\r\\n",
+			"timeout_ms":200,
+			"exclusive":"yes",
+			"pause_after_discovery_flush_ms":0
+		}
+		
+	],
+	"SG04Count":[
+			{
+			"type": "COM",
+			"com_port_name_regex": "^(COM[\\d]+)",
+			"baud":57600,
+			"timeout_ms":600
+		}
+	],
+	"RPC":[
+		{
+			"type": "COM",
+			"com_port_name_regex": "^(COM[\\d]+)",
+			"baud":115200,
+			"timeout_ms":600
+		},	
+		{
+			"type": "COM",
+			"com_port_name_regex": "^(ttyUSB[\\d]+)",
+			"baud":115200,
+			"timeout_ms":600
+		},	
+		{
+			"type": "COM",
+			"com_port_name_regex": "^(ttyACM[\\d]+)",
+			"baud":115200,
+			"timeout_ms":600
+		}
+	]
+}

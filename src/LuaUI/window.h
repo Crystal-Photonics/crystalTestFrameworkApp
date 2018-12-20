@@ -8,7 +8,7 @@ class TestRunner;
 ///\cond HIDDEN_SYMBOLS
 class Window : public QWidget {
     public:
-    Window(TestRunner *test);
+	Window(TestRunner *test, QString title);
     QSize sizeHint() const override;
     void closeEvent(QCloseEvent *event) override;
 

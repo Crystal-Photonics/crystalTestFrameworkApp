@@ -37,7 +37,7 @@ struct Widget_paragraph {
     void remove_me_from_resize_list(UI_widget *me) {
         for (auto &w : lua_ui_widgets) {
             if (w == me) {
-               // qDebug() << "removed" << w;
+                // qDebug() << "removed" << w;
                 w = nullptr;
             }
         }
@@ -45,8 +45,9 @@ struct Widget_paragraph {
 
     QHBoxLayout *layout{};
 
-    private:
     std::vector<UI_widget *> lua_ui_widgets{};
+
+    private:
 };
 
 UI_container::UI_container(QWidget *parent)
@@ -59,6 +60,15 @@ UI_container::UI_container(QWidget *parent)
 }
 
 UI_container::~UI_container() {
+#if 0
+    for (auto para : paragraphs) {
+        for (auto widget : para.lua_ui_widgets) {
+            (void)widget;
+            //    if (widget ist lineedit) {
+            //   }
+        }
+    }
+#endif
     //this destructor is required because we destruct forward declared objects Widget_paragraph
 }
 

@@ -1,8 +1,9 @@
 
 #include "data_engine.h"
 //#if IAM_NOT_LUPDATE
-    #include "data_engine_strings.h"
+#include "data_engine_strings.h"
 //#endif
+#include "Windows/mainwindow.h"
 #include "exceptionalapproval.h"
 #include "lua_functions.h"
 #include "util.h"
@@ -18,23 +19,28 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMessageBox>
 #include <QObject>
+#include <QPainter>
+#include <QPrinter>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QSqlQueryModel>
 #include <QSqlRecord>
 #include <QStringList>
+#include <QTemporaryFile>
+#include <QUrl>
 #include <QWidget>
 #include <QXmlStreamWriter>
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <iostream>
 #include <limits>
 #include <lrdatasourcemanagerintf.h>
 #include <lrreportengine.h>
 #include <type_traits>
-#include <QUrl>
 
 static const QString exceptional_approvals_table_name = "exceptional_approvals";
 template <class T>
@@ -95,7 +101,7 @@ void Data_engine::set_source(std::istream &source) {
     const auto document = QJsonDocument::fromJson(std::move(data));
     if (!document.isObject()) {
         throw DataEngineError(DataEngineErrorNumber::invalid_json_file,
-                              "Invalid JSON file.\n\nYou can use one of the online JSON validators you will find at google.");
+                              "Dataengine: Invalid JSON file.\n\nYou can use one of the online JSON validators you will find at google.");
     }
 
     sections.from_json(document.object());
@@ -113,6 +119,20 @@ void Data_engine::set_script_path(QString script_path) {
 
 void Data_engine::set_source_path(QString source_path) {
     this->source_path = source_path;
+}
+
+void Data_engine::start_recording_actual_value_statistic(const std::string &root_file_path, const std::string &file_prefix) {
+    statistics_file.start_recording(QString::fromStdString(root_file_path), QString::fromStdString(file_prefix));
+}
+
+void Data_engine::set_dut_identifier(QString dut_identifier)
+{
+    statistics_file.set_dut_identifier(dut_identifier);
+}
+
+void Data_engine::save_actual_value_statistic()
+{
+    statistics_file.save_to_file();
 }
 
 QStringList Data_engine::get_instance_count_names() {
@@ -176,7 +196,7 @@ void DataEngineSections::set_instance_count(QString instance_count_name, uint in
     deref_references();
     if (instance_count_name_found == false) {
         throw DataEngineError(DataEngineErrorNumber::instance_count_does_not_exist,
-                              QString("Could not find instance count name:\"%1\"").arg(instance_count_name));
+                              QString("Dataengine: Could not find instance count name:\"%1\"").arg(instance_count_name));
     }
 }
 
@@ -185,7 +205,7 @@ void DataEngineSections::use_instance(QString section_name, QString instance_cap
     DataEngineSection *section_to_use = get_section_raw(section_name, &error_num);
 
     if (error_num == DataEngineErrorNumber::no_section_id_found) {
-        throw DataEngineError(DataEngineErrorNumber::no_section_id_found, QString("Could not find section with name = \"%1\"").arg(section_name));
+        throw DataEngineError(DataEngineErrorNumber::no_section_id_found, QString("Dataengine: Could not find section with name = \"%1\"").arg(section_name));
     }
     assert(section_to_use);
     section_to_use->use_instance(instance_caption, instance_index);
@@ -205,7 +225,7 @@ DataEngineSection *DataEngineSections::get_section(const FormID &id) const {
     DecodecFieldID field_id = decode_field_id(id);
     DataEngineSection *result_section = get_section_raw(field_id.section_name, &error_num);
     if (result_section == nullptr)
-        throw DataEngineError(DataEngineErrorNumber::no_section_id_found, "Section not found");
+        throw DataEngineError(DataEngineErrorNumber::no_section_id_found, "Dataengine: Section not found");
     return result_section;
 }
 
@@ -224,7 +244,8 @@ DecodecFieldID DataEngineSections::decode_field_id(const FormID &id) {
 
     auto names = id.split("/");
     if (names.count() != 2) {
-        throw DataEngineError(DataEngineErrorNumber::faulty_field_id, QString("field id needs to be in format \"section-name/field-name\" but is %1").arg(id));
+        throw DataEngineError(DataEngineErrorNumber::faulty_field_id,
+                              QString("Dataengine: field id needs to be in format \"section-name/field-name\" but is %1").arg(id));
     }
 
     result.section_name = names[0];
@@ -267,7 +288,7 @@ QList<const DataEngineDataEntry *> DataEngineSections::get_entries_raw(const For
         if (section->is_section_instance_defined() == false) {
             assert(0); //exception should already have been thrown elsewere
             //throw DataEngineError(DataEngineErrorNumber::instance_count_yet_undefined,
-            //                      QString("Instance count of section \"%1\" yet undefined. Instance count value is: \"%2\".")
+            //                      QString("Dataengine: Instance count of section \"%1\" yet undefined. Instance count value is: \"%2\".")
             //                          .arg(section->get_section_name())
             //                          .arg(section->get_instance_count_name()));
         }
@@ -302,10 +323,11 @@ QList<const DataEngineDataEntry *> DataEngineSections::get_entries_const(const F
     DecodecFieldID decoded_field_id;
     auto result = get_entries_raw(id, &error_num, decoded_field_id, false);
     if (error_num == DataEngineErrorNumber::no_field_id_found) {
-        throw DataEngineError(DataEngineErrorNumber::no_field_id_found, QString("Could not find field with name = \"%1\"").arg(decoded_field_id.field_name));
+        throw DataEngineError(DataEngineErrorNumber::no_field_id_found,
+                              QString("Dataengine: Could not find field with name = \"%1\"").arg(decoded_field_id.field_name));
     } else if (error_num == DataEngineErrorNumber::no_section_id_found) {
         throw DataEngineError(DataEngineErrorNumber::no_section_id_found,
-                              QString("Could not find section with name = \"%1\"").arg(decoded_field_id.section_name));
+                              QString("Dataengine: Could not find section with name = \"%1\"").arg(decoded_field_id.section_name));
     } else if (error_num != DataEngineErrorNumber::ok) {
         assert(0);
     }
@@ -318,10 +340,11 @@ const DataEngineDataEntry *DataEngineSections::get_actual_instance_entry_const(c
     DecodecFieldID decoded_field_id;
     auto result_list = get_entries_raw(id, &error_num, decoded_field_id, true);
     if (error_num == DataEngineErrorNumber::no_field_id_found) {
-        throw DataEngineError(DataEngineErrorNumber::no_field_id_found, QString("Could not find field with name = \"%1\"").arg(decoded_field_id.field_name));
+        throw DataEngineError(DataEngineErrorNumber::no_field_id_found,
+                              QString("Dataengine: Could not find field with name = \"%1\"").arg(decoded_field_id.field_name));
     } else if (error_num == DataEngineErrorNumber::no_section_id_found) {
         throw DataEngineError(DataEngineErrorNumber::no_section_id_found,
-                              QString("Could not find section with name = \"%1\"").arg(decoded_field_id.section_name));
+                              QString("Dataengine: Could not find section with name = \"%1\"").arg(decoded_field_id.section_name));
     } else if (error_num != DataEngineErrorNumber::ok) {
         assert(0);
     }
@@ -386,12 +409,12 @@ void DataEngineSections::from_json(const QJsonObject &object) {
         }
         auto section_object = object[key];
         if (!(section_object.isObject() || section_object.isArray())) {
-            throw std::runtime_error(QString("invalid json object %1").arg(key).toStdString());
+            throw std::runtime_error(QString("Dataengine: invalid json object %1").arg(key).toStdString());
         }
         DataEngineSection section;
         section.from_json(section_object, key);
         if (section_exists(section.get_section_name())) {
-            throw DataEngineError(DataEngineErrorNumber::duplicate_section, QString("duplicate section %1").arg(section.get_section_name()));
+            throw DataEngineError(DataEngineErrorNumber::duplicate_section, QString("Dataengine: duplicate section %1").arg(section.get_section_name()));
         }
         sections.push_back(std::move(section));
     }
@@ -405,7 +428,7 @@ bool DataEngineSections::section_exists(QString section_name) {
 
 void DataEngineSection::delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags) {
     int instance_index = 0;
-    for (auto &instance : instances) {
+    for (DataEngineInstance &instance : instances) {
         assert((bool)instance_count);
         instance.delete_unmatched_variants(tags, instance_index, instance_count.value());
         instance_index++;
@@ -440,7 +463,8 @@ const VariantData *DataEngineInstance::get_variant() const {
         return &variants[0];
     }
 
-    throw DataEngineError(DataEngineErrorNumber::no_variant_found, QString("No dependency fullfilling variant found in section: \"%1\"").arg(section_name));
+    throw DataEngineError(DataEngineErrorNumber::no_variant_found,
+                          QString("Dataengine: No dependency fullfilling variant found in section: \"%1\"").arg(section_name));
     return nullptr;
 }
 
@@ -455,8 +479,9 @@ void DataEngineInstance::delete_unmatched_variants(const QMap<QString, QList<QVa
     }
     variants = std::move(variants_new);
     if (variants.size() > 1) {
-        throw DataEngineError(DataEngineErrorNumber::non_unique_desired_field_found,
-                              QString("More than one dependency fullfilling variants (%1) found in section: \"%2\"").arg(variants.size()).arg(section_name));
+        throw DataEngineError(
+            DataEngineErrorNumber::non_unique_desired_field_found,
+            QString("Dataengine: More than one dependency fullfilling variants (%1) found in section: \"%2\"").arg(variants.size()).arg(section_name));
     }
 
     if ((allow_empty_section) && (variants.size() == 0)) {
@@ -484,8 +509,9 @@ void DataEngineInstance::delete_all_but_biggest_variants() {
 
     variants = std::move(variants_new);
     if (variants.size() > 1) {
-        throw DataEngineError(DataEngineErrorNumber::non_unique_desired_field_found,
-                              QString("More than one dependency fullfilling variants (%1) found in section: \"%2\"").arg(variants.size()).arg(section_name));
+        throw DataEngineError(
+            DataEngineErrorNumber::non_unique_desired_field_found,
+            QString("Dataengine: More than one dependency fullfilling variants (%1) found in section: \"%2\"").arg(variants.size()).arg(section_name));
     }
 
     if ((allow_empty_section) && (variants.size() == 0)) {
@@ -567,12 +593,14 @@ void DataEngineSection::from_json(const QJsonValue &object, const QString &key_n
         for (auto variant : object.toArray()) {
             const QJsonObject &obj = variant.toObject();
             if (obj.contains("instance_count")) {
-                throw DataEngineError(DataEngineErrorNumber::instance_count_must_not_be_defined_in_variant_scope,
-                                      QString("Instance count of section \"%1\" must not be a defined within variant scope.").arg(get_section_name()));
+                throw DataEngineError(
+                    DataEngineErrorNumber::instance_count_must_not_be_defined_in_variant_scope,
+                    QString("Dataengine: Instance count of section \"%1\" must not be a defined within variant scope.").arg(get_section_name()));
             }
             if (obj.contains("allow_empty_section")) {
-                throw DataEngineError(DataEngineErrorNumber::allow_empty_section_must_not_be_defined_in_variant_scope,
-                                      QString("allow_empty_section of section \"%1\" must not be a defined within variant scope.").arg(get_section_name()));
+                throw DataEngineError(
+                    DataEngineErrorNumber::allow_empty_section_must_not_be_defined_in_variant_scope,
+                    QString("Dataengine: allow_empty_section of section \"%1\" must not be a defined within variant scope.").arg(get_section_name()));
             }
             append_variant_from_json(obj);
         }
@@ -586,7 +614,7 @@ void DataEngineSection::from_json(const QJsonValue &object, const QString &key_n
             double instance_count_dbl_json = 0;
             if ((!is_string) && (!is_number)) {
                 throw DataEngineError(DataEngineErrorNumber::wrong_type_for_instance_count,
-                                      QString("Instance count of section \"%1\" must not be either integer or string. But is \"%2\".")
+                                      QString("Dataengine: Instance count of section \"%1\" must not be either integer or string. But is \"%2\".")
                                           .arg(get_section_name())
                                           .arg(jsonTypeToString(obj["instance_count"])));
             }
@@ -613,12 +641,12 @@ void DataEngineSection::from_json(const QJsonValue &object, const QString &key_n
 
                 if (round(instance_count_dbl_json) != instance_count_dbl_json) {
                     throw DataEngineError(DataEngineErrorNumber::instance_count_must_not_be_zero_nor_fraction_nor_negative,
-                                          QString("Instance count of section \"%1\" must not be a fraction.").arg(get_section_name()));
+                                          QString("Dataengine: Instance count of section \"%1\" must not be a fraction.").arg(get_section_name()));
                 }
 
                 if (instance_count_dbl_json < 0) {
                     throw DataEngineError(DataEngineErrorNumber::instance_count_must_not_be_zero_nor_fraction_nor_negative,
-                                          QString("Instance count of section \"%1\" must not be negative.").arg(get_section_name()));
+                                          QString("Dataengine: Instance count of section \"%1\" must not be negative.").arg(get_section_name()));
                 }
             }
 
@@ -630,8 +658,9 @@ void DataEngineSection::from_json(const QJsonValue &object, const QString &key_n
             if (obj["allow_empty_section"].isBool()) {
                 prototype_instance.set_allow_empty_section(obj["allow_empty_section"].toBool());
             } else {
-                throw DataEngineError(DataEngineErrorNumber::allow_empty_section_with_wrong_type,
-                                      QString("\"Allow_empty_section\" -tag of section \"%1\" must be boolean. But is not.").arg(get_section_name()));
+                throw DataEngineError(
+                    DataEngineErrorNumber::allow_empty_section_with_wrong_type,
+                    QString("Dataengine: \"Allow_empty_section\" -tag of section \"%1\" must be boolean. But is not.").arg(get_section_name()));
             }
         }
         if (obj.contains("title")) {
@@ -648,13 +677,13 @@ void DataEngineSection::from_json(const QJsonValue &object, const QString &key_n
             } else if (var_val.isObject()) {
                 append_variant_from_json(var_val.toObject());
             } else {
-                throw std::runtime_error(QString("invalid variant in json file").toStdString());
+                throw std::runtime_error(QString("Dataengine: invalid variant in json file").toStdString());
             }
         } else {
             append_variant_from_json(object.toObject());
         }
     } else {
-        throw std::runtime_error(QString("invalid variant in json file").toStdString());
+        throw std::runtime_error(QString("Dataengine: invalid variant in json file").toStdString());
     }
 }
 
@@ -720,7 +749,8 @@ bool DataEngineSection::set_instance_count_if_name_matches(QString instance_coun
         if (is_section_instance_defined()) {
             throw DataEngineError(
                 DataEngineErrorNumber::instance_count_already_defined,
-                QString("Instance count of section \"%1\" is already defined. Instance count name is: \"%2\", actual value of instance count is: %3.")
+                QString(
+                    "Dataengine: Instance count of section \"%1\" is already defined. Instance count name is: \"%2\", actual value of instance count is: %3.")
                     .arg(get_section_name())
                     .arg(instance_count_name)
                     .arg(this->instance_count.value()));
@@ -728,7 +758,7 @@ bool DataEngineSection::set_instance_count_if_name_matches(QString instance_coun
             if (instance_count == 0) {
                 throw DataEngineError(
                     DataEngineErrorNumber::instance_count_must_not_be_zero_nor_fraction_nor_negative,
-                    QString("Instance count of section \"%1\" must not be zero. in section: \"%2\"").arg(get_section_name()).arg(section_name));
+                    QString("Dataengine: Instance count of section \"%1\" must not be zero. in section: \"%2\"").arg(get_section_name()).arg(section_name));
             }
             result = true;
 
@@ -743,7 +773,7 @@ void DataEngineSection::create_instances_if_defined() {
     if (is_section_instance_defined()) {
         if (instance_count.value() == 0) {
             throw DataEngineError(DataEngineErrorNumber::instance_count_must_not_be_zero_nor_fraction_nor_negative,
-                                  QString("Instance count of section \"%1\" must not be zero.").arg(get_section_name()));
+                                  QString("Dataengine: Instance count of section \"%1\" must not be zero.").arg(get_section_name()));
         }
         assert(instances.size() == 0);
         for (uint i = 0; i < instance_count.value(); i++) {
@@ -756,9 +786,10 @@ void DataEngineSection::create_instances_if_defined() {
 
 void DataEngineSection::assert_instance_is_defined() const {
     if (is_section_instance_defined() == false) {
-        throw DataEngineError(
-            DataEngineErrorNumber::instance_count_yet_undefined,
-            QString("Instance count of section \"%1\" yet undefined. Instance count value is: \"%2\".").arg(get_section_name()).arg(get_instance_count_name()));
+        throw DataEngineError(DataEngineErrorNumber::instance_count_yet_undefined,
+                              QString("Dataengine: Instance count of section \"%1\" yet undefined. Instance count value is: \"%2\".")
+                                  .arg(get_section_name())
+                                  .arg(get_instance_count_name()));
     }
 }
 
@@ -766,10 +797,11 @@ void DataEngineSection::use_instance(QString instance_caption, uint instance_ind
     assert_instance_is_defined();
     instance_index--;
     if (instance_index >= instance_count.value()) {
-        throw DataEngineError(DataEngineErrorNumber::instance_count_exceeding, QString("Instance index (%1) of section \"%2\" exceeds instance count(%3).")
-                                                                                   .arg(instance_index)
-                                                                                   .arg(get_section_name())
-                                                                                   .arg(instance_count.value()));
+        throw DataEngineError(DataEngineErrorNumber::instance_count_exceeding,
+                              QString("Dataengine: Instance index (%1) of section \"%2\" exceeds instance count(%3).")
+                                  .arg(instance_index)
+                                  .arg(get_section_name())
+                                  .arg(instance_count.value()));
     }
     assert(instances.size() > instance_index);
     instances[instance_index].instance_caption = instance_caption;
@@ -813,6 +845,10 @@ uint VariantData::get_entry_count() const {
     return data_entries.size();
 }
 
+QString VariantData::get_dependencies_serialised_string() const {
+    return dependency_tags.get_dependencies_serialised_string();
+}
+
 bool VariantData::uses_dependency() const {
     return !dependency_tags.tags.isEmpty();
 }
@@ -830,13 +866,12 @@ bool VariantData::is_dependency_matching(const QMap<QString, QList<QVariant>> &t
                     length_of_first_tag_value_list = value_count;
                 } else {
                     if (value_count != length_of_first_tag_value_list.value()) {
-                        throw DataEngineError(
-                            DataEngineErrorNumber::list_of_dependency_values_must_be_of_equal_length,
-                            QString(
-                                "In section \"%1\": The length of the tables of corresponding dependency tag values must be equal. But is %2 instead of %3.")
-                                .arg(section_name)
-                                .arg(value_count)
-                                .arg(length_of_first_tag_value_list.value()));
+                        throw DataEngineError(DataEngineErrorNumber::list_of_dependency_values_must_be_of_equal_length,
+                                              QString("Dataengine: In section \"%1\": The length of the tables of corresponding dependency tag values must be "
+                                                      "equal. But is %2 instead of %3.")
+                                                  .arg(section_name)
+                                                  .arg(value_count)
+                                                  .arg(length_of_first_tag_value_list.value()));
                     }
                 }
             }
@@ -846,12 +881,13 @@ bool VariantData::is_dependency_matching(const QMap<QString, QList<QVariant>> &t
         }
 
         if ((instance_count != length_of_first_tag_value_list.value()) && (length_of_first_tag_value_list.value() != 1)) {
-            throw DataEngineError(DataEngineErrorNumber::instance_count_must_match_list_of_dependency_values,
-                                  QString("Instance count of section \"%1\" must have the same value as the length of the tables of corresponding dependency "
-                                          "tag values (%2). But is %3")
-                                      .arg(section_name)
-                                      .arg(length_of_first_tag_value_list.value())
-                                      .arg(instance_count));
+            throw DataEngineError(
+                DataEngineErrorNumber::instance_count_must_match_list_of_dependency_values,
+                QString("Dataengine: Instance count of section \"%1\" must have the same value as the length of the tables of corresponding dependency "
+                        "tag values (%2). But is %3")
+                    .arg(section_name)
+                    .arg(length_of_first_tag_value_list.value())
+                    .arg(instance_count));
         }
 
         if (length_of_first_tag_value_list.value() == 1) {
@@ -891,18 +927,18 @@ void VariantData::from_json(const QJsonObject &object) {
     QJsonValue data = object["data"];
 
     if (data.isUndefined() || data.isNull()) {
-        throw DataEngineError(DataEngineErrorNumber::no_data_section_found, QString("no data found ininvalid variant in json file"));
+        throw DataEngineError(DataEngineErrorNumber::no_data_section_found, QString("Dataengine: no data found ininvalid variant in json file"));
     }
 
     if (data.isArray()) {
         if (data.toArray().count() == 0) {
-            throw DataEngineError(DataEngineErrorNumber::no_data_section_found, QString("no data found in variant in json file"));
+            throw DataEngineError(DataEngineErrorNumber::no_data_section_found, QString("Dataengine: no data found in variant in json file"));
         }
         for (const auto &data_entry : data.toArray()) {
             std::unique_ptr<DataEngineDataEntry> entry = DataEngineDataEntry::from_json(data_entry.toObject());
             if (entry_exists(entry.get()->field_name)) {
                 throw DataEngineError(DataEngineErrorNumber::duplicate_field,
-                                      QString("Data field with the name %1 is already existing").arg(entry.get()->field_name));
+                                      QString("Dataengine: Data field with the name %1 is already existing").arg(entry.get()->field_name));
             }
             data_entries.push_back(std::move(entry));
         }
@@ -910,7 +946,7 @@ void VariantData::from_json(const QJsonObject &object) {
         std::unique_ptr<DataEngineDataEntry> entry = DataEngineDataEntry::from_json(data.toObject());
         if (entry_exists(entry.get()->field_name)) {
             throw DataEngineError(DataEngineErrorNumber::duplicate_field,
-                                  QString("Data field with the name %1 is already existing").arg(entry.get()->field_name));
+                                  QString("Dataengine: Data field with the name %1 is already existing").arg(entry.get()->field_name));
         }
         data_entries.push_back(std::move(entry));
     }
@@ -926,11 +962,11 @@ DataEngineDataEntry *VariantData::get_entry(QString field_name) const {
     DataEngineErrorNumber errornum;
     auto result = get_entry_raw(field_name, &errornum);
     if (errornum == DataEngineErrorNumber::no_field_id_found) {
-        throw DataEngineError(DataEngineErrorNumber::no_field_id_found, QString("Could not find field with name = \"%1\"").arg(field_name));
+        throw DataEngineError(DataEngineErrorNumber::no_field_id_found, QString("Dataengine: Could not find field with name = \"%1\"").arg(field_name));
     } else if (errornum == DataEngineErrorNumber::ok) {
     } else {
         assert(0);
-        throw DataEngineError(errornum, QString("UnkownError at \"%1\"").arg(field_name));
+        throw DataEngineError(errornum, QString("Dataengine: UnkownError at \"%1\"").arg(field_name));
     }
 
     return result;
@@ -949,6 +985,15 @@ DataEngineDataEntry *VariantData::get_entry_raw(QString field_name, DataEngineEr
 
 const QMap<QString, QVariant> &VariantData::get_relevant_dependencies() const {
     return relevant_dependencies;
+}
+
+QString DependencyTags::get_dependencies_serialised_string() const {
+    QString result = "";
+    for (const QString &key : tags.keys()) {
+        const auto &val = tags.value(key);
+        result = result + key + ":" + val.get_serialised_string();
+    }
+    return result;
 }
 
 void DependencyTags::from_json(const QJsonValue &object) {
@@ -970,13 +1015,13 @@ void DependencyTags::from_json(const QJsonValue &object) {
                     tags.insert(key, value);
                 }
             } else {
-                throw std::runtime_error(QString("invalid type of tag description in json file").toStdString());
+                throw std::runtime_error(QString("Dataengine: invalid type of tag description in json file").toStdString());
             }
         }
     } else if (object.isUndefined()) {
         // nothing to do
     } else {
-        throw std::runtime_error(QString("invalid tag description in json file").toStdString());
+        throw std::runtime_error(QString("Dataengine: invalid tag description in json file").toStdString());
     }
 }
 
@@ -1011,6 +1056,26 @@ DependencyValue::DependencyValue() {
     match_style = Match_style::MatchNone;
 }
 
+QString DependencyValue::get_serialised_string() const {
+    QString str = serialised_string;
+    switch (match_style) {
+        case Match_style::MatchEverything:
+            str = "all_" + str;
+            break;
+        case Match_style::MatchExactly:
+            str = "exact_" + str;
+            break;
+        case Match_style::MatchByRange:
+            str = "range_" + str;
+            break;
+
+        case Match_style::MatchNone:
+            str = "none_" + str;
+            break;
+    }
+    return str;
+}
+
 void DependencyValue::from_json(const QJsonValue &object, const bool default_to_match_all) {
     if (object.isString()) {
         from_string(object.toString());
@@ -1031,7 +1096,7 @@ void DependencyValue::from_json(const QJsonValue &object, const bool default_to_
             match_style = Match_style::MatchNone;
         }
     } else {
-        throw std::runtime_error(QString("invalid version dependency in json file").toStdString());
+        throw std::runtime_error(QString("Dataengine: invalid version dependency in json file").toStdString());
     }
 }
 
@@ -1094,13 +1159,14 @@ void DependencyValue::parse_number(const QString &str, float &vnumber, bool &mat
         vnumber = str.trimmed().toFloat(&ok);
         if (!ok) {
             throw DataEngineError(DataEngineErrorNumber::invalid_version_dependency_string,
-                                  QString("could not parse dependency string \"%1\" in as range number").arg(str));
+                                  QString("Dataengine: could not parse dependency string \"%1\" in as range number").arg(str));
         }
     }
 }
 
 void DependencyValue::from_string(const QString &str) {
     QString value = str.trimmed();
+    serialised_string = value;
     if (value.startsWith("[") && value.endsWith("]")) {
         value = value.remove(0, 1);
         value = value.remove(value.size() - 1, 1);
@@ -1139,7 +1205,7 @@ void DependencyValue::from_string(const QString &str) {
 
         } else {
             throw DataEngineError(DataEngineErrorNumber::invalid_version_dependency_string,
-                                  QString("invalid version dependency string \"%1\"in json file").arg(str));
+                                  QString("Dataengine: invalid version dependency string \"%1\"in json file").arg(str));
         }
     } else {
         if (value == "") {
@@ -1154,6 +1220,7 @@ void DependencyValue::from_string(const QString &str) {
 void DependencyValue::from_number(const double &number) {
     match_style = Match_style::MatchExactly;
     match_exactly.setValue<double>(number);
+    serialised_string = QString::number(number);
     range_low_including = 0;
     range_high_excluding = 0;
 }
@@ -1161,6 +1228,12 @@ void DependencyValue::from_number(const double &number) {
 void DependencyValue::from_bool(const bool &boolean) {
     match_style = Match_style::MatchExactly;
     match_exactly.setValue<bool>(boolean);
+    if (boolean) {
+        serialised_string = "true";
+    } else {
+        serialised_string = "false";
+    }
+
     range_low_including = 0;
     range_high_excluding = 0;
 }
@@ -1175,12 +1248,9 @@ bool Data_engine::all_values_in_range() const {
     return sections.all_values_in_range();
 }
 
-bool Data_engine::value_in_range(const FormID &id) const {
-    assert_in_dummy_mode();
-    QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id);
-    for (auto entry : data_entry) {
-        assert(entry);
-        if (!entry->is_in_range()) {
+bool Data_engine::values_in_range(const QList<FormID> &ids) const {
+    for (FormID const &id : ids) {
+        if (!value_in_range(id)) {
             return false;
         }
     }
@@ -1201,6 +1271,36 @@ bool Data_engine::value_in_range_in_instance(const FormID &id) const {
     assert(data_entry);
     bool result = data_entry->is_in_range();
     return result;
+}
+
+bool Data_engine::value_complete_in_section(FormID id) const {
+    assert_in_dummy_mode();
+    if (!id.contains("/")) {
+        id = id + "/";
+    }
+    const DataEngineSection *section = sections.get_section(id);
+    return section->is_complete();
+}
+
+bool Data_engine::value_in_range_in_section(FormID id) const {
+    assert_in_dummy_mode();
+    if (!id.contains("/")) {
+        id = id + "/";
+    }
+    const DataEngineSection *section = sections.get_section(id);
+    return section->all_values_in_range();
+}
+
+bool Data_engine::value_in_range(const FormID &id) const {
+    assert_in_dummy_mode();
+    QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id);
+    for (auto entry : data_entry) {
+        assert(entry);
+        if (!entry->is_in_range()) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool Data_engine::value_complete(const FormID &id) const {
@@ -1227,12 +1327,20 @@ DataEngineDataEntry *DataEngineSection::get_entry(QString id) const {
 
 const DataEngineInstance *DataEngineSection::get_actual_instance() const {
     if (is_section_instance_defined() == false) {
-        throw DataEngineError(
-            DataEngineErrorNumber::instance_count_yet_undefined,
-            QString("Instance count of section \"%1\" yet undefined. Instance count value is: \"%2\".").arg(get_section_name()).arg(get_instance_count_name()));
+        throw DataEngineError(DataEngineErrorNumber::instance_count_yet_undefined,
+                              QString("Dataengine: Instance count of section \"%1\" yet undefined. Instance count value is: \"%2\".")
+                                  .arg(get_section_name())
+                                  .arg(get_instance_count_name()));
     }
     assert(actual_instance_index < instances.size());
     return &instances[actual_instance_index];
+}
+
+QString DataEngineSection::get_serialised_dependency_string() const {
+    const auto instance = get_actual_instance();
+    assert(instance);
+    auto variant = instance->get_variant();
+    return variant->get_dependencies_serialised_string();
 }
 
 void DataEngineSection::set_actual_number(const FormID &id, double number) {
@@ -1243,8 +1351,9 @@ void DataEngineSection::set_actual_number(const FormID &id, double number) {
     ReferenceDataEntry *reference_entry = data_entry->as<ReferenceDataEntry>();
     if (!number_entry) {
         if (!reference_entry) {
-            throw DataEngineError(DataEngineErrorNumber::setting_desired_value_with_wrong_type,
-                                  QString("The field \"%1\" is not numerical as it must be if you set it with the number (%2) ").arg(id).arg(number));
+            throw DataEngineError(
+                DataEngineErrorNumber::setting_desired_value_with_wrong_type,
+                QString("Dataengine: The field \"%1\" is not numerical as it must be if you set it with the number (%2) ").arg(id).arg(number));
         }
         reference_entry->set_actual_value(number);
     } else {
@@ -1261,7 +1370,7 @@ void DataEngineSection::set_actual_text(const FormID &id, QString text) {
     if (!text_entry) {
         if (!reference_entry) {
             throw DataEngineError(DataEngineErrorNumber::setting_desired_value_with_wrong_type,
-                                  QString("The field \"%1\" is not a string as it must be if you set it with the string \"%2\"").arg(id).arg(text));
+                                  QString("Dataengine: The field \"%1\" is not a string as it must be if you set it with the string \"%2\"").arg(id).arg(text));
         }
         reference_entry->set_actual_value(text);
     } else {
@@ -1278,7 +1387,7 @@ void DataEngineSection::set_actual_bool(const FormID &id, bool value) {
     if (!bool_entry) {
         if (!reference_entry) {
             throw DataEngineError(DataEngineErrorNumber::setting_desired_value_with_wrong_type,
-                                  QString("The field \"%1\" is not boolean as it must be if you set it with a bool type").arg(id));
+                                  QString("Dataengine: The field \"%1\" is not boolean as it must be if you set it with a bool type").arg(id));
         }
         reference_entry->set_actual_value(value);
     } else {
@@ -1305,6 +1414,8 @@ bool DataEngineSection::section_uses_variants() const {
 void Data_engine::set_actual_number(const FormID &id, double number) {
     auto section = sections.get_section(id);
     section->set_actual_number(id, number);
+    QString serialised_dependency = section->get_serialised_dependency_string();
+    statistics_file.set_actual_value(id, serialised_dependency, number);
 }
 
 void Data_engine::set_actual_text(const FormID &id, QString text) {
@@ -1506,9 +1617,21 @@ std::unique_ptr<QWidget> Data_engine::get_preview() const {
 }
 
 bool Data_engine::generate_pdf(const std::string &form, const std::string &destination) const {
-    const auto db_name = "report_temp_data.db"; //TODO: find a better temporary name
-    QFile::remove(db_name);
-    assert(QFile{db_name}.exists() == false);
+    QString db_name = ""; //TODO: find a better temporary name
+                          //QDir::homePath()
+                          //      AppLocalDataLocation
+#if 1
+    QTemporaryFile db_file;
+    if (db_file.open()) {
+        db_name = db_file.fileName(); // returns the unique file name
+                                      //The file name of the temporary file can be found by calling fileName().
+                                      //Note that this is only defined after the file is first opened; the
+                                      //function returns an empty string before this.
+    }
+    db_file.close(); //Reopening a QTemporaryFile after calling close() is safe
+                     // QFile::remove(db_name);
+                     // assert(QFile{db_name}.exists() == false);
+#endif
     QSqlDatabase db;
     if (QSqlDatabase::contains()) {
         db = QSqlDatabase::database();
@@ -1521,11 +1644,12 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
     if (!opend) {
         qDebug() << "SQLConnection error: " << db.lastError().text();
     }
-    assert(opend);
+    assert(opend); //TODO
 
-    if (!QFile{QString::fromStdString(form)}.exists()){
+    if (!QFile{QString::fromStdString(form)}.exists()) {
         qDebug() << "PDF Template file does not exist: " << QString::fromStdString(form);
-        throw DataEngineError(DataEngineErrorNumber::pdf_template_file_not_existing, "PDF Template file does not exist: "+ QString::fromStdString(form));
+        throw DataEngineError(DataEngineErrorNumber::pdf_template_file_not_existing,
+                              "Dataengine: PDF Template file does not exist: " + QString::fromStdString(form));
     }
     fill_database(db);
     const auto sourced_form = form + ".tmp.lrxml";
@@ -1535,7 +1659,23 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
     if (re.loadFromFile(QString::fromStdString(sourced_form), false) == false) {
         return false;
     }
-    bool result = re.printToPDF(QString::fromStdString(destination));
+    bool result = false;
+    {
+        QString filename = QString::fromStdString(destination);
+        //doing the error checking that LimeReport should do but doesn't.
+        QPrinter printer;
+        printer.setOutputFileName(filename);
+        QPainter painter;
+        if (painter.begin(&printer) == false) {
+            MainWindow::mw->execute_in_gui_thread([filename] {
+                QMessageBox::critical(MainWindow::mw, "Failed printing report",
+                                      "Requested to write report to file " + filename + " which could not be opened.");
+            });
+        } else {
+            painter.end();
+            result = re.printToPDF(filename);
+        }
+    }
     db.close();
     if (auto_open_pdf) {
         QFileInfo fi{QString::fromStdString(destination)};
@@ -1553,9 +1693,10 @@ static void db_exec(QSqlDatabase &db, QString query) {
     auto instance = db.exec(query);
     if (instance.lastError().isValid()) {
         qDebug() << instance.lastError().text();
-        throw DataEngineError(DataEngineErrorNumber::sql_error,
-                              QString{"Failed executing query: ''%1''. Error: %2 \n\nProbably because database file ''%3'' is opened by another program."}.arg(
-                                  query, instance.lastError().text(), db.databaseName()));
+        throw DataEngineError(
+            DataEngineErrorNumber::sql_error,
+            QString{"Dataengine: Failed executing query: ''%1''. Error: %2 \n\nProbably because database file ''%3'' is opened by another program."}.arg(
+                query, instance.lastError().text(), db.databaseName()));
     }
 }
 
@@ -1571,12 +1712,13 @@ void Data_engine::save_to_json(QString filename) {
     QFile saveFile(filename);
 
     if (filename == "") {
-        throw DataEngineError(DataEngineErrorNumber::cannot_open_file, QString{"Filename for dumping data_engine is empty"});
+        throw DataEngineError(DataEngineErrorNumber::cannot_open_file, QString{"Dataengine: Filename for dumping data_engine is empty"});
         return;
     }
 
     if (!saveFile.open(QIODevice::WriteOnly)) {
-        throw DataEngineError(DataEngineErrorNumber::cannot_open_file, QString{"Can not open file: \"%1\" for dumping data_engine content."}.arg(filename));
+        throw DataEngineError(DataEngineErrorNumber::cannot_open_file,
+                              QString{"Dataengine: Can not open file: \"%1\" for dumping data_engine content."}.arg(filename));
         return;
     }
 
@@ -2818,7 +2960,7 @@ void Data_engine::add_sources_to_form(QString data_base_path, const QList<PrintO
 
 void Data_engine::assert_in_dummy_mode() const {
     if (sections.is_dummy_data_mode) {
-        throw DataEngineError(DataEngineErrorNumber::is_in_dummy_mode, "Dataengine is in dummy mode. Access to data functions is prohibited.");
+        throw DataEngineError(DataEngineErrorNumber::is_in_dummy_mode, "Dataengine: Dataengine is in dummy mode. Access to data functions is prohibited.");
     }
 }
 
@@ -2835,7 +2977,8 @@ double NumericTolerance::get_absolute_limit_beneath(const double desired) const 
             return desired - deviation_limit_beneath;
         } break;
         case ToleranceType::Percent: {
-            return desired - desired * deviation_limit_beneath / 100.0;
+            double deviation_limit_abs = std::abs(desired) * deviation_limit_beneath / 100.0;
+            return desired - deviation_limit_abs;
         }
 
         break;
@@ -2855,7 +2998,8 @@ double NumericTolerance::get_absolute_limit_above(const double desired) const {
 
         } break;
         case ToleranceType::Percent: {
-            return desired + desired * deviation_limit_above / 100.0;
+            double deviation_limit_abs = std::abs(desired) * deviation_limit_beneath / 100.0;
+            return desired + deviation_limit_abs;
 
         }
 
@@ -2871,9 +3015,13 @@ bool NumericTolerance::test_in_range(const double desired, const std::experiment
 
     if (is_undefined) {
         throw DataEngineError(DataEngineErrorNumber::tolerance_must_be_defined_for_range_checks_on_numbers,
-                              "no tolerance defined even though a range check should be done.");
+                              "Dataengine: no tolerance defined even though a range check should be done.");
     }
     if (!measured) {
+        return false;
+    }
+
+    if (std::isnan(measured.value())) { //fixes #1113 Fehler: "Dataengine: NaN ist immer OK, soll natürlich nicht"
         return false;
     }
 
@@ -2886,7 +3034,7 @@ bool NumericTolerance::test_in_range(const double desired, const std::experiment
 void NumericTolerance::from_string(const QString &str) {
     QStringList sl = str.split("/");
     if (sl.count() == 0) {
-        throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, "no tolerance found");
+        throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, "Dataengine: no tolerance found");
     }
     if (sl.count() == 1) {
         bool open_range;
@@ -2913,13 +3061,14 @@ void NumericTolerance::from_string(const QString &str) {
         } else if (tolerance_type_a == tolerance_type_b) {
             tolerance_type = tolerance_type_a;
         } else {
-            throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, "tolerance + and - must of the same type(either absolute or percent)");
+            throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error,
+                                  "Dataengine: tolerance + and - must of the same type(either absolute or percent)");
         }
         open_range_above = open_range_a;
         open_range_beneath = open_range_b;
         is_undefined = false;
     } else {
-        throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, "tolerance string faulty");
+        throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, "Dataengine: tolerance string faulty");
     }
 }
 
@@ -3004,11 +3153,13 @@ void NumericTolerance::str_to_num(QString str_in, double &number, ToleranceType 
         bool ok;
         number = str_in.toDouble(&ok);
         if (!ok) {
-            throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, QString("could not convert string to number %1").arg(str_in_orig));
+            throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error,
+                                  QString("Dataengine: could not convert string to number %1").arg(str_in_orig));
         }
     }
     if (sign_error) {
-        throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, QString("tolerance string should have sign flags %1").arg(str_in_orig));
+        throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error,
+                              QString("Dataengine: tolerance string should have sign flags %1").arg(str_in_orig));
     }
 }
 
@@ -3045,7 +3196,8 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
     bool entry_without_value;
     if (!keys.contains("value")) {
         if (!keys.contains("type")) {
-            throw DataEngineError(DataEngineErrorNumber::data_entry_contains_neither_type_nor_value, "JSON object must contain a key \"value\" or \"type\" ");
+            throw DataEngineError(DataEngineErrorNumber::data_entry_contains_neither_type_nor_value,
+                                  "Dataengine: JSON object must contain a key \"value\" or \"type\" ");
         } else {
             entry_without_value = true;
             QString str_type = object["type"].toString();
@@ -3074,12 +3226,16 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
     }
 
     if (!keys.contains("name")) {
-        throw DataEngineError(DataEngineErrorNumber::data_entry_contains_no_name, "JSON object must contain key \"name\"");
+        throw DataEngineError(DataEngineErrorNumber::data_entry_contains_no_name, "Dataengine: JSON object must contain key \"name\"");
     }
     field_name = object.value("name").toString();
     switch (entrytype) {
         case EntryType::Numeric: {
+//disable maybe-uninitialized warning for an optional type.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
             std::experimental::optional<double> desired_value{};
+#pragma GCC diagnostic pop
             NumericTolerance tolerance{};
             std::experimental::optional<double> si_prefix = 1;
             QString unit{};
@@ -3110,27 +3266,31 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                     } else if (object.value(key).isString()) {
                         tol = object.value(key).toString();
                     } else {
-                        throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, "wrong tolerance type");
+                        throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, "Dataengine: wrong tolerance type");
                     }
 
                     tolerance.from_string(tol);
                 } else if (entry_without_value == false) {
-                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Invalid key \"" + key + "\" in numeric JSON object");
+                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Dataengine: Invalid key \"" + key + "\" in numeric JSON object");
 
                 } else {
                     throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key,
-                                          "Invalid key \"" + key + "\" in numeric JSON object without desired value");
+                                          "Dataengine: Invalid key \"" + key + "\" in numeric JSON object without desired value");
                 }
             }
             if ((tolerance.is_defined() == false) && (entry_without_value == false)) {
                 throw DataEngineError(DataEngineErrorNumber::tolerance_must_be_defined_for_numbers,
-                                      "The number field with key \"" + field_name +
+                                      "Dataengine: The number field with key \"" + field_name +
                                           "\" has no tolerance defined. Each number field must have a tolerance defined.");
             }
             return std::make_unique<NumericDataEntry>(field_name, desired_value, tolerance, std::move(unit), si_prefix, std::move(nice_name));
         }
         case EntryType::Bool: {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
             std::experimental::optional<bool> desired_value{};
+#pragma GCC diagnostic pop
+
             QString nice_name{};
             for (const auto &key : keys) {
                 if (key == "name") {
@@ -3144,7 +3304,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                 } else if ((key == "type") && (entry_without_value == true)) {
                     //already handled above
                 } else {
-                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Invalid key \"" + key + "\" in boolean JSON object");
+                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Dataengine: Invalid key \"" + key + "\" in boolean JSON object");
                 }
             }
             return std::make_unique<BoolDataEntry>(field_name, desired_value, nice_name);
@@ -3165,7 +3325,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                 } else if ((key == "type") && (entry_without_value == true)) {
                     //already handled above
                 } else {
-                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Invalid key \"" + key + "\" in textual JSON object");
+                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Dataengine: Invalid key \"" + key + "\" in textual JSON object");
                 }
             }
             return std::make_unique<TextDataEntry>(field_name, desired_value, nice_name);
@@ -3188,7 +3348,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                     } else if (object.value(key).isString()) {
                         tol = object.value(key).toString();
                     } else {
-                        throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, "wrong tolerance type");
+                        throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, "Dataengine: wrong tolerance type");
                     }
 
                     tolerance.from_string(tol);
@@ -3196,16 +3356,17 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                     reference_string = object.value(key).toString();
 
                 } else {
-                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Invalid key \"" + key + "\" in reference JSON object");
+                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Dataengine: Invalid key \"" + key + "\" in reference JSON object");
                 }
             }
             return std::make_unique<ReferenceDataEntry>(field_name, reference_string, tolerance, nice_name);
         }
         case EntryType::Unspecified: {
-            throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_type, QString("Invalid type in JSON object. Field name: %1").arg(field_name));
+            throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_type,
+                                  QString("Dataengine: Invalid type in JSON object. Field name: %1").arg(field_name));
         }
     }
-    throw DataEngineError(DataEngineErrorNumber::invalid_json_object, QString{"Invalid JSON object. Field name: %1"}.arg(field_name));
+    throw DataEngineError(DataEngineErrorNumber::invalid_json_object, QString{"Dataengine: Invalid JSON object. Field name: %1"}.arg(field_name));
 }
 
 NumericDataEntry::NumericDataEntry(const NumericDataEntry &other)
@@ -3268,7 +3429,7 @@ double NumericDataEntry::get_actual_number() const {
     if ((bool)actual_value) {
         return actual_value.value();
     } else {
-        throw DataEngineError(DataEngineErrorNumber::actual_value_not_set, QString("Actual value of field %1 not set").arg(field_name));
+        throw DataEngineError(DataEngineErrorNumber::actual_value_not_set, QString("Dataengine: Actual value of field %1 not set").arg(field_name));
     }
     return 0;
 }
@@ -3392,7 +3553,7 @@ QString TextDataEntry::get_actual_values() const {
 }
 
 double TextDataEntry::get_actual_number() const {
-    throw DataEngineError(DataEngineErrorNumber::actual_value_is_not_a_number, QString("Actual value of field %1 is not a number").arg(field_name));
+    throw DataEngineError(DataEngineErrorNumber::actual_value_is_not_a_number, QString("Dataengine: Actual value of field %1 is not a number").arg(field_name));
 }
 
 QString TextDataEntry::get_description() const {
@@ -3526,7 +3687,7 @@ QString BoolDataEntry::get_actual_values() const {
 }
 
 double BoolDataEntry::get_actual_number() const {
-    throw DataEngineError(DataEngineErrorNumber::actual_value_is_not_a_number, QString("Actual value of field %1 is not a number").arg(field_name));
+    throw DataEngineError(DataEngineErrorNumber::actual_value_is_not_a_number, QString("Dataengine: Actual value of field %1 is not a number").arg(field_name));
     return 0;
 }
 
@@ -3674,14 +3835,19 @@ void ReferenceDataEntry::update_desired_value_from_reference() const {
         entry->set_desired_value_from_desired(entry_target);
     } else {
         if ((bool)target_instance_count == false) {
-            assert(0);
+            //assert(0);
+            throw DataEngineError(
+                DataEngineErrorNumber::reference_must_not_point_to_undefined_instance,
+                QString("Dataengine: References must not point to the actual value of an undefined instance. The referencing fieldname: \"%1\"")
+                    .arg(field_name));
         }
         if (target_instance_count.value() != 1) {
-            throw DataEngineError(DataEngineErrorNumber::reference_must_not_point_to_multiinstance_actual_value,
-                                  QString("References must not point to the actual value of multi-instance-fields. The referencing fieldname: \"%1\", the "
-                                          "reference target is: \"%2\"")
-                                      .arg(field_name)
-                                      .arg(entry_target->field_name));
+            throw DataEngineError(
+                DataEngineErrorNumber::reference_must_not_point_to_multiinstance_actual_value,
+                QString("Dataengine: References must not point to the actual value of multi-instance-fields. The referencing fieldname: \"%1\", the "
+                        "reference target is: \"%2\"")
+                    .arg(field_name)
+                    .arg(entry_target->field_name));
         }
         entry->set_desired_value_from_actual(entry_target);
     }
@@ -3691,9 +3857,10 @@ void ReferenceDataEntry::set_actual_value(double number) {
     assert_that_instance_count_is_defined();
     NumericDataEntry *num_entry = entry->as<NumericDataEntry>();
     if (!num_entry) {
-        throw DataEngineError(
-            DataEngineErrorNumber::setting_reference_actual_value_with_wrong_type,
-            QString("The referencing field \"%1\" is not a number as it must be if you set it with the number: \"%2\"").arg(field_name).arg(number));
+        throw DataEngineError(DataEngineErrorNumber::setting_reference_actual_value_with_wrong_type,
+                              QString("Dataengine: The referencing field \"%1\" is not a number as it must be if you set it with the number: \"%2\"")
+                                  .arg(field_name)
+                                  .arg(number));
     }
 
     num_entry->set_actual_value(number);
@@ -3705,7 +3872,7 @@ void ReferenceDataEntry::set_actual_value(QString val) {
     if (!text_entry) {
         throw DataEngineError(
             DataEngineErrorNumber::setting_reference_actual_value_with_wrong_type,
-            QString("The referencing field \"%1\" is not a string as it must be if you set it with the string: \"%2\"").arg(field_name).arg(val));
+            QString("Dataengine: The referencing field \"%1\" is not a string as it must be if you set it with the string: \"%2\"").arg(field_name).arg(val));
     }
     text_entry->set_actual_value(val);
 }
@@ -3714,8 +3881,9 @@ void ReferenceDataEntry::set_actual_value(bool val) {
     assert_that_instance_count_is_defined();
     BoolDataEntry *bool_entry = entry->as<BoolDataEntry>();
     if (!bool_entry) {
-        throw DataEngineError(DataEngineErrorNumber::setting_reference_actual_value_with_wrong_type,
-                              QString("The referencing field \"%1\" is not a bool as it must be if you set it with the bool: \"%2\"").arg(field_name).arg(val));
+        throw DataEngineError(
+            DataEngineErrorNumber::setting_reference_actual_value_with_wrong_type,
+            QString("Dataengine: The referencing field \"%1\" is not a bool as it must be if you set it with the bool: \"%2\"").arg(field_name).arg(val));
     }
     bool_entry->set_actual_value(val);
 }
@@ -3786,7 +3954,7 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
     }
 
     if (reference_links.size() == 0) {
-        throw DataEngineError(DataEngineErrorNumber::reference_not_found, QString("reference non existing. Fieldname: \"%1\"").arg(field_name));
+        throw DataEngineError(DataEngineErrorNumber::reference_not_found, QString("Dataengine: reference non existing. Fieldname: \"%1\"").arg(field_name));
 
     } else if (reference_links.size() > 1) {
         QString t;
@@ -3794,7 +3962,7 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
             t += ref.link + " ";
         }
         throw DataEngineError(DataEngineErrorNumber::reference_ambiguous,
-                              QString("reference ambiguous  with links: \"%1\", fieldname: \"%2\"").arg(t).arg(field_name));
+                              QString("Dataengine: reference ambiguous  with links: \"%1\", fieldname: \"%2\"").arg(t).arg(field_name));
     }
     auto targets = sections->get_entries_const(reference_links[0].link);
 
@@ -3803,13 +3971,13 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
         entry_target = const_cast<DataEngineDataEntry *>(targets[0]);
     } else {
         throw DataEngineError(DataEngineErrorNumber::reference_pointing_to_multiinstance_with_different_values,
-                              QString("Reference \"%1\" points to multiinstance with different values. This is not allowed.").arg(field_name));
+                              QString("Dataengine: Reference \"%1\" points to multiinstance with different values. This is not allowed.").arg(field_name));
     }
 
     if (reference_links[0].value == ReferenceLink::ReferenceValue::DesiredValue) {
         if (!entry_target->is_desired_value_set()) {
             throw DataEngineError(DataEngineErrorNumber::reference_target_has_no_desired_value,
-                                  QString("reference \"%1\" points to desired value \"%2\", even though no desired value is defined in \"%2\".")
+                                  QString("Dataengine: reference \"%1\" points to desired value \"%2\", even though no desired value is defined in \"%2\".")
                                       .arg(field_name)
                                       .arg(reference_links[0].link));
         }
@@ -3823,7 +3991,7 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
         if (!tolerance.is_defined()) {
             throw DataEngineError(
                 DataEngineErrorNumber::reference_is_a_number_and_needs_tolerance,
-                QString("reference \"%1\" pointing to \"%2\", is a number but has no tolerance defined. A tolerance must be defined on numbers.")
+                QString("Dataengine: reference \"%1\" pointing to \"%2\", is a number but has no tolerance defined. A tolerance must be defined on numbers.")
                     .arg(field_name)
                     .arg(reference_links[0].link));
         }
@@ -3839,11 +4007,12 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
     }
     if (!num_entry) {
         if (tolerance.is_defined()) {
-            throw DataEngineError(DataEngineErrorNumber::reference_is_not_number_but_has_tolerance,
-                                  QString("reference \"%1\" pointing to \"%2\", is not a number but has a tolerance defined. A tolerance is only allowed "
-                                          "to be applied on numbers.")
-                                      .arg(field_name)
-                                      .arg(reference_links[0].link));
+            throw DataEngineError(
+                DataEngineErrorNumber::reference_is_not_number_but_has_tolerance,
+                QString("Dataengine: reference \"%1\" pointing to \"%2\", is not a number but has a tolerance defined. A tolerance is only allowed "
+                        "to be applied on numbers.")
+                    .arg(field_name)
+                    .arg(reference_links[0].link));
         }
     }
 }
@@ -3871,8 +4040,9 @@ void ReferenceDataEntry::parse_refence_string(QString reference_string) {
             ref_link.value = ReferenceLink::ReferenceValue::DesiredValue;
             ref_link.link = ref;
         } else {
-            throw DataEngineError(DataEngineErrorNumber::illegal_reference_declaration,
-                                  QString("reference \"%1\" target declaration must end with \".desired\" or \".actual\" but does not.").arg(field_name));
+            throw DataEngineError(
+                DataEngineErrorNumber::illegal_reference_declaration,
+                QString("Dataengine: reference \"%1\" target declaration must end with \".desired\" or \".actual\" but does not.").arg(field_name));
         }
         reference_links.push_back(ref_link);
     }
@@ -3881,7 +4051,7 @@ void ReferenceDataEntry::parse_refence_string(QString reference_string) {
 void ReferenceDataEntry::assert_that_instance_count_is_defined() const {
     if (not_defined_yet_due_to_undefined_instance_count) {
         throw DataEngineError(DataEngineErrorNumber::reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance,
-                              QString("reference \"%1\" can not be used since it is pointing to an instance which is undefinded").arg(field_name));
+                              QString("Dataengine: reference \"%1\" can not be used since it is pointing to an instance which is undefinded").arg(field_name));
     }
 }
 
@@ -3911,4 +4081,157 @@ QString ReferenceDataEntry::get_specific_json_name() const {
     assert_that_instance_count_is_defined();
     assert(entry_target);
     return entry_target->get_specific_json_name();
+}
+
+DataEngineActualValueStatisticFile::DataEngineActualValueStatisticFile() {
+    is_opened = false;
+}
+
+DataEngineActualValueStatisticFile::~DataEngineActualValueStatisticFile() {
+ //   close_file();
+}
+
+void DataEngineActualValueStatisticFile::start_recording(QString file_root_path, QString file_prefix) {
+    this->file_root_path = file_root_path;
+    this->file_prefix = file_prefix;
+    open_or_create_new_file();
+}
+
+QString select_newest_file_name(QStringList file_list, QString prefix) {
+    QDateTime dt_max = QDateTime::fromMSecsSinceEpoch(0);
+    QString max_file_name{""};
+    for (const QString &file_name : file_list) {
+        QDateTime dt = decode_date_time_from_file_name(file_name.toStdString(), prefix.toStdString());
+        //  qDebug() << dt.toString();
+        if (dt > dt_max) {
+            max_file_name = file_name;
+            dt_max = dt;
+        }
+    }
+    return max_file_name;
+}
+
+QString DataEngineActualValueStatisticFile::select_file_name_to_be_used(QStringList file_list) {
+    return select_newest_file_name(file_list, file_prefix);
+}
+
+void DataEngineActualValueStatisticFile::save_to_file()
+{
+    close_file();
+}
+
+void DataEngineActualValueStatisticFile::open_or_create_new_file() {
+    QStringList nameFilter(file_prefix + "*.json");
+    QString root_path = append_separator_to_path(file_root_path);
+    QDir directory(root_path);
+    directory.mkpath(root_path);
+    QString file_name = select_file_name_to_be_used(directory.entryList(nameFilter));
+    bool use_new_file = true;
+    if (file_name.size()) {
+        file_name = directory.filePath(file_name);
+        use_new_file = false;
+        open_file(file_name);
+        for (const QString &key : data_entries.keys()) {
+            QJsonArray arr = data_entries[key].toArray();
+            if ((uint)arr.count() > entry_limit) {
+                use_new_file = true;
+                break;
+            }
+        }
+    }
+    if (use_new_file) {
+        create_new_file();
+    }
+}
+
+void DataEngineActualValueStatisticFile::create_new_file() {
+    QString file_name = QString::fromStdString(propose_unique_filename_by_datetime(file_root_path.toStdString(), file_prefix.toStdString(), ".json"));
+    open_file(file_name);
+}
+
+void DataEngineActualValueStatisticFile::close_file() {
+    if (is_opened && used_file_name.size()) {
+        QFile saveFile(used_file_name);
+        if (!saveFile.open(QIODevice::WriteOnly)) {
+            throw DataEngineError(DataEngineErrorNumber::cannot_open_file,
+                                  QString{"Dataengine: Can not open file: \"%1\" for saving actual value statistics."}.arg(used_file_name));
+            remove_lock_file();
+            return;
+        }
+        QJsonDocument saveDoc(data_entries);
+        saveFile.write(saveDoc.toJson());
+        data_entries = QJsonObject{};
+        remove_lock_file();
+        is_opened = false;
+    }
+}
+
+void DataEngineActualValueStatisticFile::remove_lock_file() {
+    if (lock_file_exists) {
+        QString lock_file_name = used_file_name + ".lock";
+        QFile file(lock_file_name);
+        file.remove();
+        lock_file_exists = false;
+    }
+}
+
+bool DataEngineActualValueStatisticFile::check_and_create_lock_file() {
+    bool result = false;
+    QString lock_file_name = used_file_name + ".lock";
+    if (QFile::exists(lock_file_name)) {
+        result = true;
+    }
+
+    QFile lockfile(lock_file_name);
+    lockfile.open(QIODevice::WriteOnly);
+    lock_file_exists = true;
+    return result;
+}
+
+void DataEngineActualValueStatisticFile::open_file(QString file_name) {
+    qDebug() << file_name;
+    close_file();
+    used_file_name = file_name;
+    if (check_and_create_lock_file()) {
+        used_file_name = QString::fromStdString(propose_unique_filename_by_datetime(file_root_path.toStdString(), file_prefix.toStdString(), ".json"));
+    }
+
+    QFile loadFile(used_file_name);
+    if (!loadFile.open(QIODevice::ReadOnly)) {
+        data_entries = QJsonObject{};
+    } else {
+        QByteArray byte_data = loadFile.readAll();
+        QJsonDocument loadDoc(QJsonDocument::fromJson(byte_data));
+        data_entries = loadDoc.object();
+    }
+    is_opened = true;
+}
+
+void DataEngineActualValueStatisticFile::set_actual_value(const FormID &field_name, const QString serialised_dependency, double value) {
+    if (is_opened) {
+        QJsonObject obj{};
+        obj["time_stamp"] = QDateTime::currentMSecsSinceEpoch();
+        obj["value"] = value;
+        if (dut_identifier != ""){
+            obj["dut_id"] = dut_identifier;
+        }
+        QJsonArray arr;
+        QString key_name = field_name;
+        if (serialised_dependency.size()) {
+            key_name = key_name + "~" + serialised_dependency;
+        }
+        if (data_entries[key_name].isArray()) {
+            arr = data_entries[key_name].toArray();
+        }
+        arr.append(obj);
+        data_entries[key_name] = arr;
+        if ((uint)arr.count() > entry_limit) {
+            create_new_file();
+        }
+    }
+}
+
+void DataEngineActualValueStatisticFile::set_dut_identifier(QString dut_identifier)
+{
+    this->dut_identifier = dut_identifier;
 }

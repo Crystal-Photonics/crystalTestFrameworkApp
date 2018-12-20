@@ -1,6 +1,7 @@
 #ifndef UI_CONTAINER_H
 #define UI_CONTAINER_H
 
+#include "userentrystorage.h"
 #include <QScrollArea>
 #include <vector>
 
@@ -30,6 +31,7 @@ class UI_container : public QScrollArea {
     void set_column_count(int columns);
     void scroll_to_bottom();
     void remove_me_from_resize_list(UI_widget *me);
+    // UserEntryCache user_entry_cache;
 
     private:
     void resizeEvent(QResizeEvent *event) override;

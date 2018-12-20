@@ -17,7 +17,7 @@ HEADERS += \
 SOURCES += \
 	test_data_engine.cpp \
 	main.cpp \
-	testgooglemock.cpp \
+        testgooglemock.cpp \
 	testqstring.cpp \
 	testScriptEngine.cpp
 
@@ -25,9 +25,29 @@ INCLUDEPATH += $$PWD/../libs/googletest/googletest/include
 INCLUDEPATH += $$PWD/../libs/googletest/googlemock/include
 
 LIBS += -L$$BINDIR
-LIBS += -L$$PWD/../libs/googletest/build
+
+win32 {
+    equals(GCC_MACHINE,  x86_64-w64-mingw32){
+        LIBS += -L$$PWD/../libs/googletest/build/win64
+    }
+    equals(GCC_MACHINE, i686-w64-mingw32){
+        LIBS += -L$$PWD/../libs/googletest/build/win32
+    }
+
+}else{
+    LIBS += -L$$PWD/../libs/googletest/build/googlemock
+    LIBS += -L$$PWD/../libs/googletest/build/googlemock/gtest
+}
+
 LIBS += -lgmock
 LIBS += -lgtest
+
+
+win32 {
+    system($$system_quote($$SH) $$PWD/../git_win.sh)
+}else{
+    system($$system_quote($$SH) $$PWD/../git_linux.sh)
+}
 
 
 CONFIG(debug, debug|release) {
@@ -42,11 +62,26 @@ COPY_DIR = "$$(UNIXTOOLS)cp -r"
 
 #runtests.commands = $$RUNTEST
 #runtests.depends = copydata
+#TEST1="123"
+#TEST2="123"
+#message($$TEST1)
+#message($$TEST2)
 
-copydata.commands = $$COPY_DIR $$PWD/scripts $$OUT_PWD/
-first.depends = $(first) copydata
+#!equals(TEST1, $$TEST2) {
+#    message("not equal")
+#}else{
+#   message("equal")
+#}
 
-export(first.depends)
-export(copydata.commands)
+!equals(OUT_PWD, $$PWD) {
+    #avoid cp: ‘xx/scripts’ and ‘xx/scripts’ are the same file
+    copydata.commands = $$COPY_DIR $$PWD/scripts $$OUT_PWD/
+    first.depends = $(first) copydata
 
-QMAKE_EXTRA_TARGETS += first copydata
+    export(first.depends)
+    export(copydata.commands)
+
+    QMAKE_EXTRA_TARGETS += first copydata
+}
+
+

@@ -4,13 +4,13 @@
 DummyCommunicationDevice::DummyCommunicationDevice() {
     name = "dummy";
     is_connected = false;
-    emit connected();
+    emit connected(QByteArray());
 }
 
-bool DummyCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo)
+bool DummyCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo_)
 {
     is_connected = true;
-    this->portinfo = portinfo;
+    this->portinfo = portinfo_;
 
     return true;
 }

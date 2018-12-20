@@ -41,15 +41,15 @@ UserInstructionLabel::UserInstructionLabel(UI_container *parent, ScriptEngine *s
     label_user_instruction->setWordWrap(true);
 
     auto *vlayout_next = new QVBoxLayout;
-    label_next = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence, "").toString() + ")", parent);
+    label_next = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence_key, "").toString() + ")", parent);
     button_next = new QPushButton("next", parent);
 
     auto *vlayout_yes = new QVBoxLayout;
-    label_yes = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence, "").toString() + ")", parent);
+    label_yes = new QLabel("(or " + QSettings{}.value(Globals::confirm_key_sequence_key, "").toString() + ")", parent);
     button_yes = new QPushButton("yes", parent);
 
     auto *vlayout_no = new QVBoxLayout;
-    label_no = new QLabel("(or " + QSettings{}.value(Globals::cancel_key_sequence, "").toString() + ")", parent);
+    label_no = new QLabel("(or " + QSettings{}.value(Globals::cancel_key_sequence_key, "").toString() + ")", parent);
     button_no = new QPushButton("no", parent);
 
     vlayout_next->addWidget(button_next);

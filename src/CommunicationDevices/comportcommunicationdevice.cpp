@@ -18,29 +18,43 @@ ComportCommunicationDevice::ComportCommunicationDevice() {
 }
 
 bool ComportCommunicationDevice::isConnected() {
-    return Utility::promised_thread_call(this,  [this] { return port.isOpen(); });
+    return Utility::promised_thread_call(this, [this] { return port.isOpen(); });
 }
 
-bool ComportCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo) {
-    return Utility::promised_thread_call(this,  [this, portinfo] {
-        assert(portinfo.contains(HOST_NAME_TAG));
-        assert(portinfo.contains("baudrate"));
-        assert(portinfo[HOST_NAME_TAG].type() == QVariant::String);
-        assert(portinfo["baudrate"].type() == QVariant::Int);
+bool ComportCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo_) {
+    this->portinfo = portinfo_;
+    return Utility::promised_thread_call(this, [this, portinfo_] {
+        assert(portinfo_.contains(HOST_NAME_TAG));
+        assert(portinfo_.contains(BAUD_RATE_TAG));
+        assert(portinfo_[HOST_NAME_TAG].type() == QVariant::String);
+        assert(portinfo_[BAUD_RATE_TAG].type() == QVariant::Int);
 
-        port.setPortName(portinfo[HOST_NAME_TAG].toString());
-        port.setBaudRate(portinfo["baudrate"].toInt());
-
-        return port.open(QIODevice::ReadWrite);
+    //    qDebug() << QString("opening: ") + portinfo_[HOST_NAME_TAG].toString();
+        port.setPortName(portinfo_[HOST_NAME_TAG].toString());
+        port.setBaudRate(portinfo_[BAUD_RATE_TAG].toInt());
+        bool result = port.open(QIODevice::ReadWrite);
+        if (result) {
+            QString protocol_name = portinfo_[TYPE_NAME_TAG].toString();
+            QString text;
+            if (protocol_name.count()) {
+                text = protocol_name + ", ";
+            }
+            text += portinfo_[HOST_NAME_TAG].toString() + ", bd: " + portinfo_[BAUD_RATE_TAG].toString();
+            auto ba = QByteArray();
+            ba.append(text);
+            emit connected(ba);
+        } else {
+            qDebug() << QString("could not open ") + portinfo_[HOST_NAME_TAG].toString();
+        }
+        return result;
     });
-    this->portinfo = portinfo;
 }
 
 bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes, bool isPolling) {
     auto now = std::chrono::high_resolution_clock::now();
     int received_bytes = 0;
     auto try_read = [this, &received_bytes] {
-        auto result = Utility::promised_thread_call(this,  [this] {
+        auto result = Utility::promised_thread_call(this, [this] {
             QApplication::processEvents();
             return port.readAll();
         });
@@ -68,7 +82,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
     QByteArray inbuffer{};
 
     auto try_read = [this, &inbuffer] {
-        auto result = Utility::promised_thread_call(this,  [this] {
+        auto result = Utility::promised_thread_call(this, [this] {
             QApplication::processEvents();
             char byte_buffer = 0;
             QByteArray inbyte_buffer{};
@@ -124,7 +138,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
 }
 
 void ComportCommunicationDevice::send(const QByteArray &data, const QByteArray &displayed_data) {
-    return Utility::promised_thread_call(this,  [this, data, displayed_data] {
+    return Utility::promised_thread_call(this, [this, data, displayed_data] {
         auto size = port.write(data);
         if (size == -1) {
             return;
@@ -139,7 +153,13 @@ void ComportCommunicationDevice::send(const QByteArray &data, const QByteArray &
 }
 
 void ComportCommunicationDevice::close() {
-    return Utility::promised_thread_call(this,  [this] { port.close(); });
+    return Utility::promised_thread_call(this, [this] { //
+        //qDebug() << QString("closing: ") + portinfo[HOST_NAME_TAG].toString();
+        port.close();
+        QByteArray ar;
+        ar.append(portinfo[HOST_NAME_TAG].toString());
+        emit disconnected(ar);
+    });
 }
 
 QString ComportCommunicationDevice::getName() {

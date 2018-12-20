@@ -1,0 +1,75 @@
+{
+	"device_types": [
+		{
+			"device_name": "U1252B",
+			"manufacturer": "Agilent",
+			"manual_path": "",
+			"protocol": "scpi",
+			"description":"Multimter",
+			"devices": [
+				{
+					"serial_number": "MY560200sf",
+					"expery_date": "2019.3.19",
+					"purchase_date": " ",
+					"locked": "no",
+					"note": "Erhöhte Toleranz im 5MOhm Bereich",
+					"calibration_certificate_path": " "
+
+				}, {
+					"serial_number": "MY560200sdfs",
+					"expery_date": "2019.1.1",
+					"purchase_date": "",
+					"locked": "no",
+					"note": "",
+					"calibration_certificate_path": ""
+				}
+			]
+		},	{
+			"device_name": "HMC8012",
+			"manufacturer": "Rohde&Schwarz",
+			"manual_path": "C:\\HMC8012_SCPI_ProgrammersManual_en_01.pdf",
+			"protocol": "scpi",
+			"description":"Multimter",
+			"devices": [
+				{
+					"serial_number": "033092407",
+					"expery_date": "2020.01.19",
+					"purchase_date": " ",
+					"locked": "no",
+					"note": "",
+					"calibration_certificate_path": " "
+
+				}
+			]
+		}, {
+			"device_name": "NGE103",
+			"manufacturer": "Rohde&Schwarz",
+			"manual_path": "C:\\NGE100_User_Manual_en_03_Web.pdf",
+			"protocol": "scpi",
+			"description":"Netzteil",
+			"devices": [{
+				"serial_number": "5601,2131235303/1574527",
+				"expery_date": " ",
+				"purchase_date": " ",
+				"locked": "",
+				"note": "alles OK",
+				"calibration_certificate_path": ""
+			}]
+		},{
+			"device_name": "Messscheiber",
+			"manufacturer": "RS pro",
+			"manual_path": "",
+			"description":"Messchieber",
+			"protocol": "manual",
+			"devices": [{
+				"serial_number": "123",
+				"expery_date": "2018.05.01",
+				"purchase_date": " ",
+				"locked": "",
+				"note": "bei SePa",
+				"calibration_certificate_path": ""
+			}]
+		}
+	]
+	
+}

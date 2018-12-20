@@ -7,8 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>1113</width>
-    <height>599</height>
+    <height>713</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Test Framework</string>
@@ -51,37 +57,6 @@
        <widget class="QWidget" name="layoutWidget">
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout">
-           <item>
-            <widget class="QPushButton" name="btn_refresh_dut">
-             <property name="text">
-              <string>Refresh only DUTs</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QPushButton" name="btn_refresh_all">
-             <property name="text">
-              <string>Refresh all</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item>
           <widget class="QTreeWidget" name="devices_list">
            <property name="sizePolicy">
             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
@@ -99,7 +74,7 @@
             <bool>false</bool>
            </property>
            <property name="contextMenuPolicy">
-            <enum>Qt::CustomContextMenu</enum>
+            <enum>Qt::ActionsContextMenu</enum>
            </property>
            <property name="sortingEnabled">
             <bool>true</bool>
@@ -141,34 +116,48 @@
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_4">
            <item>
-            <widget class="QRadioButton" name="use_human_readable_encoding">
-             <property name="text">
-              <string>Human Readable</string>
+            <widget class="Line" name="line_2">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
              </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QRadioButton" name="use_compiler_readable_encoding">
-             <property name="text">
-              <string>Compiler Readable</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_3">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>Communication console</string>
              </property>
-            </spacer>
+            </widget>
+           </item>
+           <item>
+            <widget class="Line" name="line">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="tbtn_collapse_console">
+             <property name="text">
+              <string>...</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../../resources.qrc">
+               <normaloff>:/src/icons/if_bullet_arrow_down_5071.ico</normaloff>:/src/icons/if_bullet_arrow_down_5071.ico</iconset>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>
@@ -183,14 +172,20 @@
            <property name="contextMenuPolicy">
             <enum>Qt::CustomContextMenu</enum>
            </property>
+           <property name="tabShape">
+            <enum>QTabWidget::Rounded</enum>
+           </property>
            <property name="currentIndex">
             <number>0</number>
            </property>
+           <property name="elideMode">
+            <enum>Qt::ElideNone</enum>
+           </property>
            <property name="tabsClosable">
-            <bool>true</bool>
+            <bool>false</bool>
            </property>
            <property name="movable">
-            <bool>true</bool>
+            <bool>false</bool>
            </property>
            <widget class="QWidget" name="ConsoleTab">
             <attribute name="title">
@@ -204,6 +199,9 @@
                  <horstretch>0</horstretch>
                  <verstretch>1</verstretch>
                 </sizepolicy>
+               </property>
+               <property name="verticalScrollBarPolicy">
+                <enum>Qt::ScrollBarAlwaysOn</enum>
                </property>
                <property name="readOnly">
                 <bool>true</bool>
@@ -220,88 +218,384 @@
         </layout>
        </widget>
       </widget>
-      <widget class="QSplitter" name="splitter">
+      <widget class="QSplitter" name="splitter_script_view">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-         <horstretch>2</horstretch>
-         <verstretch>2</verstretch>
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>10</horstretch>
+         <verstretch>0</verstretch>
         </sizepolicy>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::NoFrame</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Raised</enum>
        </property>
        <property name="lineWidth">
         <number>2</number>
+       </property>
+       <property name="midLineWidth">
+        <number>0</number>
        </property>
        <property name="orientation">
         <enum>Qt::Vertical</enum>
        </property>
        <property name="childrenCollapsible">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
        <widget class="QWidget" name="layoutWidget">
-        <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0">
+        <layout class="QVBoxLayout" name="verticalLayout" stretch="0">
+         <property name="spacing">
+          <number>0</number>
+         </property>
          <item>
-          <widget class="QTreeWidget" name="tests_list">
-           <property name="contextMenuPolicy">
-            <enum>Qt::CustomContextMenu</enum>
+          <widget class="QFrame" name="frame_complete_script_panel">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
            </property>
-           <property name="selectionMode">
-            <enum>QAbstractItemView::ExtendedSelection</enum>
+           <property name="layoutDirection">
+            <enum>Qt::RightToLeft</enum>
            </property>
-           <property name="sortingEnabled">
-            <bool>true</bool>
+           <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
            </property>
-           <column>
-            <property name="text">
-             <string>Test Name</string>
+           <property name="frameShadow">
+            <enum>QFrame::Plain</enum>
+           </property>
+           <property name="lineWidth">
+            <number>0</number>
+           </property>
+           <layout class="QGridLayout" name="gridLayout">
+            <property name="leftMargin">
+             <number>0</number>
             </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>Device Requirements</string>
+            <property name="topMargin">
+             <number>0</number>
             </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>Connected Devices</string>
+            <property name="rightMargin">
+             <number>0</number>
             </property>
-           </column>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <item row="0" column="1">
+             <widget class="QFrame" name="frame_scripts">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="layoutDirection">
+               <enum>Qt::LeftToRight</enum>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::NoFrame</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_7">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QTreeWidget" name="tests_advanced_view">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                   <horstretch>1</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="contextMenuPolicy">
+                  <enum>Qt::CustomContextMenu</enum>
+                 </property>
+                 <property name="layoutDirection">
+                  <enum>Qt::LeftToRight</enum>
+                 </property>
+                 <property name="selectionMode">
+                  <enum>QAbstractItemView::SingleSelection</enum>
+                 </property>
+                 <property name="sortingEnabled">
+                  <bool>true</bool>
+                 </property>
+                 <column>
+                  <property name="text">
+                   <string>Test Name</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Device Requirements</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Connected Devices</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Syntax</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>Fav</string>
+                  </property>
+                 </column>
+                </widget>
+               </item>
+               <item>
+                <widget class="QListWidget" name="test_simple_view">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                   <horstretch>1</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="contextMenuPolicy">
+                  <enum>Qt::CustomContextMenu</enum>
+                 </property>
+                 <property name="layoutDirection">
+                  <enum>Qt::LeftToRight</enum>
+                 </property>
+                 <property name="editTriggers">
+                  <set>QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
+                 </property>
+                 <property name="selectionMode">
+                  <enum>QAbstractItemView::ExtendedSelection</enum>
+                 </property>
+                 <property name="textElideMode">
+                  <enum>Qt::ElideNone</enum>
+                 </property>
+                 <property name="resizeMode">
+                  <enum>QListView::Adjust</enum>
+                 </property>
+                 <property name="viewMode">
+                  <enum>QListView::IconMode</enum>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                 <property name="sortingEnabled">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QFrame" name="frame_2">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_6">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QFrame" name="frame_scripts_buttons">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="frameShape">
+                  <enum>QFrame::NoFrame</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Raised</enum>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_8">
+                  <property name="spacing">
+                   <number>0</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QToolButton" name="tbtn_view_favorite_scripts">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="layoutDirection">
+                     <enum>Qt::RightToLeft</enum>
+                    </property>
+                    <property name="text">
+                     <string>...</string>
+                    </property>
+                    <property name="icon">
+                     <iconset>
+                      <normalon>:/src/icons/star_16.ico</normalon>
+                     </iconset>
+                    </property>
+                    <property name="checkable">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QToolButton" name="tbtn_view_all_scripts">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="layoutDirection">
+                     <enum>Qt::RightToLeft</enum>
+                    </property>
+                    <property name="text">
+                     <string>...</string>
+                    </property>
+                    <property name="icon">
+                     <iconset resource="../../resources.qrc">
+                      <normaloff>:/src/icons/if_folder-tree_16.ico</normaloff>:/src/icons/if_folder-tree_16.ico</iconset>
+                    </property>
+                    <property name="checkable">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QToolButton" name="tbtn_refresh_scripts">
+                    <property name="text">
+                     <string>...</string>
+                    </property>
+                    <property name="icon">
+                     <iconset>
+                      <normalon>:/src/icons/if_arrow_circle_double_16.ico</normalon>
+                     </iconset>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="verticalSpacer">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>10</width>
+                      <height>1</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QToolButton" name="tbtn_collapse_script_view">
+                   <property name="text">
+                    <string>...</string>
+                   </property>
+                   <property name="icon">
+                    <iconset resource="../../resources.qrc">
+                     <normaloff>:/src/icons/if_bullet_arrow_up_5073.ico</normaloff>:/src/icons/if_bullet_arrow_up_5073.ico</iconset>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeType">
+                    <enum>QSizePolicy::Expanding</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>5</width>
+                     <height>2</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
           </widget>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_3">
-           <item>
-            <widget class="QPushButton" name="run_test_script_button">
-             <property name="text">
-              <string>Run Selected Tests</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="close_finished_tests_button">
-             <property name="text">
-              <string>Close Finished Tests</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_2">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
          </item>
         </layout>
        </widget>
        <widget class="QTabWidget" name="test_tabs">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
           <horstretch>0</horstretch>
           <verstretch>1</verstretch>
          </sizepolicy>
@@ -316,6 +610,12 @@
          <bool>true</bool>
         </property>
         <widget class="QWidget" name="tab">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <attribute name="title">
           <string>Test Information</string>
          </attribute>
@@ -347,18 +647,12 @@
      <height>20</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuSettings">
-    <property name="title">
-     <string>Settings</string>
-    </property>
-    <addaction name="actionPaths"/>
-    <addaction name="actionHotkey"/>
-   </widget>
    <widget class="QMenu" name="menuTools">
     <property name="title">
      <string>Tools</string>
     </property>
     <addaction name="actionDummy_Data_Creator_for_print_templates"/>
+    <addaction name="actionSettings"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -366,13 +660,50 @@
     </property>
     <addaction name="actionInfo"/>
    </widget>
-   <addaction name="menuSettings"/>
+   <widget class="QMenu" name="menuScript">
+    <property name="title">
+     <string>Script</string>
+    </property>
+    <addaction name="actionReload_All_Scripts"/>
+    <addaction name="actionRunSelectedScript"/>
+    <addaction name="actionClose_finished_Tests"/>
+    <addaction name="actionedit_script"/>
+   </widget>
+   <widget class="QMenu" name="menuDevice">
+    <property name="title">
+     <string>Device</string>
+    </property>
+    <addaction name="actionrefresh_devices_all"/>
+    <addaction name="actionrefresh_devices_dut"/>
+   </widget>
+   <addaction name="menuDevice"/>
+   <addaction name="menuScript"/>
    <addaction name="menuTools"/>
    <addaction name="menuHelp"/>
   </widget>
-  <action name="actionPaths">
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="layoutDirection">
+    <enum>Qt::LeftToRight</enum>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionrefresh_devices_all"/>
+   <addaction name="actionrefresh_devices_dut"/>
+   <addaction name="separator"/>
+   <addaction name="actionedit_script"/>
+   <addaction name="actionRunSelectedScript"/>
+   <addaction name="actionClose_finished_Tests"/>
+  </widget>
+  <action name="actionSettings">
    <property name="text">
-    <string>Paths ...</string>
+    <string>Settings</string>
    </property>
   </action>
   <action name="actionHotkey">
@@ -390,9 +721,83 @@
     <string>Info</string>
    </property>
   </action>
+  <action name="actionRunSelectedScript">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/src/icons/if_play-green_84841.ico</normaloff>:/src/icons/if_play-green_84841.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Run selected Script</string>
+   </property>
+   <property name="toolTip">
+    <string>Run selected Script</string>
+   </property>
+   <property name="shortcut">
+    <string>F8</string>
+   </property>
+  </action>
+  <action name="actionrefresh_devices_all">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/src/icons/if_arrow_circle_double_16_all.ico</normaloff>:/src/icons/if_arrow_circle_double_16_all.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Refresh All</string>
+   </property>
+   <property name="toolTip">
+    <string>Refresh All</string>
+   </property>
+  </action>
+  <action name="actionrefresh_devices_dut">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/src/icons/if_arrow_circle_double_16_dut.ico</normaloff>:/src/icons/if_arrow_circle_double_16_dut.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Refresh DUTs only</string>
+   </property>
+   <property name="toolTip">
+    <string>Refresh DUTs only</string>
+   </property>
+  </action>
+  <action name="actionClose_finished_Tests">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/src/icons/if_broom_16.ico</normaloff>:/src/icons/if_broom_16.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Close finished Tests</string>
+   </property>
+   <property name="toolTip">
+    <string>Close finished Tests</string>
+   </property>
+  </action>
+  <action name="actionedit_script">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/src/icons/if_page_white_edit_16.ico</normaloff>:/src/icons/if_page_white_edit_16.ico</iconset>
+   </property>
+   <property name="text">
+    <string>edit script</string>
+   </property>
+   <property name="toolTip">
+    <string>Edit script</string>
+   </property>
+  </action>
+  <action name="actionReload_All_Scripts">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/src/icons/if_arrow_circle_double_16.ico</normaloff>:/src/icons/if_arrow_circle_double_16.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Reload All Scripts</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="../../resources.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>devices_list</sender>
@@ -459,39 +864,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>tests_list</sender>
-   <signal>itemChanged(QTreeWidgetItem*,int)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>align_columns()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>657</x>
-     <y>184</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>750</x>
-     <y>181</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>tests_list</sender>
-   <signal>itemEntered(QTreeWidgetItem*,int)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>align_columns()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>723</x>
-     <y>217</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>752</x>
-     <y>216</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>tests_list</sender>
+   <sender>tests_advanced_view</sender>
    <signal>itemExpanded(QTreeWidgetItem*)</signal>
    <receiver>MainWindow</receiver>
    <slot>align_columns()</slot>
@@ -507,7 +880,23 @@
    </hints>
   </connection>
   <connection>
-   <sender>tests_list</sender>
+   <sender>tests_advanced_view</sender>
+   <signal>itemChanged(QTreeWidgetItem*,int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>align_columns()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>657</x>
+     <y>184</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>750</x>
+     <y>181</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tests_advanced_view</sender>
    <signal>itemCollapsed(QTreeWidgetItem*)</signal>
    <receiver>MainWindow</receiver>
    <slot>align_columns()</slot>
@@ -519,6 +908,22 @@
     <hint type="destinationlabel">
      <x>749</x>
      <y>278</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tests_advanced_view</sender>
+   <signal>itemEntered(QTreeWidgetItem*,int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>align_columns()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>723</x>
+     <y>217</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>752</x>
+     <y>216</y>
     </hint>
    </hints>
   </connection>

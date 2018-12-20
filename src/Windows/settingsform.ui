@@ -1,0 +1,709 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SettingsForm</class>
+ <widget class="QDialog" name="SettingsForm">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>741</width>
+    <height>412</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Settings</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="layoutDirection">
+      <enum>Qt::LeftToRight</enum>
+     </property>
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>User interface settings</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="1" column="0">
+        <layout class="QGridLayout" name="gridLayout_2">
+         <item row="0" column="2">
+          <widget class="QPushButton" name="confirm_keySequenceEdit_clear_button">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>24</width>
+             <height>24</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>X</string>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QKeySequenceEdit" name="skip_keySequenceEdit"/>
+         </item>
+         <item row="0" column="1">
+          <widget class="QKeySequenceEdit" name="confirm_keySequenceEdit"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_9">
+           <property name="text">
+            <string>Skip</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QKeySequenceEdit" name="cancel_keySequenceEdit"/>
+         </item>
+         <item row="3" column="2">
+          <widget class="QPushButton" name="cancel_keySequenceEdit_clear_button">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>24</width>
+             <height>24</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>X</string>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QPushButton" name="skip_keySequenceEdit_clear_button">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>24</width>
+             <height>24</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>X</string>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_8">
+           <property name="text">
+            <string>Confirm</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_14">
+           <property name="text">
+            <string>Cancel</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="5" column="0">
+        <spacer name="verticalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="2" column="0">
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Select a key to be used as a hotkey for certain script events.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QCheckBox" name="cbox_collapse_script_explorer_by_start">
+         <property name="text">
+          <string>Collapse script explorer when script starts</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QCheckBox" name="cbtn_console_human_readable">
+         <property name="text">
+          <string>Console human readable</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>Path settings</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="1" column="0">
+        <layout class="QVBoxLayout" name="layout_script_path">
+         <item>
+          <widget class="QLabel" name="label_10">
+           <property name="text">
+            <string>Path to the test scripts (subdirectories are included)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_9">
+           <item>
+            <widget class="QLineEdit" name="test_script_path_text">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="test_script_path_selector">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>24</width>
+               <height>24</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item row="6" column="1">
+        <layout class="QVBoxLayout" name="layout_script_path_2">
+         <item>
+          <widget class="QLabel" name="label_13">
+           <property name="text">
+            <string>Path to the favorite script description file</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_12">
+           <item>
+            <widget class="QLineEdit" name="favorite_script_path">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="favorite_script_selector">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>24</width>
+               <height>24</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item row="4" column="1">
+        <layout class="QVBoxLayout" name="layout_exceptional_approval">
+         <item>
+          <widget class="QLabel" name="label_11">
+           <property name="text">
+            <string>Path to Excpetion Approval DB</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_5">
+           <item>
+            <widget class="QLineEdit" name="edit_exceptional_approval">
+             <property name="text">
+              <string/>
+             </property>
+             <property name="placeholderText">
+              <string>path/exceptional approval</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="exceptional_approval_path">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>24</width>
+               <height>24</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item row="8" column="0">
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="5" column="1">
+        <layout class="QVBoxLayout" name="layout_isotopfile">
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Path to isotope source database file:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <item>
+            <widget class="QLineEdit" name="isotope_db_path">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="isotope_db_path_button">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>24</width>
+               <height>24</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item row="1" column="1">
+        <layout class="QVBoxLayout" name="layout_editor_argurments">
+         <item>
+          <widget class="QLabel" name="label_6">
+           <property name="text">
+            <string>Lua Editor Parameters: Use %1 for the file name and %2 for the line number</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lua_editor_parameters_text">
+           <property name="text">
+            <string/>
+           </property>
+           <property name="placeholderText">
+            <string>--file=%1 --line_number=%2</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="5" column="0">
+        <layout class="QVBoxLayout" name="layout_device_description_file">
+         <item>
+          <widget class="QLabel" name="label_3">
+           <property name="text">
+            <string>Path to the device description file</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <item>
+            <widget class="QLineEdit" name="device_description_path_text">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="device_description_path_selector">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>24</width>
+               <height>24</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item row="6" column="0">
+        <layout class="QVBoxLayout" name="layout_equipment_file">
+         <item>
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>Path to the measurement equipment meta data file</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_6">
+           <item>
+            <widget class="QLineEdit" name="meta_path_text">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="meta_path_selector">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>24</width>
+               <height>24</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item row="4" column="0">
+        <layout class="QVBoxLayout" name="layout_environment_file">
+         <item>
+          <widget class="QLabel" name="label_12">
+           <property name="text">
+            <string>Path to Environment Variables</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_11">
+           <item>
+            <widget class="QLineEdit" name="env_var_path">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="env_var_path_button">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>24</width>
+               <height>24</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="0">
+        <layout class="QVBoxLayout" name="layout_xml">
+         <item>
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>Path to RPC-xml files (subdirectories are included)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_4">
+           <item>
+            <widget class="QLineEdit" name="rpc_xml_files_path_text">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="rpc_xml_files_path_selector">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>24</width>
+               <height>24</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="1">
+        <layout class="QVBoxLayout" name="layout_editor">
+         <item>
+          <widget class="QLabel" name="label_5">
+           <property name="text">
+            <string>Path to Lua editor</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_10">
+           <item>
+            <widget class="QLineEdit" name="lua_editor_path_text">
+             <property name="text">
+              <string/>
+             </property>
+             <property name="placeholderText">
+              <string>path/editor</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="lua_editor_path_selector">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>24</width>
+               <height>24</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>24</width>
+               <height>24</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item row="7" column="0" colspan="2">
+        <layout class="QVBoxLayout" name="layout_searchpath">
+         <item>
+          <widget class="QLabel" name="label_15">
+           <property name="text">
+            <string>Searchpath</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_13">
+           <item>
+            <widget class="QLineEdit" name="search_path">
+             <property name="toolTip">
+              <string>Equivalent to system's Path environment variable. Used for git and run_external_tool</string>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="cursorPosition">
+              <number>0</number>
+             </property>
+             <property name="placeholderText">
+              <string>searchpath</string>
+             </property>
+             <property name="cursorMoveStyle">
+              <enum>Qt::LogicalMoveStyle</enum>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <widget class="QFrame" name="frame">
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="btn_import">
+        <property name="text">
+         <string>Import..</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_export">
+        <property name="text">
+         <string>Export..</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_ok">
+        <property name="text">
+         <string>Ok</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btn_cancel">
+        <property name="text">
+         <string>Cancel</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

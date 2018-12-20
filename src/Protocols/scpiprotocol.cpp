@@ -5,6 +5,7 @@
 #include "console.h"
 #include "qt_util.h"
 
+#include "CommunicationDevices/usbtmccommunicationdevice.h"
 #include <QByteArray>
 #include <QDateTime>
 #include <QDateTime>
@@ -17,8 +18,8 @@
 #include <QTranslator>
 #include <QTreeWidgetItem>
 #include <cassert>
+#include <cmath>
 #include <fstream>
-#include "CommunicationDevices/usbtmccommunicationdevice.h"
 
 using namespace std::chrono_literals;
 
@@ -161,18 +162,17 @@ void SCPIProtocol::set_scpi_meta_data(DeviceMetaDataGroup scpi_meta_data) {
         scpi_device_detail = scpi_meta_data.devices[0];
 
     } else if (scpi_meta_data.devices.count() == 0) {
-        Utility::thread_call(MainWindow::mw,nullptr,
-                                      [ comportname = device->getName(), serial_number = device_data.serial_number, device_name = device_data.name ] {
-                                          QMessageBox::warning(MainWindow::mw, "Unknown SCPI device",
-                                                               QString("Could not find SCPI-Device in meta data table. Serialnumber: \"%1\" name: \"%2\" @%3 .")
-                                                                   .arg(serial_number)
-                                                                   .arg(device_name)
-                                                                   .arg(comportname));
+		Utility::thread_call(MainWindow::mw, [ comportname = device->getName(), serial_number = device_data.serial_number, device_name = device_data.name ] {
+			QMessageBox::warning(MainWindow::mw, "Unknown SCPI device",
+								 QString("Could not find SCPI-Device in meta data table. Serialnumber: \"%1\" name: \"%2\" @%3 .")
+									 .arg(serial_number)
+									 .arg(device_name)
+									 .arg(comportname));
 
-                                      });
+		});
 
     } else {
-        Utility::promised_thread_call(MainWindow::mw,  [ comportname = device->getName(), &scpi_meta_data ]() mutable {
+		Utility::promised_thread_call(MainWindow::mw, [ comportname = device->getName(), &scpi_meta_data ]() mutable {
             SCPIMetaDataDeviceSelector meta_data_selector(MainWindow::mw);
             meta_data_selector.load_devices(comportname, scpi_meta_data);
             meta_data_selector.exec();
@@ -202,8 +202,8 @@ bool SCPIProtocol::is_correct_protocol() {
 
     escape_characters = device_protocol_setting.escape.toStdString();
     bool use_leading_escape = true;
-    USBTMCCommunicationDevice *usbtmctest = dynamic_cast<USBTMCCommunicationDevice*>(device);
-    if (usbtmctest){
+	USBTMCCommunicationDevice *usbtmctest = dynamic_cast<USBTMCCommunicationDevice *>(device);
+	if (usbtmctest) {
         use_leading_escape = false; //tmc devices not need leading escape
     }
     if (send_scpi_request(TIMEOUT, "*IDN?", use_leading_escape, true)) {
@@ -218,7 +218,7 @@ bool SCPIProtocol::is_correct_protocol() {
 }
 
 void SCPIProtocol::send_string(std::string data) {
-    Utility::promised_thread_call(device,  [ device = this->device, data = data ] {
+	Utility::promised_thread_call(device, [ device = this->device, data = data ] {
         std::string display_data = QString::fromStdString(data).trimmed().toStdString();
         std::vector<unsigned char> data_vec{data.begin(), data.end()};
         std::vector<unsigned char> disp_vec{display_data.begin(), display_data.end()};
@@ -245,7 +245,6 @@ bool SCPIProtocol::send_scpi_request(Duration timeout, std::string request, bool
     event = clean_up_regex_with_escape_characters(event);
     QString request_regex = clean_up_regex_with_escape_characters(QString().fromStdString(request));
     event = "^(" + request_regex + "|" + event + ")";
-
 
     if (use_leading_escape) {
         send_string(escape_characters);

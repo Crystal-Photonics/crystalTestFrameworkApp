@@ -1,0 +1,6 @@
+erase
+loadbin C:\firmware.bin, 0x08000000
+verifybin C:\firmware.bin, 0x08000000
+r
+g
+exit

@@ -17,7 +17,7 @@ class EXPORT SocketCommunicationDevice final : public CommunicationDevice {
     bool waitReceived(Duration timeout = std::chrono::seconds(1), int bytes = 1, bool isPolling = false) override;
     bool waitReceived(Duration timeout, std::string escape_characters, std::string leading_pattern_indicating_skip_line) override;
     void close() override;
-    bool connect(const QMap<QString,QVariant> &portinfo) override;
+    bool connect(const QMap<QString,QVariant> &portinfo_) override;
 
     private:
     QTcpSocket *socket; //QTcpSocket does not support move semantics and is somehow auto-deleted, probably

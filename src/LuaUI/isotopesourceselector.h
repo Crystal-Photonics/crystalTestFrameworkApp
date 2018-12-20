@@ -1,12 +1,12 @@
 #ifndef ISOTOPESOURCESELECTOR_H
 #define ISOTOPESOURCESELECTOR_H
 
+#include "ui_container.h"
 #include <QDateTime>
 #include <QList>
 #include <QMetaObject>
 #include <functional>
 #include <string>
-#include "ui_container.h"
 
 class QComboBox;
 
@@ -22,9 +22,9 @@ class IsotopeSource {
     double get_activtiy_becquerel(QDate date_for_activity);
 };
 
-class IsotopeSourceSelector : public UI_widget{
+class IsotopeSourceSelector : public UI_widget {
     public:
-	IsotopeSourceSelector(UI_container *parent);
+    IsotopeSourceSelector(UI_container *parent);
 
     ~IsotopeSourceSelector();
 
@@ -35,10 +35,12 @@ class IsotopeSourceSelector : public UI_widget{
     void set_visible(bool visible);
     void set_enabled(bool enabled);
     void filter_by_isotope(std::string isotope_name);
-private:
+
+    private:
     void load_isotope_database();
     QComboBox *combobox = nullptr;
-    QMetaObject::Connection callback_connection = {};
+    QMetaObject::Connection callback_isotope_selected = {};
+    //QMetaObject::Connection callback_connection = {};
     void set_single_shot_return_pressed_callback(std::function<void()> callback);
 
     void fill_combobox_with_isotopes(QString isotope_name);

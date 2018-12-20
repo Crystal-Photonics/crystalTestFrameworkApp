@@ -215,7 +215,7 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
 }
 /// @endcond
 
-/*! \fn string show_file_save_dialog(string title, string path, table filter);
+/*! \fn string show_file_save_dialog(string title, string path, string_table filter);
 \brief Shows a filesave dialog
 \param title             string value which is shown as the title of the window.
 \param path           preselected path of the dialog
@@ -238,7 +238,7 @@ The call is blocking, meaning the script pauses until the user clicks ok.
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-string show_file_save_dialog(string title, string path, table filter);
+string show_file_save_dialog(string title, string path, string_table filter);
 #endif
 #if 1
 /// @cond HIDDEN_SYMBOLS
@@ -258,7 +258,7 @@ std::string show_file_save_dialog(const std::string &title, const std::string &p
 #endif
 /// @endcond
 
-/*! \fn string show_question(string title, string message, table button_table);
+/*! \fn string show_question(string title, string message, string_table button_table);
 \brief Shows a dialog window with different buttons to click.
 \param title             string value which is shown as the title of the window.
 \param message           string value which is shown as the message text of the window.
@@ -299,7 +299,7 @@ Following button strings are allowed:
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-string show_question(string title, string message, table button_table);
+string show_question(string title, string message, string_table button_table);
 #endif
 #if 1
 /// @cond HIDDEN_SYMBOLS
@@ -497,7 +497,7 @@ void print(QPlainTextEdit *console, const sol::variadic_args &args) {
     for (auto &object : args) {
         text += ScriptEngine::to_string(object);
     }
-    Utility::thread_call(MainWindow::mw, nullptr, [ console = console, text = std::move(text) ] {
+	Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] {
         qDebug() << QString::fromStdString(text);
         Console::script(console) << text;
     });
@@ -525,7 +525,10 @@ sleep_ms(int timeout_ms);
 /// @cond HIDDEN_SYMBOLS
 void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms) {
     //scriptengine->timer_event_queue_run(timeout_ms);
-#if 1
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        throw sol::error("Abort Requested");
+    }
+#if 0
     QEventLoop event_loop;
     static const auto secret_exit_code = -0xF42F;
     QTimer::singleShot(timeout_ms, [&event_loop] { event_loop.exit(secret_exit_code); });
@@ -590,7 +593,47 @@ double round_double(const double value, const unsigned int precision) {
 }
 /// @endcond
 
-/*! \fn double table_sum(table input_values);
+/*! \fn double table_crc16(number_table input_values);
+\brief Calculated the CRC16 checksum of \c input_values assuming these values are an array of uint8_t
+\param input_values                 Input table of int values < 255.
+
+\return                     The crc16 value of \c input_values.
+
+\details    \par example:
+\code{.lua}
+    local input_values = {20, 40, 2, 30}
+    local retval = table_crc16(input_values)
+    print(retval)
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+int table_crc16(number_table input_values);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+uint16_t table_crc16(QPlainTextEdit *console, sol::table input_values) {
+    uint8_t x = 0;
+    uint16_t crc = 0xFFFF;
+
+    for (auto &i : input_values) {
+        if (i.second.as<double>() > 255) {
+            const auto &message = QObject::tr("table_crc16: found field value > 255");
+			Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+            throw sol::error("Unsupported table field type");
+        }
+        uint8_t item = i.second.as<double>();
+        x = crc >> 8 ^ item;
+        x ^= x >> 4;
+        crc = (crc << 8) ^ ((uint16_t)(x << 12)) ^ ((uint16_t)(x << 5)) ^ ((uint16_t)x);
+    }
+
+    return crc;
+}
+/// @endcond
+
+/*! \fn double table_sum(number_table input_values);
 \brief Returns the sum of the table \c input_values
 \param input_values                 Input table of int or double values.
 
@@ -606,7 +649,7 @@ double round_double(const double value, const unsigned int precision) {
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-double table_sum(table input_values);
+double table_sum(number_table input_values);
 #endif
 /// @cond HIDDEN_SYMBOLS
 
@@ -642,7 +685,7 @@ void lua_object_to_string(QPlainTextEdit *console, sol::object &obj, QString &v,
         t = "s";
     } else {
         const auto &message = QObject::tr("Failed to save table to file. Unsupported table field type.");
-        Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+		Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
         throw sol::error("Unsupported table field type");
     }
 }
@@ -675,14 +718,14 @@ void table_save_to_file(QPlainTextEdit *console, const std::string file_name, so
 
     if (fn == "") {
         const auto &message = QObject::tr("Failed open file for saving table: %1").arg(fn);
-        Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+		Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
         throw sol::error("could not open file");
         return;
     }
 
     if (!over_write_file && QFile::exists(fn)) {
         const auto &message = QObject::tr("File for saving table already exists and must not be overwritten: %1").arg(fn);
-        Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+		Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
         throw sol::error("File already exists");
         return;
     }
@@ -690,7 +733,7 @@ void table_save_to_file(QPlainTextEdit *console, const std::string file_name, so
 
     if (!saveFile.open(QIODevice::WriteOnly)) {
         const auto &message = QObject::tr("Failed open file for saving table: %1").arg(fn);
-        Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+		Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
         throw sol::error("could not open file");
         return;
     }
@@ -718,13 +761,13 @@ sol::object sol_object_from_type_string(QPlainTextEdit *console, sol::state &lua
         double index_d = v.toFloat(&ok);
         if (!ok) {
             const auto &message = QObject::tr("Could not convert string value to number while loading file to table. Failed string: \"%1\"").arg(v);
-            Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+			Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
             throw sol::error("Conversion Error");
         }
         return sol::make_object(lua, index_d);
     } else {
         const auto &message = QObject::tr("Unknown value type in file to be loaded into table. Type: \"%1\"").arg(value_type);
-        Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+		Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
         throw sol::error("unknown type");
     }
 }
@@ -759,13 +802,13 @@ sol::table jsonarray_to_table(QPlainTextEdit *console, sol::state &lua, const QJ
             double index_d = index.toFloat(&ok);
             if (!ok) {
                 const auto &message = QObject::tr("Could not convert string index to number while loading file to table. Failed string: \"%1\"").arg(index);
-                Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+				Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
                 throw sol::error("Conversion Error");
             }
             result[index_d] = val;
         } else {
             const auto &message = QObject::tr("Unknown index type in file to be loaded into table. Type: \"%1\"").arg(index_type);
-            Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+			Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
             throw sol::error("unknown type");
         }
     }
@@ -779,7 +822,7 @@ sol::table table_load_from_file(QPlainTextEdit *console, sol::state &lua, const 
 
     if (!loadFile.open(QIODevice::ReadOnly)) {
         const auto &message = QObject::tr("Can not open file for reading: \"%1\"").arg(fn);
-        Utility::thread_call(MainWindow::mw, nullptr, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+		Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
         throw sol::error("cant open file");
     }
 
@@ -934,7 +977,7 @@ sol::object table_min_by_field(sol::state &lua, sol::table input_values, const s
 
 /// @endcond
 ///
-/*! \fn double table_mean(table input_values);
+/*! \fn double table_mean(number_table input_values);
 \brief Returns the mean value of the table \c input_values
 \param input_values                 Input table of int or double values.
 
@@ -950,7 +993,7 @@ sol::object table_min_by_field(sol::state &lua, sol::table input_values, const s
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-double table_mean(table input_values);
+double table_mean(number_table input_values);
 #endif
 /// @cond HIDDEN_SYMBOLS
 
@@ -1040,7 +1083,7 @@ double table_standard_deviation(sol::table input_values) {
 
 
 
-/*! \fn table table_set_constant(table input_values, double constant);
+/*! \fn number_table table_set_constant(number_table input_values, double constant);
 \brief Returns a table with the length of \c input_values initialized with \c constant.
 \param input_values                 Input table of int or double values.
 \param constant       Int or double value. The value the array is initialized with.
@@ -1059,7 +1102,7 @@ double table_standard_deviation(sol::table input_values) {
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-table table_set_constant(table input_values, double constant);
+number_table table_set_constant(number_table input_values, double constant);
 #endif
 /// @cond HIDDEN_SYMBOLS
 
@@ -1072,7 +1115,7 @@ sol::table table_set_constant(sol::state &lua, sol::table input_values, double c
 }
 /// @endcond
 
-/*! \fn table table_create_constant(int size, double constant);
+/*! \fn number_table table_create_constant(int size, double constant);
 	\brief Creates a table with \c size elements initialized with \c constant.
 	\param size                 Positive integer. The size of the array to be created.
 	\param constant              Int or double value. The value the array is initialized with.
@@ -1091,7 +1134,7 @@ sol::table table_set_constant(sol::state &lua, sol::table input_values, double c
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-table table_create_constant(int size, double constant);
+number_table table_create_constant(int size, double constant);
 #endif
 /// @cond HIDDEN_SYMBOLS
 sol::table table_create_constant(sol::state &lua, const unsigned int size, double constant) {
@@ -1104,7 +1147,7 @@ sol::table table_create_constant(sol::state &lua, const unsigned int size, doubl
 /// @endcond
 ///
 
-/*! \fn table table_add_table_at(table input_values_a, table input_values_b, int at);
+/*! \fn number_table table_add_table_at(number_table input_values_a, number_table input_values_b, int at);
     \brief Performs a vector addition of \c input_values_a[i+at-1] + \c input_values_b[i] for each i while input_values_a and input_values_b may have a different legth.
 	\param input_values_a       Input table of int or double values.
 	\param input_values_b       Input table of int or double values. The summands the table \c input_values_a is added with.
@@ -1137,12 +1180,12 @@ sol::table table_create_constant(sol::state &lua, const unsigned int size, doubl
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-table table_add_table_at(table input_values_a, table input_values_b, int at);
+number_table table_add_table_at(number_table input_values_a, number_table input_values_b, int at);
 #endif
 /// @cond HIDDEN_SYMBOLS
 
 sol::table table_add_table_at(sol::state &lua, sol::table input_values_a, sol::table input_values_b, unsigned int at) {
-    if (at < 1){
+    if (at < 1) {
         throw std::runtime_error("table_add_table_at: at index must be > 0 but is " + QString::number(at).toStdString() + ".");
     }
 
@@ -1190,7 +1233,7 @@ sol::table table_add_table_at(sol::state &lua, sol::table input_values_a, sol::t
 }
 /// @endcond
 
-/*! \fn table table_add_table(table input_values_a, table input_values_b);
+/*! \fn number_table table_add_table(number_table input_values_a, number_table input_values_b);
     \brief Performs a vector addition of \c input_values_a[i] + \c input_values_b[i] for each i.
     \param input_values_a       Input table of int or double values.
     \param input_values_b       Input table of int or double values. The summands the table \c input_values_a is added with.
@@ -1210,7 +1253,7 @@ sol::table table_add_table_at(sol::state &lua, sol::table input_values_a, sol::t
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-table table_add_table(table input_values_a, table input_values_b);
+number_table table_add_table(number_table input_values_a, number_table input_values_b);
 #endif
 /// @cond HIDDEN_SYMBOLS
 
@@ -1224,7 +1267,7 @@ sol::table table_add_table(sol::state &lua, sol::table input_values_a, sol::tabl
 }
 /// @endcond
 
-/*! \fn table table_add_constant(table input_values,  double constant);
+/*! \fn number_table table_add_constant(number_table input_values,  double constant);
 	\brief Performs a vector addition of  \c input_values[i] + \c constant for each i.
 	\param input_values       Input table of int or double values.
 	\param constant            Int or double value. The summand the table \c input_values is added with.
@@ -1243,7 +1286,7 @@ sol::table table_add_table(sol::state &lua, sol::table input_values_a, sol::tabl
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-table table_add_constant(table input_values, double constant);
+number_table table_add_constant(number_table input_values, double constant);
 #endif
 /// @cond HIDDEN_SYMBOLS
 
@@ -1257,7 +1300,7 @@ sol::table table_add_constant(sol::state &lua, sol::table input_values, double c
 }
 /// @endcond
 
-/*! \fn table table_sub_table(table input_values_a, table input_values_b);
+/*! \fn number_table table_sub_table(number_table input_values_a, number_table input_values_b);
 	\brief Performs a vector subtraction of  \c input_values_a[i] - \c input_values_b[i] for each i.
 	\param input_values_a       Input table of int or double values.
 	\param input_values_b            Input table of int or double values. The subtrahend the table \c input_values_a is subtracted with.
@@ -1276,7 +1319,7 @@ sol::table table_add_constant(sol::state &lua, sol::table input_values, double c
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-table table_sub_table(table input_values_a, table input_values_b);
+number_table table_sub_table(number_table input_values_a, number_table input_values_b);
 #endif
 /// @cond HIDDEN_SYMBOLS
 
@@ -1290,7 +1333,7 @@ sol::table table_sub_table(sol::state &lua, sol::table input_values_a, sol::tabl
 }
 /// @endcond
 
-/*! \fn table table_mul_table(table input_values_a, table input_values_b);
+/*! \fn number_table table_mul_table(number_table input_values_a, number_table input_values_b);
 	\brief Performs a vector multiplication of  \c input_values_a[i] * \c input_values_b[i] for each i.
 	\param input_values_a       Input table of int or double values.
 	\param input_values_b       Input table of int or double values. The factors the table \c input_values_a is multiplied with.
@@ -1309,7 +1352,7 @@ sol::table table_sub_table(sol::state &lua, sol::table input_values_a, sol::tabl
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-table table_mul_table(table input_values_a, table input_values_b);
+number_table table_mul_table(number_table input_values_a, number_table input_values_b);
 #endif
 /// @cond HIDDEN_SYMBOLS
 
@@ -1323,7 +1366,7 @@ sol::table table_mul_table(sol::state &lua, sol::table input_values_a, sol::tabl
 }
 /// @endcond
 
-/*! \fn table table_mul_constant(table input_values_a, double constant);
+/*! \fn number_table table_mul_constant(number_table input_values_a, double constant);
 	\brief Performs a vector multiplication of  \c input_values_a[i] * \c constant for each i.
 	\param input_values_a       Input table of int or double values.
 	\param constant             Int or double value. The factor the table \c input_values_a is multiplied with.
@@ -1342,7 +1385,7 @@ sol::table table_mul_table(sol::state &lua, sol::table input_values_a, sol::tabl
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-table table_mul_constant(table input_values_a, double constant);
+number_table table_mul_constant(number_table input_values_a, double constant);
 #endif
 /// @cond HIDDEN_SYMBOLS
 
@@ -1356,7 +1399,7 @@ sol::table table_mul_constant(sol::state &lua, sol::table input_values_a, double
 }
 /// @endcond
 
-/*! \fn table table_div_table(table input_values_a, table input_values_b);
+/*! \fn number_table table_div_table(number_table input_values_a, number_table input_values_b);
 	\brief Performs a vector division of  \c input_values_a[i] / \c input_values_b[i] for each i.
 	\param input_values_a     Input table of int or double values. Regarded as divident of the division operation.
 	\param input_values_b     Input table of int or double values. Regarded as divisor of the division operation.
@@ -1376,7 +1419,7 @@ sol::table table_mul_constant(sol::state &lua, sol::table input_values_a, double
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-table table_div_table(table input_values_a, table input_values_b);
+number_table table_div_table(number_table input_values_a, number_table input_values_b);
 #endif
 /// @cond HIDDEN_SYMBOLS
 
@@ -1397,7 +1440,7 @@ sol::table table_div_table(sol::state &lua, sol::table input_values_a, sol::tabl
 }
 /// @endcond
 
-/*! \fn table table_round(table input_values, int precision);
+/*! \fn number_table table_round(number_table input_values, int precision);
 	\brief Returns a table with rounded values of \c input_values
 	\param input_values     Input table of int or double values.
 	\param precision        The number of digits to round
@@ -1416,7 +1459,7 @@ sol::table table_div_table(sol::state &lua, sol::table input_values_a, sol::tabl
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-table table_round(table input_values, int precision);
+number_table table_round(number_table input_values, int precision);
 #endif
 /// @cond HIDDEN_SYMBOLS
 
@@ -1430,7 +1473,7 @@ sol::table table_round(sol::state &lua, sol::table input_values, const unsigned 
 }
 /// @endcond
 
-/*! \fn table table_abs(table input_values);
+/*! \fn number_table table_abs(number_table input_values);
 	\brief Returns absolute values of \c input_values.
 	\param input_values     Input table of int or double values.
 
@@ -1446,7 +1489,7 @@ sol::table table_round(sol::state &lua, sol::table input_values, const unsigned 
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-table table_abs(table input_values);
+number_table table_abs(number_table input_values);
 #endif
 /// @cond HIDDEN_SYMBOLS
 
@@ -1460,7 +1503,7 @@ sol::table table_abs(sol::state &lua, sol::table input_values) {
 }
 /// @endcond
 
-/*! \fn table table_mid(table input_values, int start, int length);
+/*! \fn number_table table_mid(number_table input_values, int start, int length);
 	\brief Returns a fragment of the table \c input_values
 	\param input_values     Input table of int or double values.
 	\param start            Start index of the fragment of \c input_values which will be returned.
@@ -1478,7 +1521,7 @@ sol::table table_abs(sol::state &lua, sol::table input_values) {
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-table table_mid(table input_values, int start, int length);
+number_table table_mid(number_table input_values, int start, int length);
 #endif
 /// @cond HIDDEN_SYMBOLS
 sol::table table_mid(sol::state &lua, sol::table input_values, const unsigned int start, const unsigned int length) {
@@ -1492,7 +1535,7 @@ sol::table table_mid(sol::state &lua, sol::table input_values, const unsigned in
 
 /// @endcond
 
-/*! \fn bool table_equal_constant(table input_values_a, double input_const_val);
+/*! \fn bool table_equal_constant(number_table input_values_a, double input_const_val);
 	\brief Returns true if \c input_values_a[i] == input_const_val for all \c i.
 	\param input_values_a                A table of double or int values.
 	\param input_const_val               A double value to compare the table with
@@ -1512,7 +1555,7 @@ sol::table table_mid(sol::state &lua, sol::table input_values, const unsigned in
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-bool table_equal_constant(table input_values_a, double input_const_val);
+bool table_equal_constant(number_table input_values_a, double input_const_val);
 #endif
 /// @cond HIDDEN_SYMBOLS
 bool table_equal_constant(sol::table input_values_a, double input_const_val) {
@@ -1525,7 +1568,7 @@ bool table_equal_constant(sol::table input_values_a, double input_const_val) {
 }
 /// @endcond
 
-/*! \fn bool table_equal_table(table input_values_a, table input_values_b);
+/*! \fn bool table_equal_table(number_table input_values_a, number_table input_values_b);
 	\brief Returns true if \c input_values_a[i] == input_values_b[i] for all \c i.
 	\param input_values_a                A table of double or int values.
 	\param input_values_b                A table of double or int values.
@@ -1545,7 +1588,7 @@ bool table_equal_constant(sol::table input_values_a, double input_const_val) {
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-bool table_equal_table(table input_values_a, table input_values_b);
+bool table_equal_table(number_table input_values_a, number_table input_values_b);
 #endif
 /// @cond HIDDEN_SYMBOLS
 bool table_equal_table(sol::table input_values_a, sol::table input_values_b) {
@@ -1558,7 +1601,7 @@ bool table_equal_table(sol::table input_values_a, sol::table input_values_b) {
 }
 /// @endcond
 
-/*! \fn double table_max(table input_values);
+/*! \fn double table_max(number_table input_values);
 	\brief Returns the maximum value of \c input_values.
 	\param input_values                A table of double or int values.
 
@@ -1574,7 +1617,7 @@ bool table_equal_table(sol::table input_values_a, sol::table input_values_b) {
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-double table_max(table input_values);
+double table_max(number_table input_values);
 #endif
 /// @cond HIDDEN_SYMBOLS
 double table_max(sol::table input_values) {
@@ -1591,7 +1634,7 @@ double table_max(sol::table input_values) {
 }
 /// @endcond
 
-/*! \fn double table_min(table input_values);
+/*! \fn double table_min(number_table input_values);
 	\brief Returns the minimum value of \c input_values.
 	\param input_values                A table of double or int values.
 
@@ -1607,7 +1650,7 @@ double table_max(sol::table input_values) {
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-double table_min(table input_values);
+double table_min(number_table input_values);
 #endif
 
 /// @cond HIDDEN_SYMBOLS
@@ -1625,7 +1668,7 @@ double table_min(sol::table input_values) {
 }
 /// @endcond
 
-/*! \fn double table_max_abs(table input_values);
+/*! \fn double table_max_abs(number_table input_values);
 	\brief Returns the maximum absolute value of \c input_values.
 	\param input_values                A table of double or int values.
 
@@ -1641,7 +1684,7 @@ double table_min(sol::table input_values) {
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-double table_max_abs(table input_values);
+double table_max_abs(number_table input_values);
 #endif
 
 /// @cond HIDDEN_SYMBOLS
@@ -1684,6 +1727,23 @@ text propose_unique_filename_by_datetime(text dir_path, text prefix, text suffix
 #endif
 
 /// @cond HIDDEN_SYMBOLS
+
+static QString get_unique_file_name_date_time_format() {
+    return "-yyyy_MM_dd-HH_mm_ss-";
+}
+
+QDateTime decode_date_time_from_file_name(const std::string &file_name, const std::string &prefix) {
+    QString str = QString::fromStdString(file_name);
+    str = QFileInfo{str}.baseName();
+    //  qDebug() << str;
+    str = str.remove(QString::fromStdString(prefix));
+    str = str.left(get_unique_file_name_date_time_format().size());
+    // qDebug() << str;
+    QDateTime result = QDateTime::fromString(str, get_unique_file_name_date_time_format());
+    // qDebug() << result.toString();
+    return result;
+}
+
 std::string propose_unique_filename_by_datetime(const std::string &dir_path, const std::string &prefix, const std::string &suffix) {
     int index = 0;
     QString dir_ = QString::fromStdString(dir_path);
@@ -1694,7 +1754,8 @@ std::string propose_unique_filename_by_datetime(const std::string &dir_path, con
     create_path(dir_);
 
     QString result;
-    QString currentDateTime = QDateTime::currentDateTime().toString("-yyyy_MM_dd-HH_mm_ss-");
+    QString currentDateTime = QDateTime::currentDateTime().toString(get_unique_file_name_date_time_format());
+
     //currentDateTime = "-2017_06_01-14_50_49-";
     do {
         index++;
@@ -1704,7 +1765,7 @@ std::string propose_unique_filename_by_datetime(const std::string &dir_path, con
 }
 /// @endcond
 
-/*! \fn double table_min_abs(table input_values);
+/*! \fn double table_min_abs(number_table input_values);
 	\brief Returns the minimum absolute value of \c input_values.
 	\param input_values                A table of double or int values.
 
@@ -1720,7 +1781,7 @@ std::string propose_unique_filename_by_datetime(const std::string &dir_path, con
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
-double table_min_abs(table input_values);
+double table_min_abs(number_table input_values);
 #endif
 
 /// @cond HIDDEN_SYMBOLS
@@ -1758,6 +1819,74 @@ void pc_speaker_beep() {
 }
 /// @endcond
 
+/*! \fn run_external_tool(string execute_directory, string executable, string_table arguments, number timout_s)
+    \brief runs an external tool and returns its output as string.
+    \param execute_directory   The directory where the external tool is executed from
+    \param executable          The path to the external tool. Can be a *.bat(windows), an *.exe or a *.sh(linux) file
+    \param arguments           A table of argument strings.
+    \param timeout           Timeout in seconds
+
+    \return                    The output of the external tool
+    \details    \par example:
+    \code{.lua}
+        local result = run_external_tool(".","JLink.exe ",{"-if","SWD","-speed","4000","-autoconnect","1","-CommanderScript","flash.jlink"},20)
+        print(result)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+string run_external_tool(string execute_directory, string executable, string_table arguments, number timout_s);
+#endif
+
+/// @cond HIDDEN_SYMBOLS
+
+QString run_external_tool(const QString &script_path, const QString &execute_directory, const QString &executable, const sol::table &arguments, uint timeout) {
+    QString program = search_in_search_path(script_path, executable);
+
+    if (!QFile::exists(program)) {
+        throw std::runtime_error("Could not find executable at \"" + program.toStdString() + "\"");
+    }
+    if (!QFile::exists(execute_directory)) {
+        throw std::runtime_error("Could not find directory at \"" + QString(execute_directory).toStdString() + "\"");
+    }
+
+    QProcessEnvironment sys_env = QProcessEnvironment::systemEnvironment();
+    QString search_path = get_search_paths(script_path);
+    if (sys_env.contains("path")) {
+        sys_env.insert("path", search_path);
+    } else if (sys_env.contains("PATH")) {
+        sys_env.insert("PATH", search_path);
+    }
+
+    QStringList sl;
+    for (auto &i : arguments) {
+        sl.append(QString::fromStdString(i.second.as<std::string>()));
+    }
+
+    QProcess myProcess(nullptr);
+    myProcess.setWorkingDirectory(execute_directory);
+    myProcess.setProcessEnvironment(sys_env);
+    myProcess.start(program, sl);
+    myProcess.waitForStarted(timeout * 1000);
+    bool proc_timeout = myProcess.waitForFinished(timeout * 1000) == false;
+    QString result = QString(myProcess.readAll());
+    result = result.replace("\r\n", "\n");
+    if ((myProcess.exitCode() != 0) || (proc_timeout)) {
+        if (proc_timeout) {
+            myProcess.kill();
+            throw std::runtime_error("run_external_tool(" + executable.toStdString() + ") timed out: " + QString::number(timeout).toStdString() + "s:\n " +
+                                     myProcess.readAllStandardError().toStdString() + "\n " + result.toStdString());
+        } else {
+            throw std::runtime_error("run_external_tool(" + executable.toStdString() + ") exit with code: " +
+                                     QString::number(myProcess.exitCode()).toStdString() + ":\n " + myProcess.readAllStandardError().toStdString() + "\n " +
+                                     result.toStdString());
+        }
+    }
+    return result;
+}
+/// @endcond
+
 /*! \fn git_info(string path, bool allow_modified)
     \brief returns the git revision hash of a given repository
     \param path                A String containing the path to the git repository
@@ -1781,7 +1910,7 @@ string git_info(string path, bool allow_modified);
 QMap<QString, QVariant> git_info(QString path, bool allow_modified, bool allow_exceptions) {
     QMap<QString, QVariant> result;
     bool modified = false;
-    QString program = QSettings{}.value(Globals::git_path, "").toString();
+    QString program = search_in_search_path("", "git");
     if (!QFile::exists(program)) {
         if (allow_exceptions) {
             throw std::runtime_error("Could not find git executable at \"" + program.toStdString() + "\"");
@@ -1812,7 +1941,13 @@ QMap<QString, QVariant> git_info(QString path, bool allow_modified, bool allow_e
         myProcess.waitForFinished();
         auto out = QString(myProcess.readAll()).split("\n");
         if (myProcess.exitCode() != 0) {
-            throw std::runtime_error(myProcess.readAllStandardError().toStdString());
+            if (allow_exceptions) {
+                throw std::runtime_error(myProcess.readAllStandardError().toStdString());
+            } else {
+                qDebug() << "git_info" << myProcess.readAllStandardError();
+
+                return QMap<QString, QVariant>{};
+            }
         }
         //qDebug() << out;
         switch (i) {
@@ -1931,12 +2066,14 @@ string get_os_username();
 #endif
 
 /// @cond HIDDEN_SYMBOLS
+#if defined(Q_OS_WIN)
 static QString handle_lower_upper_case_username(QString origun) {
     if (origun.size() == 2) {
         origun = origun.toUpper(); //converting e.g ak to AK
     }
     return origun;
 }
+#endif
 
 std::string get_os_username() {
 #if defined(Q_OS_WIN)
@@ -1976,7 +2113,7 @@ QString append_separator_to_path(QString path) {
     return path;
 }
 
-QString create_path(QString filename) {
+QString get_clean_file_path(QString filename) {
     QFileInfo fi(filename);
     if (fi.completeSuffix() == "") {
         //it is a directory
@@ -1988,7 +2125,68 @@ QString create_path(QString filename) {
         filename = fi.absolutePath();
         filename = append_separator_to_path(filename);
     }
+    return filename;
+}
+
+QString create_path(QString filename) {
+    filename = get_clean_file_path(filename);
     QDir d(filename);
     d.mkpath(".");
     return filename;
+}
+
+QChar get_search_path_delimiter() {
+#if defined(Q_OS_WIN)
+    return ';';
+#elif defined(Q_OS_UNIX)
+    return ':';
+#endif
+}
+
+QString get_search_paths(const QString &script_path) {
+    QString search_path = QSettings{}.value(Globals::search_path_key, "").toString();
+    if (script_path != "") {
+        search_path = search_path + get_search_path_delimiter() + get_clean_file_path(script_path);
+    }
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    if (env.contains("path")) {
+        search_path += get_search_path_delimiter() + env.value("path");
+    } else if (env.contains("PATH")) {
+        search_path += get_search_path_delimiter() + env.value("PATH");
+    }
+    search_path = search_path.replace("\\", "/");
+    //search_path = search_path.replace(get_path_seperator_regex(), get_search_path_delimiter());
+    return search_path;
+}
+
+QStringList get_search_path_entries(QString search_path) {
+    QStringList sl = search_path.split(get_search_path_delimiter()); // match at asasda:asfsdf but not windows-like C:/asdasdas
+    return sl;
+}
+
+QString search_in_search_path(const QString &script_path, const QString &file_to_be_searched) {
+    QDir dir(file_to_be_searched);
+    if (!dir.isRelative() && QFile::exists(file_to_be_searched)) {
+        return file_to_be_searched;
+    }
+
+    QStringList sl = get_search_path_entries(get_search_paths(script_path));
+
+    for (auto &s : sl) {
+        QString path_to_test = append_separator_to_path(s);
+        QDir base(QFileInfo(path_to_test).absoluteDir());
+        QString result = base.absoluteFilePath(file_to_be_searched);
+        //  qDebug() << result;
+        if (QFile::exists(result)) {
+            return result;
+        }
+#if defined(Q_OS_WIN)
+        result = base.absoluteFilePath(file_to_be_searched + ".exe");
+        //qDebug() << result;
+        if (QFile::exists(result)) {
+            return result;
+        }
+#endif
+    }
+    return "";
 }

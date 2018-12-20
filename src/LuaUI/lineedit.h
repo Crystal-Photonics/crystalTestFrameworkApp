@@ -1,11 +1,12 @@
 #ifndef LINEEDIT_H
 #define LINEEDIT_H
 
+#include "scriptengine.h"
+#include "ui_container.h"
+#include <QDateEdit>
 #include <QMetaObject>
 #include <functional>
 #include <string>
-#include "scriptengine.h"
-#include "ui_container.h"
 
 class QLabel;
 class QSplitter;
@@ -15,12 +16,31 @@ class QWidget;
 /** \ingroup ui
  *  \{
  */
-class LineEdit: public UI_widget {
+
+enum class LineEdit_Entermode { TextMode, DateMode };
+
+class LineEdit : public UI_widget {
     public:
     ///\cond HIDDEN_SYMBOLS
     LineEdit(UI_container *parent, ScriptEngine *script_engine);
     ~LineEdit();
     ///\endcond
+    void set_date_mode(); //!<\brief switches the LineEdit into datemode.
+                          //!< \sa set_text_mode()
+                          //!< \par examples:
+                          //!< \code
+                          //!  	local le = Ui.LineEdit.new()
+                          //!  	local stringvalue = le:set_date_mode() --le is in date mode now
+                          //! \endcode
+
+    void set_text_mode(); //!<\brief switches the LineEdit into textmode which is its default mode.
+                          //!< \sa set_date_mode()
+                          //!< \par examples:
+                          //!< \code
+                          //!  	local le = Ui.LineEdit.new()
+                          //!  	local stringvalue = le:set_text_mode() --le is in text mode now
+                          //! \endcode
+
     void set_placeholder_text(const std::string &text); //!<\brief Puts a gray explaining text into the line edit.
                                                         //!< \param text the explaining text.
                                                         //!< \sa get_number()
@@ -40,6 +60,16 @@ class LineEdit: public UI_widget {
                                   //!  	local stringvalue = le:get_text()
                                   //!   print(stringvalue) -- prints text
                                   //! \endcode
+
+    double get_date() const; //!<\brief Returns the date value the user entered.
+                             //!< \return the date of the line edit as a seconds since epoch.
+                             //!< \sa get_number()
+                             //!< \par examples:
+                             //!< \code
+                             //!  	local le = Ui.LineEdit.new()
+                             //!  	local date_value = le:get_date()
+                             //!   print(os.date("%d.%m.%Y",date_value)) -- prints text: example: 06.10.2012
+                             //! \endcode
 
     double get_number() const; //!<\brief Returns the string value the user entered converted to a number.
                                //!< \return the umber of line edits value.
@@ -68,6 +98,16 @@ class LineEdit: public UI_widget {
                                             //!                             -- is preset to "TestEdit".
                                             //! \endcode
 
+    void set_date(double date_value_since_epoch); //!<\brief Sets date of an line edit object.
+                                                  //!< \param text String value. The text of the line edit object shown to the user.
+                                                  //! \sa get_text()
+                                                  //!< \par examples:
+                                                  //!< \code
+                                                  //!  	local le = Ui.LineEdit.new()
+                                                  //!  	le:set_date(os.time()) -- The date the user can edit now
+                                                  //!                             -- is preset to "TestEdit".
+                                                  //! \endcode
+
     void set_name(const std::string &name); //!<\brief Sets the name of an line edit object.
                                             //!< \param name String value. The name of the line edit object.
                                             //!< \details Is used in the error message of get_number() to clearify where
@@ -90,18 +130,20 @@ class LineEdit: public UI_widget {
                                   //! \sa set_name()
 
     void set_caption(const std::string &caption); //!<\brief Sets the caption of an line edit object.
-                                            //!< \param caption String value. The caption of the line edit object.
-                                            //!< \details Caption is displayed as a title of the line edit.
-                                            //! \sa get_caption()
-                                            //!< \par examples:
-                                            //!< \code
-                                            //!  	local le = Ui.LineEdit.new()
-                                            //!  	le:set_caption("TestEdit")
-                                            //! \endcode
+                                                  //!< \param caption String value. The caption of the line edit object.
+                                                  //!< \details Caption is displayed as a title of the line edit.
+                                                  //! \sa get_caption()
+                                                  //!< \par examples:
+                                                  //!< \code
+                                                  //!  	local le = Ui.LineEdit.new()
+                                                  //!  	le:set_caption("TestEdit")
+                                                  //! \endcode
 
     std::string get_caption() const; //!<\brief Returns the caption.
-                                  //!< \return the caption of the line edit object set by set_caption() as a string value.
-                                  //! \sa set_caption()
+                                     //!< \return the caption of the line edit object set by set_caption() as a string value.
+                                     //! \sa set_caption()
+    void load_from_cache(void);
+    void save_to_cache();
 
     void set_focus();
     void await_return();
@@ -119,13 +161,17 @@ class LineEdit: public UI_widget {
 
     void set_visible(bool visible);
     void set_enabled(bool enabled);
-private:
-	QLabel *label = nullptr;
-    QLineEdit *edit = nullptr;
 
-    std::string name;
+    private:
+    QLabel *label = nullptr;
+    QLineEdit *text_edit = nullptr;
+    QDateEdit *date_edit = nullptr;
+
+    LineEdit_Entermode entermode;
+    std::string name_m;
+    std::string caption_m;
     ScriptEngine *script_engine;
-
+    const QString date_formatstring = "dd.MM.yyyy"; //20.07.1969
 };
 /** \} */ // end of group ui
-#endif // LINEEDIT_H
+#endif    // LINEEDIT_H

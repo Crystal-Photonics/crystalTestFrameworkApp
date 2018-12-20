@@ -1,0 +1,6 @@
+#list of libraries expected to leak
+leak:libQt5PrintSupport.so
+leak:libglib-2.0.so
+leak:libp11-kit.so
+leak:libfontconfig.so
+leak:libQt5Script.so

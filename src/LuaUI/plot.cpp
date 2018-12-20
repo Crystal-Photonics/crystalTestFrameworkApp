@@ -440,10 +440,10 @@ void Plot::set_rightclick_action() {
         raw_curves.resize(curves.size());
         std::transform(std::begin(curves), std::end(curves), std::begin(raw_curves), [](const Curve *curve) { return curve->curve; });
         QObject::connect(save_as_csv_action, &QAction::triggered, [ plot = this->plot, curves = std::move(raw_curves) ] {
-            QString last_dir = QSettings{}.value(Globals::last_csv_saved_directory, QDir::currentPath()).toString();
+            QString last_dir = QSettings{}.value(Globals::last_csv_saved_directory_key, QDir::currentPath()).toString();
             auto dir = QFileDialog::getExistingDirectory(plot, QObject::tr("Select folder to save data in"), last_dir);
             if (dir.isEmpty() == false) {
-                QSettings{}.setValue(Globals::last_csv_saved_directory, dir);
+                QSettings{}.setValue(Globals::last_csv_saved_directory_key, dir);
                 for (auto &curve : curves) {
                     auto filename = QDir(dir).filePath(curve->title().text() + ".csv");
                     std::ofstream f{filename.toStdString()};

@@ -9,7 +9,7 @@ class EXPORT DummyCommunicationDevice final : public CommunicationDevice {
     Q_OBJECT
     public:
     DummyCommunicationDevice();
-    bool connect(const QMap<QString,QVariant> &portinfo) override;
+    bool connect(const QMap<QString,QVariant> &portinfo_) override;
     void send(const QByteArray &data, const QByteArray &displayed_data = {}) override;
     bool isConnected() override;
     bool waitReceived(Duration timeout = std::chrono::seconds(1), int bytes = 1, bool isPolling = false) override;

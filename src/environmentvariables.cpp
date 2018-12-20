@@ -1,6 +1,7 @@
 #include "environmentvariables.h"
-#include "util.h"
+#include "Windows/mainwindow.h"
 #include "qt_util.h"
+#include "util.h"
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -8,7 +9,6 @@
 #include <QJsonValue>
 #include <QMessageBox>
 #include <QStringList>
-#include "Windows/mainwindow.h"
 
 EnvironmentVariables::EnvironmentVariables(QString filename) {
     if (filename == "") {
@@ -16,26 +16,25 @@ EnvironmentVariables::EnvironmentVariables(QString filename) {
     }
     QFile file;
 
-    if (filename == ""){
-        Utility::thread_call(MainWindow::mw, nullptr, [filename] {
-       QMessageBox::warning(MainWindow::mw, "Can't open environment file", "Can't open environment file. Filename is empty.");
-       });
+	if (filename == "") {
+		Utility::thread_call(MainWindow::mw, [filename] {
+			QMessageBox::warning(MainWindow::mw, "Can't open environment file", "Can't open environment file. Filename is empty.");
+		});
 
-       return;
+		return;
     }
-    if (!QFile::exists(filename)){
-        Utility::thread_call(MainWindow::mw, nullptr, [filename] {
-       QMessageBox::warning(MainWindow::mw, "Can't open environment file", "Can't open environment file. File does not exist: " + filename);
-       });
+	if (!QFile::exists(filename)) {
+		Utility::thread_call(MainWindow::mw, [filename] {
+			QMessageBox::warning(MainWindow::mw, "Can't open environment file", "Can't open environment file. File does not exist: " + filename);
+		});
 
-       return;
+		return;
     }
 
     file.setFileName(filename);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-         Utility::thread_call(MainWindow::mw, nullptr, [filename] {
-        QMessageBox::warning(MainWindow::mw, "Can't open environment file", "Can't open environment file: " + filename);
-        });
+		Utility::thread_call(MainWindow::mw,
+							 [filename] { QMessageBox::warning(MainWindow::mw, "Can't open environment file", "Can't open environment file: " + filename); });
 
         return;
     }
@@ -43,10 +42,10 @@ EnvironmentVariables::EnvironmentVariables(QString filename) {
     file.close();
     QJsonDocument j_doc = QJsonDocument::fromJson(json_string.toUtf8());
     if (j_doc.isNull()) {
-         Utility::thread_call(MainWindow::mw, nullptr,[filename] {
-             QMessageBox::warning(MainWindow::mw, "could not parse file with environment variables",
-                                  "could not parse file with environment variables. Seems the json is broken: " + filename);
-         });
+		Utility::thread_call(MainWindow::mw, [filename] {
+			QMessageBox::warning(MainWindow::mw, "could not parse file with environment variables",
+								 "could not parse file with environment variables. Seems the json is broken: " + filename);
+		});
         return;
     }
     QJsonObject j_obj = j_doc.object();

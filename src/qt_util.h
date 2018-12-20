@@ -1,8 +1,11 @@
 #ifndef QT_UTIL_H
 #define QT_UTIL_H
 
+#include <QApplication>
 #include <QCoreApplication>
 #include <QEvent>
+#include <QFrame>
+#include <QSplitter>
 #include <QThread>
 #include <QVariant>
 #include <cassert>
@@ -17,6 +20,9 @@ namespace Utility {
     inline QVariant make_qvariant(void *p) {
         return QVariant::fromValue(p);
     }
+
+	QFrame *add_handle(QSplitter *splitter);
+
     template <class T>
     T *from_qvariant(QVariant &qv) {
         return static_cast<T *>(qv.value<void *>());
@@ -27,14 +33,13 @@ namespace Utility {
     }
 
     template <typename Fun>
-    void thread_call(QObject *obj, ScriptEngine *script_engine_to_terminate_on_exception, Fun &&fun); //calls fun in the thread that owns obj
+	void thread_call(QObject *obj, Fun &&fun, ScriptEngine *script_engine_to_terminate_on_exception = nullptr); //calls fun in the thread that owns obj
 
     template <class T, class Fun>
     struct ValueSetter;
 
     template <class Fun>
-    auto promised_thread_call(QObject *object, Fun &&f)
-        -> decltype(f()); //calls f in the thread that owns obj and waits for the function to get processed
+	auto promised_thread_call(QObject *object, Fun &&f) -> decltype(f()); //calls f in the thread that owns obj and waits for the function to get processed
 
     QWidget *replace_tab_widget(QTabWidget *tabs, int index, QWidget *new_widget, const QString &title);
 
@@ -56,7 +61,7 @@ namespace Utility {
 	 *************************************************************************************************************************/
 
     template <typename Fun>
-    void thread_call(QObject *obj, ScriptEngine *script_engine_to_terminate_on_exception, Fun &&fun) {
+	void thread_call(QObject *obj, Fun &&fun, ScriptEngine *script_engine_to_terminate_on_exception) {
         assert(obj->thread() || (qApp && (qApp->thread() == QThread::currentThread())));
         if (obj->thread() == QThread::currentThread()) {
             return fun();
@@ -65,7 +70,10 @@ namespace Utility {
         if (obj->thread() == nullptr) {
             qDebug() << "isRunning" << obj->thread()->isRunning();
         }
-        assert(obj->thread() == nullptr || obj->thread()->isRunning());
+		if (obj->thread() != nullptr && not obj->thread()->isRunning()) {
+			//if the target thread is dead, do not pass it messages
+			throw std::runtime_error("Attempted to make a thread-call to a dead thread");
+		}
 
         struct Event : public QEvent {
             ScriptEngine *script_engine_to_terminate_on_exception__ = nullptr;
@@ -111,13 +119,16 @@ namespace Utility {
     auto promised_thread_call(QObject *object, Fun &&f) -> decltype(f()) {
         std::promise<decltype(f())> promise;
         auto future = promise.get_future();
-        thread_call(object, nullptr, [&f, &promise] {
+		thread_call(object, [&f, &promise] {
             try {
                 Utility::ValueSetter<decltype(f()), Fun>::set_value(promise, std::forward<Fun>(f));
             } catch (...) {
                 promise.set_exception(std::current_exception());
             }
         });
+		while (future.wait_for(std::chrono::milliseconds{16}) == std::future_status::timeout) {
+			QApplication::processEvents();
+		}
         return future.get();
     }
 }

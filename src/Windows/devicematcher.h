@@ -67,6 +67,7 @@ class DeviceMatcher : public QDialog {
     ~DeviceMatcher();
 
     void match_devices(DeviceWorker &device_worker, TestRunner &runner, TestDescriptionLoader &test);
+    bool is_match_possible(DeviceWorker &device_worker, TestDescriptionLoader &test);
 
     std::vector<MatchedDevice> get_matched_devices();
     bool was_successful();

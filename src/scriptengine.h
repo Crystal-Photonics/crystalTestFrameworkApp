@@ -2,13 +2,12 @@
 #define SCRIPTENGINE_H
 
 #include "sol.hpp"
-
 #include <QDebug>
 #include <QEventLoop>
 #include <QList>
+#include <QMutex>
 #include <QString>
 #include <QWaitCondition>
-#include <QMutex>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -55,9 +54,9 @@ class ScriptEngine {
     friend class DeviceWorker;
 
     ScriptEngine(TestRunner *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine);
-	ScriptEngine(const ScriptEngine &) = delete;
-	ScriptEngine(ScriptEngine &&) = delete;
-	~ScriptEngine();
+    ScriptEngine(const ScriptEngine &) = delete;
+    ScriptEngine(ScriptEngine &&) = delete;
+    ~ScriptEngine();
 
     void pause_timer();
     void resume_timer();
@@ -69,7 +68,7 @@ class ScriptEngine {
     void ui_event_queue_send();
     void event_queue_interrupt();
 
-    void load_script(const QString &path);
+    void load_script(const std::string &path);
     static void launch_editor(QString path, int error_line = 1);
     void launch_editor() const;
     static std::string to_string(double d);
@@ -79,6 +78,7 @@ class ScriptEngine {
 
     void interrupt(QString msg);
     sol::table create_table();
+
     private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
     QStringList get_string_list(const QString &name);
     std::vector<DeviceRequirements> get_device_requirement_list(const QString &name);
@@ -88,7 +88,7 @@ class ScriptEngine {
     void set_error_line(const sol::error &error);
 
     std::unique_ptr<sol::state> lua{};
-    QString path{};
+    QString path_m{};
     int error_line{0};
     UI_container *parent{nullptr};
     QPlainTextEdit *console{nullptr};
@@ -96,7 +96,6 @@ class ScriptEngine {
     QString data_engine_auto_dump_path;
     QString additional_pdf_path;
     QString data_engine_pdf_template_path;
-
 
     QEventLoop event_loop;
 

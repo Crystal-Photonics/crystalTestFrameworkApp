@@ -3,6 +3,7 @@
 #include <QEvent>
 #include <QMouseEvent>
 #include <QTableWidget>
+#include <QVBoxLayout>
 
 QWidget *Utility::replace_tab_widget(QTabWidget *tabs, int index, QWidget *new_widget, const QString &title) {
 	const auto old_widget = tabs->widget(index);
@@ -35,4 +36,16 @@ bool Utility::Event_filter::eventFilter(QObject *object, QEvent *ev) {
 		retval |= function(ev);
 	}
 	return retval;
+}
+
+QFrame *Utility::add_handle(QSplitter *splitter) {
+	auto splitter_handle = splitter->handle(1);
+	auto splitter_layout = new QVBoxLayout(splitter_handle);
+	splitter_layout->setSpacing(1);
+	splitter_layout->setMargin(1);
+	auto hline = new QFrame(splitter_handle);
+	hline->setFrameShape(splitter->orientation() == Qt::Orientation::Vertical ? QFrame::HLine : QFrame::VLine);
+	hline->setFrameShadow(QFrame::Sunken);
+	splitter_layout->addWidget(hline);
+	return hline;
 }

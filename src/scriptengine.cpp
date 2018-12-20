@@ -11,9 +11,11 @@
 #include "LuaUI/label.h"
 #include "LuaUI/lineedit.h"
 #include "LuaUI/plot.h"
+#include "LuaUI/polldataengine.h"
 #include "LuaUI/progressbar.h"
 #include "LuaUI/spinbox.h"
 #include "LuaUI/userinstructionlabel.h"
+#include "LuaUI/userwaitlabel.h"
 #include "Protocols/manualprotocol.h"
 #include "Protocols/rpcprotocol.h"
 #include "Protocols/scpiprotocol.h"
@@ -46,6 +48,7 @@
 #include <QShortcut>
 #include <QThread>
 #include <QTimer>
+#include <cmath>
 #include <functional>
 #include <memory>
 #include <regex>
@@ -57,8 +60,8 @@ struct Lua_UI_Wrapper {
     template <class... Args>
     Lua_UI_Wrapper(UI_container *parent, ScriptEngine *script_engine_to_terminate_on_exception, Args &&... args) {
         this->script_engine_to_terminate_on_exception = script_engine_to_terminate_on_exception;
-        Utility::thread_call(MainWindow::mw, script_engine_to_terminate_on_exception,
-                             [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); });
+        Utility::thread_call(MainWindow::mw, [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); },
+                             script_engine_to_terminate_on_exception);
     }
     Lua_UI_Wrapper(Lua_UI_Wrapper &&other)
         : id(other.id)
@@ -70,7 +73,7 @@ struct Lua_UI_Wrapper {
     }
     ~Lua_UI_Wrapper() {
         if (id != -1) {
-            Utility::thread_call(MainWindow::mw, script_engine_to_terminate_on_exception, [id = this->id] { MainWindow::mw->remove_lua_UI_class<T>(id); });
+            Utility::thread_call(MainWindow::mw, [id = this->id] { MainWindow::mw->remove_lua_UI_class<T>(id); }, script_engine_to_terminate_on_exception);
         }
     }
 
@@ -301,11 +304,11 @@ auto thread_call_wrapper_non_waiting(ScriptEngine *script_engine_to_terminate_on
         throw sol::error("Abort Requested");
     }
     return [function, script_engine_to_terminate_on_exception](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
-        Utility::thread_call(MainWindow::mw, script_engine_to_terminate_on_exception,
-                             [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
-                                 UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
-                                 return detail::call(function, ui, std::move(args));
-                             });
+        Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
+            UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
+            return detail::call(function, ui, std::move(args));
+        },
+                             script_engine_to_terminate_on_exception);
     };
 }
 
@@ -435,6 +438,15 @@ void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua) {
 struct RPCDevice {
     std::string get_protocol_name() {
         return protocol->type.toStdString();
+    }
+    bool is_protocol_device_available() {
+#if 1
+        auto result = protocol->call_get_hash_function(0);
+        if (result.decoded_function_call_reply) {
+            return true;
+        }
+#endif
+        return false;
     }
 
     sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
@@ -615,6 +627,8 @@ ScriptEngine::ScriptEngine(TestRunner *owner, UI_container *parent, QPlainTextEd
     , owner{owner} {}
 
 ScriptEngine::~ScriptEngine() { //
+    // qDebug() << "script destruktor " << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") <<
+    // QThread::currentThread();
 }
 
 void ScriptEngine::pause_timer() {
@@ -674,19 +688,21 @@ TimerEvent::TimerEvent ScriptEngine::timer_event_queue_run(int timeout_ms) {
 
         callback_timer = QObject::connect(timer.get(), &QTimer::timeout, [this] {
             QObject *owner_obj = owner->obj();
-            Utility::thread_call(owner_obj, this, [this] {
-#if 1
+            Utility::thread_call(owner_obj,
+                                 [this] {
+#if 0
                 qDebug() << "quitting timer event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
                          << "Current Thread:" << QThread::currentThreadId()
                          << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-                timer_pause_mutex.lock();
-                if (timer_pause_condition) {
-                    timer_pause.wait(&timer_pause_mutex);
-                }
-                event_loop.exit(TimerEvent::TimerEvent::expired);
-                timer_pause_mutex.unlock();
-            });
+                                     timer_pause_mutex.lock();
+                                     if (timer_pause_condition) {
+                                         timer_pause.wait(&timer_pause_mutex);
+                                     }
+                                     event_loop.exit(TimerEvent::TimerEvent::expired);
+                                     timer_pause_mutex.unlock();
+                                 },
+                                 this);
         });
 
     });
@@ -712,18 +728,20 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
     });
 
     Utility::promised_thread_call(MainWindow::mw, [this, &shortcuts] { //
-        const char *settings_keys[] = {Globals::confirm_key_sequence, Globals::skip_key_sequence, Globals::cancel_key_sequence};
+        const char *settings_keys[] = {Globals::confirm_key_sequence_key, Globals::skip_key_sequence_key, Globals::cancel_key_sequence_key};
         for (std::size_t i = 0; i < shortcuts.size(); i++) {
             shortcuts[i] = std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
             QObject::connect(shortcuts[i].get(), &QShortcut::activated, [this, i] {
-                Utility::thread_call(owner->obj(), this, [this, i] {
+                Utility::thread_call(owner->obj(),
+                                     [this, i] {
 #if 0
                     qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
                              << "Current Thread:" << QThread::currentThreadId()
                              << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-                    event_loop.exit(i);
-                });
+                                         event_loop.exit(i);
+                                     },
+                                     this);
             });
         }
 
@@ -735,39 +753,45 @@ HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
 }
 
 void ScriptEngine::ui_event_queue_send() {
-    Utility::thread_call(this->owner->obj(), this, [this]() { //
-        event_loop.exit(UiEvent::UiEvent::activated);
-    }); //calls fun in the thread that owns obj
+    Utility::thread_call(this->owner->obj(),
+                         [this]() { //
+                             event_loop.exit(UiEvent::UiEvent::activated);
+                         },
+                         this); //calls fun in the thread that owns obj
 }
 
 void ScriptEngine::hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent event) {
-    Utility::thread_call(this->owner->obj(), this, [this, event]() {
+    Utility::thread_call(this->owner->obj(),
+                         [this, event]() {
 #if 0
         qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "by event"
                  << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
                  << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-        this->event_loop.exit(event);
-    }); //calls fun in the thread that owns obj
+                             this->event_loop.exit(event);
+                         },
+                         this); //calls fun in the thread that owns obj
 }
 
 void ScriptEngine::event_queue_interrupt() {
     //qDebug() << "event_queue_interrupt called";
-    Utility::thread_call(this->owner->obj(), this, [this]() { //
+    Utility::thread_call(this->owner->obj(),
+                         [this]() { //
 #if 0
         qDebug() << "interrupting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "by event"
                  << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
                  << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
-        // qDebug() << "event_queue_interrupt entered thread_call"
-        //          << "eventloop running:" << event_loop.isRunning();
-        if (event_loop.isRunning()) {
-            //  qDebug() << "event_queue_interrupt exit calling..";
-            event_loop.exit(-1);
-            // qDebug() << "event_queue_interrupt called.";
-        }
-    }); //calls fun in the thread that owns obj
-        //  qDebug() << "event_queue_interrupt finished";
+                             // qDebug() << "event_queue_interrupt entered thread_call"
+                             //          << "eventloop running:" << event_loop.isRunning();
+                             if (event_loop.isRunning()) {
+                                 //  qDebug() << "event_queue_interrupt exit calling..";
+                                 event_loop.exit(-1);
+                                 // qDebug() << "event_queue_interrupt called.";
+                             }
+                         },
+                         this); //calls fun in the thread that owns obj
+                                //  qDebug() << "event_queue_interrupt finished";
 }
 
 std::string ScriptEngine::to_string(double d) {
@@ -825,7 +849,7 @@ std::string ScriptEngine::to_string(const sol::stack_proxy &object) {
 }
 
 QString ScriptEngine::get_absolute_filename(QString file_to_open) {
-    return get_absolute_file_path(path, file_to_open);
+    return get_absolute_file_path(path_m, file_to_open);
 }
 
 struct Data_engine_handle {
@@ -833,16 +857,17 @@ struct Data_engine_handle {
     Data_engine_handle() = delete;
 };
 
-void ScriptEngine::load_script(const QString &path) {
-    //qDebug() << "load_script ";
-    //qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
+void ScriptEngine::load_script(const std::string &path) {
+    qDebug() << "load_script " << QString::fromStdString(path);
+    qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
 
-    this->path = path;
+    this->path_m = QString::fromStdString(path);
 
-    EnvironmentVariables env_variables(QSettings{}.value(Globals::path_to_environment_variables, "").toString());
+    EnvironmentVariables env_variables(QSettings{}.value(Globals::path_to_environment_variables_key, "").toString());
     if (data_engine) {
-        data_engine->set_script_path(this->path);
+        data_engine->set_script_path(path_m);
     }
+
     try {
         //load the standard libs if necessary
         lua->open_libraries();
@@ -852,18 +877,18 @@ void ScriptEngine::load_script(const QString &path) {
         {
             (*lua)["show_file_save_dialog"] = [path](const std::string &title, const std::string &preselected_path, sol::table filters) {
 
-                return show_file_save_dialog(title, get_absolute_file_path(path, preselected_path), filters);
+                return show_file_save_dialog(title, get_absolute_file_path(QString::fromStdString(path), preselected_path), filters);
             };
             (*lua)["show_question"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table) {
-                return show_question(path, title, message, button_table);
+                return show_question(QString::fromStdString(path), title, message, button_table);
             };
 
             (*lua)["show_info"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
-                show_info(path, title, message);
+                show_info(QString::fromStdString(path), title, message);
             };
 
             (*lua)["show_warning"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
-                show_warning(path, title, message);
+                show_warning(QString::fromStdString(path), title, message);
             };
 
             (*lua)["print"] = [console = console](const sol::variadic_args &args) {
@@ -879,7 +904,7 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["current_date_time_ms"] = []() { return current_date_time_ms(); };
             (*lua)["round"] = [](const double value, const unsigned int precision = 0) { return round_double(value, precision); };
             (*lua)["require"] = [ path = path, &lua = *lua ](const std::string &file) {
-                QDir dir(path);
+                QDir dir(QString::fromStdString(path));
                 dir.cdUp();
                 lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
             };
@@ -902,12 +927,16 @@ void ScriptEngine::load_script(const QString &path) {
         //table functions
         {
             (*lua)["table_save_to_file"] = [ console = console, path = path ](const std::string file_name, sol::table input_table, bool over_write_file) {
-                table_save_to_file(console, get_absolute_file_path(path, file_name), input_table, over_write_file);
+                table_save_to_file(console, get_absolute_file_path(QString::fromStdString(path), file_name), input_table, over_write_file);
             };
             (*lua)["table_load_from_file"] = [&lua = *lua, console = console, path = path ](const std::string file_name) {
-                return table_load_from_file(console, lua, get_absolute_file_path(path, file_name));
+                return table_load_from_file(console, lua, get_absolute_file_path(QString::fromStdString(path), file_name));
             };
             (*lua)["table_sum"] = [](sol::table table) { return table_sum(table); };
+
+            (*lua)["table_crc16"] = [console = console](sol::table table) {
+                return table_crc16(console, table);
+            };
 
             (*lua)["table_mean"] = [](sol::table table) { return table_mean(table); };
 
@@ -982,16 +1011,24 @@ void ScriptEngine::load_script(const QString &path) {
             (*lua)["table_max_by_field"] = [&lua = *lua](sol::table input_values, const std::string field_name) {
                 return table_max_by_field(lua, input_values, field_name);
             };
+
 #if 1
             (*lua)["table_min_by_field"] = [&lua = *lua](sol::table input_values, const std::string field_name) {
                 return table_min_by_field(lua, input_values, field_name);
             };
 
             (*lua)["propose_unique_filename_by_datetime"] = [path = path](const std::string &dir_path, const std::string &prefix, const std::string &suffix) {
-                return propose_unique_filename_by_datetime(get_absolute_file_path(path, dir_path), prefix, suffix);
+                return propose_unique_filename_by_datetime(get_absolute_file_path(QString::fromStdString(path), dir_path), prefix, suffix);
             };
             (*lua)["git_info"] = [&lua = *lua, path = path ](std::string dir_path, bool allow_modified) {
-                return git_info(lua, get_absolute_file_path(path, dir_path), allow_modified);
+                return git_info(lua, get_absolute_file_path(QString::fromStdString(path), dir_path), allow_modified);
+            };
+            (*lua)["run_external_tool"] =
+                [&lua = *lua, path = path ](const std::string &execute_directory, const std::string &executable, const sol::table &arguments, uint timeout_s) {
+                return run_external_tool(QString::fromStdString(path),
+                                         QString::fromStdString(get_absolute_file_path(QString::fromStdString(path), execute_directory)),
+                                         QString::fromStdString(executable), arguments, timeout_s)
+                    .toStdString();
             };
 
 #endif
@@ -1011,22 +1048,23 @@ void ScriptEngine::load_script(const QString &path) {
         }
         //bind DataLogger
         {
-            lua->new_usertype<DataLogger>(
-                "DataLogger", //
-                sol::meta_function::construct,
-                [ console = console, path = path ](const std::string &file_name, char seperating_character, sol::table field_names, bool over_write_file) {
-                    return DataLogger{console, get_absolute_file_path(path, file_name), seperating_character, field_names, over_write_file};
-                }, //
+            lua->new_usertype<DataLogger>("DataLogger", //
+                                          sol::meta_function::construct,
+                                          sol::factories([ console = console, path = path ](const std::string &file_name, char seperating_character,
+                                                                                            sol::table field_names, bool over_write_file) {
+                                              return DataLogger{console, get_absolute_file_path(QString::fromStdString(path), file_name), seperating_character,
+                                                                field_names, over_write_file};
+                                          }), //
 
-                "append_data",
-                [](DataLogger &handle, const sol::table &data_record) { return handle.append_data(data_record); }, //
-                "save", [](DataLogger &handle) { handle.save(); }                                                  //
-                );
+                                          "append_data",
+                                          [](DataLogger &handle, const sol::table &data_record) { return handle.append_data(data_record); }, //
+                                          "save", [](DataLogger &handle) { handle.save(); }                                                  //
+                                          );
         }
         //bind charge counter
         {
-            lua->new_usertype<ChargeCounter>("ChargeCounter",                                                                  //
-                                             sol::meta_function::construct, [console = console]() { return ChargeCounter{}; }, //
+            lua->new_usertype<ChargeCounter>("ChargeCounter",                                                                 //
+                                             sol::meta_function::construct, sol::factories([]() { return ChargeCounter{}; }), //
 
                                              "add_current", [](ChargeCounter &handle, const double current) { return handle.add_current(current); }, //
                                              "reset",
@@ -1038,16 +1076,17 @@ void ScriptEngine::load_script(const QString &path) {
                                              [](ChargeCounter &handle) { return handle.get_current_hours(); } //
                                              );
         }
+
         //bind data engine
         {
             lua->new_usertype<Data_engine_handle>(
                 "Data_engine", //
                 sol::meta_function::construct,
-                [ data_engine = data_engine, path = path, this ](const std::string &pdf_template_file, const std::string &json_file,
-                                                                 const std::string &auto_json_dump_path, const sol::table &dependency_tags) {
-                    auto file_path = get_absolute_file_path(path, json_file);
-                    auto xml_file = get_absolute_file_path(path, pdf_template_file);
-                    auto auto_dump_path = get_absolute_file_path(path, auto_json_dump_path);
+                sol::factories([ data_engine = data_engine, path = path, this ](const std::string &pdf_template_file, const std::string &json_file,
+                                                                                const std::string &auto_json_dump_path, const sol::table &dependency_tags) {
+                    auto file_path = get_absolute_file_path(QString::fromStdString(path), json_file);
+                    auto xml_file = get_absolute_file_path(QString::fromStdString(path), pdf_template_file);
+                    auto auto_dump_path = get_absolute_file_path(QString::fromStdString(path), auto_json_dump_path);
                     std::ifstream f(file_path);
                     if (!f) {
                         throw std::runtime_error("Failed opening file " + file_path);
@@ -1096,15 +1135,27 @@ void ScriptEngine::load_script(const QString &path) {
                     //*form_filepath = get_absolute_file_path(path, xml_file);
 
                     return Data_engine_handle{data_engine};
-                }, //
+                }), //
                 "set_start_time_seconds_since_epoch",
                 [](Data_engine_handle &handle, const double start_time) { return handle.data_engine->set_start_time_seconds_since_epoch(start_time); },
                 "use_instance",
                 [](Data_engine_handle &handle, const std::string &section_name, const std::string &instance_caption, const uint instance_index) {
                     handle.data_engine->use_instance(QString::fromStdString(section_name), QString::fromStdString(instance_caption), instance_index);
                 },
+                "start_recording_actual_value_statistic",
+                [](Data_engine_handle &handle, const std::string &root_file_path, const std::string &prefix) {
+                    return handle.data_engine->start_recording_actual_value_statistic(root_file_path, prefix);
+
+                },
+                "set_dut_identifier",
+                [](Data_engine_handle &handle, const std::string &dut_identifier) {
+                    return handle.data_engine->set_dut_identifier(QString::fromStdString(dut_identifier));
+
+                },
+
                 "get_instance_count",
                 [](Data_engine_handle &handle, const std::string &section_name) { return handle.data_engine->get_instance_count(section_name); },
+
                 "get_description",
                 [](Data_engine_handle &handle, const std::string &id) { return handle.data_engine->get_description(QString::fromStdString(id)).toStdString(); },
                 "get_actual_value", [](Data_engine_handle &handle,
@@ -1127,13 +1178,13 @@ void ScriptEngine::load_script(const QString &path) {
                 },
                 "save_to_json",
                 [path = path](Data_engine_handle & handle, const std::string &file_name) {
-                    auto fn = get_absolute_file_path(path, file_name);
+                    auto fn = get_absolute_file_path(QString::fromStdString(path), file_name);
                     handle.data_engine->save_to_json(QString::fromStdString(fn));
                 },
                 "add_extra_pdf_path", [ path = path, this ](Data_engine_handle & handle, const std::string &file_name) {
                     (void)handle;
                     // data_engine_auto_dump_path = QString::fromStdString(auto_dump_path);
-                    additional_pdf_path = QString::fromStdString(get_absolute_file_path(path, file_name));
+                    additional_pdf_path = QString::fromStdString(get_absolute_file_path(QString::fromStdString(path), file_name));
                     //  handle.data_engine->save_to_json(QString::fromStdString(fn));
                 },
                 "set_open_pdf_on_pdf_creation",
@@ -1142,9 +1193,21 @@ void ScriptEngine::load_script(const QString &path) {
                 },
                 "value_in_range",
                 [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->value_in_range(QString::fromStdString(field_id)); },
+                "value_in_range_in_section",
+                [](Data_engine_handle &handle, const std::string &field_id) {
+                    return handle.data_engine->value_in_range_in_section(QString::fromStdString(field_id));
+                },
                 "value_in_range_in_instance",
                 [](Data_engine_handle &handle, const std::string &field_id) {
                     return handle.data_engine->value_in_range_in_instance(QString::fromStdString(field_id));
+                },
+                "values_in_range",
+                [](Data_engine_handle &handle, const sol::table &field_ids) {
+                    QList<FormID> ids;
+                    for (const auto &field_id : field_ids) {
+                        ids.append(QString::fromStdString(field_id.second.as<std::string>()));
+                    }
+                    return handle.data_engine->values_in_range(ids);
                 },
                 "is_bool",
                 [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->is_bool(QString::fromStdString(field_id)); },
@@ -1174,10 +1237,28 @@ void ScriptEngine::load_script(const QString &path) {
         //UI functions
         {
             ui_table["set_column_count"] = [ container = parent, this ](int count) {
-                Utility::thread_call(MainWindow::mw, this, [container, count] { container->set_column_count(count); });
+                Utility::thread_call(MainWindow::mw, [container, count] { container->set_column_count(count); }, this);
             };
+#if 0
+            ui_table["load_user_entry_cache"] = [ container = parent, this ](const std::string dut_id) {
+                (void)container;
+                (void)this;
+                (void)dut_id;
+                // container->user_entry_cache.load_storage_for_script(this->path_m, QString::fromStdString(dut_id));
+            };
+#endif
         }
 
+#if 0
+        //bind charge UserEntryCache
+        {
+            lua->new_usertype<UserEntryCache>("UserEntryCache", //
+                                              sol::meta_function::construct,sol::factories(
+                                              []() { //
+                                                  return UserEntryCache{};
+                                              }));
+        }
+#endif
         //bind plot
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Curve>>(
@@ -1191,10 +1272,11 @@ void ScriptEngine::load_script(const QString &path) {
                     for (auto &i : table) {
                         data.push_back(i.second.as<double>());
                     }
-                    Utility::thread_call(MainWindow::mw, this, [ id = curve.id, data = std::move(data) ] {
+                    Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data) ] {
                         auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
                         curve.add(data);
-                    });
+                    },
+                                         this);
                 }, //
                 "add_spectrum_at",
                 [this](Lua_UI_Wrapper<Curve> &curve, const unsigned int spectrum_start_channel, const sol::table &table) {
@@ -1203,10 +1285,11 @@ void ScriptEngine::load_script(const QString &path) {
                     for (auto &i : table) {
                         data.push_back(i.second.as<double>());
                     }
-                    Utility::thread_call(MainWindow::mw, this, [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
+                    Utility::thread_call(MainWindow::mw, [ id = curve.id, data = std::move(data), spectrum_start_channel ] {
                         auto &curve = MainWindow::mw->get_lua_UI_class<Curve>(id);
                         curve.add_spectrum_at(spectrum_start_channel, data);
-                    });
+                    },
+                                         this);
                 }, //
 
                 "clear",
@@ -1226,14 +1309,15 @@ void ScriptEngine::load_script(const QString &path) {
                     QThread *thread = QThread::currentThread();
                     std::promise<double> x_selection_promise;
                     std::future<double> x_selection_future = x_selection_promise.get_future();
-                    Utility::thread_call(MainWindow::mw, this, [&lua_curve, thread, x_selection_promise = &x_selection_promise ]() mutable {
+                    Utility::thread_call(MainWindow::mw, [&lua_curve, thread, x_selection_promise = &x_selection_promise ]() mutable {
                         Curve &curve = MainWindow::mw->get_lua_UI_class<Curve>(lua_curve.id);
                         curve.set_onetime_click_callback([thread, x_selection_promise](double x, double y) mutable {
                             (void)y;
                             x_selection_promise->set_value(x);
-                            Utility::thread_call(thread, nullptr, [thread] { thread->exit(1234); });
+                            Utility::thread_call(thread, [thread] { thread->exit(1234); });
                         });
-                    });
+                    },
+                                         this);
                     if (QEventLoop{}.exec() == 1234) {
                         double result = x_selection_future.get();
                         return result;
@@ -1245,9 +1329,10 @@ void ScriptEngine::load_script(const QString &path) {
 #endif
                 );
             ui_table.new_usertype<Lua_UI_Wrapper<Plot>>("Plot", //
-                                                        sol::meta_function::construct, [ parent = this->parent, this ] {
+
+                                                        sol::meta_function::construct, sol::factories([ parent = this->parent, this ] {
                                                             return Lua_UI_Wrapper<Plot>{parent, this};
-                                                        }, //
+                                                        }), //
                                                         "clear",
                                                         thread_call_wrapper(&Plot::clear), //
                                                         "add_curve", [ parent = this->parent, this ](Lua_UI_Wrapper<Plot> & lua_plot)->Lua_UI_Wrapper<Curve> {
@@ -1273,16 +1358,35 @@ void ScriptEngine::load_script(const QString &path) {
                                                     }, //
                                                     [](int rgb) { return Color{rgb}; });
         }
+        //bind PollDataEngine
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<PollDataEngine>>(
+                "PollDataEngine", //
+                sol::meta_function::construct, sol::factories([ parent = this->parent, this ](Data_engine_handle & handle, const sol::table items) {
+                    QStringList sl;
+                    for (const auto &item : items) {
+                        sl.append(QString::fromStdString(item.second.as<std::string>()));
+                    }
+                    return Lua_UI_Wrapper<PollDataEngine>{parent, this, this, handle.data_engine, sl};
+                }), //
+
+                "set_visible",
+                thread_call_wrapper(&PollDataEngine::set_visible),                //
+                "refresh", thread_call_wrapper(&PollDataEngine::refresh),         //
+                "set_enabled", thread_call_wrapper(&PollDataEngine::set_enabled), //
+                "is_in_range", thread_call_wrapper(&PollDataEngine::is_in_range));
+        }
         //bind DataEngineInput
         {
             ui_table.new_usertype<Lua_UI_Wrapper<DataEngineInput>>(
                 "DataEngineInput", //
-                sol::meta_function::construct, [ parent = this->parent, this ](Data_engine_handle & handle, const std::string &field_id,
-                                                                               const std::string &extra_explanation, const std::string &empty_value_placeholder,
-                                                                               const std::string &actual_prefix, const std::string &desired_prefix) {
+                sol::meta_function::construct,
+                sol::factories([ parent = this->parent, this ](Data_engine_handle & handle, const std::string &field_id, const std::string &extra_explanation,
+                                                               const std::string &empty_value_placeholder, const std::string &actual_prefix,
+                                                               const std::string &desired_prefix) {
                     return Lua_UI_Wrapper<DataEngineInput>{
                         parent, this, this, handle.data_engine, field_id, extra_explanation, empty_value_placeholder, actual_prefix, desired_prefix};
-                }, //
+                }), //
                 "load_actual_value",
                 thread_call_wrapper(&DataEngineInput::load_actual_value),                          //
                 "await_event", non_gui_call_wrapper(&DataEngineInput::await_event),                //
@@ -1292,39 +1396,46 @@ void ScriptEngine::load_script(const QString &path) {
                 "set_editable", thread_call_wrapper(&DataEngineInput::set_editable),               //
                 "sleep_ms", non_gui_call_wrapper(&DataEngineInput::sleep_ms),                      //
                 "is_editable", thread_call_wrapper(&DataEngineInput::get_is_editable),             //
-                "set_explanation_text", thread_call_wrapper(&DataEngineInput::set_explanation_text)
-
-                    );
+                "set_explanation_text", thread_call_wrapper(&DataEngineInput::set_explanation_text));
         }
         //bind UserInstructionLabel
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<UserInstructionLabel>>("UserInstructionLabel", //
-                                                                        sol::meta_function::construct,
-                                                                        [ parent = this->parent, this ](const std::string &instruction_text) {
-                                                                            return Lua_UI_Wrapper<UserInstructionLabel>{parent, this, this, instruction_text};
-                                                                        }, //
-                                                                        "await_event",
-                                                                        non_gui_call_wrapper(&UserInstructionLabel::await_event),                  //
-                                                                        "await_yes_no", non_gui_call_wrapper(&UserInstructionLabel::await_yes_no), //
+            ui_table.new_usertype<Lua_UI_Wrapper<UserInstructionLabel>>(
+                "UserInstructionLabel", //
+                sol::meta_function::construct, sol::factories([ parent = this->parent, this ](const std::string &instruction_text) {
+                    return Lua_UI_Wrapper<UserInstructionLabel>{parent, this, this, instruction_text};
+                }), //
+                "await_event",
+                non_gui_call_wrapper(&UserInstructionLabel::await_event),                  //
+                "await_yes_no", non_gui_call_wrapper(&UserInstructionLabel::await_yes_no), //
 
-                                                                        "set_visible", thread_call_wrapper(&UserInstructionLabel::set_visible), //
-                                                                        "set_enabled", thread_call_wrapper(&UserInstructionLabel::set_enabled), //
-                                                                        "set_instruction_text", thread_call_wrapper(&UserInstructionLabel::set_instruction_text)
-
-                                                                            );
+                "set_visible", thread_call_wrapper(&UserInstructionLabel::set_visible), //
+                "set_enabled", thread_call_wrapper(&UserInstructionLabel::set_enabled), //
+                "set_instruction_text", thread_call_wrapper(&UserInstructionLabel::set_instruction_text));
         }
-
+        //bind UserWaitLabel
+        {
+            ui_table.new_usertype<Lua_UI_Wrapper<UserWaitLabel>>("UserWaitLabel", //
+                                                                 sol::meta_function::construct,
+                                                                 sol::factories([ parent = this->parent, this ](const std::string &instruction_text) {
+                                                                     return Lua_UI_Wrapper<UserWaitLabel>{parent, this, this, instruction_text};
+                                                                 }), //
+                                                                 "set_enabled",
+                                                                 thread_call_wrapper(&UserWaitLabel::set_enabled), //
+                                                                 "set_text", thread_call_wrapper(&UserWaitLabel::set_text));
+        }
         //bind ComboBoxFileSelector
         {
             ui_table.new_usertype<Lua_UI_Wrapper<ComboBoxFileSelector>>(
                 "ComboBoxFileSelector", //
-                sol::meta_function::construct, [ parent = this->parent, path = path, this ](const std::string &directory, const sol::table &filters) {
+                sol::meta_function::construct,
+                sol::factories([ parent = this->parent, path = path, this ](const std::string &directory, const sol::table &filters) {
                     QStringList sl;
                     for (const auto &item : filters) {
                         sl.append(QString::fromStdString(item.second.as<std::string>()));
                     }
-                    return Lua_UI_Wrapper<ComboBoxFileSelector>{parent, this, get_absolute_file_path(path, directory), sl};
-                }, //
+                    return Lua_UI_Wrapper<ComboBoxFileSelector>{parent, this, get_absolute_file_path(QString::fromStdString(path), directory), sl};
+                }), //
                 "get_selected_file",
                 thread_call_wrapper(&ComboBoxFileSelector::get_selected_file),           //
                 "set_visible", thread_call_wrapper(&ComboBoxFileSelector::set_visible),  //
@@ -1335,9 +1446,9 @@ void ScriptEngine::load_script(const QString &path) {
         //bind IsotopeSourceSelector
         {
             ui_table.new_usertype<Lua_UI_Wrapper<IsotopeSourceSelector>>("IsotopeSourceSelector", //
-                                                                         sol::meta_function::construct, [ parent = this->parent, this ]() {
+                                                                         sol::meta_function::construct, sol::factories([ parent = this->parent, this ]() {
                                                                              return Lua_UI_Wrapper<IsotopeSourceSelector>{parent, this};
-                                                                         }, //
+                                                                         }), //
                                                                          "set_visible",
                                                                          thread_call_wrapper(&IsotopeSourceSelector::set_visible),                            //
                                                                          "set_enabled", thread_call_wrapper(&IsotopeSourceSelector::set_enabled),             //
@@ -1352,13 +1463,14 @@ void ScriptEngine::load_script(const QString &path) {
         //bind ComboBox
         {
             ui_table.new_usertype<Lua_UI_Wrapper<ComboBox>>("ComboBox", //
-                                                            sol::meta_function::construct, [ parent = this->parent, this ](const sol::table &items) {
+                                                            sol::meta_function::construct,
+                                                            sol::factories([ parent = this->parent, this ](const sol::table &items) {
                                                                 QStringList sl;
                                                                 for (const auto &item : items) {
                                                                     sl.append(QString::fromStdString(item.second.as<std::string>()));
                                                                 }
                                                                 return Lua_UI_Wrapper<ComboBox>{parent, this, sl};
-                                                            }, //
+                                                            }), //
                                                             "set_items",
                                                             thread_call_wrapper(&ComboBox::set_items),                   //
                                                             "get_text", thread_call_wrapper(&ComboBox::get_text),        //
@@ -1373,9 +1485,9 @@ void ScriptEngine::load_script(const QString &path) {
         //bind SpinBox
         {
             ui_table.new_usertype<Lua_UI_Wrapper<SpinBox>>("SpinBox", //
-                                                           sol::meta_function::construct, [ parent = this->parent, this ]() {
+                                                           sol::meta_function::construct, sol::factories([ parent = this->parent, this ]() {
                                                                return Lua_UI_Wrapper<SpinBox>{parent, this}; //
-                                                           },                                                //
+                                                           }),                                               //
                                                            "get_value",
                                                            thread_call_wrapper(&SpinBox::get_value),                      //
                                                            "set_max_value", thread_call_wrapper(&SpinBox::set_max_value), //
@@ -1389,9 +1501,9 @@ void ScriptEngine::load_script(const QString &path) {
         //bind ProgressBar
         {
             ui_table.new_usertype<Lua_UI_Wrapper<ProgressBar>>("ProgressBar", //
-                                                               sol::meta_function::construct, [ parent = this->parent, this ]() {
+                                                               sol::meta_function::construct, sol::factories([ parent = this->parent, this ]() {
                                                                    return Lua_UI_Wrapper<ProgressBar>{parent, this};
-                                                               }, //
+                                                               }), //
                                                                "set_max_value",
                                                                thread_call_wrapper(&ProgressBar::set_max_value),                      //
                                                                "set_min_value", thread_call_wrapper(&ProgressBar::set_min_value),     //
@@ -1405,9 +1517,10 @@ void ScriptEngine::load_script(const QString &path) {
         //bind Label
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Label>>("Label", //
-                                                         sol::meta_function::construct, [ parent = this->parent, this ](const std::string &text) {
+                                                         sol::meta_function::construct,
+                                                         sol::factories([ parent = this->parent, this ](const std::string &text) {
                                                              return Lua_UI_Wrapper<Label>{parent, this, text};
-                                                         }, //
+                                                         }), //
                                                          "set_text",
                                                          thread_call_wrapper(&Label::set_text),                       //
                                                          "set_enabled", thread_call_wrapper(&Label::set_enabled),     //
@@ -1418,9 +1531,9 @@ void ScriptEngine::load_script(const QString &path) {
         //bind hline
         {
             ui_table.new_usertype<Lua_UI_Wrapper<HLine>>("HLine", //
-                                                         sol::meta_function::construct, [ parent = this->parent, this ]() {
+                                                         sol::meta_function::construct, sol::factories([ parent = this->parent, this ]() {
                                                              return Lua_UI_Wrapper<HLine>{parent, this};
-                                                         }, //
+                                                         }), //
 
                                                          "set_visible",
                                                          thread_call_wrapper(&HLine::set_visible));
@@ -1428,9 +1541,10 @@ void ScriptEngine::load_script(const QString &path) {
         //bind CheckBox
         {
             ui_table.new_usertype<Lua_UI_Wrapper<CheckBox>>("CheckBox", //
-                                                            sol::meta_function::construct, [ parent = this->parent, this ](const std::string &text) {
+                                                            sol::meta_function::construct,
+                                                            sol::factories([ parent = this->parent, this ](const std::string &text) {
                                                                 return Lua_UI_Wrapper<CheckBox>{parent, this, text};
-                                                            }, //
+                                                            }), //
                                                             "set_checked",
                                                             thread_call_wrapper(&CheckBox::set_checked),                //
                                                             "get_checked", thread_call_wrapper(&CheckBox::get_checked), //
@@ -1441,9 +1555,9 @@ void ScriptEngine::load_script(const QString &path) {
         //bind Image
 
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image", sol::meta_function::construct, [ parent = this->parent, path = path, this ]() {
-                return Lua_UI_Wrapper<Image>{parent, this, path}; //
-            },
+            ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image", sol::meta_function::construct, sol::factories([ parent = this->parent, path = path, this ]() {
+                                                             return Lua_UI_Wrapper<Image>{parent, this, QString::fromStdString(path)}; //
+                                                         }),
                                                          "load_image_file", thread_call_wrapper(&Image::load_image_file), //
                                                          "set_visible", thread_call_wrapper(&Image::set_visible)          //
                                                          );
@@ -1451,9 +1565,10 @@ void ScriptEngine::load_script(const QString &path) {
         //bind button
         {
             ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //
-                                                          sol::meta_function::construct, [ parent = this->parent, this ](const std::string &title) {
+                                                          sol::meta_function::construct,
+                                                          sol::factories([ parent = this->parent, this ](const std::string &title) {
                                                               return Lua_UI_Wrapper<Button>{parent, this, this, title};
-                                                          }, //
+                                                          }), //
                                                           "has_been_clicked",
                                                           thread_call_wrapper(&Button::has_been_clicked),                       //
                                                           "set_visible", thread_call_wrapper(&Button::set_visible),             //
@@ -1464,22 +1579,28 @@ void ScriptEngine::load_script(const QString &path) {
 
         //bind edit field
         {
-            ui_table.new_usertype<Lua_UI_Wrapper<LineEdit>>("LineEdit", //
-                                                            sol::meta_function::construct,
-                                                            [ parent = this->parent, this ] { return Lua_UI_Wrapper<LineEdit>(parent, this, this); }, //
-                                                            "set_placeholder_text", thread_call_wrapper(&LineEdit::set_placeholder_text),             //
-                                                            "get_text", thread_call_wrapper(&LineEdit::get_text),                                     //
-                                                            "set_text", thread_call_wrapper(&LineEdit::set_text),                                     //
-                                                            "set_name", thread_call_wrapper(&LineEdit::set_name),                                     //
-                                                            "get_name", thread_call_wrapper(&LineEdit::get_name),                                     //
-                                                            "get_number", thread_call_wrapper(&LineEdit::get_number),                                 //
-                                                            "get_caption", thread_call_wrapper(&LineEdit::get_caption),                               //
-                                                            "set_caption", thread_call_wrapper(&LineEdit::set_caption),                               //
-                                                            "set_enabled", thread_call_wrapper(&LineEdit::set_enabled),                               //
-                                                            "set_visible", thread_call_wrapper(&LineEdit::set_visible),                               //
-                                                            "set_focus", thread_call_wrapper(&LineEdit::set_focus),                                   //
-                                                            "await_return", non_gui_call_wrapper(&LineEdit::await_return)                             //
-                                                            );
+            ui_table.new_usertype<Lua_UI_Wrapper<LineEdit>>(
+                "LineEdit",                                                                                                                              //
+                sol::meta_function::construct, sol::factories([ parent = this->parent, this ] { return Lua_UI_Wrapper<LineEdit>(parent, this, this); }), //
+                "set_placeholder_text", thread_call_wrapper(&LineEdit::set_placeholder_text),                                                            //
+                "get_text", thread_call_wrapper(&LineEdit::get_text),                                                                                    //
+                "set_text", thread_call_wrapper(&LineEdit::set_text),                                                                                    //
+                "set_name", thread_call_wrapper(&LineEdit::set_name),                                                                                    //
+                "get_name", thread_call_wrapper(&LineEdit::get_name),                                                                                    //
+                "get_number", thread_call_wrapper(&LineEdit::get_number),                                                                                //
+                "get_caption", thread_call_wrapper(&LineEdit::get_caption),                                                                              //
+                "set_caption", thread_call_wrapper(&LineEdit::set_caption),                                                                              //
+                "set_enabled", thread_call_wrapper(&LineEdit::set_enabled),                                                                              //
+                "set_visible", thread_call_wrapper(&LineEdit::set_visible),                                                                              //
+                "set_focus", thread_call_wrapper(&LineEdit::set_focus),                                                                                  //
+                "await_return", non_gui_call_wrapper(&LineEdit::await_return),                                                                           //
+                "get_date", thread_call_wrapper(&LineEdit::get_date),                                                                                    //
+                "set_date", thread_call_wrapper(&LineEdit::set_date),                                                                                    //
+                "set_date_mode", thread_call_wrapper(&LineEdit::set_date_mode),                                                                          //
+                "set_text_mode", thread_call_wrapper(&LineEdit::set_text_mode),                                                                          //
+
+                "load_from_cache", non_gui_call_wrapper(&LineEdit::load_from_cache) //
+                );
         }
         {
             lua->new_usertype<SCPIDevice>(
@@ -1536,7 +1657,9 @@ void ScriptEngine::load_script(const QString &path) {
 
                                             );
         }
-        lua->script_file(path.toStdString());
+        lua->script_file(path);
+
+        qDebug() << "laoded script"; // << lua->;
     } catch (const sol::error &error) {
         qDebug() << "caught sol::error@load_script";
         set_error_line(error);
@@ -1554,7 +1677,7 @@ void ScriptEngine::set_error_line(const sol::error &error) {
 }
 
 void ScriptEngine::interrupt(QString msg) {
-    Utility::thread_call(MainWindow::mw, nullptr, [this, msg] { Console::error(console) << msg; });
+    Utility::thread_call(MainWindow::mw, [this, msg] { Console::error(console) << msg; });
     qDebug() << "script interrupted";
     if (owner) {
         owner->interrupt();
@@ -1571,7 +1694,7 @@ void ScriptEngine::launch_editor(QString path, int error_line) {
 }
 
 void ScriptEngine::launch_editor() const {
-    launch_editor(path, error_line);
+    launch_editor(path_m, error_line);
 }
 
 sol::table ScriptEngine::create_table() {
@@ -1613,8 +1736,9 @@ int get_quantity_num(sol::object &obj) {
 
 std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const QString &name) {
     std::vector<DeviceRequirements> result{};
-    sol::table protocol_entries = lua->get<sol::table>(name.toStdString());
     try {
+#if 1
+        sol::table protocol_entries = lua->get<sol::table>(name.toStdString());
         if (protocol_entries.valid() == false) {
             return result;
         }
@@ -1668,7 +1792,10 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
             }
             result.push_back(item);
         }
-    } catch (const sol::error &error) {
+#endif
+    }
+
+    catch (const sol::error &error) {
         set_error_line(error);
         throw;
     }
@@ -1680,9 +1807,10 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
     qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
 
     auto reset_lua_state = [this] {
-        ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db, "").toString()};
+        ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString()};
         data_engine->do_exceptional_approvals(ea_db, MainWindow::mw);
         lua = std::make_unique<sol::state>();
+        data_engine->save_actual_value_statistic();
         if ((data_engine_pdf_template_path.count()) && (data_engine_auto_dump_path.count())) {
             QFileInfo fi(data_engine_auto_dump_path);
             QString suffix = fi.completeSuffix();
@@ -1741,6 +1869,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
                             add_enum_types(function, *lua);
                         }
                         type_reg.set("get_protocol_name", [](RPCDevice &device) { return device.get_protocol_name(); });
+                        type_reg.set("is_protocol_device_available", [](RPCDevice &device) { return device.is_protocol_device_available(); });
                         const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
                         lua->set_usertype(type_name, type_reg);
                         while (device_protocol.device->waitReceived(CommunicationDevice::Duration{0}, 1)) {

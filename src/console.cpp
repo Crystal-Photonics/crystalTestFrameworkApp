@@ -7,7 +7,6 @@
 
 QPlainTextEdit *Console::console = nullptr;
 MainWindow *Console::mw = nullptr;
-bool Console::use_human_readable_encoding = true;
 
 Console::ConsoleProxy Console::warning(QPlainTextEdit *console) {
     if (console) {
@@ -66,14 +65,16 @@ Console::ConsoleProxy::~ConsoleProxy() {
     if (s.isEmpty()) {
         return;
     }
+    QString s_br = Utility::to_human_readable_binary_data(s.join(" "));
+    s_br = s_br.replace("\n","<br>");
     if (fat) {
         mw->append_html_to_console("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" + QTime::currentTime().toString(Qt::ISODate) + ": " +
-                                       prefix + ": </plaintext><b><plaintext>" + Utility::to_human_readable_binary_data(s.join(" ")) +
+                                       prefix + ": </plaintext><b><plaintext>" + s_br +
                                        "</plaintext></b></font>\n",
                                    console);
     } else {
         mw->append_html_to_console("<font color=\"#" + QString::number(color.rgb(), 16) + "\"><plaintext>" + QTime::currentTime().toString(Qt::ISODate) + ": " +
-                                       prefix + ": " + Utility::to_human_readable_binary_data(s.join(" ")) + "</plaintext></font>\n",
+                                       prefix + ": " + s_br + "</plaintext></font>\n",
                                    console);
     }
 }

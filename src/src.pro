@@ -11,18 +11,20 @@ TEMPLATE = lib
 
 DEFINES += EXPORT_LIBRARY
 
-
-
+win32 {
+	QMAKE_PRE_LINK += if not exist $$shell_path($$PWD/../libs/googletest/build) mkdir $$shell_path($$PWD/../libs/googletest/build) && cd $$shell_path($$PWD/../libs/googletest/build) && cmake .. && cmake --build .
+}else{
+	QMAKE_PRE_LINK += mkdir -p $$PWD/../libs/googletest/build && cd $$PWD/../libs/googletest/build && cmake .. && cmake --build .
+}
 
 FORMS += \
 	Windows/mainwindow.ui \
-	Windows/pathsettingswindow.ui \
 	Windows/devicematcher.ui \
 	Windows/scpimetadatadeviceselector.ui \
-	Windows/hotkey_picker.ui \
-    Windows/dummydatacreator.ui \
+            Windows/dummydatacreator.ui \
     Windows/exceptiontalapprovaldialog.ui \
-    Windows/infowindow.ui
+    Windows/infowindow.ui \
+    Windows/settingsform.ui
 
 QPROTOCOL_INTERPRETER_PATH=$$PWD/../libs/qRPCRuntimeParser
 INCLUDEPATH += $$QPROTOCOL_INTERPRETER_PATH/project/src
@@ -51,7 +53,6 @@ HEADERS += \
 	LuaUI/plot.h \
 	LuaUI/window.h \
 	Windows/mainwindow.h \
-	Windows/pathsettingswindow.h \
 	Protocols/protocol.h \
 	Protocols/rpcprotocol.h \
 	Protocols/scpiprotocol.h \
@@ -65,8 +66,7 @@ HEADERS += \
 	Windows/devicematcher.h \
 	Windows/scpimetadatadeviceselector.h \
 	Protocols/sg04countprotocol.h \
-        Windows/hotkey_picker.h \
-    datalogger.h \
+            datalogger.h \
     LuaUI/isotopesourceselector.h \
     LuaUI/combofileselector.h \
     chargecounter.h \
@@ -87,10 +87,17 @@ HEADERS += \
     LuaUI/progressbar.h \
     LuaUI/dataengineinput.h \
     LuaUI/hline.h \
+    LuaUI/polldataengine.h \
     Windows/dummydatacreator.h \
     environmentvariables.h \
     LuaUI/userinstructionlabel.h \
-    data_engine/exceptionalapproval.h
+    LuaUI/userwaitlabel.h \
+    data_engine/exceptionalapproval.h \
+        identicon/identicon.h \
+favorite_scripts.h \
+    Windows/settingsform.h \
+    userentrystorage.h
+
 HEADERS +=    Windows/exceptiontalapprovaldialog.h
 #HEADERS +=    data_engine/data_engine_strings.h
 HEADERS +=    Windows/infowindow.h
@@ -111,7 +118,6 @@ SOURCES += \
 	LuaUI/plot.cpp \
 	LuaUI/window.cpp \
 	Windows/mainwindow.cpp \
-	Windows/pathsettingswindow.cpp \
 	Protocols/protocol.cpp \
 	Protocols/rpcprotocol.cpp \
 	Protocols/scpiprotocol.cpp \
@@ -125,7 +131,6 @@ SOURCES += \
 	Windows/devicematcher.cpp \
 	Windows/scpimetadatadeviceselector.cpp \
 	Protocols/sg04countprotocol.cpp \
-	Windows/hotkey_picker.cpp \
     datalogger.cpp \
     LuaUI/isotopesourceselector.cpp \
     LuaUI/combofileselector.cpp \
@@ -150,13 +155,33 @@ SOURCES += \
     Windows/dummydatacreator.cpp \
     environmentvariables.cpp \
     LuaUI/userinstructionlabel.cpp \
+    LuaUI/userwaitlabel.cpp \
+    LuaUI/polldataengine.cpp \
     data_engine/exceptionalapproval.cpp \
     Windows/exceptiontalapprovaldialog.cpp \
-    Windows/infowindow.cpp
+    Windows/infowindow.cpp \ 
+    identicon/identicon.cpp \
+    favorite_scripts.cpp \
+    Windows/settingsform.cpp \
+    userentrystorage.cpp
 
+win32 {
+    system($$system_quote($$SH) $$PWD/../git_win.sh)
+}else{
+    system($$system_quote($$SH) $$PWD/../git_linux.sh)
+}
 
+RESOURCES += \
+    ../resources.qrc
 
+DISTFILES += \
+    ../examples/scripts/example/Jellyfish.jpg \
+    ../examples/scripts/example/dummy.txt \
+    ../examples/scripts/example/chargeCounter_test.lua \
+    ../examples/scripts/example/file_selector_test.lua \
+    ../examples/scripts/example/luatests.lua \
+    ../examples/scripts/example/manual_device_test.lua \
+    ../examples/scripts/example/nuklid_selector_test.lua \
+    ../examples/scripts/example/scpi_hm8150_test.lua \
+    ../examples/scripts/example/user_wait_label.lua
 
-SH = C:/Program Files/Git/bin/sh.exe
-
-system($$system_quote($$SH) $$PWD/../git.sh)

@@ -52,6 +52,7 @@ enum class DataEngineErrorNumber {
     reference_is_not_number_but_has_tolerance,
     reference_is_a_number_and_needs_tolerance,
     reference_must_not_point_to_multiinstance_actual_value,
+    reference_must_not_point_to_undefined_instance,
     reference_pointing_to_multiinstance_with_different_values,
     illegal_reference_declaration,
     setting_reference_actual_value_with_wrong_type,
@@ -74,6 +75,37 @@ enum class DataEngineErrorNumber {
     actual_value_is_not_a_number,
     pdf_template_file_not_existing
 };
+
+QString select_newest_file_name(QStringList file_list, QString prefix);
+
+class DataEngineActualValueStatisticFile {
+    public:
+    DataEngineActualValueStatisticFile();
+    ~DataEngineActualValueStatisticFile();
+
+    void start_recording(QString file_root_path, QString file_prefix);
+    void set_actual_value(const FormID &field_name, const QString serialised_dependency, double value);
+    void set_dut_identifier(QString dut_identifier);
+    QString select_file_name_to_be_used(QStringList file_list);
+    void save_to_file();
+    private:
+    void open_or_create_new_file();
+    void open_file(QString file_name);
+
+    QString file_root_path;
+    QString file_prefix;
+    QString used_file_name;
+    QString dut_identifier;
+    QJsonObject data_entries;
+    const uint entry_limit = 100;
+    bool lock_file_exists = false;
+    bool is_opened = false;
+    void close_file();
+    void remove_lock_file();
+    bool check_and_create_lock_file();
+    void create_new_file();
+};
+
 class DataEngineError : public std::runtime_error {
     public:
     DataEngineError(DataEngineErrorNumber err_number, const QString &str)
@@ -332,6 +364,7 @@ struct DependencyValue {
     Match_style match_style;
 
     public:
+    QString get_serialised_string() const;
     void from_json(const QJsonValue &object, const bool default_to_match_all);
     bool is_matching(const QVariant &test_value) const;
     void from_string(const QString &str);
@@ -340,12 +373,14 @@ struct DependencyValue {
     void from_number(const double &number);
     void from_bool(const bool &boolean);
     void parse_number(const QString &str, float &vnumber, bool &matcheverything);
+    QString serialised_string;
 };
 
 struct DependencyTags {
     QMultiMap<QString, DependencyValue> tags;
 
     public:
+    QString get_dependencies_serialised_string() const;
     void from_json(const QJsonValue &object);
 };
 
@@ -362,6 +397,7 @@ struct VariantData {
     uint get_entry_count() const;
 
     public:
+    QString get_dependencies_serialised_string() const;
     bool uses_dependency() const;
     bool is_dependency_matching(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count, const QString &section_name);
     void from_json(const QJsonObject &object);
@@ -431,7 +467,8 @@ struct DataEngineSection {
 
     bool section_uses_variants() const;
 
-    private:
+    QString get_serialised_dependency_string() const;
+private:
     std::experimental::optional<uint> instance_count;
 
     QString section_title;
@@ -501,16 +538,24 @@ class Data_engine {
     void set_source(std::istream &source);
     void set_script_path(QString script_path);
     void set_source_path(QString source_path);
+    void start_recording_actual_value_statistic(const std::string &root_file_path, const std::string &file_prefix);
+    void set_dut_identifier(QString dut_identifier);
+    void save_actual_value_statistic();
     QStringList get_instance_count_names();
 
     void set_start_time_seconds_since_epoch(double start_seconds_since_epoch);
 
     bool is_complete() const;
     bool all_values_in_range() const;
+    bool values_in_range(const QList<FormID> &ids) const;
     bool value_in_range(const FormID &id) const;
     bool value_complete(const FormID &id) const;
     bool value_complete_in_instance(const FormID &id) const;
     bool value_in_range_in_instance(const FormID &id) const;
+
+    bool value_complete_in_section(FormID id) const;
+    bool value_in_range_in_section(FormID id) const;
+
     bool is_bool(const FormID &id) const;
     bool is_number(const FormID &id) const;
     bool is_text(const FormID &id) const;
@@ -547,7 +592,9 @@ class Data_engine {
     bool generate_pdf(const std::string &form, const std::string &destination) const;
     void fill_database(QSqlDatabase &db) const;
     void generate_template(const QString &destination, const QString &db_filename, QString report_title, QString image_footer_path, QString image_header_path,
-                           QString approved_by_field_id, QString static_text_report_header, QString static_text_page_header, QString static_text_page_footer, QString static_text_report_footer_above_signature, QString static_text_report_footer_beneath_signature, const QList<PrintOrderItem> &print_order) const;
+                           QString approved_by_field_id, QString static_text_report_header, QString static_text_page_header, QString static_text_page_footer,
+                           QString static_text_report_footer_above_signature, QString static_text_report_footer_beneath_signature,
+                           const QList<PrintOrderItem> &print_order) const;
 
     void save_to_json(QString filename);
     static void replace_database_filename(const std::string &source_form_path, const std::string &destination_form_path, const std::string &database_path);
@@ -559,9 +606,13 @@ class Data_engine {
     bool do_exceptional_approval(ExceptionalApprovalDB &ea_db, QString field_id, QWidget *parent);
 
     private:
-    void generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id, QString static_text_report_header, QString static_text_page_header, QString static_text_page_footer, QString static_text_report_footer_above_signature, QString static_text_report_footer_beneath_signature,
+    void generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
+                        QString static_text_report_header, QString static_text_page_header, QString static_text_page_footer,
+                        QString static_text_report_footer_above_signature, QString static_text_report_footer_beneath_signature,
                         const QList<PrintOrderItem> &print_order) const;
-    void generate_pages_header(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id, QString static_text_report_header, QString static_text_page_header, QString static_text_page_footer, QString static_text_report_footer_above_signature, QString static_text_report_footer_beneath_signature,
+    void generate_pages_header(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
+                               QString static_text_report_header, QString static_text_page_header, QString static_text_page_footer,
+                               QString static_text_report_footer_above_signature, QString static_text_report_footer_beneath_signature,
                                const QList<PrintOrderItem> &print_order) const;
     void generate_tables(const QList<PrintOrderItem> &print_order) const;
     void generate_sourced_form(const std::string &source_path, const std::string &destination_path, const std::string &database_path) const;
@@ -580,6 +631,7 @@ class Data_engine {
     void assert_in_dummy_mode() const;
     static bool entry_compare(const FormIdWrapper &lhs, const FormIdWrapper &rhs);
 
+    DataEngineActualValueStatisticFile statistics_file;
     DataEngineSections sections;
     QString script_path;
     QString source_path;
