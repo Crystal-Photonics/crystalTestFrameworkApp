@@ -42,7 +42,7 @@ class EXPORT MainWindow : public QMainWindow {
     public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-	void shutdown();
+    void shutdown();
     static MainWindow *mw;
     static QThread *gui_thread;
 
@@ -87,7 +87,7 @@ class EXPORT MainWindow : public QMainWindow {
     void on_actionDummy_Data_Creator_for_print_templates_triggered();
     void on_actionInfo_triggered();
 
-	void poll_sg04_counts();
+    void poll_sg04_counts();
     void closeEvent(QCloseEvent *event) override;
 
     void on_test_simple_view_itemDoubleClicked(QListWidgetItem *item);
@@ -163,6 +163,7 @@ class EXPORT MainWindow : public QMainWindow {
     void set_enabled_states_for_matchable_scripts();
     QTreeWidgetItem *get_treewidgetitem_from_listViewItem(QListWidgetItem *item);
     void add_clear_button_to_console(QPlainTextEdit *console);
+    void show_in_graphical_shell(const QString &pathIn);
 };
 
 template <class T>
@@ -177,7 +178,7 @@ bool operator==(const T *lhs, const std::unique_ptr<T> &rhs) {
 
 template <class Function>
 void MainWindow::execute_in_gui_thread(Function f) {
-	Utility::thread_call(this, std::move(f));
+    Utility::thread_call(this, std::move(f));
 }
 
 template <class Lua_UI_class>
