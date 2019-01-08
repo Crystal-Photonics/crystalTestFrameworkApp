@@ -1917,7 +1917,12 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
                     device_list_sol[alias.first.toStdString()] = devices_with_same_alias;
                 }
             }
-            (*lua)["run"](device_list_sol);
+			sol::protected_function run = (*lua)["run"];
+			auto result = run(device_list_sol);
+			if (not result.valid()) {
+				sol::error error = result;
+				throw error;
+			}
         }
         reset_lua_state();
     } catch (const sol::error &e) {
