@@ -647,13 +647,13 @@ void ScriptEngine::resume_timer() {
 int ScriptEngine::event_queue_run_() {
     assert(!event_loop.isRunning());
     assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-#if 1
+#if 0
     qDebug() << "eventloop start"
              << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
              << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
 #endif
     auto exit_value = event_loop.exec();
-#if 1
+#if 0
     qDebug() << "eventloop end"
              << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
              << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
