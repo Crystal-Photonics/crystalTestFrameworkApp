@@ -23,17 +23,20 @@
 #include <QByteArray>
 #include <QDebug>
 #include <QDesktopServices>
+#include <QDesktopServices>
 #include <QDir>
 #include <QDirIterator>
 #include <QFileInfo>
 #include <QGroupBox>
 #include <QListView>
 #include <QMessageBox>
+#include <QProcess>
 #include <QSettings>
 #include <QStatusBar>
 #include <QStringList>
 #include <QTimer>
 #include <QTreeWidgetItem>
+#include <QUrl>
 #include <QtSerialPort/QSerialPort>
 #include <QtSerialPort/QSerialPortInfo>
 #include <algorithm>
@@ -332,47 +335,47 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 MainWindow::~MainWindow() {
-	delete ui;
+    delete ui;
 }
 
 void MainWindow::shutdown() {
-	/*
+    /*
 	 * This function should be the destructor.
 	 * However, according to http://eel.is/c++draft/basic.life#1.3 the lifetime of the MainWindow ends when it enters the destructor.
 	 * We need MainWindow to stay alive until all other threads end, so we cannot end other thread in ~MainWindow, so we use shutdown instead.
 	 * It is believed that using the destructor instead of shutdown has caused segfaults and race conditions in practice.
 	 */
-	assert(currently_in_gui_thread());
-	QSettings{}.setValue(Globals::last_view_mode_key, view_mode_to_string(view_mode_m));
-	QSettings{}.setValue(Globals::expanded_paths_key, get_expanded_tree_view_paths());
-	QSettings{}.setValue(Globals::current_tree_view_selection_key, get_treeview_selection_path());
-	QSettings{}.setValue(Globals::current_list_view_selection_key, get_list_selection_path());
-	QSettings{}.setValue(Globals::console_is_collapsed_key, console_view_is_collapsed);
-	for (auto &test : test_runners) {
-		if (test->is_running()) {
-			test->interrupt();
-		}
-	}
+    assert(currently_in_gui_thread());
+    QSettings{}.setValue(Globals::last_view_mode_key, view_mode_to_string(view_mode_m));
+    QSettings{}.setValue(Globals::expanded_paths_key, get_expanded_tree_view_paths());
+    QSettings{}.setValue(Globals::current_tree_view_selection_key, get_treeview_selection_path());
+    QSettings{}.setValue(Globals::current_list_view_selection_key, get_list_selection_path());
+    QSettings{}.setValue(Globals::console_is_collapsed_key, console_view_is_collapsed);
+    for (auto &test : test_runners) {
+        if (test->is_running()) {
+            test->interrupt();
+        }
+    }
 
-	auto done = std::async(std::launch::async, [this] {
-		for (auto &test : test_runners) {
-			test->join();
-		}
-		test_runners.clear();
-		Utility::promised_thread_call(this, [&] {
-			test_descriptions.clear(); //must clear descriptions in GUI thread because it touches GUI
-		});
-		devices_thread.quit();
-		devices_thread.wait();
-	});
-	while (done.wait_for(std::chrono::milliseconds(16)) != std::future_status::ready) {
-		QApplication::processEvents();
-	}
-	done.wait();
+    auto done = std::async(std::launch::async, [this] {
+        for (auto &test : test_runners) {
+            test->join();
+        }
+        test_runners.clear();
+        Utility::promised_thread_call(this, [&] {
+            test_descriptions.clear(); //must clear descriptions in GUI thread because it touches GUI
+        });
+        devices_thread.quit();
+        devices_thread.wait();
+    });
+    while (done.wait_for(std::chrono::milliseconds(16)) != std::future_status::ready) {
+        QApplication::processEvents();
+    }
+    done.wait();
 
-	QObject::disconnect(ui->tests_advanced_view, &QTreeWidget::itemSelectionChanged, this, &MainWindow::on_tests_advanced_view_itemSelectionChanged);
-	QObject::disconnect(ui->test_simple_view, &QListWidget::itemSelectionChanged, this, &MainWindow::on_test_simple_view_itemSelectionChanged);
-	QApplication::processEvents();
+    QObject::disconnect(ui->tests_advanced_view, &QTreeWidget::itemSelectionChanged, this, &MainWindow::on_tests_advanced_view_itemSelectionChanged);
+    QObject::disconnect(ui->test_simple_view, &QListWidget::itemSelectionChanged, this, &MainWindow::on_test_simple_view_itemSelectionChanged);
+    QApplication::processEvents();
 }
 
 void MainWindow::align_columns() {
@@ -560,7 +563,7 @@ void MainWindow::adopt_testrunner(TestRunner *testrunner, QString title) {
 }
 
 void MainWindow::show_status_bar_massage(QString msg, int timeout_ms) {
-	Utility::thread_call(this, [this, msg, timeout_ms] {
+    Utility::thread_call(this, [this, msg, timeout_ms] {
         assert(currently_in_gui_thread());
         statusBar()->showMessage(msg, timeout_ms);
     });
@@ -574,7 +577,7 @@ void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name,
 
 void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
     //might be called from other threads
-	Utility::thread_call(this, [text, console] {
+    Utility::thread_call(this, [text, console] {
         assert(currently_in_gui_thread());
         if (console) {
             console->appendHtml(text);
@@ -587,7 +590,7 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 void MainWindow::show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon) {
     //is called from other threads
     assert(currently_in_gui_thread() == false);
-	Utility::thread_call(this, [this, title, message, icon] {
+    Utility::thread_call(this, [this, title, message, icon] {
         switch (icon) {
             default:
             case QMessageBox::Critical:
@@ -837,6 +840,10 @@ void MainWindow::on_tests_advanced_view_itemDoubleClicked(QTreeWidgetItem *item,
     on_actionRunSelectedScript_triggered();
 }
 
+void MainWindow::show_in_graphical_shell(const QString &pathIn) {
+    QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(pathIn).absolutePath()));
+}
+
 void MainWindow::on_tests_advanced_view_customContextMenuRequested(const QPoint &pos) {
     assert(currently_in_gui_thread());
     auto item = ui->tests_advanced_view->itemAt(pos);
@@ -860,6 +867,10 @@ void MainWindow::on_tests_advanced_view_customContextMenuRequested(const QPoint 
         QAction action_editor(tr("Open in Editor"), nullptr);
         connect(&action_editor, &QAction::triggered, [this] { on_actionedit_script_triggered(); });
         menu.addAction(&action_editor);
+
+        QAction action_explore(tr("Explore"), nullptr);
+        connect(&action_explore, &QAction::triggered, [this, test] { show_in_graphical_shell(test->get_filepath()); });
+        menu.addAction(&action_explore);
 
         QAction action_favorite(tr("Add to favorites"), nullptr);
         if (!favorite_scripts.is_favorite(test->get_name())) {
