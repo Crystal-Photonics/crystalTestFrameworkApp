@@ -105,6 +105,8 @@ class ScriptEngine {
     QMutex timer_pause_mutex;
     QWaitCondition timer_pause;
     bool timer_pause_condition = false;
+
+	friend void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script_engine);
 };
 
 template <class ReturnType, class... Arguments>
