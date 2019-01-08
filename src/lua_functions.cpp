@@ -524,7 +524,7 @@ sleep_ms(int timeout_ms);
 
 /// @cond HIDDEN_SYMBOLS
 void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms) {
-    scriptengine->timer_event_queue_run(timeout_ms);
+    //scriptengine->timer_event_queue_run(timeout_ms);
     if (QThread::currentThread()->isInterruptionRequested()) {
         throw sol::error("Abort Requested");
     }
@@ -1011,6 +1011,77 @@ double table_mean(sol::table input_values) {
 }
 
 /// @endcond
+
+///
+/*! \fn double table_variance(table input_values);
+\brief Returns the variance value of the table \c input_values. Using the formula s = (1/N)*SUM((x_i - avg )^2)
+\param input_values                 Input table of int or double values.
+
+\return                     The variance value of \c input_values.
+
+\details    \par example:
+\code{.lua}
+    local input_values = {-20, -40, 2, 30}
+    local retval = table_variance(input_values)  -- retval is 677
+    print(retval)
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+double table_variance(table input_values);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+double table_variance(sol::table input_values) {
+    double retval = 0;
+    int count = 0;
+    const double mean = table_mean(input_values);
+    for (auto &i : input_values) {
+        double diff = i.second.as<double>() - mean;
+        retval += diff*diff;
+        count += 1;
+    }
+    if (count) {
+        retval /= count;
+    }
+    return retval;
+}
+
+/// @endcond
+
+///
+/*! \fn double table_standard_deviation(table input_values);
+\brief Returns the standard deviation value of the table \c input_values. Using the formula s = sqrt(table_variance)
+\param input_values                 Input table of int or double values.
+
+\return                     The standard deviation value of \c input_values.
+
+\details    \par example:
+\code{.lua}
+    local input_values = {-20, -40, 2, 30}
+    local retval = table_standard_deviation(input_values)  -- retval is 26.01..
+    print(retval)
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+double table_standard_deviation(table input_values);
+#endif
+/// @cond HIDDEN_SYMBOLS
+
+double table_standard_deviation(sol::table input_values) {
+    const double variance = table_variance(input_values);
+    const double retval = sqrt(variance);
+    return retval;
+}
+
+/// @endcond
+
+
+
+
 
 /*! \fn number_table table_set_constant(number_table input_values, double constant);
 \brief Returns a table with the length of \c input_values initialized with \c constant.

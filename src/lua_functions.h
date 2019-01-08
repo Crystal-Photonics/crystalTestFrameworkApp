@@ -31,6 +31,8 @@ sol::table table_load_from_file(QPlainTextEdit *console, sol::state &lua, const 
 uint16_t table_crc16(QPlainTextEdit *console, sol::table input_values);
 double table_sum(sol::table input_values);
 double table_mean(sol::table input_values);
+double table_variance(sol::table input_values);
+double table_standard_deviation(sol::table input_values);
 sol::table table_set_constant(sol::state &lua, sol::table input_values, double constant);
 sol::table table_create_constant(sol::state &lua, const unsigned int size, double constant);
 sol::table table_add_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b);
