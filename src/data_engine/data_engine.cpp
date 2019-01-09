@@ -125,13 +125,11 @@ void Data_engine::start_recording_actual_value_statistic(const std::string &root
     statistics_file.start_recording(QString::fromStdString(root_file_path), QString::fromStdString(file_prefix));
 }
 
-void Data_engine::set_dut_identifier(QString dut_identifier)
-{
+void Data_engine::set_dut_identifier(QString dut_identifier) {
     statistics_file.set_dut_identifier(dut_identifier);
 }
 
-void Data_engine::save_actual_value_statistic()
-{
+void Data_engine::save_actual_value_statistic() {
     statistics_file.save_to_file();
 }
 
@@ -1642,9 +1640,8 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
     db.setDatabaseName(db_name);
     bool opend = db.open();
     if (!opend) {
-        qDebug() << "SQLConnection error: " << db.lastError().text();
+		throw std::runtime_error{db.lastError().text().toStdString()};
     }
-    assert(opend); //TODO
 
     if (!QFile{QString::fromStdString(form)}.exists()) {
         qDebug() << "PDF Template file does not exist: " << QString::fromStdString(form);
@@ -1713,13 +1710,11 @@ void Data_engine::save_to_json(QString filename) {
 
     if (filename == "") {
         throw DataEngineError(DataEngineErrorNumber::cannot_open_file, QString{"Dataengine: Filename for dumping data_engine is empty"});
-        return;
     }
 
     if (!saveFile.open(QIODevice::WriteOnly)) {
-        throw DataEngineError(DataEngineErrorNumber::cannot_open_file,
-                              QString{"Dataengine: Can not open file: \"%1\" for dumping data_engine content."}.arg(filename));
-        return;
+		throw DataEngineError{DataEngineErrorNumber::cannot_open_file,
+							  QString{"Dataengine: Can not open file: \"%1\" for dumping data_engine content."}.arg(filename)};
     }
 
     bool exceptional_approval_exists = false;
@@ -4088,7 +4083,7 @@ DataEngineActualValueStatisticFile::DataEngineActualValueStatisticFile() {
 }
 
 DataEngineActualValueStatisticFile::~DataEngineActualValueStatisticFile() {
- //   close_file();
+	//   close_file();
 }
 
 void DataEngineActualValueStatisticFile::start_recording(QString file_root_path, QString file_prefix) {
@@ -4115,8 +4110,7 @@ QString DataEngineActualValueStatisticFile::select_file_name_to_be_used(QStringL
     return select_newest_file_name(file_list, file_prefix);
 }
 
-void DataEngineActualValueStatisticFile::save_to_file()
-{
+void DataEngineActualValueStatisticFile::save_to_file() {
     close_file();
 }
 
@@ -4212,7 +4206,7 @@ void DataEngineActualValueStatisticFile::set_actual_value(const FormID &field_na
         QJsonObject obj{};
         obj["time_stamp"] = QDateTime::currentMSecsSinceEpoch();
         obj["value"] = value;
-        if (dut_identifier != ""){
+		if (dut_identifier != "") {
             obj["dut_id"] = dut_identifier;
         }
         QJsonArray arr;
@@ -4231,7 +4225,6 @@ void DataEngineActualValueStatisticFile::set_actual_value(const FormID &field_na
     }
 }
 
-void DataEngineActualValueStatisticFile::set_dut_identifier(QString dut_identifier)
-{
+void DataEngineActualValueStatisticFile::set_dut_identifier(QString dut_identifier) {
     this->dut_identifier = dut_identifier;
 }

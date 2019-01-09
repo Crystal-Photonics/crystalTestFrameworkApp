@@ -636,9 +636,12 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
                 fi.setFile(path);
             }
             std::string json_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".json");
-            data_engine->save_to_json(QString::fromStdString(json_target_filename));
+			try {
+				data_engine->save_to_json(QString::fromStdString(json_target_filename));
+			} catch (const DataEngineError &e) {
+				qDebug() << "Failed dumping data to json: " << e.what() << " because of " << static_cast<int>(e.get_error_number());
+			}
         }
-
     };
     try {
         {
