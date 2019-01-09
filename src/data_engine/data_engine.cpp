@@ -7,7 +7,9 @@
 #include "exceptionalapproval.h"
 #include "lua_functions.h"
 #include "util.h"
+#include "util.h"
 #include "vc.h"
+
 #include <QApplication>
 #include <QBuffer>
 #include <QByteArray>
@@ -1630,51 +1632,50 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
                      // QFile::remove(db_name);
                      // assert(QFile{db_name}.exists() == false);
 #endif
-    QSqlDatabase db;
-    if (QSqlDatabase::contains()) {
-        db = QSqlDatabase::database();
-    } else {
-        db = QSqlDatabase::addDatabase("QSQLITE");
-    }
-
-    db.setDatabaseName(db_name);
-    bool opend = db.open();
-    if (!opend) {
+	QSqlDatabase db;
+	auto db_closer = Utility::RAII_do([&db, &db_name] { db = QSqlDatabase::addDatabase("QSQLITE", db_name); },
+									  [&db, &db_name] {
+										  db.close();
+										  db = QSqlDatabase();
+										  QSqlDatabase::removeDatabase(db_name);
+									  });
+	db.setDatabaseName(db_name);
+	bool opend = db.open();
+	if (!opend) {
 		throw std::runtime_error{db.lastError().text().toStdString()};
-    }
+	}
 
-    if (!QFile{QString::fromStdString(form)}.exists()) {
-        qDebug() << "PDF Template file does not exist: " << QString::fromStdString(form);
-        throw DataEngineError(DataEngineErrorNumber::pdf_template_file_not_existing,
-                              "Dataengine: PDF Template file does not exist: " + QString::fromStdString(form));
-    }
-    fill_database(db);
-    const auto sourced_form = form + ".tmp.lrxml";
-    replace_database_filename(form, sourced_form, QFileInfo{db_name}.absoluteFilePath().toStdString());
+	if (!QFile{QString::fromStdString(form)}.exists()) {
+		qDebug() << "PDF Template file does not exist: " << QString::fromStdString(form);
+		throw DataEngineError(DataEngineErrorNumber::pdf_template_file_not_existing,
+							  "Dataengine: PDF Template file does not exist: " + QString::fromStdString(form));
+	}
+	fill_database(db);
+	const auto sourced_form = form + ".tmp.lrxml";
+	replace_database_filename(form, sourced_form, QFileInfo{db_name}.absoluteFilePath().toStdString());
 
-    LimeReport::ReportEngine re;
-    if (re.loadFromFile(QString::fromStdString(sourced_form), false) == false) {
-        return false;
-    }
-    bool result = false;
-    {
-        QString filename = QString::fromStdString(destination);
-        //doing the error checking that LimeReport should do but doesn't.
-        QPrinter printer;
-        printer.setOutputFileName(filename);
-        QPainter painter;
-        if (painter.begin(&printer) == false) {
-            MainWindow::mw->execute_in_gui_thread([filename] {
-                QMessageBox::critical(MainWindow::mw, "Failed printing report",
-                                      "Requested to write report to file " + filename + " which could not be opened.");
-            });
-        } else {
-            painter.end();
-            result = re.printToPDF(filename);
+	LimeReport::ReportEngine re;
+	if (re.loadFromFile(QString::fromStdString(sourced_form), false) == false) {
+		return false;
+	}
+	bool result = false;
+	{
+		QString filename = QString::fromStdString(destination);
+		//doing the error checking that LimeReport should do but doesn't.
+		QPrinter printer;
+		printer.setOutputFileName(filename);
+		QPainter painter;
+		if (painter.begin(&printer) == false) {
+			MainWindow::mw->execute_in_gui_thread([filename] {
+				QMessageBox::critical(MainWindow::mw, "Failed printing report",
+									  "Requested to write report to file " + filename + " which could not be opened.");
+			});
+		} else {
+			painter.end();
+			result = re.printToPDF(filename);
         }
-    }
-    db.close();
-    if (auto_open_pdf) {
+	}
+	if (auto_open_pdf) {
         QFileInfo fi{QString::fromStdString(destination)};
         auto p = fi.absoluteFilePath();
         if (!p.startsWith("/")) {
