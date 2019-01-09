@@ -4,7 +4,6 @@
 #include "ui_container.h"
 #include "util.h"
 
-
 #include "Windows/mainwindow.h"
 #include "scriptengine.h"
 #include <QAction>
@@ -263,7 +262,7 @@ double Curve::integrate_ci(double integral_start_ci, double integral_end_ci) {
     }
 
     for (unsigned int i = s; i <= e; i++) {
-        result += yvalues_plot[i];
+		result += yvalues_plot.at(i);
     }
     return result;
 #endif
