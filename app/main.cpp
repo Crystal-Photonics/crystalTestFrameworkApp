@@ -12,34 +12,32 @@ void message_handler(QtMsgType type, const QMessageLogContext &context, const QS
         case QtCriticalMsg:
         case QtFatalMsg: {
             qDebug() << msg;
-            auto show_message = [ msg, file = QString{context.file}, function = QString{context.function}, line = context.line ] {
+			auto show_message = [ msg, file = QString{context.file}, function = QString{context.function}, line = context.line ] {
                 QMessageBox::critical(MainWindow::mw, "Qt Error", '\"' + msg + '\"' + "\nwas caused by " + function + " in " + file + ":" +
-                                                                      QString::number(line) + ".\nAdd a breakpoint in main.cpp:" + QString::number(line - 2) +
-                                                                      " to inspect the stack.\n"
+																	  QString::number(line) +
+																	  ".\n"
                                                                       "Press CTRL+C to copy the content of this message box to your clipboard.");
             };
             if (MainWindow::mw != nullptr) {
-                MainWindow::mw->execute_in_gui_thread(show_message);
+				MainWindow::mw->execute_in_gui_thread(show_message);
             } else {
-                show_message();
+				show_message();
             }
         } break;
         case QtWarningMsg: {
             qDebug() << msg;
-            auto show_message = [ msg, file = QString{context.file}, function = QString{context.function}, line = context.line ] {
+			auto show_message = [ msg, file = QString{context.file}, function = QString{context.function}, line = context.line ] {
                 QMessageBox::warning(MainWindow::mw, "Qt Warning", '\"' + msg + '\"' + "\nwas caused by " + function + " in " + file + ":" +
-                                                                       QString::number(line) + ".\nAdd a breakpoint in main.cpp:" + QString::number(line - 2) +
-                                                                       " to inspect the stack.\n"
+																	   QString::number(line) +
+																	   ".\n"
                                                                        "Press CTRL+C to copy the content of this message box to your clipboard.");
             };
             if (MainWindow::mw != nullptr) {
-                MainWindow::mw->execute_in_gui_thread(show_message);
+				MainWindow::mw->execute_in_gui_thread(show_message);
             } else {
-                show_message();
+				show_message();
             }
-        }
-
-        break;
+		} break;
         case QtDebugMsg:
         case QtInfoMsg:;
     }
