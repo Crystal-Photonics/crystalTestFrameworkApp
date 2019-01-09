@@ -610,7 +610,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
         data_engine->do_exceptional_approvals(ea_db, MainWindow::mw);
         lua = std::make_unique<sol::state>();
         data_engine->save_actual_value_statistic();
-        if ((data_engine_pdf_template_path.count()) && (data_engine_auto_dump_path.count())) {
+		if (data_engine_pdf_template_path.count() and data_engine_auto_dump_path.count()) {
             QFileInfo fi(data_engine_auto_dump_path);
             QString suffix = fi.completeSuffix();
             if (suffix == "") {
@@ -621,10 +621,17 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
             //fi.baseName("/home/abc/report.pdf") = "report"
             //fi.absolutePath("/home/abc/report.pdf") = "/home/abc/"
 
-            std::string pdf_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
-            data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), pdf_target_filename);
+			std::string target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
+			target_filename.resize(target_filename.size() - 4);
+
+			MainWindow::mw->execute_in_gui_thread([ console = this->console, filename = target_filename + " console output.txt" ] {
+				std::ofstream f{filename};
+				f << console->toPlainText().toStdString();
+			});
+
+			data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
             if (additional_pdf_path.count()) {
-                QFile::copy(QString::fromStdString(pdf_target_filename), additional_pdf_path);
+				QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
             }
         }
         if (data_engine_auto_dump_path.count()) {
