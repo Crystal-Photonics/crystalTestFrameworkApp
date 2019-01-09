@@ -104,9 +104,9 @@ CONFIG(debug, debug|release) {
 
 DEFINES += SOL_CHECK_ARGUMENTS
 
-QMAKE_CXXFLAGS += -Werror
+#QMAKE_CXXFLAGS += -Werror
 
-QMAKE_CXXFLAGS_DEBUG += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare
+QMAKE_CXXFLAGS_DEBUG += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare -Wno-error=noexcept-type
 unix {
     QMAKE_CXXFLAGS_DEBUG += -fno-var-tracking-assignments -fno-merge-debug-strings
     eval("SANITIZERS = $$(SANITIZER)")
@@ -123,7 +123,7 @@ unix {
     QMAKE_CXXFLAGS_DEBUG += -fsanitize-undefined-trap-on-error
 }
 QMAKE_CXXFLAGS_RELEASE += -Wall -Wunused-function -Wunused-parameter -Wunused-variable -O1
-QMAKE_CXXFLAGS_DEBUG += -g0 -fno-omit-frame-pointer -O1
+QMAKE_CXXFLAGS_DEBUG += -g -fno-omit-frame-pointer -O1
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
 #QMAKE_CXXFLAGS_DEBUG += -static-libasan -static-libubsan #some day windows will support a reasonable development environment ...
 
