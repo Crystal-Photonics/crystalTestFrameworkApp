@@ -39,7 +39,8 @@ void TestScriptEngine::test_file_name_path() {
 void TestScriptEngine::test_create_name_path() {
     QString abs_prefix = "";
 #if defined(Q_OS_WIN)
-    abs_prefix = "c:";
+    abs_prefix = QDir().currentPath().split(':')[0] + ':'; //get c:
+    abs_prefix = abs_prefix.toLower();
 #endif
     QCOMPARE(create_path(QString("/absolute/filename.json")).toLower(), QDir::toNativeSeparators(abs_prefix + "/absolute/"));
     QCOMPARE(create_path(QString("/absolute/filename")).toLower(), QDir::toNativeSeparators(abs_prefix + "/absolute/filename/"));

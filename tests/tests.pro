@@ -12,14 +12,16 @@ HEADERS += \
 	autotest.h \
 	testgooglemock.h \
 	testqstring.h \
-	testScriptEngine.h
+	testScriptEngine.h \
+    testreporthistory.h
 
 SOURCES += \
 	test_data_engine.cpp \
 	main.cpp \
         testgooglemock.cpp \
 	testqstring.cpp \
-	testScriptEngine.cpp
+	testScriptEngine.cpp \
+    testreporthistory.cpp
 
 INCLUDEPATH += $$PWD/../libs/googletest/googletest/include
 INCLUDEPATH += $$PWD/../libs/googletest/googlemock/include

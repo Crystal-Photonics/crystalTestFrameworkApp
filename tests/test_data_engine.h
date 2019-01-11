@@ -7,8 +7,8 @@
 class Test_Data_engine : public QObject {
     Q_OBJECT
 
-public:
-private slots:
+    public:
+    private slots:
     void stl_optional_test();
 
     void check_tolerance_parsing_A();

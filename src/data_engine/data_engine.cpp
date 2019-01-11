@@ -4083,7 +4083,7 @@ DataEngineActualValueStatisticFile::DataEngineActualValueStatisticFile() {
 }
 
 DataEngineActualValueStatisticFile::~DataEngineActualValueStatisticFile() {
-	//   close_file();
+    //   close_file();
 }
 
 void DataEngineActualValueStatisticFile::start_recording(QString file_root_path, QString file_prefix) {
@@ -4206,7 +4206,7 @@ void DataEngineActualValueStatisticFile::set_actual_value(const FormID &field_na
         QJsonObject obj{};
         obj["time_stamp"] = QDateTime::currentMSecsSinceEpoch();
         obj["value"] = value;
-		if (dut_identifier != "") {
+        if (dut_identifier != "") {
             obj["dut_id"] = dut_identifier;
         }
         QJsonArray arr;

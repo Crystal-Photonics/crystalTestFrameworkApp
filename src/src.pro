@@ -24,7 +24,8 @@ FORMS += \
             Windows/dummydatacreator.ui \
     Windows/exceptiontalapprovaldialog.ui \
     Windows/infowindow.ui \
-    Windows/settingsform.ui
+    Windows/settingsform.ui \
+    Windows/reporthistoryquery.ui
 
 QPROTOCOL_INTERPRETER_PATH=$$PWD/../libs/qRPCRuntimeParser
 INCLUDEPATH += $$QPROTOCOL_INTERPRETER_PATH/project/src
@@ -98,7 +99,8 @@ HEADERS += \
 	scpimetadata.h \
 	scriptsetup.h \
 	ui_container.h \
-	userentrystorage.h
+    userentrystorage.h \
+    Windows/reporthistoryquery.h
 
 
 HEADERS +=    Windows/exceptiontalapprovaldialog.h
@@ -168,7 +170,8 @@ SOURCES += \
 	scpimetadata.cpp \
 	scriptsetup.cpp \
 	ui_container.cpp \
-	userentrystorage.cpp
+    userentrystorage.cpp \
+    Windows/reporthistoryquery.cpp
 
 win32 {
     system($$system_quote($$SH) $$PWD/../git_win.sh)

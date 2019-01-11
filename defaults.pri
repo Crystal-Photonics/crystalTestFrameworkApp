@@ -123,7 +123,7 @@ unix {
     QMAKE_CXXFLAGS_DEBUG += -fsanitize-undefined-trap-on-error
 }
 QMAKE_CXXFLAGS_RELEASE += -Wall -Wunused-function -Wunused-parameter -Wunused-variable -O1
-QMAKE_CXXFLAGS_DEBUG += -g0 -fno-omit-frame-pointer -O1
+QMAKE_CXXFLAGS_DEBUG += -g2 -fno-omit-frame-pointer -O1
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
 #QMAKE_CXXFLAGS_DEBUG += -static-libasan -static-libubsan #some day windows will support a reasonable development environment ...
 

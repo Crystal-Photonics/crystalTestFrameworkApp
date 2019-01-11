@@ -6,6 +6,7 @@
 #include "Protocols/sg04countprotocol.h"
 #include "Windows/dummydatacreator.h"
 #include "Windows/infowindow.h"
+#include "Windows/reporthistoryquery.h"
 #include "Windows/settingsform.h"
 #include "config.h"
 #include "console.h"
@@ -1282,4 +1283,9 @@ void MainWindow::on_tbtn_view_favorite_scripts_clicked() {
 void MainWindow::on_actionClose_finished_Tests_triggered() {
     assert(currently_in_gui_thread());
     close_finished_tests();
+}
+
+void MainWindow::on_actionQuery_Report_history_triggered() {
+    auto *testresultquery_window = new ReportHistoryQuery{this};
+    testresultquery_window->show();
 }

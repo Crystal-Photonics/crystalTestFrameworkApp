@@ -653,6 +653,7 @@
     </property>
     <addaction name="actionDummy_Data_Creator_for_print_templates"/>
     <addaction name="actionSettings"/>
+    <addaction name="actionQuery_Report_history"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -791,6 +792,11 @@
    </property>
    <property name="text">
     <string>Reload All Scripts</string>
+   </property>
+  </action>
+  <action name="actionQuery_Report_history">
+   <property name="text">
+    <string>Query report history</string>
    </property>
   </action>
  </widget>
