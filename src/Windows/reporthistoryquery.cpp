@@ -1,21 +1,194 @@
 #include "reporthistoryquery.h"
+#include "Windows/mainwindow.h"
 #include "data_engine/data_engine.h"
 #include "ui_reporthistoryquery.h"
 #include <QByteArray>
 #include <QDateTime>
 #include <QDebug>
 #include <QDirIterator>
+#include <QFileDialog>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QLineEdit>
+#include <QMainWindow>
+#include <QMessageBox>
+#include <QTreeWidgetItem>
+#include <fstream>
+
+ReportHistoryQuery::~ReportHistoryQuery() {
+    delete ui;
+}
 
 ReportHistoryQuery::ReportHistoryQuery(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::ReportHistoryQuery) {
     ui->setupUi(this);
+    clear_where_pages();
+    add_new_where_page();
 }
 
-ReportHistoryQuery::~ReportHistoryQuery() {
-    delete ui;
+void ReportHistoryQuery::add_new_where_page() {
+    QWidget *tool_widget = new QWidget(ui->tb_queries);
+    QGridLayout *grid_layout = new QGridLayout(tool_widget);
+    ReportQuery &report_query = report_query_config_file_m.add_new_query(tool_widget);
+    ui->tb_queries->addItem(tool_widget, "");
+    ui->tb_queries->setCurrentIndex(ui->tb_queries->count() - 1);
+
+    connect(report_query.btn_query_report_file_browse, &QToolButton::clicked, [this, report_query](bool checked) {
+        (void)checked; //
+        const auto selected_dir =
+            QFileDialog::getExistingDirectory(this, QObject::tr("Open report directory"), "", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+        if (!selected_dir.isEmpty()) {
+            report_query.edt_query_report_folder->setText(selected_dir);
+        }
+    });
+
+    connect(report_query.btn_query_data_engine_source_file_browse, &QToolButton::clicked, [this, report_query](bool checked) {
+        (void)checked; //
+        QFileDialog dialog(this);
+        dialog.setFileMode(QFileDialog::ExistingFile);
+        dialog.setNameFilter(tr("Data Engine Input files (*.json)"));
+        if (dialog.exec()) {
+            report_query.edt_query_data_engine_source_file->setText(dialog.selectedFiles()[0]);
+        }
+    });
+
+    connect(report_query.btn_query_add, &QToolButton::clicked, [this](bool checked) {
+        (void)checked; //
+        add_new_where_page();
+    });
+
+    connect(report_query.btn_query_del, &QToolButton::clicked, [this, tool_widget](bool checked) {
+        (void)checked; //
+        remove_where_page(tool_widget);
+    });
+
+    connect(report_query.edt_query_data_engine_source_file, &QLineEdit::textChanged, [this, tool_widget](const QString &arg) {
+        int index = ui->tb_queries->indexOf(tool_widget);
+        ui->tb_queries->setItemText(index, arg);
+    });
+
+    (void)grid_layout;
+}
+
+void ReportHistoryQuery::remove_where_page(QWidget *tool_widget) {
+    int current_index = ui->tb_where->indexOf(tool_widget);
+    report_query_config_file_m.remove_query(current_index);
+    ui->tb_queries->removeItem(current_index);
+    delete tool_widget;
+}
+
+void ReportHistoryQuery::clear_where_pages() {
+    for (int i = 0; i < ui->tb_queries->count(); i++) {
+        QWidget *widget = ui->tb_queries->widget(i);
+        delete widget;
+        ui->tb_queries->removeItem(0);
+    }
+}
+
+void ReportHistoryQuery::on_btn_next_clicked() {
+    int i = ui->stk_report_history->currentIndex() + 1;
+    if (i < ui->stk_report_history->count()) {
+        ui->stk_report_history->setCurrentIndex(i);
+    }
+}
+
+void ReportHistoryQuery::on_btn_back_clicked() {
+    int i = ui->stk_report_history->currentIndex() - 1;
+    if (i > -1) {
+        ui->stk_report_history->setCurrentIndex(i);
+    }
+}
+
+void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
+    if (arg1 == 1) {
+        //  ui->tree_query_fields.clear();
+        //T:/qt/crystalTestFramework/tests/scripts/report_query/data_engine_source_1.json
+
+        for (auto &query : report_query_config_file_m.get_queries_not_const()) {
+            query.update_from_gui();
+            QTreeWidgetItem *root_item = new QTreeWidgetItem(QStringList{query.data_engine_source_file});
+            // item->setFlags(item_flags_editable);
+            root_item->setCheckState(3, Qt::Unchecked);
+            //   if (ff.data_entry) {
+            //     auto ea_result = ff.data_entry->get_exceptional_approval();
+            //      if (ea_result.approved) {
+            //          item->setCheckState(3, Qt::Checked);
+            //      }
+            //      item->setText(4, ea_result.exceptional_approval.description);
+            //                ui->edt_approved_by->setText(ea_result.approving_operator_name);
+            //  }
+            ui->tree_query_fields->addTopLevelItem(root_item);
+
+            const DataEngineSourceFields &fields = query.get_data_engine_fields();
+            QTreeWidgetItem *root_general_widget = new QTreeWidgetItem(root_item, QStringList{"general"});
+            QTreeWidgetItem *root_report_widget = new QTreeWidgetItem(root_item, QStringList{"report"});
+
+            for (const auto &general_name : fields.general_fields) {
+                QTreeWidgetItem *general_entry = new QTreeWidgetItem(root_general_widget, QStringList{general_name});
+                qDebug() << "general/" + general_name;
+            }
+
+            for (const auto &section_name : fields.report_fields.keys()) {
+                QTreeWidgetItem *report_section_entry = new QTreeWidgetItem(root_report_widget, QStringList{section_name});
+                for (const auto &field_name : fields.report_fields.value(section_name)) {
+                    QTreeWidgetItem *report_entry = new QTreeWidgetItem(report_section_entry, QStringList{field_name});
+                    qDebug() << "report/" + section_name + "/" + field_name;
+                }
+            }
+        }
+    }
+}
+
+void ReportHistoryQuery::on_btn_close_clicked() {
+    close();
+}
+
+ReportQuery &ReportQueryConfigFile::add_new_query(QWidget *parent) {
+    ReportQuery report_query{};
+    if (parent) {
+        QGridLayout *gl = dynamic_cast<QGridLayout *>(parent->layout());
+
+        QLabel *lbl_data_engine_source = new QLabel();
+        lbl_data_engine_source->setText(QObject::tr("Data engine source file:"));
+        gl->addWidget(lbl_data_engine_source, 0, 0);
+
+        report_query.edt_query_data_engine_source_file = new QLineEdit();
+        gl->addWidget(report_query.edt_query_data_engine_source_file, 0, 1);
+
+        report_query.btn_query_data_engine_source_file_browse = new QToolButton();
+        report_query.btn_query_data_engine_source_file_browse->setText("..");
+        gl->addWidget(report_query.btn_query_data_engine_source_file_browse, 0, 2);
+
+        QLabel *lbl_report_path = new QLabel();
+        lbl_report_path->setText(QObject::tr("Test report seach folder:"));
+        gl->addWidget(lbl_report_path, 1, 0);
+
+        report_query.edt_query_report_folder = new QLineEdit();
+        gl->addWidget(report_query.edt_query_report_folder, 1, 1);
+
+        report_query.btn_query_report_file_browse = new QToolButton();
+        report_query.btn_query_report_file_browse->setText("..");
+        gl->addWidget(report_query.btn_query_report_file_browse, 1, 2);
+
+        QHBoxLayout *layout_add_del = new QHBoxLayout();
+        layout_add_del->addStretch(1);
+        report_query.btn_query_add = new QToolButton();
+        report_query.btn_query_add->setText("+");
+        layout_add_del->addWidget(report_query.btn_query_add);
+
+        report_query.btn_query_del = new QToolButton();
+        report_query.btn_query_del->setText("-");
+        layout_add_del->addWidget(report_query.btn_query_del);
+        gl->addLayout(layout_add_del, 2, 1, 2, 1);
+        gl->setRowStretch(4, 1);
+    }
+    report_queries_m.append(report_query);
+    return report_queries_m.last();
+}
+
+void ReportQueryConfigFile::remove_query(int index) {
+    report_queries_m.removeAt(index);
 }
 
 ReportQueryConfigFile::ReportQueryConfigFile() {}
@@ -75,6 +248,10 @@ void ReportQueryConfigFile::load_from_file(QString file_name) {
 }
 
 const QList<ReportQuery> &ReportQueryConfigFile::get_queries() {
+    return report_queries_m;
+}
+
+QList<ReportQuery> &ReportQueryConfigFile::get_queries_not_const() {
     return report_queries_m;
 }
 
@@ -235,4 +412,38 @@ bool ReportQueryWhereField::matches_value(QVariant value) const {
         }
     }
     return false;
+}
+
+void ReportQuery::update_from_gui() {
+    if (edt_query_report_folder) {
+        report_path = edt_query_report_folder->text();
+    }
+    if (edt_query_data_engine_source_file) {
+        data_engine_source_file = edt_query_data_engine_source_file->text();
+    }
+}
+
+DataEngineSourceFields ReportQuery::get_data_engine_fields() const {
+    std::ifstream f(data_engine_source_file.toStdString());
+    DataEngineSourceFields result{};
+    try {
+        result.general_fields =
+            QStringList{"data_source_path",   "datetime_str", "datetime_unix", "everything_complete",   "everything_in_range", "exceptional_approval_exists",
+                        "framework_git_hash", "os_username",  "script_path",   "test_duration_seconds", "test_git_date_str",   "test_git_hash",
+                        "test_git_modified"};
+        Data_engine data_engine;
+        data_engine.set_source(f);
+        auto section_names = data_engine.get_section_names();
+        for (auto section_name : section_names) {
+            QStringList field_ids = data_engine.get_ids_of_section(section_name);
+            QStringList field_names;
+            for (auto field_name : field_ids) {
+                field_names.append(field_name.split('/')[1]);
+            }
+            result.report_fields.insert(section_name, field_names);
+        }
+    } catch (DataEngineError &e) {
+        QMessageBox::warning(MainWindow::mw, QString("Dataengine error"), QString("Dataengine error:\n\n %1").arg(e.what()));
+    }
+    return result;
 }

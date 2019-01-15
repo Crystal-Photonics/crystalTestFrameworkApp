@@ -16,6 +16,6 @@ class TestGoogleMock : public QObject {
     //void catchMockException();
 };
 
-DECLARE_TEST(TestGoogleMock)
+//DECLARE_TEST(TestGoogleMock)
 
 #endif // TESTGOOGLEMOCK_H

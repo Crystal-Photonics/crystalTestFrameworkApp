@@ -82,6 +82,30 @@ void TestReportHistory::test_match_value() {
     QVERIFY(!query_config_file.get_where_fields()[0].matches_value(50044));
 }
 
+void TestReportHistory::read_report_fields() {
+    ReportQuery report_query{};
+    report_query.data_engine_source_file = "../../tests/scripts/report_query/data_engine_source_1.json";
+    auto data_engine_sections = report_query.get_data_engine_fields();
+    QCOMPARE(data_engine_sections.report_fields.keys().count(), 3);
+    QVERIFY(data_engine_sections.report_fields.keys().contains("test_version"));
+    QVERIFY(data_engine_sections.report_fields.keys().contains("gerate_daten"));
+    QVERIFY(data_engine_sections.report_fields.keys().contains("dacadc"));
+    QCOMPARE(data_engine_sections.report_fields.value("dacadc").count(), 2);
+    QCOMPARE(data_engine_sections.report_fields.value("gerate_daten").count(), 3);
+    QCOMPARE(data_engine_sections.report_fields.value("test_version").count(), 4);
+    QVERIFY(data_engine_sections.report_fields.value("test_version").contains("git_framework"));
+    QVERIFY(data_engine_sections.report_fields.value("gerate_daten").contains("pcb1_chargennummer"));
+    QVERIFY(data_engine_sections.report_fields.value("dacadc").contains("wakeup_possible"));
+    auto referenz_liste =
+        QStringList{"data_source_path",   "datetime_str", "datetime_unix", "everything_complete",   "everything_in_range", "exceptional_approval_exists",
+                    "framework_git_hash", "os_username",  "script_path",   "test_duration_seconds", "test_git_date_str",   "test_git_hash",
+                    "test_git_modified"};
+    QCOMPARE(data_engine_sections.general_fields.count(), referenz_liste.count());
+    for (auto ref : referenz_liste) {
+        QVERIFY(data_engine_sections.general_fields.contains(ref));
+    }
+}
+
 bool TestReportHistory::report_link_list_contains_path(QList<ReportLink> report_link_list, QString path) {
     for (auto rl : report_link_list) {
         if (rl.report_path == path) {

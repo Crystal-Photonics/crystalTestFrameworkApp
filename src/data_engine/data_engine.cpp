@@ -1640,7 +1640,7 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
     db.setDatabaseName(db_name);
     bool opend = db.open();
     if (!opend) {
-		throw std::runtime_error{db.lastError().text().toStdString()};
+        throw std::runtime_error{db.lastError().text().toStdString()};
     }
 
     if (!QFile{QString::fromStdString(form)}.exists()) {
@@ -1713,8 +1713,8 @@ void Data_engine::save_to_json(QString filename) {
     }
 
     if (!saveFile.open(QIODevice::WriteOnly)) {
-		throw DataEngineError{DataEngineErrorNumber::cannot_open_file,
-							  QString{"Dataengine: Can not open file: \"%1\" for dumping data_engine content."}.arg(filename)};
+        throw DataEngineError{DataEngineErrorNumber::cannot_open_file,
+                              QString{"Dataengine: Can not open file: \"%1\" for dumping data_engine content."}.arg(filename)};
     }
 
     bool exceptional_approval_exists = false;

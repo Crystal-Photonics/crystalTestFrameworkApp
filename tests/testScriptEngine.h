@@ -21,6 +21,6 @@ class TestScriptEngine : public QObject {
     void test_serachpath();
 };
 
-DECLARE_TEST(TestScriptEngine)
+//DECLARE_TEST(TestScriptEngine)
 
 #endif

@@ -18,6 +18,7 @@ class TestReportHistory : public QObject {
     void scan_report_files();
     void test_match_value();
     void scan_filter_report_files();
+    void read_report_fields();
 
     private:
     bool report_link_list_contains_path(QList<ReportLink> report_link_list, QString path);
