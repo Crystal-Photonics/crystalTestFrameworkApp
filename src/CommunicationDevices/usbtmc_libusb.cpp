@@ -84,7 +84,6 @@
     (((unsigned)((const uint8_t *)(x))[3] << 24) | ((unsigned)((const uint8_t *)(x))[2] << 16) | ((unsigned)((const uint8_t *)(x))[1] << 8) |                  \
      (unsigned)((const uint8_t *)(x))[0])
 
-
 #define SUBCLASS_USBTMC 0x03
 #define USBTMC_USB488 0x01
 
@@ -144,7 +143,7 @@ static struct usbtmc_blacklist blacklist_remote[] = {{0x1ab1, 0x0588}, /* Rigol 
                                                      {0x1ab1, 0x04b0}, /* Rigol DS2000 series */
                                                      {0x0957, 0x0588}, /* Agilent DSO1000 series (rebadged Rigol DS1000) */
                                                      {0x0b21, 0xffff}, /* All Yokogawa devices */
-													 {0, 0}};
+                                                     {0, 0}};
 
 QStringList list_usb_tmc_devices() {
     QStringList result;
@@ -199,7 +198,7 @@ int scpi_usbtmc_libusb_dev_inst_new(struct scpi_usbtmc_libusb *uscpi, QString pa
 
     QList<sr_usb_dev_inst> devices = sr_usb_find(uscpi->ctx, params);
     if (devices.size() != 1) {
-        sr_err("Failed to find USB device '%s'.", params);
+        sr_err("Failed to find USB device '%s'.", params.toStdString().c_str());
         return SR_ERR;
     }
     uscpi->usb = devices[0];
@@ -295,7 +294,7 @@ int scpi_usbtmc_libusb_open(struct scpi_usbtmc_libusb *uscpi) {
     struct sr_usb_dev_inst *usb = &uscpi->usb;
     struct libusb_device_descriptor des;
 
-	int config = 0;
+    int config = 0;
     uint8_t capabilities[24];
     int ret, found = 0;
 
@@ -490,8 +489,8 @@ static int scpi_usbtmc_bulkin_continue(struct scpi_usbtmc_libusb *uscpi, unsigne
 }
 
 int scpi_usbtmc_libusb_send(struct scpi_usbtmc_libusb *uscpi, const QByteArray &command) {
-	if (scpi_usbtmc_bulkout(uscpi, DEV_DEP_MSG_OUT, command.data(), command.length(), EOM) <= 0) {
-		qDebug() << "scpi_usbtmc_bulkout@scpi_usbtmc_libusb_send failed.";
+    if (scpi_usbtmc_bulkout(uscpi, DEV_DEP_MSG_OUT, command.data(), command.length(), EOM) <= 0) {
+        qDebug() << "scpi_usbtmc_bulkout@scpi_usbtmc_libusb_send failed.";
         return SR_ERR;
     }
 
@@ -503,12 +502,12 @@ int scpi_usbtmc_libusb_send(struct scpi_usbtmc_libusb *uscpi, const QByteArray &
 int scpi_usbtmc_libusb_read_begin(struct scpi_usbtmc_libusb *uscpi) {
     uscpi->remaining_length = 0;
 
-	if (scpi_usbtmc_bulkout(uscpi, REQUEST_DEV_DEP_MSG_IN, NULL, INT32_MAX, 0) < 0) {
-		qDebug() << "scpi_usbtmc_bulkout@scpi_usbtmc_libusb_read_begin failed.";
+    if (scpi_usbtmc_bulkout(uscpi, REQUEST_DEV_DEP_MSG_IN, NULL, INT32_MAX, 0) < 0) {
+        qDebug() << "scpi_usbtmc_bulkout@scpi_usbtmc_libusb_read_begin failed.";
         return SR_ERR;
     }
-	if (scpi_usbtmc_bulkin_start(uscpi, DEV_DEP_MSG_IN, uscpi->buffer, sizeof(uscpi->buffer), &uscpi->bulkin_attributes) < 0) {
-		qDebug() << "scpi_usbtmc_bulkin_start@scpi_usbtmc_libusb_read_begin failed.";
+    if (scpi_usbtmc_bulkin_start(uscpi, DEV_DEP_MSG_IN, uscpi->buffer, sizeof(uscpi->buffer), &uscpi->bulkin_attributes) < 0) {
+        qDebug() << "scpi_usbtmc_bulkin_start@scpi_usbtmc_libusb_read_begin failed.";
         return SR_ERR;
     }
 
