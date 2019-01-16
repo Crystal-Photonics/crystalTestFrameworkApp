@@ -41,13 +41,13 @@ class EXPORT MainWindow : public QMainWindow {
 
     public:
     explicit MainWindow(QWidget *parent = nullptr);
-	~MainWindow() override;
+    ~MainWindow() override;
     void shutdown();
     static MainWindow *mw;
     static QThread *gui_thread;
 
-	template <class Function, class... Args>
-	void execute_in_gui_thread(Function f, Args &&... args);
+    template <class Function, class... Args>
+    void execute_in_gui_thread(Function f, Args &&... args);
 
     template <class Lua_UI_class, class... Args>
     void add_lua_UI_class(int id, UI_container *parent, Args &&... args);
@@ -157,7 +157,7 @@ class EXPORT MainWindow : public QMainWindow {
     bool script_view_is_collapsed = false;
     void set_console_view_collapse_state(bool collapse_state);
     bool console_view_is_collapsed = false;
-	bool eventFilter(QObject *target, QEvent *event) override;
+    bool eventFilter(QObject *target, QEvent *event) override;
 
     void remove_favorite_based_on_simple_view_selection();
     void set_enabled_states_for_matchable_scripts();
@@ -178,7 +178,7 @@ bool operator==(const T *lhs, const std::unique_ptr<T> &rhs) {
 
 template <class Function, class... Args>
 void MainWindow::execute_in_gui_thread(Function f, Args &&... args) {
-	Utility::thread_call(this, [ f = std::move(f), args... ]() mutable { f(std::move(args)...); });
+    Utility::thread_call(this, [f = std::move(f), args...]() mutable { f(std::move(args)...); });
 }
 
 template <class Lua_UI_class>

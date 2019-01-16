@@ -23,7 +23,6 @@
 #include <QByteArray>
 #include <QDebug>
 #include <QDesktopServices>
-#include <QDesktopServices>
 #include <QDir>
 #include <QDirIterator>
 #include <QFileInfo>
@@ -63,7 +62,7 @@ namespace GUI {
             connectedDevices,
         };
     }
-}
+} // namespace GUI
 
 using namespace std::chrono_literals;
 
@@ -304,7 +303,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     load_default_paths_if_needed();
     favorite_scripts.load_from_file(QSettings{}.value(Globals::favorite_script_file_key, "").toString());
-	devices_thread.adopt(*device_worker);
+    devices_thread.adopt(*device_worker);
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
     Console::console = ui->console_edit;
     Console::mw = this;
@@ -340,11 +339,11 @@ MainWindow::~MainWindow() {
 
 void MainWindow::shutdown() {
     /*
-	 * This function should be the destructor.
-	 * However, according to http://eel.is/c++draft/basic.life#1.3 the lifetime of the MainWindow ends when it enters the destructor.
-	 * We need MainWindow to stay alive until all other threads end, so we cannot end other thread in ~MainWindow, so we use shutdown instead.
-	 * It is believed that using the destructor instead of shutdown has caused segfaults and race conditions in practice.
-	 */
+     * This function should be the destructor.
+     * However, according to http://eel.is/c++draft/basic.life#1.3 the lifetime of the MainWindow ends when it enters the destructor.
+     * We need MainWindow to stay alive until all other threads end, so we cannot end other thread in ~MainWindow, so we use shutdown instead.
+     * It is believed that using the destructor instead of shutdown has caused segfaults and race conditions in practice.
+     */
     assert(currently_in_gui_thread());
     QSettings{}.setValue(Globals::last_view_mode_key, view_mode_to_string(view_mode_m));
     QSettings{}.setValue(Globals::expanded_paths_key, get_expanded_tree_view_paths());
@@ -359,15 +358,19 @@ void MainWindow::shutdown() {
 
     auto done = std::async(std::launch::async, [this] {
         for (auto &test : test_runners) {
-            test->join();
+            qDebug() << "Joining from thread" << QThread::currentThread();
+            test->blocking_join();
         }
         test_runners.clear();
         Utility::promised_thread_call(this, [&] {
             test_descriptions.clear(); //must clear descriptions in GUI thread because it touches GUI
         });
         devices_thread.quit();
+        qDebug() << "Waiting from" << QThread::currentThread() << "for" << &devices_thread;
+        assert(not devices_thread.is_current());
         devices_thread.wait();
     });
+    qDebug() << "Mainwindow thread:" << QThread::currentThread();
     while (done.wait_for(std::chrono::milliseconds(16)) != std::future_status::ready) {
         QApplication::processEvents();
     }
@@ -841,13 +844,13 @@ void MainWindow::on_tests_advanced_view_itemDoubleClicked(QTreeWidgetItem *item,
 }
 
 void MainWindow::show_in_graphical_shell(const QString &pathIn) {
-	QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(pathIn).absolutePath()));
+    QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(pathIn).absolutePath()));
 }
 
 void MainWindow::on_tests_advanced_view_customContextMenuRequested(const QPoint &pos) {
     assert(currently_in_gui_thread());
     auto item = ui->tests_advanced_view->itemAt(pos);
-	if (item && get_test_from_tree_widget()) {
+    if (item && get_test_from_tree_widget()) {
         while (ui->tests_advanced_view->indexOfTopLevelItem(item) == -1) {
             item = item->parent();
         }
@@ -976,7 +979,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
                 if (test->is_running()) {
                     test->resume_timers();
                     test->interrupt();
-                    test->join();
+                    test->message_queue_join();
                 }
             }
 
@@ -1027,7 +1030,7 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
                                   QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
             runner.resume_timers();
             runner.interrupt();
-            runner.join();
+            runner.message_queue_join();
         } else {
             runner.resume_timers();
             return; //canceled closing the tab
@@ -1049,7 +1052,7 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
         if (runner->is_running()) {
             connect(&action_abort_script, &QAction::triggered, [runner] {
                 runner->interrupt();
-                runner->join();
+                runner->message_queue_join();
             });
             menu.addAction(&action_abort_script);
         }
