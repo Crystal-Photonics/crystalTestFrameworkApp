@@ -49,3 +49,32 @@ QFrame *Utility::add_handle(QSplitter *splitter) {
 	splitter_layout->addWidget(hline);
 	return hline;
 }
+
+Utility::Qt_thread::Qt_thread() {
+	thread.moveToThread(&thread);
+	connect(this, &Qt_thread::quit_thread, &thread, &QThread::quit, Qt::QueuedConnection);
+}
+
+void Utility::Qt_thread::quit() {
+	quit_thread();
+}
+
+void Utility::Qt_thread::adopt(QObject &object) {
+	object.moveToThread(&thread);
+}
+
+void Utility::Qt_thread::start(QThread::Priority priority) {
+	return thread.start(priority);
+}
+
+bool Utility::Qt_thread::wait(unsigned long time) {
+	thread.wait(time);
+}
+
+void Utility::Qt_thread::requestInterruption() {
+	thread.requestInterruption();
+}
+
+bool Utility::Qt_thread::isRunning() const {
+	return thread.isRunning();
+}

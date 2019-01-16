@@ -27,8 +27,8 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
     lua_ui_container->add(console, nullptr);
     assert(console);
     console->setVisible(false);
-    moveToThread(&thread);
-    script.event_loop.moveToThread(&thread);
+	thread.adopt(*this);
+	thread.adopt(script.event_loop);
     thread.start();
     try {
         script.load_script(description.get_filepath().toStdString());
@@ -45,8 +45,7 @@ TestRunner::~TestRunner() {
 void TestRunner::interrupt() {
     this->script.event_queue_interrupt();
     MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script interrupted"; });
-    thread.exit(-1);
-    thread.exit(-1);
+	script.event_loop.quit();
     thread.requestInterruption();
 }
 

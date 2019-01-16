@@ -624,10 +624,15 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
 			std::string target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
 			target_filename.resize(target_filename.size() - 4);
 
-			MainWindow::mw->execute_in_gui_thread([ console = this->console, filename = target_filename + " console output.txt" ] {
-				std::ofstream f{filename};
-				f << console->toPlainText().toStdString();
-			});
+			MainWindow::mw->execute_in_gui_thread(
+				[ console = this->console, filename = target_filename + " console output.txt", additional_pdf_path = this->additional_pdf_path ] {
+					std::ofstream f{filename};
+					f << console->toPlainText().toStdString();
+					f.close();
+					if (additional_pdf_path.count()) {
+						QFile::copy(QString::fromStdString(filename), additional_pdf_path);
+					}
+				});
 
 			data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
             if (additional_pdf_path.count()) {
@@ -714,7 +719,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
             for (auto sol_device : no_alias_device_list) {
                 device_list_sol.add(sol_device);
             }
-            for (const auto alias : aliased_devices_result) {
+			for (const auto &alias : aliased_devices_result) {
                 auto values = alias.second;
                 if (values.size() == 1) {
                     device_list_sol[alias.first.toStdString()] = values[0];

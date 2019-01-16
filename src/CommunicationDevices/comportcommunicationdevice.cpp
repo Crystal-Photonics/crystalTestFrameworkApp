@@ -29,7 +29,7 @@ bool ComportCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo
         assert(portinfo_[HOST_NAME_TAG].type() == QVariant::String);
         assert(portinfo_[BAUD_RATE_TAG].type() == QVariant::Int);
 
-    //    qDebug() << QString("opening: ") + portinfo_[HOST_NAME_TAG].toString();
+		//    qDebug() << QString("opening: ") + portinfo_[HOST_NAME_TAG].toString();
         port.setPortName(portinfo_[HOST_NAME_TAG].toString());
         port.setBaudRate(portinfo_[BAUD_RATE_TAG].toInt());
         bool result = port.open(QIODevice::ReadWrite);
@@ -107,7 +107,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
     }
     auto now = std::chrono::high_resolution_clock::now();
     do {
-        QThread().currentThread()->usleep(100);
+		QThread::currentThread()->usleep(100);
         if (port.bytesAvailable()) {
             //     now = std::chrono::high_resolution_clock::now();
         }

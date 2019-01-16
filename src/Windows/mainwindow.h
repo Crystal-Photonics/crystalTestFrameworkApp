@@ -116,7 +116,7 @@ class EXPORT MainWindow : public QMainWindow {
     std::vector<std::unique_ptr<TestRunner>> test_runners;
 
     std::unique_ptr<DeviceWorker> device_worker;
-    QThread devices_thread;
+	Utility::Qt_thread devices_thread;
 
     QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;

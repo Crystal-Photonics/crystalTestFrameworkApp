@@ -14,6 +14,7 @@
 #include <utility>
 
 #include "scriptengine.h"
+
 class QTabWidget;
 
 namespace Utility {
@@ -131,6 +132,24 @@ namespace Utility {
 		}
         return future.get();
     }
+
+	struct Qt_thread : QObject {
+		Q_OBJECT
+
+		public:
+		Qt_thread();
+		void quit();
+		void adopt(QObject &object);
+		void start(QThread::Priority priority = QThread::InheritPriority);
+		bool wait(unsigned long time = ULONG_MAX);
+		void requestInterruption();
+		bool isRunning() const;
+
+		private:
+		QThread thread;
+		signals:
+		void quit_thread();
+	};
 }
 
 #endif // QT_UTIL_H

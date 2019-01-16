@@ -97,7 +97,7 @@ class ScriptEngine {
     QString additional_pdf_path;
     QString data_engine_pdf_template_path;
 
-    QEventLoop event_loop;
+	QEventLoop event_loop;
 
     int event_queue_run_();
     TestRunner *owner{nullptr};

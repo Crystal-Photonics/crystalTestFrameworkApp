@@ -304,7 +304,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     load_default_paths_if_needed();
     favorite_scripts.load_from_file(QSettings{}.value(Globals::favorite_script_file_key, "").toString());
-    device_worker->moveToThread(&devices_thread);
+	devices_thread.adopt(*device_worker);
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
     Console::console = ui->console_edit;
     Console::mw = this;
@@ -841,13 +841,13 @@ void MainWindow::on_tests_advanced_view_itemDoubleClicked(QTreeWidgetItem *item,
 }
 
 void MainWindow::show_in_graphical_shell(const QString &pathIn) {
-    QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(pathIn).absolutePath()));
+	QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(pathIn).absolutePath()));
 }
 
 void MainWindow::on_tests_advanced_view_customContextMenuRequested(const QPoint &pos) {
     assert(currently_in_gui_thread());
     auto item = ui->tests_advanced_view->itemAt(pos);
-    if (item && get_test_from_tree_widget()) {
+	if (item && get_test_from_tree_widget()) {
         while (ui->tests_advanced_view->indexOfTopLevelItem(item) == -1) {
             item = item->parent();
         }
