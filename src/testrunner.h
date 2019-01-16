@@ -23,13 +23,14 @@ struct Protocol;
 class TestRunner : QObject {
     Q_OBJECT
     public:
-	enum class State { running, finished, error };
+    enum class State { running, finished, error };
     using Lua_ui_container = QWidget;
     TestRunner(const TestDescriptionLoader &description);
     ~TestRunner();
 
     void interrupt();
-    void join();
+    void message_queue_join();
+    void blocking_join();
     void pause_timers();
     void resume_timers();
     sol::table create_table();
@@ -60,7 +61,7 @@ ReturnType TestRunner::call(const char *function_name, Arguments &&... args) {
                                                      auto result = script.call<ReturnType>(function_name, std::forward<Arguments>(args)...);
                                                      return result;
                                                  } //
-                                                 );
+    );
     return p;
 }
 
