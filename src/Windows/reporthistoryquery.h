@@ -11,6 +11,7 @@ class QTreeWidgetItem;
 class TestReportHistory;
 class QLineEdit;
 class QToolButton;
+class QPlainTextEdit;
 
 namespace Ui {
     class ReportHistoryQuery;
@@ -42,6 +43,8 @@ class ReportQueryWhereField {
     QString field_name;
     QString incremention_selector_expression;
     QList<ReportQueryWhereFieldValues> field_values;
+
+    QPlainTextEdit *plainTextEdit = nullptr;
 };
 
 class DataEngineField {
@@ -89,9 +92,11 @@ class ReportQueryConfigFile {
     void save_to_file(QString file_name);
     const QList<ReportQuery> &get_queries();
     QList<ReportQuery> &get_queries_not_const();
-    const QList<ReportQueryWhereField> &get_where_fields();
-
     ReportQuery &add_new_query(QWidget *parent);
+
+    const QList<ReportQueryWhereField> &get_where_fields();
+    ReportQueryWhereField &add_new_where(QWidget *parent);
+
     void remove_query(int index);
 
     protected:
@@ -129,8 +134,10 @@ class ReportHistoryQuery : public QDialog {
     private:
     Ui::ReportHistoryQuery *ui;
     ReportQueryConfigFile report_query_config_file_m;
-    void add_new_where_page();
-    void remove_where_page(QWidget *tool_widget);
+    void add_new_query_page();
+    void remove_query_page(QWidget *tool_widget);
+    void clear_query_pages();
+    void add_new_where_page(const QString &field_id, const QString &field_typ);
     void clear_where_pages();
 };
 

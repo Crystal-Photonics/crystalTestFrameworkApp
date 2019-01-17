@@ -23,11 +23,12 @@ ReportHistoryQuery::ReportHistoryQuery(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::ReportHistoryQuery) {
     ui->setupUi(this);
+    clear_query_pages();
     clear_where_pages();
-    add_new_where_page();
+    add_new_query_page();
 }
 
-void ReportHistoryQuery::add_new_where_page() {
+void ReportHistoryQuery::add_new_query_page() {
     QWidget *tool_widget = new QWidget(ui->tb_queries);
     QGridLayout *grid_layout = new QGridLayout(tool_widget);
     ReportQuery &report_query = report_query_config_file_m.add_new_query(tool_widget);
@@ -36,8 +37,8 @@ void ReportHistoryQuery::add_new_where_page() {
 
     connect(report_query.btn_query_report_file_browse, &QToolButton::clicked, [this, report_query](bool checked) {
         (void)checked; //
-        const auto selected_dir =
-            QFileDialog::getExistingDirectory(this, QObject::tr("Open report directory"), "", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+        const auto selected_dir = QFileDialog::getExistingDirectory(this, QObject::tr("Open report directory"), report_query.edt_query_report_folder->text(),
+                                                                    QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
         if (!selected_dir.isEmpty()) {
             report_query.edt_query_report_folder->setText(selected_dir);
         }
@@ -46,6 +47,7 @@ void ReportHistoryQuery::add_new_where_page() {
     connect(report_query.btn_query_data_engine_source_file_browse, &QToolButton::clicked, [this, report_query](bool checked) {
         (void)checked; //
         QFileDialog dialog(this);
+        dialog.setDirectory(report_query.edt_query_data_engine_source_file->text());
         dialog.setFileMode(QFileDialog::ExistingFile);
         dialog.setNameFilter(tr("Data Engine Input files (*.json)"));
         if (dialog.exec()) {
@@ -55,12 +57,12 @@ void ReportHistoryQuery::add_new_where_page() {
 
     connect(report_query.btn_query_add, &QToolButton::clicked, [this](bool checked) {
         (void)checked; //
-        add_new_where_page();
+        add_new_query_page();
     });
 
     connect(report_query.btn_query_del, &QToolButton::clicked, [this, tool_widget](bool checked) {
         (void)checked; //
-        remove_where_page(tool_widget);
+        remove_query_page(tool_widget);
     });
 
     connect(report_query.edt_query_data_engine_source_file, &QLineEdit::textChanged, [this, tool_widget](const QString &arg) {
@@ -71,16 +73,33 @@ void ReportHistoryQuery::add_new_where_page() {
     (void)grid_layout;
 }
 
-void ReportHistoryQuery::remove_where_page(QWidget *tool_widget) {
+void ReportHistoryQuery::on_tree_query_fields_itemDoubleClicked(QTreeWidgetItem *item, int column) {
+    (void)column;
+    QString field_id = item->data(0, Qt::UserRole).toString();
+    if (field_id.count()) {
+        QString field_type_str = item->text(1);
+        add_new_where_page(field_id, field_type_str);
+    }
+}
+
+void ReportHistoryQuery::remove_query_page(QWidget *tool_widget) {
     int current_index = ui->tb_where->indexOf(tool_widget);
     report_query_config_file_m.remove_query(current_index);
     ui->tb_queries->removeItem(current_index);
     delete tool_widget;
 }
 
+void ReportHistoryQuery::clear_query_pages() {
+    while (ui->tb_queries->count()) {
+        QWidget *widget = ui->tb_queries->widget(0);
+        delete widget;
+        ui->tb_queries->removeItem(0);
+    }
+}
+
 void ReportHistoryQuery::clear_where_pages() {
-    for (int i = 0; i < ui->tb_queries->count(); i++) {
-        QWidget *widget = ui->tb_queries->widget(i);
+    while (ui->tb_where->count()) {
+        QWidget *widget = ui->tb_where->widget(0);
         delete widget;
         ui->tb_queries->removeItem(0);
     }
@@ -104,7 +123,7 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
     if (arg1 == 1) {
         ui->tree_query_fields->clear();
         //T:/qt/crystalTestFramework/tests/scripts/report_query/data_engine_source_1.json
-        const Qt::ItemFlags item_flags_checkable = Qt::ItemIsSelectable | Qt::ItemIsEditable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable;
+        const Qt::ItemFlags item_flags_checkable = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable;
         for (auto &query : report_query_config_file_m.get_queries_not_const()) {
             query.update_from_gui();
             QTreeWidgetItem *root_item = new QTreeWidgetItem(QStringList{query.data_engine_source_file});
@@ -116,22 +135,24 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
 
             for (const auto &general_field : fields.general_fields) {
                 QString typ_name = "";
-                QTreeWidgetItem *general_entry = new QTreeWidgetItem(root_general_widget, QStringList{general_field.field_name, typ_name});
+                QTreeWidgetItem *general_entry =
+                    new QTreeWidgetItem(root_general_widget, QStringList{general_field.field_name, general_field.field_type.to_string()});
 
                 general_entry->setCheckState(0, Qt::Unchecked);
                 general_entry->setFlags(item_flags_checkable);
-                qDebug() << "general/" + general_field.field_name;
+                general_entry->setData(0, Qt::UserRole, "general/" + general_field.field_name);
+                //  qDebug() << "general/" + general_field.field_name;
             }
 
             for (const auto &section_name : fields.report_fields.keys()) {
-                QString typ_name = "";
                 QTreeWidgetItem *report_section_entry = new QTreeWidgetItem(root_report_widget, QStringList{section_name});
                 for (const auto &data_engine_field : fields.report_fields.value(section_name)) {
                     QTreeWidgetItem *report_entry =
                         new QTreeWidgetItem(report_section_entry, QStringList{data_engine_field.field_name, data_engine_field.field_type.to_string()});
                     report_entry->setCheckState(0, Qt::Unchecked);
                     report_entry->setFlags(item_flags_checkable);
-                    qDebug() << "report/" + section_name + "/" + data_engine_field.field_name;
+                    report_entry->setData(0, Qt::UserRole, "report/" + section_name + "/" + data_engine_field.field_name);
+                    //    qDebug() << "report/" + section_name + "/" + data_engine_field.field_name;
                 }
             }
         }
@@ -140,6 +161,33 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
 
 void ReportHistoryQuery::on_btn_close_clicked() {
     close();
+}
+
+void ReportHistoryQuery::add_new_where_page(const QString &field_id, const QString &field_typ) {
+    if (field_id == "") {
+        return;
+    }
+    QWidget *tool_widget = new QWidget(ui->tb_where);
+    QGridLayout *grid_layout = new QGridLayout(tool_widget);
+    auto &report_query = report_query_config_file_m.add_new_where(tool_widget);
+    ui->tb_where->addItem(tool_widget, "");
+    ui->tb_where->setCurrentIndex(ui->tb_where->count() - 1);
+    ui->tb_where->setItemText(ui->tb_where->count() - 1, field_id);
+
+    (void)report_query;
+    (void)grid_layout;
+    (void)field_typ;
+}
+
+ReportQueryWhereField &ReportQueryConfigFile::add_new_where(QWidget *parent) {
+    ReportQueryWhereField report_where{};
+    if (parent) {
+        QGridLayout *gl = dynamic_cast<QGridLayout *>(parent->layout());
+        report_where.plainTextEdit = new QPlainTextEdit();
+        gl->addWidget(report_where.plainTextEdit, 0, 1);
+    }
+    query_where_fields_m.append(report_where);
+    return query_where_fields_m.last();
 }
 
 ReportQuery &ReportQueryConfigFile::add_new_query(QWidget *parent) {
@@ -432,10 +480,10 @@ DataEngineSourceFields ReportQuery::get_data_engine_fields() const {
     //try
     {
         result.general_fields = QList<DataEngineField>{
-            {"data_source_path", EntryType::Text},        {"datetime_str", EntryType::Text},        {"datetime_unix", EntryType::Number},
-            {"everything_complete", EntryType::Bool},     {"everything_in_range", EntryType::Bool}, {"exceptional_approval_exists", EntryType::Bool},
-            {"framework_git_hash", EntryType::Text},      {"os_username", EntryType::Text},         {"script_path", EntryType::Text},
-            {"test_duration_seconds", EntryType::Number}, {"test_git_date_str", EntryType::Text},   {"test_git_hash", EntryType::Text},
+            {"data_source_path", EntryType::Text},        {"datetime_str", EntryType::DateTime},      {"datetime_unix", EntryType::Number},
+            {"everything_complete", EntryType::Bool},     {"everything_in_range", EntryType::Bool},   {"exceptional_approval_exists", EntryType::Bool},
+            {"framework_git_hash", EntryType::Text},      {"os_username", EntryType::Text},           {"script_path", EntryType::Text},
+            {"test_duration_seconds", EntryType::Number}, {"test_git_date_str", EntryType::DateTime}, {"test_git_hash", EntryType::Text},
             {"test_git_modified", EntryType::Text}};
         Data_engine data_engine;
         data_engine.set_source(f);
@@ -455,8 +503,4 @@ DataEngineSourceFields ReportQuery::get_data_engine_fields() const {
         //QMessageBox::warning(MainWindow::mw, QString("Dataengine error"), QString("Dataengine error:\n\n %1").arg(e.what()));
     }
     return result;
-}
-
-void ReportHistoryQuery::on_tree_query_fields_itemDoubleClicked(QTreeWidgetItem *item, int column) {
-    qDebug() << "dblclicked";
 }
