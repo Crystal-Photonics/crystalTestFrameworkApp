@@ -29,7 +29,7 @@ bool ComportCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo
         assert(portinfo_[HOST_NAME_TAG].type() == QVariant::String);
         assert(portinfo_[BAUD_RATE_TAG].type() == QVariant::Int);
 
-    //    qDebug() << QString("opening: ") + portinfo_[HOST_NAME_TAG].toString();
+        //    qDebug() << QString("opening: ") + portinfo_[HOST_NAME_TAG].toString();
         port.setPortName(portinfo_[HOST_NAME_TAG].toString());
         port.setBaudRate(portinfo_[BAUD_RATE_TAG].toInt());
         bool result = port.open(QIODevice::ReadWrite);
@@ -102,8 +102,8 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
     try {
         word_regex = leading_pattern_indicating_skip_line;
     } catch (std::regex_error &e) {
-        qDebug() << "faulty regex: " + QString().fromStdString(leading_pattern_indicating_skip_line);
-        qDebug() << "error: " + QString().fromStdString(std::string(e.what()));
+        qDebug() << "faulty regex: " + QString::fromStdString(leading_pattern_indicating_skip_line);
+        qDebug() << "error: " + QString::fromStdString(std::string(e.what()));
     }
     auto now = std::chrono::high_resolution_clock::now();
     do {

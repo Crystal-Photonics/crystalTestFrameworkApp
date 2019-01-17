@@ -79,6 +79,11 @@ Data_engine::Data_engine(std::istream &source, const QMap<QString, QList<QVarian
 
 Data_engine::Data_engine(std::istream &source)
     : sections{} {
+    //this constructor is used to work in dummy mode
+    //dummy mode means that no dependency tags were defined in order to get just the structure of the data engine source file.
+    //for example for report templates or report queries.
+    // hence we can ignore this ambiguous case.
+
     set_source(source);
 }
 
@@ -110,6 +115,15 @@ void Data_engine::set_source(std::istream &source) {
     sections.delete_unmatched_variants();
 
     sections.deref_references();
+
+    for (const auto &section : sections.sections) { //lets test whether field names with the same name across variants have also the same type
+        QStringList all_ids_over_variants = section.get_all_ids_over_variants();
+        for (const auto &id : all_ids_over_variants) {
+            EntryType entry_type = sections.get_entry_type_dummy_mode(id);
+            (void)entry_type;
+        }
+    }
+
     load_time_seconds_since_epoch = QDateTime::currentMSecsSinceEpoch() / 1000;
 }
 
@@ -172,7 +186,7 @@ void DataEngineSections::deref_references() {
             for (const auto &entry : variant_to_test->data_entries) {
                 ReferenceDataEntry *reference = entry.get()->as<ReferenceDataEntry>();
                 if (reference) {
-                    reference->dereference(this);
+                    reference->dereference(this, is_dummy_data_mode);
                 }
             }
         }
@@ -263,7 +277,7 @@ DataEngineSection *DataEngineSections::get_section_raw(const QString &section_na
     const DataEngineSection *result = nullptr;
     *error_num = DataEngineErrorNumber::ok;
     for (auto &section : sections) {
-        if (section.get_section_name() == section_name) {
+        if (section.get_section_name().toLower() == section_name.toLower()) {
             assert(result == nullptr); //there should only be one section with this name
             result = &section;
         }
@@ -275,7 +289,7 @@ DataEngineSection *DataEngineSections::get_section_raw(const QString &section_na
 }
 
 QList<const DataEngineDataEntry *> DataEngineSections::get_entries_raw(const FormID &id, DataEngineErrorNumber *error_num, DecodecFieldID &decoded_field_name,
-                                                                       bool using_instance_index) const {
+                                                                       bool using_instance_index, bool using_dummy_mode) const {
     *error_num = DataEngineErrorNumber::ok;
     decoded_field_name = decode_field_id(id);
     DataEngineSection *section = get_section_raw(decoded_field_name.section_name, error_num);
@@ -283,30 +297,36 @@ QList<const DataEngineDataEntry *> DataEngineSections::get_entries_raw(const For
     QList<const DataEngineDataEntry *> result;
 
     if (section) {
-        if (section->is_section_instance_defined() == false) {
+        if ((section->is_section_instance_defined() == false) && (using_dummy_mode == false)) {
             assert(0); //exception should already have been thrown elsewere
             //throw DataEngineError(DataEngineErrorNumber::instance_count_yet_undefined,
             //                      QString("Dataengine: Instance count of section \"%1\" yet undefined. Instance count value is: \"%2\".")
             //                          .arg(section->get_section_name())
             //                          .arg(section->get_instance_count_name()));
         }
-
-        for (uint index = 0; index < section->instances.size(); index++) {
-            auto &instance = section->instances[index];
-            if (using_instance_index && (index != section->get_actual_instance_index())) {
-                continue;
+        if (using_dummy_mode) {
+            for (const VariantData &variant : section->prototype_instance.variants) {
+                DataEngineErrorNumber errornum = DataEngineErrorNumber::ok;
+                const DataEngineDataEntry *item = variant.get_entry_raw(decoded_field_name.field_name, &errornum);
+                if ((item) && (errornum == DataEngineErrorNumber::ok)) {
+                    result.append(item);
+                }
             }
-
-            const VariantData *variant = instance.get_variant();
-            assert(variant);
-            DataEngineErrorNumber error_num_dummy;
-            const DataEngineDataEntry *item = variant->get_entry_raw(decoded_field_name.field_name, &error_num_dummy);
-            if (item == nullptr) {
-            } else {
-                result.append(item);
+        } else {
+            for (uint index = 0; index < section->instances.size(); index++) {
+                auto &instance = section->instances[index];
+                if (using_instance_index && (index != section->get_actual_instance_index())) {
+                    continue;
+                }
+                const VariantData *variant = instance.get_variant();
+                assert(variant);
+                DataEngineErrorNumber error_num_dummy;
+                const DataEngineDataEntry *item = variant->get_entry_raw(decoded_field_name.field_name, &error_num_dummy);
+                if (item) {
+                    result.append(item);
+                }
             }
         }
-
         if (result.count() == 0) {
             *error_num = DataEngineErrorNumber::no_field_id_found;
         }
@@ -316,10 +336,27 @@ QList<const DataEngineDataEntry *> DataEngineSections::get_entries_raw(const For
     return {};
 }
 
-QList<const DataEngineDataEntry *> DataEngineSections::get_entries_const(const FormID &id) const {
+QList<const DataEngineDataEntry *> DataEngineSections::get_entries_const(const FormID &id, const bool using_dummy_mode) const {
     DataEngineErrorNumber error_num = DataEngineErrorNumber::ok;
     DecodecFieldID decoded_field_id;
-    auto result = get_entries_raw(id, &error_num, decoded_field_id, false);
+    auto result = get_entries_raw(id, &error_num, decoded_field_id, false, using_dummy_mode);
+    if (error_num == DataEngineErrorNumber::no_field_id_found) {
+        throw DataEngineError(DataEngineErrorNumber::no_field_id_found,
+                              QString("Dataengine: Could not find field with name = \"%1\"").arg(decoded_field_id.field_name));
+    } else if (error_num == DataEngineErrorNumber::no_section_id_found) {
+        throw DataEngineError(DataEngineErrorNumber::no_section_id_found,
+                              QString("Dataengine: Could not find section with name = \"%1\"").arg(decoded_field_id.section_name));
+    } else if (error_num != DataEngineErrorNumber::ok) {
+        assert(0);
+    }
+
+    return result;
+}
+
+QList<const DataEngineDataEntry *> DataEngineSections::get_entries_across_variants_const(const FormID &id) const {
+    DataEngineErrorNumber error_num = DataEngineErrorNumber::ok;
+    DecodecFieldID decoded_field_id;
+    auto result = get_entries_raw(id, &error_num, decoded_field_id, false, true);
     if (error_num == DataEngineErrorNumber::no_field_id_found) {
         throw DataEngineError(DataEngineErrorNumber::no_field_id_found,
                               QString("Dataengine: Could not find field with name = \"%1\"").arg(decoded_field_id.field_name));
@@ -336,7 +373,7 @@ QList<const DataEngineDataEntry *> DataEngineSections::get_entries_const(const F
 const DataEngineDataEntry *DataEngineSections::get_actual_instance_entry_const(const FormID &id) const {
     DataEngineErrorNumber error_num = DataEngineErrorNumber::ok;
     DecodecFieldID decoded_field_id;
-    auto result_list = get_entries_raw(id, &error_num, decoded_field_id, true);
+    auto result_list = get_entries_raw(id, &error_num, decoded_field_id, true, false);
     if (error_num == DataEngineErrorNumber::no_field_id_found) {
         throw DataEngineError(DataEngineErrorNumber::no_field_id_found,
                               QString("Dataengine: Could not find field with name = \"%1\"").arg(decoded_field_id.field_name));
@@ -353,7 +390,7 @@ const DataEngineDataEntry *DataEngineSections::get_actual_instance_entry_const(c
 
 QList<DataEngineDataEntry *> DataEngineSections::get_entries(const FormID &id) {
     QList<DataEngineDataEntry *> result;
-    auto const_results = get_entries_const(id);
+    auto const_results = get_entries_const(id, false);
     for (auto const_result : const_results) {
         result.append(const_cast<DataEngineDataEntry *>(const_result));
     }
@@ -361,12 +398,12 @@ QList<DataEngineDataEntry *> DataEngineSections::get_entries(const FormID &id) {
     return result;
 }
 
-bool DataEngineSections::exists_uniquely(const FormID &id) const {
+bool DataEngineSections::exists_uniquely(const FormID &id, const bool using_dummy_mode) const {
     DataEngineErrorNumber error_num = DataEngineErrorNumber::ok;
 
     bool result = true;
     DecodecFieldID decoded_field_id;
-    auto entries = get_entries_raw(id, &error_num, decoded_field_id, false);
+    auto entries = get_entries_raw(id, &error_num, decoded_field_id, false, using_dummy_mode);
     if (error_num == DataEngineErrorNumber::no_field_id_found) {
         result = false;
     } else if (error_num == DataEngineErrorNumber::no_section_id_found) {
@@ -414,8 +451,65 @@ void DataEngineSections::from_json(const QJsonObject &object) {
         if (section_exists(section.get_section_name())) {
             throw DataEngineError(DataEngineErrorNumber::duplicate_section, QString("Dataengine: duplicate section %1").arg(section.get_section_name()));
         }
+
         sections.push_back(std::move(section));
     }
+}
+
+QStringList DataEngineSection::get_all_ids_over_variants() const {
+    QStringList result;
+    for (const auto &variant : prototype_instance.variants) {
+        for (const auto &data_entry : variant.data_entries) {
+            QString id = section_name.toLower() + "/" + data_entry->field_name.toLower();
+            if (!result.contains(id)) {
+                result.append(id);
+            }
+        }
+    }
+    return result;
+}
+
+EntryType DataEngineSections::get_entry_type_dummy_mode_recursion(const FormID &id) const {
+    auto data_entries_for_each_variant = get_entries_across_variants_const(id);
+    if (data_entries_for_each_variant.count() == 0) {
+        throw DataEngineError(DataEngineErrorNumber::no_field_id_found, "Dataengine: field not found: " + id);
+    }
+
+    const DataEngineDataEntry *entry = data_entries_for_each_variant[0];
+    const ReferenceDataEntry *referece_entry = dynamic_cast<const ReferenceDataEntry *>(entry);
+    EntryType result_type{EntryType::Unspecified};
+    if (referece_entry) {
+        bool first = true;
+        for (const auto &ref_link : referece_entry->reference_links) {
+            if (first) {
+                result_type = get_entry_type_dummy_mode_recursion(ref_link.link);
+                first = false;
+            } else {
+                if (result_type.t != get_entry_type_dummy_mode_recursion(ref_link.link).t) {
+                    throw DataEngineError(DataEngineErrorNumber::inconsistant_types_across_variants_and_reference_targets,
+                                          "Dataengine: Inconsistent type across variants and references. field: " + id);
+                }
+            }
+        }
+    } else {
+        bool first = true;
+        for (auto &data_entry : data_entries_for_each_variant) {
+            if (first) {
+                result_type = data_entry->get_entry_type();
+                first = false;
+            } else {
+                if (result_type.t != data_entry->get_entry_type().t) {
+                    throw DataEngineError(DataEngineErrorNumber::inconsistant_types_across_variants,
+                                          "Dataengine: Inconsistent types across variants for field: " + id);
+                }
+            }
+        }
+    }
+    return result_type;
+}
+
+EntryType DataEngineSections::get_entry_type_dummy_mode(const FormID &id) const {
+    return get_entry_type_dummy_mode_recursion(id);
 }
 
 bool DataEngineSections::section_exists(QString section_name) {
@@ -745,13 +839,12 @@ bool DataEngineSection::set_instance_count_if_name_matches(QString instance_coun
 
     if (this->instance_count_name == instance_count_name) {
         if (is_section_instance_defined()) {
-            throw DataEngineError(
-                DataEngineErrorNumber::instance_count_already_defined,
-                QString(
-                    "Dataengine: Instance count of section \"%1\" is already defined. Instance count name is: \"%2\", actual value of instance count is: %3.")
-                    .arg(get_section_name())
-                    .arg(instance_count_name)
-                    .arg(this->instance_count.value()));
+            throw DataEngineError(DataEngineErrorNumber::instance_count_already_defined,
+                                  QString("Dataengine: Instance count of section \"%1\" is already defined. Instance count name is: \"%2\", actual value "
+                                          "of instance count is: %3.")
+                                      .arg(get_section_name())
+                                      .arg(instance_count_name)
+                                      .arg(this->instance_count.value()));
         } else {
             if (instance_count == 0) {
                 throw DataEngineError(
@@ -823,6 +916,7 @@ VariantData::VariantData(const VariantData &other)
         auto entry_num = dynamic_cast<NumericDataEntry *>(entry.get());
         auto entry_bool = dynamic_cast<BoolDataEntry *>(entry.get());
         auto entry_text = dynamic_cast<TextDataEntry *>(entry.get());
+        auto entry_dateime = dynamic_cast<DateTimeDataEntry *>(entry.get());
         auto entry_ref = dynamic_cast<ReferenceDataEntry *>(entry.get());
         if (entry_num) {
             data_entries.push_back(std::make_unique<NumericDataEntry>(*entry_num));
@@ -830,6 +924,8 @@ VariantData::VariantData(const VariantData &other)
             data_entries.push_back(std::make_unique<BoolDataEntry>(*entry_bool));
         } else if (entry_text) {
             data_entries.push_back(std::make_unique<TextDataEntry>(*entry_text));
+        } else if (entry_dateime) {
+            data_entries.push_back(std::make_unique<DateTimeDataEntry>(*entry_dateime));
         } else if (entry_ref) {
             data_entries.push_back(std::make_unique<ReferenceDataEntry>(*entry_ref));
         } else {
@@ -973,7 +1069,7 @@ DataEngineDataEntry *VariantData::get_entry(QString field_name) const {
 DataEngineDataEntry *VariantData::get_entry_raw(QString field_name, DataEngineErrorNumber *errornum) const {
     *errornum = DataEngineErrorNumber::ok;
     for (const auto &entry : data_entries) {
-        if (entry.get()->field_name == field_name) {
+        if (entry.get()->field_name.toLower() == field_name.toLower()) {
             return entry.get();
         }
     }
@@ -1237,12 +1333,12 @@ void DependencyValue::from_bool(const bool &boolean) {
 }
 
 bool Data_engine::is_complete() const {
-    assert_in_dummy_mode();
+    assert_not_in_dummy_mode();
     return sections.is_complete();
 }
 
 bool Data_engine::all_values_in_range() const {
-    assert_in_dummy_mode();
+    assert_not_in_dummy_mode();
     return sections.all_values_in_range();
 }
 
@@ -1256,7 +1352,7 @@ bool Data_engine::values_in_range(const QList<FormID> &ids) const {
 }
 
 bool Data_engine::value_complete_in_instance(const FormID &id) const {
-    assert_in_dummy_mode();
+    assert_not_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
     bool result = data_entry->is_complete();
@@ -1264,7 +1360,7 @@ bool Data_engine::value_complete_in_instance(const FormID &id) const {
 }
 
 bool Data_engine::value_in_range_in_instance(const FormID &id) const {
-    assert_in_dummy_mode();
+    assert_not_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
     bool result = data_entry->is_in_range();
@@ -1272,7 +1368,7 @@ bool Data_engine::value_in_range_in_instance(const FormID &id) const {
 }
 
 bool Data_engine::value_complete_in_section(FormID id) const {
-    assert_in_dummy_mode();
+    assert_not_in_dummy_mode();
     if (!id.contains("/")) {
         id = id + "/";
     }
@@ -1281,7 +1377,7 @@ bool Data_engine::value_complete_in_section(FormID id) const {
 }
 
 bool Data_engine::value_in_range_in_section(FormID id) const {
-    assert_in_dummy_mode();
+    assert_not_in_dummy_mode();
     if (!id.contains("/")) {
         id = id + "/";
     }
@@ -1290,8 +1386,8 @@ bool Data_engine::value_in_range_in_section(FormID id) const {
 }
 
 bool Data_engine::value_in_range(const FormID &id) const {
-    assert_in_dummy_mode();
-    QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id);
+    assert_not_in_dummy_mode();
+    QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id, false);
     for (auto entry : data_entry) {
         assert(entry);
         if (!entry->is_in_range()) {
@@ -1302,8 +1398,8 @@ bool Data_engine::value_in_range(const FormID &id) const {
 }
 
 bool Data_engine::value_complete(const FormID &id) const {
-    assert_in_dummy_mode();
-    QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id);
+    assert_not_in_dummy_mode();
+    QList<const DataEngineDataEntry *> data_entry = sections.get_entries_const(id, false);
     for (auto entry : data_entry) {
         assert(entry);
         if (!entry->is_complete()) {
@@ -1393,6 +1489,27 @@ void DataEngineSection::set_actual_bool(const FormID &id, bool value) {
     }
 }
 
+void DataEngineSection::set_actual_datetime(const FormID &id, DataEngineDateTime value) {
+    DataEngineDataEntry *data_entry = get_entry(id);
+    assert(data_entry); //if field is not found an exception was already thrown above. Something bad must happen to assert here
+
+    if (!value.isValid()) {
+        throw DataEngineError(DataEngineErrorNumber::datetime_is_not_valid,
+                              QString("Dataengine: Date time value for the field \"%1\" is not valid. function: set_actual_datetime").arg(id));
+    }
+    auto date_time_entry = data_entry->as<DateTimeDataEntry>();
+    ReferenceDataEntry *reference_entry = data_entry->as<ReferenceDataEntry>();
+    if (!date_time_entry) {
+        if (!reference_entry) {
+            throw DataEngineError(DataEngineErrorNumber::setting_desired_value_with_wrong_type,
+                                  QString("Dataengine: The field \"%1\" is not dateime as it must be if you set it with a datetime type").arg(id));
+        }
+        reference_entry->set_actual_value(value);
+    } else {
+        date_time_entry->set_actual_value(value);
+    }
+}
+
 uint DataEngineSection::get_actual_instance_index() {
     return actual_instance_index;
 }
@@ -1424,6 +1541,11 @@ void Data_engine::set_actual_text(const FormID &id, QString text) {
 void Data_engine::set_actual_bool(const FormID &id, bool value) {
     auto section = sections.get_section(id);
     section->set_actual_bool(id, value);
+}
+
+void Data_engine::set_actual_datetime(const FormID &id, DataEngineDateTime value) {
+    auto section = sections.get_section(id);
+    section->set_actual_datetime(id, value);
 }
 
 void Data_engine::use_instance(const QString &section_name, const QString &instance_caption, const uint instance_index) {
@@ -1476,6 +1598,8 @@ void Data_engine::fill_engine_with_dummy_data() {
                     set_actual_number(id, 1);
                 } else if (is_text(id)) {
                     set_actual_text(id, "test 123");
+                } else if (is_datetime(id)) {
+                    set_actual_datetime(id, DataEngineDateTime{QDateTime::currentDateTime()});
                 } else {
                     assert(0);
                 }
@@ -1514,17 +1638,26 @@ uint Data_engine::get_instance_count(const std::string &section_name) const {
     return get_instance_captions(QString::fromStdString(section_name)).size();
 }
 
-QString Data_engine::get_actual_value(const FormID &id) const {
-    assert_in_dummy_mode();
-    auto data_entry = sections.get_actual_instance_entry_const(id);
+QString Data_engine::get_actual_value_raw(const FormID &id) const {
     QString result;
+    auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
     result = data_entry->get_actual_values();
     return result;
 }
 
-double Data_engine::get_actual_number(const FormID &id) const {
+QString Data_engine::get_actual_value(const FormID &id) const {
+    assert_not_in_dummy_mode();
+    return get_actual_value_raw(id);
+}
+
+QString Data_engine::get_actual_dummy_value(const FormID &id) const {
     assert_in_dummy_mode();
+    return get_actual_value_raw(id);
+}
+
+double Data_engine::get_actual_number(const FormID &id) const {
+    assert_not_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
     auto result = data_entry->get_actual_number();
@@ -1532,7 +1665,7 @@ double Data_engine::get_actual_number(const FormID &id) const {
 }
 
 QString Data_engine::get_description(const FormID &id) const {
-    assert_in_dummy_mode();
+    assert_not_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     QString result;
     assert(data_entry);
@@ -1541,7 +1674,7 @@ QString Data_engine::get_description(const FormID &id) const {
 }
 
 bool Data_engine::is_desired_value_set(const FormID &id) const {
-    assert_in_dummy_mode();
+    assert_not_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
     return data_entry->is_desired_value_set();
@@ -1550,19 +1683,25 @@ bool Data_engine::is_desired_value_set(const FormID &id) const {
 bool Data_engine::is_bool(const FormID &id) const {
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
-    return data_entry->get_entry_type() == EntryType::Bool;
+    return data_entry->get_entry_type().t == EntryType::Bool;
 }
 
 bool Data_engine::is_number(const FormID &id) const {
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
-    return data_entry->get_entry_type() == EntryType::Numeric;
+    return data_entry->get_entry_type().t == EntryType::Number;
 }
 
 bool Data_engine::is_text(const FormID &id) const {
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
-    return data_entry->get_entry_type() == EntryType::String;
+    return data_entry->get_entry_type().t == EntryType::Text;
+}
+
+bool Data_engine::is_datetime(const FormID &id) const {
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    assert(data_entry);
+    return data_entry->get_entry_type().t == EntryType::DateTime;
 }
 
 bool Data_engine::is_exceptionally_approved(const FormID &id) const {
@@ -1572,7 +1711,7 @@ bool Data_engine::is_exceptionally_approved(const FormID &id) const {
 }
 
 QString Data_engine::get_desired_value_as_string(const FormID &id) const {
-    assert_in_dummy_mode();
+    assert_not_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     QString result;
     assert(data_entry);
@@ -1581,7 +1720,7 @@ QString Data_engine::get_desired_value_as_string(const FormID &id) const {
 }
 
 QString Data_engine::get_unit(const FormID &id) const {
-    assert_in_dummy_mode();
+    assert_not_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     QString result;
     assert(data_entry);
@@ -1590,14 +1729,18 @@ QString Data_engine::get_unit(const FormID &id) const {
 }
 
 EntryType Data_engine::get_entry_type(const FormID &id) const {
-    assert_in_dummy_mode();
+    assert_not_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
     return data_entry->get_entry_type();
 }
 
+EntryType Data_engine::get_entry_type_dummy_mode(const FormID &id) const {
+    return sections.get_entry_type_dummy_mode(id);
+}
+
 double Data_engine::get_si_prefix(const FormID &id) const {
-    assert_in_dummy_mode();
+    assert_not_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
     return data_entry->get_si_prefix();
@@ -2953,9 +3096,16 @@ void Data_engine::add_sources_to_form(QString data_base_path, const QList<PrintO
     }
 }
 
-void Data_engine::assert_in_dummy_mode() const {
+void Data_engine::assert_not_in_dummy_mode() const {
     if (sections.is_dummy_data_mode) {
         throw DataEngineError(DataEngineErrorNumber::is_in_dummy_mode, "Dataengine: Dataengine is in dummy mode. Access to data functions is prohibited.");
+    }
+}
+
+void Data_engine::assert_in_dummy_mode() const {
+    if (sections.is_dummy_data_mode == false) {
+        throw DataEngineError(DataEngineErrorNumber::dummy_mode_necessary,
+                              "Dataengine: Dataengine is not in dummy mode while access through dummy mode function.");
     }
 }
 
@@ -3186,7 +3336,7 @@ const ExceptionalApprovalResult &DataEngineDataEntry::get_exceptional_approval()
 
 std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonObject &object) {
     FormID field_name;
-    EntryType entrytype = EntryType::Unspecified;
+    EntryType entrytype{EntryType::Unspecified};
     const auto keys = object.keys();
     bool entry_without_value;
     if (!keys.contains("value")) {
@@ -3197,26 +3347,28 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             entry_without_value = true;
             QString str_type = object["type"].toString();
             if (str_type == "number") {
-                entrytype = EntryType::Numeric;
+                entrytype.t = EntryType::Number;
             } else if (str_type == "string") {
-                entrytype = EntryType::String;
+                entrytype.t = EntryType::Text;
             } else if (str_type == "bool") {
-                entrytype = EntryType::Bool;
+                entrytype.t = EntryType::Bool;
+            } else if (str_type == "datetime") {
+                entrytype.t = EntryType::DateTime;
             }
         }
     } else {
         entry_without_value = false;
         auto value = object["value"];
         if (value.isDouble()) {
-            entrytype = EntryType::Numeric;
+            entrytype.t = EntryType::Number;
         } else if (value.isString()) {
-            entrytype = EntryType::String;
+            entrytype.t = EntryType::Text;
             QString str = value.toString();
             if ((str.startsWith("[")) && (str.endsWith("]"))) {
-                entrytype = EntryType::Reference;
+                entrytype.t = EntryType::Reference;
             }
         } else if (value.isBool()) {
-            entrytype = EntryType::Bool;
+            entrytype.t = EntryType::Bool;
         }
     }
 
@@ -3224,8 +3376,8 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
         throw DataEngineError(DataEngineErrorNumber::data_entry_contains_no_name, "Dataengine: JSON object must contain key \"name\"");
     }
     field_name = object.value("name").toString();
-    switch (entrytype) {
-        case EntryType::Numeric: {
+    switch (entrytype.t) {
+        case EntryType::Number: {
 //disable maybe-uninitialized warning for an optional type.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
@@ -3305,7 +3457,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             return std::make_unique<BoolDataEntry>(field_name, desired_value, nice_name);
             break;
         }
-        case EntryType::String: {
+        case EntryType::Text: {
             std::experimental::optional<QString> desired_value{};
             QString nice_name{};
             for (const auto &key : keys) {
@@ -3324,6 +3476,26 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                 }
             }
             return std::make_unique<TextDataEntry>(field_name, desired_value, nice_name);
+        }
+        case EntryType::DateTime: {
+            QString nice_name{};
+            for (const auto &key : keys) {
+                if (key == "name") {
+                    //already handled above
+                } else if (is_comment_key(key)) {
+                    //nothing to do
+                } else if (key == "nice_name") {
+                    nice_name = object.value(key).toString();
+                } else if ((key == "value") && (entry_without_value == false)) {
+                    throw DataEngineError(DataEngineErrorNumber::datetime_dont_support_desired_values_yet,
+                                          QString("Dataengine: Datetime fields dont support desired values yet. Field_name:  %1").arg(key));
+                } else if ((key == "type") && (entry_without_value == true)) {
+                    //already handled above
+                } else {
+                    throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_key, "Dataengine: Invalid key \"" + key + "\" in datetime JSON object");
+                }
+            }
+            return std::make_unique<DateTimeDataEntry>(field_name, nice_name);
         }
         case EntryType::Reference: {
             QString reference_string{};
@@ -3463,7 +3635,7 @@ void NumericDataEntry::set_actual_value(double actual_value) {
 }
 
 EntryType NumericDataEntry::get_entry_type() const {
-    return EntryType::Numeric;
+    return EntryType{EntryType::Number};
 }
 
 bool NumericDataEntry::is_desired_value_set() const {
@@ -3587,7 +3759,7 @@ void TextDataEntry::set_actual_value(QString actual_value) {
 }
 
 EntryType TextDataEntry::get_entry_type() const {
-    return EntryType::String;
+    return EntryType{EntryType::Text};
 }
 
 void TextDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
@@ -3629,6 +3801,110 @@ QJsonObject TextDataEntry::get_specific_json_dump() const {
 
 QString TextDataEntry::get_specific_json_name() const {
     return "text";
+}
+
+DateTimeDataEntry::DateTimeDataEntry(const DateTimeDataEntry &other)
+    : DataEngineDataEntry{other.field_name}
+    , description{other.description}
+    , actual_value{other.actual_value} {}
+
+DateTimeDataEntry::DateTimeDataEntry(const FormID name, QString description)
+    : DataEngineDataEntry(name)
+    , description(description) {}
+
+bool DateTimeDataEntry::is_complete() const {
+    if ((bool)actual_value == false) {
+        return false;
+    }
+    return true;
+}
+
+bool DateTimeDataEntry::is_in_range() const {
+    if (is_complete() == false) {
+        return false;
+    }
+    return true;
+}
+
+QString DateTimeDataEntry::get_actual_values() const {
+    if ((bool)actual_value) {
+        return actual_value.value().str();
+    } else {
+        return unavailable_value;
+    }
+}
+
+double DateTimeDataEntry::get_actual_number() const {
+    throw DataEngineError(DataEngineErrorNumber::actual_value_is_not_a_number,
+                          QString("Dataengine: Actual value of field %1 is datetime, not a number").arg(field_name));
+}
+
+QString DateTimeDataEntry::get_description() const {
+    return description;
+}
+
+QString DateTimeDataEntry::get_desired_value_as_string() const {
+    return "";
+}
+
+QString DateTimeDataEntry::get_unit() const {
+    return "";
+}
+
+double DateTimeDataEntry::get_si_prefix() const {
+    return 1;
+}
+
+bool DateTimeDataEntry::compare_unit_desired_siprefix(const DataEngineDataEntry *from) const {
+    auto const from_dateime = dynamic_cast<const DateTimeDataEntry *>(from);
+    if (from_dateime == nullptr) {
+        return false;
+    }
+    return true;
+}
+
+void DateTimeDataEntry::set_actual_value(DataEngineDateTime actual_value) {
+    this->actual_value = actual_value;
+}
+
+EntryType DateTimeDataEntry::get_entry_type() const {
+    return EntryType{EntryType::DateTime};
+}
+
+void DateTimeDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
+    (void)from;
+    throw DataEngineError(DataEngineErrorNumber::datetime_dont_support_desired_values_yet,
+                          QString("Dataengine: Datetime fields dont support desired values yet. Field_name:  %1").arg(field_name));
+}
+
+void DateTimeDataEntry::set_desired_value_from_actual(DataEngineDataEntry *from) {
+    (void)from;
+    throw DataEngineError(DataEngineErrorNumber::datetime_dont_support_desired_values_yet,
+                          QString("Dataengine: Datetime fields dont support desired values yet. Field_name:  %1").arg(field_name));
+}
+
+bool DateTimeDataEntry::is_desired_value_set() const {
+    return false;
+}
+
+QJsonObject DateTimeDataEntry::get_specific_json_dump() const {
+    QJsonObject result;
+    QJsonObject desired;
+    QJsonObject actual;
+
+    actual["actual_is_set"] = (bool)actual_value;
+    if ((bool)actual_value) {
+        actual["as_text"] = get_actual_values();
+        actual["ms_since_epoch"] = actual_value.value().dt().toMSecsSinceEpoch();
+    }
+    result["actual"] = actual;
+    desired["desired_is_set"] = false;
+    result["desired"] = desired;
+    return result;
+}
+
+QString DateTimeDataEntry::get_specific_json_name() const {
+    return "datetime";
 }
 
 QString Data_engine::Statistics::to_qstring() const {
@@ -3726,7 +4002,7 @@ void BoolDataEntry::set_actual_value(bool value) {
 }
 
 EntryType BoolDataEntry::get_entry_type() const {
-    return EntryType::Bool;
+    return EntryType{EntryType::Bool};
 }
 
 void BoolDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
@@ -3779,12 +4055,15 @@ ReferenceDataEntry::ReferenceDataEntry(const ReferenceDataEntry &other)
     auto entry_num = dynamic_cast<NumericDataEntry *>(other.entry.get());
     auto entry_bool = dynamic_cast<BoolDataEntry *>(other.entry.get());
     auto entry_text = dynamic_cast<TextDataEntry *>(other.entry.get());
+    auto entry_datetime = dynamic_cast<DateTimeDataEntry *>(other.entry.get());
     if (entry_num) {
         entry = std::make_unique<NumericDataEntry>(*entry_num);
     } else if (entry_bool) {
         entry = std::make_unique<BoolDataEntry>(*entry_bool);
     } else if (entry_text) {
         entry = std::make_unique<TextDataEntry>(*entry_text);
+    } else if (entry_datetime) {
+        entry = std::make_unique<DateTimeDataEntry>(*entry_datetime);
     } else if (other.entry.get() == nullptr) {
         //not yet initialized. Is ok
     } else {
@@ -3872,6 +4151,18 @@ void ReferenceDataEntry::set_actual_value(QString val) {
     text_entry->set_actual_value(val);
 }
 
+void ReferenceDataEntry::set_actual_value(DataEngineDateTime val) {
+    assert_that_instance_count_is_defined();
+    DateTimeDataEntry *datetime_entry = entry->as<DateTimeDataEntry>();
+    if (!datetime_entry) {
+        throw DataEngineError(DataEngineErrorNumber::setting_reference_actual_value_with_wrong_type,
+                              QString("Dataengine: The referencing field \"%1\" is not a datetime as it must be if you set it with the datetime: \"%2\"")
+                                  .arg(field_name)
+                                  .arg(val.str()));
+    }
+    datetime_entry->set_actual_value(val);
+}
+
 void ReferenceDataEntry::set_actual_value(bool val) {
     assert_that_instance_count_is_defined();
     BoolDataEntry *bool_entry = entry->as<BoolDataEntry>();
@@ -3928,7 +4219,7 @@ bool ReferenceDataEntry::compare_unit_desired_siprefix(const DataEngineDataEntry
     return false;
 }
 
-void ReferenceDataEntry::dereference(DataEngineSections *sections) {
+void ReferenceDataEntry::dereference(DataEngineSections *sections, const bool is_dummy_mode) {
     uint i = 0;
     not_defined_yet_due_to_undefined_instance_count = false;
     while (i < reference_links.size()) {
@@ -3938,7 +4229,7 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
             break;
         }
 
-        if (sections->exists_uniquely(reference_links[i].link)) {
+        if (sections->exists_uniquely(reference_links[i].link, is_dummy_mode)) {
             i++;
         } else {
             reference_links.erase(reference_links.begin() + i);
@@ -3952,14 +4243,18 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
         throw DataEngineError(DataEngineErrorNumber::reference_not_found, QString("Dataengine: reference non existing. Fieldname: \"%1\"").arg(field_name));
 
     } else if (reference_links.size() > 1) {
-        QString t;
-        for (auto &ref : reference_links) {
-            t += ref.link + " ";
+        if (!is_dummy_mode) { //dummy mode means that no dependency tags were defined in order to get just the structure of the data engine source file.
+                              //for example for report templates or report queries.
+                              // hence we can ignore this ambiguous case.
+            QString t;
+            for (auto &ref : reference_links) {
+                t += ref.link + " ";
+            }
+            throw DataEngineError(DataEngineErrorNumber::reference_ambiguous,
+                                  QString("Dataengine: reference ambiguous  with links: \"%1\", fieldname: \"%2\"").arg(t).arg(field_name));
         }
-        throw DataEngineError(DataEngineErrorNumber::reference_ambiguous,
-                              QString("Dataengine: reference ambiguous  with links: \"%1\", fieldname: \"%2\"").arg(t).arg(field_name));
     }
-    auto targets = sections->get_entries_const(reference_links[0].link);
+    auto targets = sections->get_entries_const(reference_links[0].link, is_dummy_mode);
 
     target_instance_count = targets.count();
     if (have_entries_equal_desired_values(targets)) {
@@ -3980,6 +4275,7 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
 
     NumericDataEntry *num_entry = entry_target->as<NumericDataEntry>();
     TextDataEntry *text_entry = entry_target->as<TextDataEntry>();
+    DateTimeDataEntry *datetime_entry = entry_target->as<DateTimeDataEntry>();
     BoolDataEntry *bool_entry = entry_target->as<BoolDataEntry>();
     if (num_entry) {
         std::experimental::optional<double> temp_desired_value; //will be set later, when beeing compared
@@ -3997,6 +4293,12 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections) {
     } else if (bool_entry) {
         std::experimental::optional<bool> temp_desired_value; //will be set later, when beeing compared
         entry = std::make_unique<BoolDataEntry>("", temp_desired_value, description);
+    } else if (datetime_entry) {
+        entry = std::make_unique<DateTimeDataEntry>("", description);
+        throw DataEngineError(
+            DataEngineErrorNumber::datetime_dont_support_references_yet,
+            QString("Dataengine: Datetime type does not support references yet since it neither supports values. Fieldname: \"%1\"").arg(field_name));
+
     } else {
         assert(0); //TODO: throw illegal type
     }
@@ -4227,4 +4529,89 @@ void DataEngineActualValueStatisticFile::set_actual_value(const FormID &field_na
 
 void DataEngineActualValueStatisticFile::set_dut_identifier(QString dut_identifier) {
     this->dut_identifier = dut_identifier;
+}
+
+DataEngineDateTime::DataEngineDateTime(QString text) {
+    //another common date string: vc.h/GITDATE: "2019-01-15" (covered by datetime_from_string)
+    //another common date string: report_dump/general/datetime_str "yyyy:MM:dd HH:mm:ss";
+    //another common date string: git_info().date: 2018-12-19 12:50:01 +0100
+    //another common date string: scpidevice:get_calibration(): "yyyy.MM.dd"
+
+    //standard format: "yyyy-MM-dd ...."
+    dt_m = QDateTime::fromString(text, "yyyy.MM.dd");
+    precision_m = date;
+    if (!dt_m.isValid()) {
+        dt_m = QDateTime::fromString(text, "yyyy:MM:dd HH:mm:ss");
+        precision_m = date_time_s;
+    }
+    if (!dt_m.isValid()) {
+        QString text_tz = text;
+        if (text_tz.contains("+")) {
+            text_tz = text_tz.split("+")[0];
+        } else if (text_tz.contains("-")) {
+            text_tz = text_tz.split("-")[0];
+        }
+        text_tz = text_tz.trimmed();
+        dt_m = QDateTime::fromString(text_tz, "yyyy-MM-dd HH:mm:ss");
+        precision_m = date_time_s;
+    }
+    if (!dt_m.isValid()) {
+        dt_m = QDateTime{}.fromString(text, "yyyy-MM-dd");
+        precision_m = date;
+    }
+    if (!dt_m.isValid()) {
+        dt_m = QDateTime{}.fromString(text, "yyyy-MM-dd hh:mm");
+        precision_m = date_time;
+    }
+    if (!dt_m.isValid()) {
+        dt_m = QDateTime{}.fromString(text, "yyyy-MM-dd hh:mm:ss");
+        precision_m = date_time_s;
+    }
+
+    if (!dt_m.isValid()) {
+        dt_m = QDateTime{}.fromString(text, "yyyy-MM-dd hh:mm:ss.zzz");
+        precision_m = date_time_ms;
+    }
+    if (!dt_m.isValid()) {
+        precision_m = none;
+    }
+}
+
+DataEngineDateTime::DataEngineDateTime(QDate date) {
+    dt_m = QDateTime(date);
+    precision_m = DataEngineDateTime::date;
+}
+
+DataEngineDateTime::DataEngineDateTime(QDateTime datetime) {
+    dt_m = datetime;
+    precision_m = DataEngineDateTime::date_time_s;
+}
+
+DataEngineDateTime::DataEngineDateTime(double secs_since_epoch) {
+    dt_m = QDateTime::fromMSecsSinceEpoch(round(secs_since_epoch * 1000));
+    precision_m = date_time_s;
+}
+
+bool DataEngineDateTime::isValid() const {
+    return (precision_m != none) && (dt_m.isValid());
+}
+
+QDateTime DataEngineDateTime::dt() const {
+    return dt_m;
+}
+
+QString DataEngineDateTime::str() const {
+    switch (precision_m) {
+        case DataEngineDateTime::date_time_ms:
+            return dt_m.toString("yyyy-MM-dd hh:mm:ss.zzz");
+        case DataEngineDateTime::date_time_s:
+            return dt_m.toString("yyyy-MM-dd hh:mm:ss");
+        case DataEngineDateTime::date_time:
+            return dt_m.toString("yyyy-MM-dd hh:mm");
+        case DataEngineDateTime::date:
+            return dt_m.toString("yyyy-MM-dd");
+        case DataEngineDateTime::none:
+            return "";
+    }
+    return "";
 }

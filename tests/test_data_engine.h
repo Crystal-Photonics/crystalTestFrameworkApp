@@ -7,7 +7,6 @@
 class Test_Data_engine : public QObject {
     Q_OBJECT
 
-    public:
     private slots:
     void stl_optional_test();
 
@@ -71,8 +70,16 @@ class Test_Data_engine : public QObject {
     void test_form_creation();
     void test_exceptional_approval();
     void test_actual_value_statistic_get_latest_file_name();
+    void test_if_exception_when_same_fields_across_variants_with_different_types_1();
+    void test_if_exception_when_same_fields_across_variants_with_different_types_2();
+    void test_if_exception_when_same_fields_across_variants_with_different_types_using_references();
+    void test_dateime_entry();
+    void test_dateime_entry_2();
+    void test_dateime_entry_3();
+    void test_reference_date_time();
+    void test_dummy_data_generation();
 };
 
-//DECLARE_TEST(Test_Data_engine)
+DECLARE_TEST(Test_Data_engine)
 
 #endif // TEST_DATA_ENGINE_H

@@ -102,38 +102,36 @@ void ReportHistoryQuery::on_btn_back_clicked() {
 
 void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
     if (arg1 == 1) {
-        //  ui->tree_query_fields.clear();
+        ui->tree_query_fields->clear();
         //T:/qt/crystalTestFramework/tests/scripts/report_query/data_engine_source_1.json
-
+        const Qt::ItemFlags item_flags_checkable = Qt::ItemIsSelectable | Qt::ItemIsEditable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable;
         for (auto &query : report_query_config_file_m.get_queries_not_const()) {
             query.update_from_gui();
             QTreeWidgetItem *root_item = new QTreeWidgetItem(QStringList{query.data_engine_source_file});
-            // item->setFlags(item_flags_editable);
-            root_item->setCheckState(3, Qt::Unchecked);
-            //   if (ff.data_entry) {
-            //     auto ea_result = ff.data_entry->get_exceptional_approval();
-            //      if (ea_result.approved) {
-            //          item->setCheckState(3, Qt::Checked);
-            //      }
-            //      item->setText(4, ea_result.exceptional_approval.description);
-            //                ui->edt_approved_by->setText(ea_result.approving_operator_name);
-            //  }
             ui->tree_query_fields->addTopLevelItem(root_item);
 
             const DataEngineSourceFields &fields = query.get_data_engine_fields();
             QTreeWidgetItem *root_general_widget = new QTreeWidgetItem(root_item, QStringList{"general"});
             QTreeWidgetItem *root_report_widget = new QTreeWidgetItem(root_item, QStringList{"report"});
 
-            for (const auto &general_name : fields.general_fields) {
-                QTreeWidgetItem *general_entry = new QTreeWidgetItem(root_general_widget, QStringList{general_name});
-                qDebug() << "general/" + general_name;
+            for (const auto &general_field : fields.general_fields) {
+                QString typ_name = "";
+                QTreeWidgetItem *general_entry = new QTreeWidgetItem(root_general_widget, QStringList{general_field.field_name, typ_name});
+
+                general_entry->setCheckState(0, Qt::Unchecked);
+                general_entry->setFlags(item_flags_checkable);
+                qDebug() << "general/" + general_field.field_name;
             }
 
             for (const auto &section_name : fields.report_fields.keys()) {
+                QString typ_name = "";
                 QTreeWidgetItem *report_section_entry = new QTreeWidgetItem(root_report_widget, QStringList{section_name});
-                for (const auto &field_name : fields.report_fields.value(section_name)) {
-                    QTreeWidgetItem *report_entry = new QTreeWidgetItem(report_section_entry, QStringList{field_name});
-                    qDebug() << "report/" + section_name + "/" + field_name;
+                for (const auto &data_engine_field : fields.report_fields.value(section_name)) {
+                    QTreeWidgetItem *report_entry =
+                        new QTreeWidgetItem(report_section_entry, QStringList{data_engine_field.field_name, data_engine_field.field_type.to_string()});
+                    report_entry->setCheckState(0, Qt::Unchecked);
+                    report_entry->setFlags(item_flags_checkable);
+                    qDebug() << "report/" + section_name + "/" + data_engine_field.field_name;
                 }
             }
         }
@@ -263,7 +261,7 @@ QMultiMap<QString, QVariant> ReportQueryConfigFile::filter_and_select_reports(co
     QMultiMap<QString, QVariant> result;
     for (const auto &report_link : report_file_list) {
         ReportFile report_file;
-        report_file.load_from_file(report_link.report_path);
+        report_file.load_from_file(report_link.report_path_m);
         if (only_successful_reports) {
             if ((report_file.get_field_value("general/everything_complete").toBool() == false) ||
                 (report_file.get_field_value("general/everything_in_range").toBool()) == false) {
@@ -271,13 +269,13 @@ QMultiMap<QString, QVariant> ReportQueryConfigFile::filter_and_select_reports(co
             }
         }
         //    qDebug() << report_link.query.data_engine_source_file;
-        QString data_engine_source_file_name = QFileInfo(report_link.query.data_engine_source_file).fileName().split('.')[0];
+        QString data_engine_source_file_name = QFileInfo(report_link.query_m.data_engine_source_file).fileName().split('.')[0];
 
         //  qDebug() << data_engine_source_file_name;
         for (const auto &report_query_where_field : query_where_fields_m) {
             auto value = report_file.get_field_value(report_query_where_field.field_name);
             if (report_query_where_field.matches_value(value)) {
-                for (auto select_field_name : report_link.query.select_field_names) {
+                for (auto select_field_name : report_link.query_m.select_field_names) {
                     result.insertMulti(data_engine_source_file_name + "/" + select_field_name, report_file.get_field_value(select_field_name));
                 }
             }
@@ -346,12 +344,17 @@ QVariant ReportFile::get_field_value(QString field_name) {
                 auto js_numeric_obj = js_field_obj["numeric"].toObject();
                 auto js_text_obj = js_field_obj["text"].toObject();
                 auto js_bool_obj = js_field_obj["bool"].toObject();
+                auto js_datetime_obj = js_field_obj["datetime"].toObject();
+
                 if (!js_numeric_obj.isEmpty()) {
                     return QVariant(js_numeric_obj["actual"].toObject()["value"].toDouble());
                 } else if (!js_text_obj.isEmpty()) {
                     return QVariant(js_text_obj["actual"].toObject()["value"].toString());
                 } else if (!js_bool_obj.isEmpty()) {
                     return QVariant(js_bool_obj["actual"].toObject()["value"].toBool());
+                } else if (!js_datetime_obj.isEmpty()) {
+                    auto ms_since_epoch = js_datetime_obj["actual"].toObject()["ms_since_epoch"].toDouble();
+                    return QVariant(QDateTime::fromMSecsSinceEpoch(round(ms_since_epoch)));
                 }
             }
         }
@@ -426,24 +429,34 @@ void ReportQuery::update_from_gui() {
 DataEngineSourceFields ReportQuery::get_data_engine_fields() const {
     std::ifstream f(data_engine_source_file.toStdString());
     DataEngineSourceFields result{};
-    try {
-        result.general_fields =
-            QStringList{"data_source_path",   "datetime_str", "datetime_unix", "everything_complete",   "everything_in_range", "exceptional_approval_exists",
-                        "framework_git_hash", "os_username",  "script_path",   "test_duration_seconds", "test_git_date_str",   "test_git_hash",
-                        "test_git_modified"};
+    //try
+    {
+        result.general_fields = QList<DataEngineField>{
+            {"data_source_path", EntryType::Text},        {"datetime_str", EntryType::Text},        {"datetime_unix", EntryType::Number},
+            {"everything_complete", EntryType::Bool},     {"everything_in_range", EntryType::Bool}, {"exceptional_approval_exists", EntryType::Bool},
+            {"framework_git_hash", EntryType::Text},      {"os_username", EntryType::Text},         {"script_path", EntryType::Text},
+            {"test_duration_seconds", EntryType::Number}, {"test_git_date_str", EntryType::Text},   {"test_git_hash", EntryType::Text},
+            {"test_git_modified", EntryType::Text}};
         Data_engine data_engine;
         data_engine.set_source(f);
         auto section_names = data_engine.get_section_names();
         for (auto section_name : section_names) {
             QStringList field_ids = data_engine.get_ids_of_section(section_name);
-            QStringList field_names;
+            QList<DataEngineField> field_names;
             for (auto field_name : field_ids) {
-                field_names.append(field_name.split('/')[1]);
+                DataEngineField data_engine_field;
+                data_engine_field.field_type = data_engine.get_entry_type_dummy_mode(field_name);
+                data_engine_field.field_name = field_name.split('/')[1];
+                field_names.append(data_engine_field);
             }
             result.report_fields.insert(section_name, field_names);
         }
-    } catch (DataEngineError &e) {
-        QMessageBox::warning(MainWindow::mw, QString("Dataengine error"), QString("Dataengine error:\n\n %1").arg(e.what()));
+        //  } catch (DataEngineError &e) {
+        //QMessageBox::warning(MainWindow::mw, QString("Dataengine error"), QString("Dataengine error:\n\n %1").arg(e.what()));
     }
     return result;
+}
+
+void ReportHistoryQuery::on_tree_query_fields_itemDoubleClicked(QTreeWidgetItem *item, int column) {
+    qDebug() << "dblclicked";
 }

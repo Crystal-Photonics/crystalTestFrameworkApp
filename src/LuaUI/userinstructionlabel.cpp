@@ -5,7 +5,6 @@
 #include "ui_container.h"
 #include "util.h"
 
-#include <QResizeEvent>
 #include <QCheckBox>
 #include <QDoubleValidator>
 #include <QHBoxLayout>
@@ -14,6 +13,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QSettings>
 #include <QShortcut>
 #include <QSplitter>
@@ -137,7 +137,7 @@ bool UserInstructionLabel::run_hotkey_loop() {
 }
 
 void UserInstructionLabel::set_instruction_text(const std::string &instruction_text) {
-    this->instruction_text = QString().fromStdString(instruction_text);
+    this->instruction_text = QString::fromStdString(instruction_text);
     label_user_instruction->setText(this->instruction_text);
 }
 

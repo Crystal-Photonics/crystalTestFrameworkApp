@@ -1,0 +1,50 @@
+{
+    "approved_by_field_id": "allgemein/testende_person",
+    "image_footer": "",
+    "image_header": "",
+    "instance_counts": [
+    ],
+    "report_title": "Report Example 1",
+    "section_order": [
+        {
+            "as_text_field": true,
+            "name": "allgemein",
+            "print": true,
+            "text_field_column_count": 2,
+            "text_field_place": "Report Header"
+        },
+        {
+            "as_text_field": false,
+            "name": "messmittel",
+            "print": true,
+            "text_field_column_count": 2,
+            "text_field_place": "Report Header"
+        },
+        {
+            "as_text_field": false,
+            "name": "gerate_daten",
+            "print": true,
+            "text_field_column_count": 2,
+            "text_field_place": "Report Header"
+        },
+        {
+            "as_text_field": false,
+            "name": "unprinted_1",
+            "print": false,
+            "text_field_column_count": 2,
+            "text_field_place": "Report Header"
+        },
+        {
+            "as_text_field": true,
+            "name": "test_version",
+            "print": true,
+            "text_field_column_count": 2,
+            "text_field_place": "Page Footer"
+        }
+    ],
+    "static_text_page_footer": "",
+    "static_text_page_header": "",
+    "static_text_report_footer_above_signature": "",
+    "static_text_report_footer_beneath_signature": "",
+    "static_text_report_header": ""
+}

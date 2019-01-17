@@ -51,6 +51,22 @@
                                 },
                                 "unit": "V"
                             }
+                        },                
+                        {
+                            "datetime": {
+                                "actual": {
+                                    "actual_is_set": true,
+                                    "as_text": "2019-01-17 19:21:10",
+                                    "ms_since_epoch": 1547749270000
+                                },
+                                "desired": {
+                                    "desired_is_set": false
+                                }
+                            },
+                            "in_range": true,
+                            "is_complete": true,
+                            "name": "datum_today",
+                            "nice_name": "Datum"
                         }
                         
                     ],

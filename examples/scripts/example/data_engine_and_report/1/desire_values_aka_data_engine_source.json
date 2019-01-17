@@ -1,0 +1,58 @@
+{
+	"test_version":{
+		"title":"Protokollversion",
+		"data":[
+			{	"name": "git_protokoll",        	"type": "string",									"nice_name":   "Git-Hash Protokoll"    						},
+			{   "name": "git_framework",	 		"type": "string",      								"nice_name":   "Git-Hash Test Framework"        			},
+			{	"name": "git_protokoll_date",       "type": "datetime",									"nice_name":   "Git-Datum Protokoll"    					},
+			{   "name": "git_framework_date",	 	"type": "datetime",      							"nice_name":   "Git-Datum Test Framework"        			}
+		]
+	},
+	
+	"allgemein":{
+		"title":"Allgemeine Daten",
+		"data":[
+			{	"name": "datum_today",        	"type": "datetime",										"nice_name":   "Datum"    						},
+			{	"name": "testende_person",   	"type": "string",   									"nice_name":   "Testende Person"    			}
+		]
+	},
+	
+	"gerate_daten":{
+		"title":"Geräte Daten",
+		"data":[
+			{	"name": "seriennummer",        		"type": "number",																	"nice_name":   "Seriennummer" 								},
+			{	"name": "bool_test1",        		"type": "bool",																		"nice_name":   "Just a Bool test with desired value" 		},
+			{	"name": "bool_test2",        		"value": true,																		"nice_name":   "Just a Bool test" 							},
+			{	"name": "supply_voltage_free_mv",  	"type": "number",	"unit": "mV", 							"si_prefix": 1000, 		"nice_name":    "Freie Versorgungsspannugn mv"   			},
+			{	"name": "supply_voltage_free_v",  	"type": "number",	"unit": "V", 							"si_prefix": 1, 		"nice_name":    "Freie Versorgungsspannugn V"   			},
+			{	"name": "max_current_1",    		"value": 100,		"unit": "mA", 	"tolerance": "+3/-9",	"si_prefix": 1000, 		"nice_name":    "Fester Strom Toleranz 1"     	},
+			{	"name": "max_current_2",    		"value": 100,		"unit": "mA", 	"tolerance": "+*/-0",	"si_prefix": 1000, 		"nice_name":    "Fester Strom Toleranz 2"     	},
+			{	"name": "max_current_3",    		"value": 100,		"unit": "mA", 	"tolerance": 5,			"si_prefix": 1000, 		"nice_name":    "Fester Strom Toleranz 3"     	},
+			{	"name": "max_current_4",    		"value": 100,		"unit": "mA", 	"tolerance": "10%",		"si_prefix": 1000, 		"nice_name":    "Fester Strom Toleranz 4"     	},
+			{	"name": "reference_test",    		"value": "[unprinted_1/unprinted_activity.actual]",			"tolerance": "10%",		"nice_name":    "Test mit Referenz"     	}
+		]
+	},
+	
+
+
+	"messmittel":{
+		"title":"Messmittel",
+		"data":[
+			{	"name": "multimeter_name",                    "type": "string",       "nice_name":   "Multimeter Strom Bezeichnung"                },
+			{	"name": "multimeter_hersteller",              "type": "string",       "nice_name":   "Multimeter Strom Hersteller"                 },
+			{	"name": "multimeter_sn",                      "type": "string",       "nice_name":   "Multimeter Strom Seriennummer"               },
+			{	"name": "multimeter_calibration",             "type": "datetime",       "nice_name":   "Multimeter Strom kalibriert bis"             }
+		]
+	},
+	
+	
+	"unprinted_1":{
+		"title":"Formale Werte, die nicht gedruckt werden",
+		"data":[
+			{	"name": "unprinted_activity",    	 "type": "number",	"unit": "Bq", 			"si_prefix": 1, 	"nice_name":    "Nicht gedruckte Aktivität" },
+			{   "name": "git_firmware_date_unix",	"type": "number",      											"nice_name":   	"Git Unix Date Firmware"  	}
+		]
+	}	
+
+}
+

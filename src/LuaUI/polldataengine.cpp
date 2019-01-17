@@ -65,15 +65,15 @@ PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engin
         }
 
         auto entry_type = data_engine->get_entry_type(field_id);
-        switch (entry_type) {
+        switch (entry_type.t) {
             case EntryType::Bool: {
                 field_entry.field_type = FieldEntry::FieldType::Bool;
 
             } break;
-            case EntryType::Numeric: {
+            case EntryType::Number: {
                 field_entry.field_type = FieldEntry::FieldType::Numeric;
             } break;
-            case EntryType::String: {
+            case EntryType::Text: {
                 field_entry.field_type = FieldEntry::FieldType::String;
             } break;
             default:
@@ -106,9 +106,7 @@ PollDataEngine::~PollDataEngine() {
 ///\endcond
 
 void PollDataEngine::refresh() {
-    Utility::promised_thread_call(MainWindow::mw, [this] {
-        load_actual_value();
-    });
+    Utility::promised_thread_call(MainWindow::mw, [this] { load_actual_value(); });
 }
 
 void PollDataEngine::load_actual_value() {

@@ -1,12 +1,13 @@
 #ifndef TESTRESULTQUERY_H
 #define TESTRESULTQUERY_H
 
+#include "data_engine/data_engine.h"
 #include <QDialog>
 #include <QJsonObject>
 #include <QMap>
 
 class QVariant;
-
+class QTreeWidgetItem;
 class TestReportHistory;
 class QLineEdit;
 class QToolButton;
@@ -43,10 +44,16 @@ class ReportQueryWhereField {
     QList<ReportQueryWhereFieldValues> field_values;
 };
 
+class DataEngineField {
+    public:
+    QString field_name;
+    EntryType field_type{EntryType::Unspecified};
+};
+
 class DataEngineSourceFields {
     public:
-    QStringList general_fields;
-    QMap<QString, QStringList> report_fields;
+    QList<DataEngineField> general_fields;
+    QMap<QString, QList<DataEngineField>> report_fields;
 };
 
 class ReportQuery {
@@ -67,8 +74,11 @@ class ReportQuery {
 
 class ReportLink {
     public:
-    QString report_path;
-    const ReportQuery &query;
+    ReportLink(QString report_path, const ReportQuery &query)
+        : report_path_m{report_path}
+        , query_m{query} {}
+    QString report_path_m;
+    const ReportQuery &query_m;
 };
 
 class ReportQueryConfigFile {
@@ -113,6 +123,8 @@ class ReportHistoryQuery : public QDialog {
     void on_btn_close_clicked();
 
     void on_stk_report_history_currentChanged(int arg1);
+
+    void on_tree_query_fields_itemDoubleClicked(QTreeWidgetItem *item, int column);
 
     private:
     Ui::ReportHistoryQuery *ui;

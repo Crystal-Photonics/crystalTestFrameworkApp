@@ -31,7 +31,7 @@ static void set_description_data(Device_data &dd, const RPCRuntimeDecodedParam &
             const auto &param_value = param.as_string();
 
             if (parameter_name == "name") {
-                dd.name = dd.name + QString().fromStdString(param_value);
+                dd.name = dd.name + QString::fromStdString(param_value);
             } else if (parameter_name == "version") {
                 dd.version = dd.version + QString::fromStdString(param_value);
             } else if (parameter_name == "guid") {
@@ -236,7 +236,6 @@ RPCFunctionCallResult RPCProtocol::call_get_hash_function(int retries) const {
 RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const int request_id) const {
     return rpc_runtime_protocol.get()->encode_function(request_id);
 }
-
 
 void RPCProtocol::clear() {
     rpc_runtime_protocol.get()->clear();

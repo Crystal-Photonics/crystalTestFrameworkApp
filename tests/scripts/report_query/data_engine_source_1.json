@@ -22,6 +22,7 @@
 	"dacadc":{
 		"title":"DAC / ADC",
 		"data":[
+			{	"name": "datum_today",        			"type": "datetime",										"nice_name":   "Datum"    						},
 			{	"name": "ref_vcc",   		      	"value": 3,   											"tolerance": 0.1,	"unit": "V", 	"si_prefix": 1, 	"nice_name":    "VCC Spannung gemessen mit Multimeter"  		},
 			{	"name": "wakeup_possible",         							"value": true,   		 															"nice_name":    "Aufwachen aus Standby duch Bewegung funktioniert"  }
 

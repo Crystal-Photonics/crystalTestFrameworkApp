@@ -3,6 +3,7 @@
 #include "sol.hpp"
 
 #include "exceptionalapproval.h"
+#include <QDateTime>
 #include <QJsonValue>
 #include <QList>
 #include <QString>
@@ -23,7 +24,28 @@ class DataEngineSection;
 class ExceptionalApprovalDB;
 
 using FormID = QString;
-enum class EntryType { Unspecified, Bool, String, Reference, Numeric };
+
+class EntryType {
+    public:
+    enum { Unspecified, Bool, Text, Reference, Number, DateTime } t = Unspecified;
+    QString to_string() const {
+        switch (t) {
+            case Unspecified:
+                return "Unspecified";
+            case Bool:
+                return "Bool";
+            case Text:
+                return "Text";
+            case Reference:
+                return "Reference";
+            case Number:
+                return "Number";
+            case DateTime:
+                return "Datetime";
+        }
+        return "Unspecified";
+    }
+};
 
 enum class DataEngineErrorNumber {
     ok,
@@ -69,11 +91,18 @@ enum class DataEngineErrorNumber {
     list_of_dependency_values_must_be_of_equal_length,
     reference_cant_be_used_because_its_pointing_to_a_yet_undefined_instance,
     is_in_dummy_mode,
+    dummy_mode_necessary,
     sql_error,
     cannot_open_file,
     actual_value_not_set,
     actual_value_is_not_a_number,
-    pdf_template_file_not_existing
+    pdf_template_file_not_existing,
+    inconsistant_types_across_variants,
+    inconsistant_types_across_variants_and_reference_targets,
+    datetime_dont_support_desired_values_yet,
+    datetime_dont_support_references_yet,
+    datetime_is_not_valid
+
 };
 
 QString select_newest_file_name(QStringList file_list, QString prefix);
@@ -88,6 +117,7 @@ class DataEngineActualValueStatisticFile {
     void set_dut_identifier(QString dut_identifier);
     QString select_file_name_to_be_used(QStringList file_list);
     void save_to_file();
+
     private:
     void open_or_create_new_file();
     void open_file(QString file_name);
@@ -275,6 +305,54 @@ struct TextDataEntry : DataEngineDataEntry {
     std::experimental::optional<QString> actual_value{};
 };
 
+struct DataEngineDateTime {
+    public:
+    DataEngineDateTime() {}
+    DataEngineDateTime(QString text);
+    DataEngineDateTime(QDate date);
+    DataEngineDateTime(QDateTime datetime);
+    DataEngineDateTime(double secs_since_epoch);
+    bool isValid() const;
+    QDateTime dt() const;
+    QString str() const;
+
+    protected:
+    QDateTime dt_m{};
+    enum { none, date_time_ms, date_time_s, date_time, date } precision_m = none;
+};
+
+struct DateTimeDataEntry : DataEngineDataEntry {
+    DateTimeDataEntry(const DateTimeDataEntry &other);
+
+    DateTimeDataEntry(const FormID name, QString description);
+
+    bool is_complete() const override;
+    bool is_in_range() const override;
+    QString get_actual_values() const override;
+    double get_actual_number() const override;
+    QString get_description() const override;
+    QString get_desired_value_as_string() const override;
+    QString get_unit() const override;
+    double get_si_prefix() const override;
+    bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
+    void set_actual_value(DataEngineDateTime actual_value);
+    EntryType get_entry_type() const override;
+    bool is_desired_value_set() const override;
+
+    QJsonObject get_specific_json_dump() const override;
+    QString get_specific_json_name() const override;
+
+    // std::experimental::optional<QDateTime> desired_value{};
+    QString description{};
+
+    private:
+    void set_desired_value_from_desired(DataEngineDataEntry *from) override;
+    void set_desired_value_from_actual(DataEngineDataEntry *from) override;
+
+    //NumericTolerance tolerance;
+    std::experimental::optional<DataEngineDateTime> actual_value{};
+};
+
 struct BoolDataEntry : DataEngineDataEntry {
     BoolDataEntry(const BoolDataEntry &other);
     BoolDataEntry(const FormID name, std::experimental::optional<bool> desired_value, QString description);
@@ -331,8 +409,9 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
     void set_actual_value(double number);
     void set_actual_value(QString val);
+    void set_actual_value(DataEngineDateTime val);
     void set_actual_value(bool val);
-    void dereference(DataEngineSections *sections);
+    void dereference(DataEngineSections *sections, const bool is_dummy_mode);
     bool is_desired_value_set() const override;
 
     QJsonObject get_specific_json_dump() const override;
@@ -340,6 +419,8 @@ struct ReferenceDataEntry : DataEngineDataEntry {
 
     NumericTolerance tolerance;
     QString description{};
+
+    std::vector<ReferenceLink> reference_links;
 
     private:
     void set_desired_value_from_desired(DataEngineDataEntry *from) override;
@@ -349,8 +430,7 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     bool not_defined_yet_due_to_undefined_instance_count = false;
     void assert_that_instance_count_is_defined() const;
 
-    std::vector<ReferenceLink> reference_links;
-    DataEngineDataEntry *entry_target;
+    DataEngineDataEntry *entry_target = nullptr;
     std::experimental::optional<uint> target_instance_count;
     std::unique_ptr<DataEngineDataEntry> entry;
 };
@@ -455,9 +535,11 @@ struct DataEngineSection {
     void set_actual_instance_caption(QString instance_caption);
     void create_instances_if_defined();
 
+    QStringList get_all_ids_over_variants() const;
     void set_actual_number(const FormID &id, double number);
     void set_actual_text(const FormID &id, QString text);
     void set_actual_bool(const FormID &id, bool value);
+    void set_actual_datetime(const FormID &id, DataEngineDateTime value);
 
     DataEngineInstance prototype_instance;
 
@@ -468,7 +550,8 @@ struct DataEngineSection {
     bool section_uses_variants() const;
 
     QString get_serialised_dependency_string() const;
-private:
+
+    private:
     std::experimental::optional<uint> instance_count;
 
     QString section_title;
@@ -493,10 +576,11 @@ struct DataEngineSections {
     void delete_unmatched_variants();
 
     public:
-    QList<const DataEngineDataEntry *> get_entries_const(const FormID &id) const;
+    QList<const DataEngineDataEntry *> get_entries_const(const FormID &id, const bool using_dummy_mode) const;
+    QList<const DataEngineDataEntry *> get_entries_across_variants_const(const FormID &id) const;
     const DataEngineDataEntry *get_actual_instance_entry_const(const FormID &id) const;
     QList<DataEngineDataEntry *> get_entries(const FormID &id);
-    bool exists_uniquely(const FormID &id) const;
+    bool exists_uniquely(const FormID &id, const bool using_dummy_mode) const;
     bool is_complete() const;
     bool all_values_in_range() const;
     void from_json(const QJsonObject &object);
@@ -514,11 +598,14 @@ struct DataEngineSections {
 
     DataEngineSection *get_section_no_exception(FormID id) const;
 
+    EntryType get_entry_type_dummy_mode(const FormID &id) const;
+
     private:
     QList<const DataEngineDataEntry *> get_entries_raw(const FormID &id, DataEngineErrorNumber *error_num, DecodecFieldID &decoded_field_name,
-                                                       bool using_instance_index) const;
+                                                       bool using_instance_index, bool dummy_mode) const;
     DataEngineSection *get_section_raw(const QString &section_name, DataEngineErrorNumber *error_num) const;
     QMap<QString, QList<QVariant>> dependency_tags;
+    EntryType get_entry_type_dummy_mode_recursion(const FormID &id) const;
 };
 
 class Data_engine {
@@ -559,14 +646,17 @@ class Data_engine {
     bool is_bool(const FormID &id) const;
     bool is_number(const FormID &id) const;
     bool is_text(const FormID &id) const;
+    bool is_datetime(const FormID &id) const;
     bool is_exceptionally_approved(const FormID &id) const;
     void set_actual_number(const FormID &id, double number);
     void set_actual_text(const FormID &id, QString text);
     void set_actual_bool(const FormID &id, bool value);
+    void set_actual_datetime(const FormID &id, DataEngineDateTime value);
     void use_instance(const QString &section_name, const QString &instance_caption, const uint instance_index);
     void set_instance_count(QString instance_count_name, uint instance_count);
 
     QString get_actual_value(const FormID &id) const;
+    QString get_actual_dummy_value(const FormID &id) const;
     double get_actual_number(const FormID &id) const;
     QString get_description(const FormID &id) const;
     QString get_desired_value_as_string(const FormID &id) const;
@@ -605,7 +695,10 @@ class Data_engine {
 
     bool do_exceptional_approval(ExceptionalApprovalDB &ea_db, QString field_id, QWidget *parent);
 
+    EntryType get_entry_type_dummy_mode(const FormID &id) const;
+
     private:
+    QString get_actual_value_raw(const FormID &id) const;
     void generate_pages(QXmlStreamWriter &xml, QString report_title, QString image_footer_path, QString image_header_path, QString approved_by_field_id,
                         QString static_text_report_header, QString static_text_page_header, QString static_text_page_footer,
                         QString static_text_report_footer_above_signature, QString static_text_report_footer_beneath_signature,
@@ -628,7 +721,7 @@ class Data_engine {
         QString value;
     };
 
-    void assert_in_dummy_mode() const;
+    void assert_not_in_dummy_mode() const;
     static bool entry_compare(const FormIdWrapper &lhs, const FormIdWrapper &rhs);
 
     DataEngineActualValueStatisticFile statistics_file;
@@ -645,6 +738,7 @@ class Data_engine {
     void generate_exception_approval_table() const;
     void do_exceptional_approval_(ExceptionalApprovalDB &ea_db, QList<FailedField> failed_fields, QWidget *parent);
     int generate_static_text_field(QXmlStreamWriter &xml, int y_start, const QString static_text, TextFieldDataBandPlace actual_band_position) const;
+    void assert_in_dummy_mode() const;
 };
 
 #endif // DATA_ENGINE_H

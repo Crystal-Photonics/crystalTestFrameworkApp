@@ -278,7 +278,7 @@ void Test_Data_engine::check_duplicate_name_error_B() {
 }
 
 void Test_Data_engine::check_non_faulty_field_id() {
-#if !DISABLE_ALL || 1
+#if !DISABLE_ALL || 0
     std::stringstream input{R"(
 {
     "supply-voltage":{
@@ -591,7 +591,38 @@ void Test_Data_engine::check_value_matching_by_name() {
                             )"};
     QMap<QString, QList<QVariant>> tags;
     const Data_engine de{input, tags};
-    QCOMPARE(de.get_desired_value_as_string("supply-voltage/voltage"), QString({"5000 (±200) mV"}));
+    QCOMPARE(de.get_desired_value_as_string("supply-voltage/voltage"), QString{"5000 (±200) mV"});
+#endif
+}
+
+void Test_Data_engine::test_dummy_data_generation() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "supply":{
+        "data":[
+            {	"name": "test_number",	 	"type": "number",		"unit": "mV", 	"nice_name": "Nummer"	},
+            {	"name": "test_string",	 	"type": "string",                      	"nice_name": "Text"	},
+            {	"name": "test_bool",	 	"type": "bool",                      	"nice_name": "bool"	},
+            {	"name": "test_datetime",	 "type": "datetime",                   	"nice_name": "Date time"	}
+
+        ]
+    }
+}
+                            )"};
+
+    Data_engine de{input};
+    de.fill_engine_with_dummy_data();
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_actual_value("supply/test_number"), DataEngineErrorNumber::is_in_dummy_mode);
+    QCOMPARE(de.get_actual_dummy_value("supply/test_number"), QString("1 mV"));
+    QCOMPARE(de.get_actual_dummy_value("supply/test_string"), QString("test 123"));
+    QCOMPARE(de.get_actual_dummy_value("supply/test_bool"), QString("Yes"));
+    QString date_str = de.get_actual_dummy_value("supply/test_datetime").split(".")[0]; //remove milliseconds
+    qDebug() << date_str;
+    QDateTime prope_date_time = DataEngineDateTime(date_str).dt();
+    QVERIFY(prope_date_time.isValid());
+
 #endif
 }
 
@@ -617,7 +648,7 @@ void Test_Data_engine::single_numeric_property_test() {
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
     QVERIFY(!de.value_in_range("supply/voltage"));
-
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_actual_dummy_value("supply/voltage"), DataEngineErrorNumber::dummy_mode_necessary);
     QCOMPARE(de.get_desired_value_as_string("supply/voltage"), QString("5000 (±200) mV"));
     QCOMPARE(de.get_unit("supply/voltage"), QString{"mV"});
 
@@ -877,6 +908,75 @@ void Test_Data_engine::test_bool_entry() {
 #endif
 }
 
+void Test_Data_engine::test_dateime_entry() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "test":{
+        "data":[
+            {	"name": "date_today",	 	"type": "datetime",	 "nice_name": "Heute"	}
+        ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    Data_engine de{input, tags};
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+    QVERIFY(!de.value_in_range("test/date_today"));
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_datetime("test/date_today", QDateTime());, DataEngineErrorNumber::datetime_is_not_valid);
+
+    QDateTime ref_date = QDateTime::fromString("2018:01:01 13:45:50", "yyyy:MM:dd HH:mm:ss");
+    de.set_actual_datetime("test/date_today", ref_date);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_actual_number("test/date_today");, DataEngineErrorNumber::actual_value_is_not_a_number);
+    QCOMPARE(de.get_actual_value("test/date_today"), QString("2018-01-01 13:45:50"));
+    QVERIFY(de.is_complete());
+    QVERIFY(de.all_values_in_range());
+    QVERIFY(de.value_in_range("test/date_today"));
+#endif
+}
+
+void Test_Data_engine::test_dateime_entry_2() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "test":{
+        "data":[
+            {	"name": "date_today",	 	"type": "datetime",	 "value": "2018-01-01 13:45:50",  "nice_name": "Heute"	}
+        ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags);, DataEngineErrorNumber::invalid_data_entry_key);
+
+#endif
+}
+
+void Test_Data_engine::test_dateime_entry_3() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "test":{
+        "data":[
+            {	"name": "date_today",	 		 "value": "2018-01-01 13:45:50",  "nice_name": "Heute"	}
+        ]
+    }
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    Data_engine de{input, tags};
+    QVERIFY(!de.is_complete());
+    QVERIFY(!de.all_values_in_range());
+    QVERIFY(!de.value_in_range("test/date_today"));
+    QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_datetime("test/date_today", QDateTime::fromString("2018:01:01 13:45:50", "yyyy:MM:dd HH:mm:ss"));
+                                          , DataEngineErrorNumber::setting_desired_value_with_wrong_type);
+#endif
+}
+
 void Test_Data_engine::test_instances() {
 #if !DISABLE_ALL || 0
 
@@ -1089,7 +1189,7 @@ void Test_Data_engine::test_instances_with_different_variants_and_wrong_instance
 }
 
 void Test_Data_engine::test_exceptional_approval() {
-#if !DISABLE_ALL || 1
+#if !DISABLE_ALL || 0
 
     std::stringstream input{R"(
 {
@@ -1645,6 +1745,122 @@ void Test_Data_engine::test_if_exception_when_instance_count_defined_within_vari
 #endif
 }
 
+void Test_Data_engine::test_if_exception_when_same_fields_across_variants_with_different_types_1() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "supply-voltage":[
+        {
+            "apply_if":{
+                "sound":"[1.42-1.442]"
+            },
+            "data":[
+                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+            ]
+        },
+        {
+            "apply_if":{
+                "sound":"[1.43-*]"
+            },
+            "data":[
+                {	"name": "Voltage",	 	"value": "5000",		"nice_name": "Betriebsspannung +5V"	}
+            ]
+        }
+    ]
+}
+                            )"};
+
+    QMap<QString, QList<QVariant>> tags;
+    tags.insert("sound", {1.42});
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine(input, tags);, DataEngineErrorNumber::inconsistant_types_across_variants);
+
+#endif
+}
+
+void Test_Data_engine::test_if_exception_when_same_fields_across_variants_with_different_types_2() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "supply-voltage":[
+        {
+            "apply_if":{
+                "sound":"[1.42-1.442]"
+            },
+            "data":[
+                {	"name": "voltage",	 	"value": 5000,	"tolerance": 200,	"unit": "mV", "si_prefix": 1e-3,	"nice_name": "Betriebsspannung +5V"	}
+            ]
+        },
+        {
+            "apply_if":{
+                "sound":"[1.43-*]"
+            },
+            "data":[
+                {	"name": "Voltage",	 	"value": "5000",		"nice_name": "Betriebsspannung +5V"	}
+            ]
+        }
+    ]
+}
+                            )"};
+
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine{input};, DataEngineErrorNumber::inconsistant_types_across_variants);
+
+#endif
+}
+
+void Test_Data_engine::test_if_exception_when_same_fields_across_variants_with_different_types_using_references() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "voltage_source",       "value": "[test_valuesA/voltage_source.actual,  test_valuesB/voltage_blue.actual]",                      	"nice_name": "Spannungsvergleich"       },
+            {	"name": "voltage_color_ist",    "value": "[test_valuesB/voltage_green.actual,   test_valuesB/voltage_red.actual]",       "tolerance": 10,   "nice_name": "Farbige Spannung ist"     }
+        ]
+    },
+
+    "test_valuesA":{
+        "data":[
+            {	"name": "voltage_source",       "type": "bool",                    "nice_name": "text just for printing"	}
+        ]
+    },
+
+    "test_valuesB":[
+        {
+            "apply_if":{
+                "color":"blue"
+            },
+            "data":[
+               {	"name": "voltage_blue",     "value": "tex_value",    "nice_name": "Spannung blau"            }
+            ]
+        },
+        {
+            "apply_if":{
+                "color":"green"
+            },
+            "data":[
+                {	"name": "voltage_green",    "value": 50,    "tolerance": 10,	"unit": "mV",   "si_prefix": 1e-3,  "nice_name": "Spannung gruen"           }
+            ]
+        },
+        {
+            "apply_if":{
+                "color":"*"
+            },
+            "data":[
+                {	"name": "voltage_red",    "value": 500,    "tolerance": 10,	"unit": "mV",   "si_prefix": 1e-3,  "nice_name": "Spannung rot"           }
+            ]
+        }
+    ]
+
+}
+                            )"};
+    // Data_engine{input};
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine{input};, DataEngineErrorNumber::inconsistant_types_across_variants_and_reference_targets);
+#endif
+}
+
 void Test_Data_engine::test_instances_with_references() {
 #if !DISABLE_ALL || 0
     std::stringstream input{R"(
@@ -1833,7 +2049,7 @@ void Test_Data_engine::test_instances_with_references_to_multiinstance_actual_va
 }
 
 void Test_Data_engine::test_instances_with_strange_types() {
-#if !DISABLE_ALL
+#if !DISABLE_ALL || 0
 
     std::stringstream input{R"(
 {
@@ -1855,7 +2071,7 @@ void Test_Data_engine::test_instances_with_strange_types() {
 #endif
 }
 void Test_Data_engine::test_empty_entries() {
-#if !DISABLE_ALL
+#if !DISABLE_ALL || 0
 
     std::stringstream input{R"(
 {
@@ -1936,6 +2152,30 @@ void Test_Data_engine::test_if_success_when_actuel_number_misses_tolerance() {
                             )"};
     QMap<QString, QList<QVariant>> tags;
     Data_engine(input, tags);
+#endif
+}
+
+void Test_Data_engine::test_reference_date_time() {
+#if !DISABLE_ALL || 0
+
+    std::stringstream input{R"(
+{
+    "referenzen":{
+        "data":[
+            {	"name": "ref_today",       "value": "[test_valuesA/today.actual]", 		"nice_name": "Spannungsvergleich"       }
+        ]
+    },
+    "test_valuesA":{
+        "data":[
+            {	"name": "today",       "type": "datetime",                  "nice_name": "text just for printing"	}
+        ]
+    }
+
+}
+                            )"};
+    QMap<QString, QList<QVariant>> tags;
+    QVERIFY_EXCEPTION_THROWN_error_number(Data_engine de(input, tags);, DataEngineErrorNumber::datetime_dont_support_references_yet);
+
 #endif
 }
 
@@ -2219,13 +2459,13 @@ void Test_Data_engine::test_references_get_actual_value_description_desired_valu
     QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_number"), QString("100 (±1) mA"));
     QCOMPARE(de.get_unit("test_valuesA/test_number"), QString("mA"));
 
-    QCOMPARE(de.get_entry_type("test_valuesA/test_number"), EntryType::Numeric);
-    QCOMPARE(de.get_entry_type("test_valuesA/test_bool"), EntryType::Bool);
-    QCOMPARE(de.get_entry_type("test_valuesA/test_string"), EntryType::String);
+    QCOMPARE(de.get_entry_type("test_valuesA/test_number").t, EntryType::Number);
+    QCOMPARE(de.get_entry_type("test_valuesA/test_bool").t, EntryType::Bool);
+    QCOMPARE(de.get_entry_type("test_valuesA/test_string").t, EntryType::Text);
 
-    QCOMPARE(de.get_entry_type("referenzen/test_number_ref"), EntryType::Numeric);
-    QCOMPARE(de.get_entry_type("referenzen/test_bool_ref"), EntryType::Bool);
-    QCOMPARE(de.get_entry_type("referenzen/test_string_ref"), EntryType::String);
+    QCOMPARE(de.get_entry_type("referenzen/test_number_ref").t, EntryType::Number);
+    QCOMPARE(de.get_entry_type("referenzen/test_bool_ref").t, EntryType::Bool);
+    QCOMPARE(de.get_entry_type("referenzen/test_string_ref").t, EntryType::Text);
 
     QCOMPARE(de.get_si_prefix("referenzen/test_number_ref"), 0.001);
     QCOMPARE(de.get_si_prefix("test_valuesA/test_number"), 0.001);
@@ -2654,7 +2894,7 @@ void Test_Data_engine::test_references_if_fails_when_mismatch_in_unit() {
 #include <QSqlRecord>
 
 void Test_Data_engine::test_preview() {
-#if !DISABLE_ALL || 1
+#if !DISABLE_ALL || 0
     std::stringstream input{R"(
 		{
 			"testA":{
@@ -2767,9 +3007,9 @@ void Test_Data_engine::test_actual_value_statistic_get_latest_file_name() {
 #if !DISABLE_ALL || 0
     QStringList sl{"C:/8061/33374719363430390605D61/report-2018_07_06-20_01_02-001.json", "C:/8061/33374719363430390605D61/report-2018_07_06-23_01_02-001.json",
                    "C:/8061/33374719363430390605D61/report-2018_07_06-19_54_22-001.json"};
-    QDateTime dt = decode_date_time_from_file_name(sl[0].toStdString(),"report");
+    QDateTime dt = decode_date_time_from_file_name(sl[0].toStdString(), "report");
     QCOMPARE(dt.toString("yyyy_MM_dd-HH_mm_ss"), QString("2018_07_06-20_01_02"));
-    QString result = select_newest_file_name(sl,"report");
+    QString result = select_newest_file_name(sl, "report");
     QCOMPARE(result, QString("C:/8061/33374719363430390605D61/report-2018_07_06-23_01_02-001.json"));
 
 #endif

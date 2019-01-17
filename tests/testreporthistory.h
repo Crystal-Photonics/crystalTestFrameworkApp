@@ -6,6 +6,7 @@
 #include <QObject>
 
 class ReportLink;
+class DataEngineField;
 
 class TestReportHistory : public QObject {
     Q_OBJECT
@@ -21,7 +22,9 @@ class TestReportHistory : public QObject {
     void read_report_fields();
 
     private:
-    bool report_link_list_contains_path(QList<ReportLink> report_link_list, QString path);
+    bool report_link_list_contains_path(const QList<ReportLink> &report_link_list, QString path);
+    bool data_engine_field_list_contains_path(const QList<DataEngineField> &data_engine_field_list, QString field_name);
+    const DataEngineField get_data_engine_field(const QList<DataEngineField> &data_engine_field_list, QString field_name);
 };
 
 DECLARE_TEST(TestReportHistory)

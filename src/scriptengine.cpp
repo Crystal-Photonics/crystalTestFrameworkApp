@@ -454,9 +454,9 @@ void ScriptEngine::load_script(const std::string &path) {
     }
 
     try {
-		script_setup(*lua, path, *this);
+        script_setup(*lua, path, *this);
 
-		lua->script_file(path);
+        lua->script_file(path);
 
         qDebug() << "laoded script"; // << lua->;
     } catch (const sol::error &error) {
@@ -520,7 +520,7 @@ int get_quantity_num(sol::object &obj) {
     int result = 0;
     if (obj.get_type() == sol::type::string) {
         std::string str = obj.as<std::string>();
-        QString qstr = QString().fromStdString(str);
+        QString qstr = QString::fromStdString(str);
         bool ok = false;
 
         result = qstr.toInt(&ok);
@@ -548,7 +548,7 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
             bool protocol_does_not_provide_name = false;
             for (auto &protocol_entry_field : protocol_entry_table) {
                 if (protocol_entry_field.first.as<std::string>() == "protocol") {
-                    item.protocol_name = QString().fromStdString(protocol_entry_field.second.as<std::string>());
+                    item.protocol_name = QString::fromStdString(protocol_entry_field.second.as<std::string>());
                     if (item.protocol_name == "SG04Count") {
                         protocol_does_not_provide_name = true;
                     }
@@ -561,7 +561,7 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
                             if (str == "") {
                                 str = "*";
                             }
-                            item.device_names.append(QString().fromStdString(str));
+                            item.device_names.append(QString::fromStdString(str));
                         }
                     }
                     if (protocol_entry_field.second.get_type() == sol::type::string) {
@@ -569,7 +569,7 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
                         if (str == "") {
                             str = "*";
                         }
-                        item.device_names.append(QString().fromStdString(str));
+                        item.device_names.append(QString::fromStdString(str));
                     }
                 } else if (protocol_entry_field.first.as<std::string>() == "quantity") {
                     item.quantity_min = get_quantity_num(protocol_entry_field.second);
@@ -636,11 +636,11 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
                 fi.setFile(path);
             }
             std::string json_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".json");
-			try {
-				data_engine->save_to_json(QString::fromStdString(json_target_filename));
-			} catch (const DataEngineError &e) {
-				qDebug() << "Failed dumping data to json: " << e.what() << " because of " << static_cast<int>(e.get_error_number());
-			}
+            try {
+                data_engine->save_to_json(QString::fromStdString(json_target_filename));
+            } catch (const DataEngineError &e) {
+                qDebug() << "Failed dumping data to json: " << e.what() << " because of " << static_cast<int>(e.get_error_number());
+            }
         }
     };
     try {
@@ -719,12 +719,12 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
                     device_list_sol[alias.first.toStdString()] = devices_with_same_alias;
                 }
             }
-			sol::protected_function run = (*lua)["run"];
-			auto result = run(device_list_sol);
-			if (not result.valid()) {
-				sol::error error = result;
-				throw error;
-			}
+            sol::protected_function run = (*lua)["run"];
+            auto result = run(device_list_sol);
+            if (not result.valid()) {
+                sol::error error = result;
+                throw error;
+            }
         }
         reset_lua_state();
     } catch (const sol::error &e) {

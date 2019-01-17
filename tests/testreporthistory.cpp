@@ -33,6 +33,7 @@ void TestReportHistory::load_report_file1() {
     QCOMPARE(report_file.get_field_value("report/gerate_daten/wakeup_possible_taste"), QVariant(true));
     QCOMPARE(report_file.get_field_value("general/datetime_str"), QVariant(QDateTime::fromString("2018.12.18 09:31:09", "yyyy.MM.dd hh:mm:ss")));
     QCOMPARE(report_file.get_field_value("general/test_git_date_str"), QVariant(QDateTime::fromString("2018.12.14 18:09:26", "yyyy.MM.dd hh:mm:ss")));
+    QCOMPARE(report_file.get_field_value("report/dacadc/datum_today").toDateTime().toString("yyyy.MM.dd hh:mm:ss"), QString("2019.01.17 19:21:10"));
 }
 
 void TestReportHistory::scan_report_files() {
@@ -90,25 +91,49 @@ void TestReportHistory::read_report_fields() {
     QVERIFY(data_engine_sections.report_fields.keys().contains("test_version"));
     QVERIFY(data_engine_sections.report_fields.keys().contains("gerate_daten"));
     QVERIFY(data_engine_sections.report_fields.keys().contains("dacadc"));
-    QCOMPARE(data_engine_sections.report_fields.value("dacadc").count(), 2);
+    QCOMPARE(data_engine_sections.report_fields.value("dacadc").count(), 3);
     QCOMPARE(data_engine_sections.report_fields.value("gerate_daten").count(), 3);
     QCOMPARE(data_engine_sections.report_fields.value("test_version").count(), 4);
-    QVERIFY(data_engine_sections.report_fields.value("test_version").contains("git_framework"));
-    QVERIFY(data_engine_sections.report_fields.value("gerate_daten").contains("pcb1_chargennummer"));
-    QVERIFY(data_engine_sections.report_fields.value("dacadc").contains("wakeup_possible"));
+    QVERIFY(data_engine_field_list_contains_path(data_engine_sections.report_fields.value("test_version"), "git_framework"));
+    QVERIFY(data_engine_field_list_contains_path(data_engine_sections.report_fields.value("gerate_daten"), "pcb1_chargennummer"));
+    QVERIFY(data_engine_field_list_contains_path(data_engine_sections.report_fields.value("dacadc"), "wakeup_possible"));
+
+    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields.value("test_version"), "git_framework").field_type.t, EntryType::Text);
+    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields.value("gerate_daten"), "seriennummer").field_type.t, EntryType::Number);
+    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields.value("dacadc"), "wakeup_possible").field_type.t, EntryType::Bool);
+    //refernz felder noch zu testen
     auto referenz_liste =
         QStringList{"data_source_path",   "datetime_str", "datetime_unix", "everything_complete",   "everything_in_range", "exceptional_approval_exists",
                     "framework_git_hash", "os_username",  "script_path",   "test_duration_seconds", "test_git_date_str",   "test_git_hash",
                     "test_git_modified"};
     QCOMPARE(data_engine_sections.general_fields.count(), referenz_liste.count());
     for (auto ref : referenz_liste) {
-        QVERIFY(data_engine_sections.general_fields.contains(ref));
+        QVERIFY(data_engine_field_list_contains_path(data_engine_sections.general_fields, ref));
     }
 }
 
-bool TestReportHistory::report_link_list_contains_path(QList<ReportLink> report_link_list, QString path) {
+bool TestReportHistory::data_engine_field_list_contains_path(const QList<DataEngineField> &data_engine_field_list, QString field_name) {
+    for (auto rl : data_engine_field_list) {
+        if (rl.field_name == field_name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const DataEngineField TestReportHistory::get_data_engine_field(const QList<DataEngineField> &data_engine_field_list, QString field_name) {
+    DataEngineField result;
+    for (auto &rl : data_engine_field_list) {
+        if (rl.field_name == field_name) {
+            return rl;
+        }
+    }
+    return result;
+}
+
+bool TestReportHistory::report_link_list_contains_path(const QList<ReportLink> &report_link_list, QString path) {
     for (auto rl : report_link_list) {
-        if (rl.report_path == path) {
+        if (rl.report_path_m == path) {
             return true;
         }
     }
