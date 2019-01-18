@@ -1,5 +1,5 @@
 #include "testreporthistory.h"
-#include "windows/reporthistoryquery.h"
+#include "Windows/reporthistoryquery.h"
 
 void TestReportHistory::load_query_onfig_file() {
     ReportQueryConfigFile query_config_file;
