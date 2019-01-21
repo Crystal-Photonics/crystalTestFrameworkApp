@@ -25,22 +25,46 @@ class ExceptionalApprovalDB;
 
 using FormID = QString;
 
+enum class EntryType_enum { Unspecified, Bool, Text, Reference, Number, DateTime };
+
 class EntryType {
     public:
-    enum { Unspecified, Bool, Text, Reference, Number, DateTime } t = Unspecified;
+    EntryType_enum t = EntryType_enum::Unspecified;
+
+    EntryType(EntryType_enum me)
+        : t{me} {}
+
+    EntryType(QString str) {
+        if (str == "Unspecified") {
+            t = EntryType_enum::Unspecified;
+        } else if (str == "Bool") {
+            t = EntryType_enum::Bool;
+        } else if (str == "Text") {
+            t = EntryType_enum::Text;
+        } else if (str == "Reference") {
+            t = EntryType_enum::Reference;
+        } else if (str == "Number") {
+            t = EntryType_enum::Number;
+        } else if (str == "Datetime") {
+            t = EntryType_enum::DateTime;
+        } else {
+            assert(0);
+        }
+    }
+
     QString to_string() const {
         switch (t) {
-            case Unspecified:
+            case EntryType_enum::Unspecified:
                 return "Unspecified";
-            case Bool:
+            case EntryType_enum::Bool:
                 return "Bool";
-            case Text:
+            case EntryType_enum::Text:
                 return "Text";
-            case Reference:
+            case EntryType_enum::Reference:
                 return "Reference";
-            case Number:
+            case EntryType_enum::Number:
                 return "Number";
-            case DateTime:
+            case EntryType_enum::DateTime:
                 return "Datetime";
         }
         return "Unspecified";

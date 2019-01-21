@@ -5,23 +5,23 @@ void TestReportHistory::load_query_onfig_file() {
     ReportQueryConfigFile query_config_file;
     query_config_file.load_from_file("../../tests/scripts/report_query/query_config_1.json");
     QCOMPARE(query_config_file.get_queries().count(), 1);
-    QCOMPARE(query_config_file.get_queries()[0].select_field_names.count(), 3);
-    QCOMPARE(query_config_file.get_queries()[0].report_path, QString("reports1/"));
-    QCOMPARE(query_config_file.get_queries()[0].data_engine_source_file, QString("F:\\protokolle"));
+    QCOMPARE(query_config_file.get_queries()[0].select_field_names_m.count(), 3);
+    QCOMPARE(query_config_file.get_queries()[0].report_path_m, QString("reports1/"));
+    QCOMPARE(query_config_file.get_queries()[0].data_engine_source_file_m, QString("F:\\protokolle"));
     QCOMPARE(query_config_file.get_where_fields().count(), 1);
-    QCOMPARE(query_config_file.get_where_fields()[0].field_name, QString("report/gerate_daten/seriennummer"));
-    QCOMPARE(query_config_file.get_where_fields()[0].incremention_selector_expression, QString("(\\d*)"));
-    QCOMPARE(query_config_file.get_where_fields()[0].field_values.count(), 2);
-    QCOMPARE(query_config_file.get_where_fields()[0].field_values[0].values.count(), 2);
-    QCOMPARE(query_config_file.get_where_fields()[0].field_values[0].values[0], QVariant(50050));
-    QCOMPARE(query_config_file.get_where_fields()[0].field_values[0].values[1], QVariant(50056));
-    QCOMPARE(query_config_file.get_where_fields()[0].field_values[0].include_greater_values_till_next_entry, true);
+    QCOMPARE(query_config_file.get_where_fields()[0].field_name_m, QString("report/gerate_daten/seriennummer"));
+    QCOMPARE(query_config_file.get_where_fields()[0].incremention_selector_expression_, QString("(\\d*)"));
+    QCOMPARE(query_config_file.get_where_fields()[0].field_values_m.count(), 2);
+    QCOMPARE(query_config_file.get_where_fields()[0].field_values_m[0].values_m.count(), 2);
+    QCOMPARE(query_config_file.get_where_fields()[0].field_values_m[0].values_m[0], QVariant(50050));
+    QCOMPARE(query_config_file.get_where_fields()[0].field_values_m[0].values_m[1], QVariant(50056));
+    QCOMPARE(query_config_file.get_where_fields()[0].field_values_m[0].include_greater_values_till_next_entry_m, true);
 
-    QCOMPARE(query_config_file.get_where_fields()[0].field_values[1].values.count(), 3);
-    QCOMPARE(query_config_file.get_where_fields()[0].field_values[1].values[0], QVariant(50070));
-    QCOMPARE(query_config_file.get_where_fields()[0].field_values[1].values[1], QVariant(50042));
-    QCOMPARE(query_config_file.get_where_fields()[0].field_values[1].values[2], QVariant(50043));
-    QCOMPARE(query_config_file.get_where_fields()[0].field_values[1].include_greater_values_till_next_entry, false);
+    QCOMPARE(query_config_file.get_where_fields()[0].field_values_m[1].values_m.count(), 3);
+    QCOMPARE(query_config_file.get_where_fields()[0].field_values_m[1].values_m[0], QVariant(50070));
+    QCOMPARE(query_config_file.get_where_fields()[0].field_values_m[1].values_m[1], QVariant(50042));
+    QCOMPARE(query_config_file.get_where_fields()[0].field_values_m[1].values_m[2], QVariant(50043));
+    QCOMPARE(query_config_file.get_where_fields()[0].field_values_m[1].include_greater_values_till_next_entry_m, false);
 }
 
 void TestReportHistory::load_report_file1() {
@@ -50,10 +50,10 @@ void TestReportHistory::scan_filter_report_files() {
     ReportQueryConfigFile query_config_file;
     query_config_file.load_from_file("../../tests/scripts/report_query/query_config_2.json");
     auto file_list = query_config_file.scan_folder_for_reports("../../tests/scripts/report_query");
-    QMultiMap<QString, QVariant> query_result = query_config_file.filter_and_select_reports(file_list);
-    auto test_duration_seconds = query_result.values("test_1_source_values/general/test_duration_seconds");
-    auto pcb2_chargennummer = query_result.values("test_1_source_values/report/gerate_daten/pcb2_chargennummer");
-    auto seriennummer = query_result.values("test_1_source_values/report/gerate_daten/seriennummer");
+    QMap<QString, QList<QVariant>> query_result = query_config_file.filter_and_select_reports(file_list);
+    auto test_duration_seconds = query_result.value("test_1_source_values/general/test_duration_seconds");
+    auto pcb2_chargennummer = query_result.value("test_1_source_values/report/gerate_daten/pcb2_chargennummer");
+    auto seriennummer = query_result.value("test_1_source_values/report/gerate_daten/seriennummer");
     QCOMPARE(test_duration_seconds.count(), 3);
     QCOMPARE(pcb2_chargennummer.count(), 3);
     QCOMPARE(seriennummer.count(), 3);
@@ -85,36 +85,36 @@ void TestReportHistory::test_match_value() {
 
 void TestReportHistory::read_report_fields() {
     ReportQuery report_query{};
-    report_query.data_engine_source_file = "../../tests/scripts/report_query/data_engine_source_1.json";
-    auto data_engine_sections = report_query.get_data_engine_fields();
-    QCOMPARE(data_engine_sections.report_fields.keys().count(), 3);
-    QVERIFY(data_engine_sections.report_fields.keys().contains("test_version"));
-    QVERIFY(data_engine_sections.report_fields.keys().contains("gerate_daten"));
-    QVERIFY(data_engine_sections.report_fields.keys().contains("dacadc"));
-    QCOMPARE(data_engine_sections.report_fields.value("dacadc").count(), 3);
-    QCOMPARE(data_engine_sections.report_fields.value("gerate_daten").count(), 3);
-    QCOMPARE(data_engine_sections.report_fields.value("test_version").count(), 4);
-    QVERIFY(data_engine_field_list_contains_path(data_engine_sections.report_fields.value("test_version"), "git_framework"));
-    QVERIFY(data_engine_field_list_contains_path(data_engine_sections.report_fields.value("gerate_daten"), "pcb1_chargennummer"));
-    QVERIFY(data_engine_field_list_contains_path(data_engine_sections.report_fields.value("dacadc"), "wakeup_possible"));
+    report_query.data_engine_source_file_m = "../../tests/scripts/report_query/data_engine_source_1.json";
+    auto data_engine_sections = report_query.get_data_engine_fields_raw();
+    QCOMPARE(data_engine_sections.report_fields_m.keys().count(), 3);
+    QVERIFY(data_engine_sections.report_fields_m.keys().contains("test_version"));
+    QVERIFY(data_engine_sections.report_fields_m.keys().contains("gerate_daten"));
+    QVERIFY(data_engine_sections.report_fields_m.keys().contains("dacadc"));
+    QCOMPARE(data_engine_sections.report_fields_m.value("dacadc").count(), 3);
+    QCOMPARE(data_engine_sections.report_fields_m.value("gerate_daten").count(), 3);
+    QCOMPARE(data_engine_sections.report_fields_m.value("test_version").count(), 4);
+    QVERIFY(data_engine_field_list_contains_path(data_engine_sections.report_fields_m.value("test_version"), "git_framework"));
+    QVERIFY(data_engine_field_list_contains_path(data_engine_sections.report_fields_m.value("gerate_daten"), "pcb1_chargennummer"));
+    QVERIFY(data_engine_field_list_contains_path(data_engine_sections.report_fields_m.value("dacadc"), "wakeup_possible"));
 
-    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields.value("test_version"), "git_framework").field_type.t, EntryType::Text);
-    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields.value("gerate_daten"), "seriennummer").field_type.t, EntryType::Number);
-    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields.value("dacadc"), "wakeup_possible").field_type.t, EntryType::Bool);
+    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields_m.value("test_version"), "git_framework").field_type_m.t, EntryType_enum::Text);
+    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields_m.value("gerate_daten"), "seriennummer").field_type_m.t, EntryType_enum::Number);
+    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields_m.value("dacadc"), "wakeup_possible").field_type_m.t, EntryType_enum::Bool);
     //refernz felder noch zu testen
     auto referenz_liste =
         QStringList{"data_source_path",   "datetime_str", "datetime_unix", "everything_complete",   "everything_in_range", "exceptional_approval_exists",
                     "framework_git_hash", "os_username",  "script_path",   "test_duration_seconds", "test_git_date_str",   "test_git_hash",
                     "test_git_modified"};
-    QCOMPARE(data_engine_sections.general_fields.count(), referenz_liste.count());
+    QCOMPARE(data_engine_sections.general_fields_m.count(), referenz_liste.count());
     for (auto ref : referenz_liste) {
-        QVERIFY(data_engine_field_list_contains_path(data_engine_sections.general_fields, ref));
+        QVERIFY(data_engine_field_list_contains_path(data_engine_sections.general_fields_m, ref));
     }
 }
 
 bool TestReportHistory::data_engine_field_list_contains_path(const QList<DataEngineField> &data_engine_field_list, QString field_name) {
     for (auto rl : data_engine_field_list) {
-        if (rl.field_name == field_name) {
+        if (rl.field_name_m == field_name) {
             return true;
         }
     }
@@ -124,7 +124,7 @@ bool TestReportHistory::data_engine_field_list_contains_path(const QList<DataEng
 const DataEngineField TestReportHistory::get_data_engine_field(const QList<DataEngineField> &data_engine_field_list, QString field_name) {
     DataEngineField result;
     for (auto &rl : data_engine_field_list) {
-        if (rl.field_name == field_name) {
+        if (rl.field_name_m == field_name) {
             return rl;
         }
     }

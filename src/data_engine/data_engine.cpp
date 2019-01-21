@@ -477,7 +477,7 @@ EntryType DataEngineSections::get_entry_type_dummy_mode_recursion(const FormID &
 
     const DataEngineDataEntry *entry = data_entries_for_each_variant[0];
     const ReferenceDataEntry *referece_entry = dynamic_cast<const ReferenceDataEntry *>(entry);
-    EntryType result_type{EntryType::Unspecified};
+    EntryType result_type{EntryType_enum::Unspecified};
     if (referece_entry) {
         bool first = true;
         for (const auto &ref_link : referece_entry->reference_links) {
@@ -1683,25 +1683,25 @@ bool Data_engine::is_desired_value_set(const FormID &id) const {
 bool Data_engine::is_bool(const FormID &id) const {
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
-    return data_entry->get_entry_type().t == EntryType::Bool;
+    return data_entry->get_entry_type().t == EntryType_enum::Bool;
 }
 
 bool Data_engine::is_number(const FormID &id) const {
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
-    return data_entry->get_entry_type().t == EntryType::Number;
+    return data_entry->get_entry_type().t == EntryType_enum::Number;
 }
 
 bool Data_engine::is_text(const FormID &id) const {
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
-    return data_entry->get_entry_type().t == EntryType::Text;
+    return data_entry->get_entry_type().t == EntryType_enum::Text;
 }
 
 bool Data_engine::is_datetime(const FormID &id) const {
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
-    return data_entry->get_entry_type().t == EntryType::DateTime;
+    return data_entry->get_entry_type().t == EntryType_enum::DateTime;
 }
 
 bool Data_engine::is_exceptionally_approved(const FormID &id) const {
@@ -3336,7 +3336,7 @@ const ExceptionalApprovalResult &DataEngineDataEntry::get_exceptional_approval()
 
 std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonObject &object) {
     FormID field_name;
-    EntryType entrytype{EntryType::Unspecified};
+    EntryType entrytype{EntryType_enum::Unspecified};
     const auto keys = object.keys();
     bool entry_without_value;
     if (!keys.contains("value")) {
@@ -3347,28 +3347,28 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             entry_without_value = true;
             QString str_type = object["type"].toString();
             if (str_type == "number") {
-                entrytype.t = EntryType::Number;
+                entrytype.t = EntryType_enum::Number;
             } else if (str_type == "string") {
-                entrytype.t = EntryType::Text;
+                entrytype.t = EntryType_enum::Text;
             } else if (str_type == "bool") {
-                entrytype.t = EntryType::Bool;
+                entrytype.t = EntryType_enum::Bool;
             } else if (str_type == "datetime") {
-                entrytype.t = EntryType::DateTime;
+                entrytype.t = EntryType_enum::DateTime;
             }
         }
     } else {
         entry_without_value = false;
         auto value = object["value"];
         if (value.isDouble()) {
-            entrytype.t = EntryType::Number;
+            entrytype.t = EntryType_enum::Number;
         } else if (value.isString()) {
-            entrytype.t = EntryType::Text;
+            entrytype.t = EntryType_enum::Text;
             QString str = value.toString();
             if ((str.startsWith("[")) && (str.endsWith("]"))) {
-                entrytype.t = EntryType::Reference;
+                entrytype.t = EntryType_enum::Reference;
             }
         } else if (value.isBool()) {
-            entrytype.t = EntryType::Bool;
+            entrytype.t = EntryType_enum::Bool;
         }
     }
 
@@ -3377,7 +3377,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
     }
     field_name = object.value("name").toString();
     switch (entrytype.t) {
-        case EntryType::Number: {
+        case EntryType_enum::Number: {
 //disable maybe-uninitialized warning for an optional type.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
@@ -3432,7 +3432,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             }
             return std::make_unique<NumericDataEntry>(field_name, desired_value, tolerance, std::move(unit), si_prefix, std::move(nice_name));
         }
-        case EntryType::Bool: {
+        case EntryType_enum::Bool: {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
             std::experimental::optional<bool> desired_value{};
@@ -3457,7 +3457,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             return std::make_unique<BoolDataEntry>(field_name, desired_value, nice_name);
             break;
         }
-        case EntryType::Text: {
+        case EntryType_enum::Text: {
             std::experimental::optional<QString> desired_value{};
             QString nice_name{};
             for (const auto &key : keys) {
@@ -3477,7 +3477,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             }
             return std::make_unique<TextDataEntry>(field_name, desired_value, nice_name);
         }
-        case EntryType::DateTime: {
+        case EntryType_enum::DateTime: {
             QString nice_name{};
             for (const auto &key : keys) {
                 if (key == "name") {
@@ -3497,7 +3497,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             }
             return std::make_unique<DateTimeDataEntry>(field_name, nice_name);
         }
-        case EntryType::Reference: {
+        case EntryType_enum::Reference: {
             QString reference_string{};
             QString nice_name{};
             NumericTolerance tolerance{};
@@ -3528,7 +3528,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             }
             return std::make_unique<ReferenceDataEntry>(field_name, reference_string, tolerance, nice_name);
         }
-        case EntryType::Unspecified: {
+        case EntryType_enum::Unspecified: {
             throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_type,
                                   QString("Dataengine: Invalid type in JSON object. Field name: %1").arg(field_name));
         }
@@ -3635,7 +3635,7 @@ void NumericDataEntry::set_actual_value(double actual_value) {
 }
 
 EntryType NumericDataEntry::get_entry_type() const {
-    return EntryType{EntryType::Number};
+    return EntryType{EntryType_enum::Number};
 }
 
 bool NumericDataEntry::is_desired_value_set() const {
@@ -3759,7 +3759,7 @@ void TextDataEntry::set_actual_value(QString actual_value) {
 }
 
 EntryType TextDataEntry::get_entry_type() const {
-    return EntryType{EntryType::Text};
+    return EntryType{EntryType_enum::Text};
 }
 
 void TextDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
@@ -3868,7 +3868,7 @@ void DateTimeDataEntry::set_actual_value(DataEngineDateTime actual_value) {
 }
 
 EntryType DateTimeDataEntry::get_entry_type() const {
-    return EntryType{EntryType::DateTime};
+    return EntryType{EntryType_enum::DateTime};
 }
 
 void DateTimeDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
@@ -4002,7 +4002,7 @@ void BoolDataEntry::set_actual_value(bool value) {
 }
 
 EntryType BoolDataEntry::get_entry_type() const {
-    return EntryType{EntryType::Bool};
+    return EntryType{EntryType_enum::Bool};
 }
 
 void BoolDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {

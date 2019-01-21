@@ -66,14 +66,14 @@ PollDataEngine::PollDataEngine(UI_container *parent_, ScriptEngine *script_engin
 
         auto entry_type = data_engine->get_entry_type(field_id);
         switch (entry_type.t) {
-            case EntryType::Bool: {
+            case EntryType_enum::Bool: {
                 field_entry.field_type = FieldEntry::FieldType::Bool;
 
             } break;
-            case EntryType::Number: {
+            case EntryType_enum::Number: {
                 field_entry.field_type = FieldEntry::FieldType::Numeric;
             } break;
-            case EntryType::Text: {
+            case EntryType_enum::Text: {
                 field_entry.field_type = FieldEntry::FieldType::String;
             } break;
             default:

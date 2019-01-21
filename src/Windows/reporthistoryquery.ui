@@ -17,7 +17,7 @@
    <item row="5" column="0" colspan="2">
     <widget class="QStackedWidget" name="stk_report_history">
      <property name="currentIndex">
-      <number>1</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="page_2">
       <layout class="QGridLayout" name="gridLayout_5">
@@ -72,8 +72,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>746</width>
-            <height>543</height>
+            <width>197</width>
+            <height>102</height>
            </rect>
           </property>
           <attribute name="label">
@@ -197,12 +197,12 @@
              </property>
              <column>
               <property name="text">
-               <string notr="true">1</string>
+               <string notr="true">Field name</string>
               </property>
              </column>
              <column>
               <property name="text">
-               <string notr="true">2</string>
+               <string notr="true">Field type</string>
               </property>
              </column>
             </widget>
@@ -285,8 +285,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>388</width>
-                <height>499</height>
+                <width>98</width>
+                <height>88</height>
                </rect>
               </property>
               <attribute name="label">
@@ -303,8 +303,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>388</width>
-                <height>499</height>
+                <width>98</width>
+                <height>28</height>
                </rect>
               </property>
               <attribute name="label">
@@ -345,9 +345,6 @@
      </widget>
      <widget class="QWidget" name="page_4">
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="0" column="1">
-        <widget class="QTableView" name="tableView"/>
-       </item>
        <item row="1" column="1">
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <item>
@@ -371,6 +368,35 @@
           </widget>
          </item>
         </layout>
+       </item>
+       <item row="0" column="1">
+        <widget class="QTableWidget" name="tableWidget">
+         <column>
+          <property name="text">
+           <string>Neue Spalte</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Neue Spalte</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Neue Spalte</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Neue Spalte</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Neue Spalte</string>
+          </property>
+         </column>
+        </widget>
        </item>
       </layout>
      </widget>

@@ -5,6 +5,7 @@
 #include <QDialog>
 #include <QJsonObject>
 #include <QMap>
+#include <QString>
 
 class QVariant;
 class QTreeWidgetItem;
@@ -19,6 +20,12 @@ namespace Ui {
 
 //std::variant;
 
+class WhereFieldInterpretationError : public std::runtime_error {
+    public:
+    WhereFieldInterpretationError(const QString &str)
+        : std::runtime_error(str.toStdString()) {}
+};
+
 class ReportFile {
     public:
     ReportFile();
@@ -32,47 +39,59 @@ class ReportFile {
 
 class ReportQueryWhereFieldValues {
     public:
-    QList<QVariant> values;
-    bool include_greater_values_till_next_entry;
+    ReportQueryWhereFieldValues()
+        : values_m(QList<QVariant>())
+        , include_greater_values_till_next_entry_m(false) {}
+    QList<QVariant> values_m;
+    bool include_greater_values_till_next_entry_m;
 };
 
 class ReportQueryWhereField {
     public:
     bool matches_value(QVariant value) const;
 
-    QString field_name;
-    QString incremention_selector_expression;
-    QList<ReportQueryWhereFieldValues> field_values;
+    void load_values_from_plain_text();
+    QString field_name_m;
+    QString incremention_selector_expression_;
+    EntryType field_type_m{EntryType_enum::Unspecified};
+    QList<ReportQueryWhereFieldValues> field_values_m;
 
-    QPlainTextEdit *plainTextEdit = nullptr;
+    QPlainTextEdit *plainTextEdit_m = nullptr;
 };
 
 class DataEngineField {
     public:
-    QString field_name;
-    EntryType field_type{EntryType::Unspecified};
+    QString field_name_m;
+    EntryType field_type_m{EntryType_enum::Unspecified};
 };
 
 class DataEngineSourceFields {
     public:
-    QList<DataEngineField> general_fields;
-    QMap<QString, QList<DataEngineField>> report_fields;
+    QList<DataEngineField> general_fields_m;
+    QMap<QString, QList<DataEngineField>> report_fields_m;
 };
 
 class ReportQuery {
-    public:
-    QString report_path;
-    QString data_engine_source_file;
-    QStringList select_field_names;
-    void update_from_gui();
-    DataEngineSourceFields get_data_engine_fields() const;
+    friend TestReportHistory;
 
-    QLineEdit *edt_query_report_folder = nullptr;
-    QLineEdit *edt_query_data_engine_source_file = nullptr;
-    QToolButton *btn_query_data_engine_source_file_browse = nullptr;
-    QToolButton *btn_query_report_file_browse = nullptr;
-    QToolButton *btn_query_add = nullptr;
-    QToolButton *btn_query_del = nullptr;
+    public:
+    QString report_path_m;
+    QString data_engine_source_file_m;
+    QStringList select_field_names_m;
+    void update_from_gui();
+    DataEngineSourceFields get_data_engine_fields();
+    QLineEdit *edt_query_report_folder_m = nullptr;
+    QLineEdit *edt_query_data_engine_source_file_m = nullptr;
+    QToolButton *btn_query_data_engine_source_file_browse_m = nullptr;
+    QToolButton *btn_query_report_file_browse_m = nullptr;
+    QToolButton *btn_query_add_m = nullptr;
+    QToolButton *btn_query_del_m = nullptr;
+
+    protected:
+    DataEngineSourceFields get_data_engine_fields_raw() const;
+
+    private:
+    bool is_valid_m = false;
 };
 
 class ReportLink {
@@ -93,21 +112,23 @@ class ReportQueryConfigFile {
     const QList<ReportQuery> &get_queries();
     QList<ReportQuery> &get_queries_not_const();
     ReportQuery &add_new_query(QWidget *parent);
-
+    ReportQuery &find_query(QString data_engine_source_file);
     const QList<ReportQueryWhereField> &get_where_fields();
-    ReportQueryWhereField &add_new_where(QWidget *parent);
-
+    QList<ReportQueryWhereField> &get_where_fields_not_const();
+    ReportQueryWhereField &add_new_where(QWidget *parent, QString field_name, EntryType field_type);
+    bool remove_where(QString field_name);
     void remove_query(int index);
+    QMap<QString, QList<QVariant>> execute_query() const;
 
     protected:
     QList<ReportLink> scan_folder_for_reports(QString base_dir_str) const;
-    QMultiMap<QString, QVariant> filter_and_select_reports(const QList<ReportLink> &report_file_list) const;
+    QMap<QString, QList<QVariant>> filter_and_select_reports(const QList<ReportLink> &report_file_list) const;
 
     private:
     QList<ReportQuery> report_queries_m;
     QList<ReportQueryWhereField> query_where_fields_m;
     QString file_name_m;
-    bool only_successful_reports = true;
+    bool only_successful_reports_m = true;
 
     friend TestReportHistory; //for tests
 };
@@ -122,14 +143,12 @@ class ReportHistoryQuery : public QDialog {
 
     private slots:
     void on_btn_next_clicked();
-
     void on_btn_back_clicked();
-
     void on_btn_close_clicked();
-
     void on_stk_report_history_currentChanged(int arg1);
-
     void on_tree_query_fields_itemDoubleClicked(QTreeWidgetItem *item, int column);
+    void on_btn_where_del_clicked();
+    void on_tree_query_fields_itemClicked(QTreeWidgetItem *item, int column);
 
     private:
     Ui::ReportHistoryQuery *ui;
@@ -137,8 +156,10 @@ class ReportHistoryQuery : public QDialog {
     void add_new_query_page();
     void remove_query_page(QWidget *tool_widget);
     void clear_query_pages();
-    void add_new_where_page(const QString &field_id, const QString &field_typ);
+    void add_new_where_page(const QString &field_id, EntryType field_typ);
     void clear_where_pages();
+    void remove_where_page(int index);
+    int old_stk_report_history_index_m = 0;
 };
 
 #endif // TESTRESULTQUERY_H
