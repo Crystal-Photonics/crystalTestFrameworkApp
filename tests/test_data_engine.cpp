@@ -2459,13 +2459,13 @@ void Test_Data_engine::test_references_get_actual_value_description_desired_valu
     QCOMPARE(de.get_desired_value_as_string("test_valuesA/test_number"), QString("100 (±1) mA"));
     QCOMPARE(de.get_unit("test_valuesA/test_number"), QString("mA"));
 
-    QCOMPARE(de.get_entry_type("test_valuesA/test_number").t, EntryType_enum::Number);
-    QCOMPARE(de.get_entry_type("test_valuesA/test_bool").t, EntryType_enum::Bool);
-    QCOMPARE(de.get_entry_type("test_valuesA/test_string").t, EntryType_enum::Text);
+    QCOMPARE(de.get_entry_type("test_valuesA/test_number").t, EntryType::Number);
+    QCOMPARE(de.get_entry_type("test_valuesA/test_bool").t, EntryType::Bool);
+    QCOMPARE(de.get_entry_type("test_valuesA/test_string").t, EntryType::Text);
 
-    QCOMPARE(de.get_entry_type("referenzen/test_number_ref").t, EntryType_enum::Number);
-    QCOMPARE(de.get_entry_type("referenzen/test_bool_ref").t, EntryType_enum::Bool);
-    QCOMPARE(de.get_entry_type("referenzen/test_string_ref").t, EntryType_enum::Text);
+    QCOMPARE(de.get_entry_type("referenzen/test_number_ref").t, EntryType::Number);
+    QCOMPARE(de.get_entry_type("referenzen/test_bool_ref").t, EntryType::Bool);
+    QCOMPARE(de.get_entry_type("referenzen/test_string_ref").t, EntryType::Text);
 
     QCOMPARE(de.get_si_prefix("referenzen/test_number_ref"), 0.001);
     QCOMPARE(de.get_si_prefix("test_valuesA/test_number"), 0.001);

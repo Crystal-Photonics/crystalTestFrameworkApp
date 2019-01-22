@@ -25,28 +25,26 @@ class ExceptionalApprovalDB;
 
 using FormID = QString;
 
-enum class EntryType_enum { Unspecified, Bool, Text, Reference, Number, DateTime };
-
 class EntryType {
     public:
-    EntryType_enum t = EntryType_enum::Unspecified;
+    enum { Unspecified, Bool, Text, Reference, Number, DateTime } t = EntryType::Unspecified;
 
-    EntryType(EntryType_enum me)
+    EntryType(decltype(t) me)
         : t{me} {}
 
     EntryType(QString str) {
         if (str == "Unspecified") {
-            t = EntryType_enum::Unspecified;
+            t = EntryType::Unspecified;
         } else if (str == "Bool") {
-            t = EntryType_enum::Bool;
+            t = EntryType::Bool;
         } else if (str == "Text") {
-            t = EntryType_enum::Text;
+            t = EntryType::Text;
         } else if (str == "Reference") {
-            t = EntryType_enum::Reference;
+            t = EntryType::Reference;
         } else if (str == "Number") {
-            t = EntryType_enum::Number;
+            t = EntryType::Number;
         } else if (str == "Datetime") {
-            t = EntryType_enum::DateTime;
+            t = EntryType::DateTime;
         } else {
             assert(0);
         }
@@ -54,17 +52,17 @@ class EntryType {
 
     QString to_string() const {
         switch (t) {
-            case EntryType_enum::Unspecified:
+            case EntryType::Unspecified:
                 return "Unspecified";
-            case EntryType_enum::Bool:
+            case EntryType::Bool:
                 return "Bool";
-            case EntryType_enum::Text:
+            case EntryType::Text:
                 return "Text";
-            case EntryType_enum::Reference:
+            case EntryType::Reference:
                 return "Reference";
-            case EntryType_enum::Number:
+            case EntryType::Number:
                 return "Number";
-            case EntryType_enum::DateTime:
+            case EntryType::DateTime:
                 return "Datetime";
         }
         return "Unspecified";
@@ -329,9 +327,19 @@ struct TextDataEntry : DataEngineDataEntry {
     std::experimental::optional<QString> actual_value{};
 };
 
+struct DataEngineDateTimeFormatPrecisionPair;
+
+struct DateTimeFormatPrecision {
+    QString format;
+    enum precision_m_type { none, date_time_ms, date_time_s, date_time, date } precision_m;
+};
+
 struct DataEngineDateTime {
     public:
-    DataEngineDateTime() {}
+    DataEngineDateTime()
+        : precision_m{DateTimeFormatPrecision::none}
+        , dt_m(QDateTime()) {}
+
     DataEngineDateTime(QString text);
     DataEngineDateTime(QDate date);
     DataEngineDateTime(QDateTime datetime);
@@ -339,11 +347,15 @@ struct DataEngineDateTime {
     bool isValid() const;
     QDateTime dt() const;
     QString str() const;
+    static QStringList allowed_formats();
 
     protected:
+    DateTimeFormatPrecision::precision_m_type precision_m = DateTimeFormatPrecision::none;
     QDateTime dt_m{};
-    enum { none, date_time_ms, date_time_s, date_time, date } precision_m = none;
+
+    static QList<DateTimeFormatPrecision> formats();
 };
+Q_DECLARE_METATYPE(DataEngineDateTime);
 
 struct DateTimeDataEntry : DataEngineDataEntry {
     DateTimeDataEntry(const DateTimeDataEntry &other);

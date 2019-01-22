@@ -12,6 +12,7 @@ class QTreeWidgetItem;
 class TestReportHistory;
 class QLineEdit;
 class QToolButton;
+class QGridLayout;
 class QPlainTextEdit;
 
 namespace Ui {
@@ -53,7 +54,7 @@ class ReportQueryWhereField {
     void load_values_from_plain_text();
     QString field_name_m;
     QString incremention_selector_expression_;
-    EntryType field_type_m{EntryType_enum::Unspecified};
+    EntryType field_type_m{EntryType::Unspecified};
     QList<ReportQueryWhereFieldValues> field_values_m;
 
     QPlainTextEdit *plainTextEdit_m = nullptr;
@@ -62,7 +63,7 @@ class ReportQueryWhereField {
 class DataEngineField {
     public:
     QString field_name_m;
-    EntryType field_type_m{EntryType_enum::Unspecified};
+    EntryType field_type_m{EntryType::Unspecified};
 };
 
 class DataEngineSourceFields {
@@ -120,6 +121,10 @@ class ReportQueryConfigFile {
     void remove_query(int index);
     QMap<QString, QList<QVariant>> execute_query() const;
 
+    void create_new_query_ui(QWidget *parent, ReportQuery &report_query);
+
+    void create_new_where_ui(QWidget *parent, ReportQueryWhereField &report_where);
+
     protected:
     QList<ReportLink> scan_folder_for_reports(QString base_dir_str) const;
     QMap<QString, QList<QVariant>> filter_and_select_reports(const QList<ReportLink> &report_file_list) const;
@@ -139,6 +144,7 @@ class ReportHistoryQuery : public QDialog {
     public:
     explicit ReportHistoryQuery(QWidget *parent = nullptr);
     void load_data_engine_source_file(QString file_name);
+    void load_query_from_file(QString file_name);
     ~ReportHistoryQuery();
 
     private slots:
@@ -150,15 +156,23 @@ class ReportHistoryQuery : public QDialog {
     void on_btn_where_del_clicked();
     void on_tree_query_fields_itemClicked(QTreeWidgetItem *item, int column);
 
+    void on_btn_export_query_clicked();
+
+    void on_btn_import_clicked();
+
     private:
     Ui::ReportHistoryQuery *ui;
     ReportQueryConfigFile report_query_config_file_m;
+    void add_new_query_page(ReportQuery &report_query, QGridLayout *grid_layout, QWidget *tool_widget);
     void add_new_query_page();
     void remove_query_page(QWidget *tool_widget);
     void clear_query_pages();
     void add_new_where_page(const QString &field_id, EntryType field_typ);
+    void add_new_where_page(ReportQueryWhereField &report_where, QGridLayout *grid_layout, QWidget *tool_widget);
+
     void clear_where_pages();
     void remove_where_page(int index);
+    void load_select_ui_to_query();
     int old_stk_report_history_index_m = 0;
 };
 

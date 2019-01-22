@@ -31,9 +31,10 @@ void TestReportHistory::load_report_file1() {
     QCOMPARE(report_file.get_field_value("report/gerate_daten/pcb2_chargennummer"), QVariant("18/35"));
     QCOMPARE(report_file.get_field_value("report/gerate_daten/seriennummer"), QVariant(8110));
     QCOMPARE(report_file.get_field_value("report/gerate_daten/wakeup_possible_taste"), QVariant(true));
-    QCOMPARE(report_file.get_field_value("general/datetime_str"), QVariant(QDateTime::fromString("2018.12.18 09:31:09", "yyyy.MM.dd hh:mm:ss")));
-    QCOMPARE(report_file.get_field_value("general/test_git_date_str"), QVariant(QDateTime::fromString("2018.12.14 18:09:26", "yyyy.MM.dd hh:mm:ss")));
-    QCOMPARE(report_file.get_field_value("report/dacadc/datum_today").toDateTime().toString("yyyy.MM.dd hh:mm:ss"), QString("2019.01.17 19:21:10"));
+
+    QCOMPARE(report_file.get_field_value("general/datetime_str").value<DataEngineDateTime>().str(), QString("2018-12-18 09:31:09"));
+    QCOMPARE(report_file.get_field_value("general/test_git_date_str").value<DataEngineDateTime>().str(), QString("2018-12-14 18:09:26"));
+    QCOMPARE(report_file.get_field_value("report/dacadc/datum_today").value<DataEngineDateTime>().str(), QString("2019-01-17 19:21:10"));
 }
 
 void TestReportHistory::scan_report_files() {
@@ -98,9 +99,9 @@ void TestReportHistory::read_report_fields() {
     QVERIFY(data_engine_field_list_contains_path(data_engine_sections.report_fields_m.value("gerate_daten"), "pcb1_chargennummer"));
     QVERIFY(data_engine_field_list_contains_path(data_engine_sections.report_fields_m.value("dacadc"), "wakeup_possible"));
 
-    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields_m.value("test_version"), "git_framework").field_type_m.t, EntryType_enum::Text);
-    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields_m.value("gerate_daten"), "seriennummer").field_type_m.t, EntryType_enum::Number);
-    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields_m.value("dacadc"), "wakeup_possible").field_type_m.t, EntryType_enum::Bool);
+    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields_m.value("test_version"), "git_framework").field_type_m.t, EntryType::Text);
+    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields_m.value("gerate_daten"), "seriennummer").field_type_m.t, EntryType::Number);
+    QCOMPARE(get_data_engine_field(data_engine_sections.report_fields_m.value("dacadc"), "wakeup_possible").field_type_m.t, EntryType::Bool);
     //refernz felder noch zu testen
     auto referenz_liste =
         QStringList{"data_source_path",   "datetime_str", "datetime_unix", "everything_complete",   "everything_in_range", "exceptional_approval_exists",

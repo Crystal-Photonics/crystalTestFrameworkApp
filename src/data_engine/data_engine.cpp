@@ -477,7 +477,7 @@ EntryType DataEngineSections::get_entry_type_dummy_mode_recursion(const FormID &
 
     const DataEngineDataEntry *entry = data_entries_for_each_variant[0];
     const ReferenceDataEntry *referece_entry = dynamic_cast<const ReferenceDataEntry *>(entry);
-    EntryType result_type{EntryType_enum::Unspecified};
+    EntryType result_type{EntryType::Unspecified};
     if (referece_entry) {
         bool first = true;
         for (const auto &ref_link : referece_entry->reference_links) {
@@ -1683,25 +1683,25 @@ bool Data_engine::is_desired_value_set(const FormID &id) const {
 bool Data_engine::is_bool(const FormID &id) const {
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
-    return data_entry->get_entry_type().t == EntryType_enum::Bool;
+    return data_entry->get_entry_type().t == EntryType::Bool;
 }
 
 bool Data_engine::is_number(const FormID &id) const {
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
-    return data_entry->get_entry_type().t == EntryType_enum::Number;
+    return data_entry->get_entry_type().t == EntryType::Number;
 }
 
 bool Data_engine::is_text(const FormID &id) const {
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
-    return data_entry->get_entry_type().t == EntryType_enum::Text;
+    return data_entry->get_entry_type().t == EntryType::Text;
 }
 
 bool Data_engine::is_datetime(const FormID &id) const {
     auto data_entry = sections.get_actual_instance_entry_const(id);
     assert(data_entry);
-    return data_entry->get_entry_type().t == EntryType_enum::DateTime;
+    return data_entry->get_entry_type().t == EntryType::DateTime;
 }
 
 bool Data_engine::is_exceptionally_approved(const FormID &id) const {
@@ -3336,7 +3336,7 @@ const ExceptionalApprovalResult &DataEngineDataEntry::get_exceptional_approval()
 
 std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonObject &object) {
     FormID field_name;
-    EntryType entrytype{EntryType_enum::Unspecified};
+    EntryType entrytype{EntryType::Unspecified};
     const auto keys = object.keys();
     bool entry_without_value;
     if (!keys.contains("value")) {
@@ -3347,28 +3347,28 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             entry_without_value = true;
             QString str_type = object["type"].toString();
             if (str_type == "number") {
-                entrytype.t = EntryType_enum::Number;
+                entrytype.t = EntryType::Number;
             } else if (str_type == "string") {
-                entrytype.t = EntryType_enum::Text;
+                entrytype.t = EntryType::Text;
             } else if (str_type == "bool") {
-                entrytype.t = EntryType_enum::Bool;
+                entrytype.t = EntryType::Bool;
             } else if (str_type == "datetime") {
-                entrytype.t = EntryType_enum::DateTime;
+                entrytype.t = EntryType::DateTime;
             }
         }
     } else {
         entry_without_value = false;
         auto value = object["value"];
         if (value.isDouble()) {
-            entrytype.t = EntryType_enum::Number;
+            entrytype.t = EntryType::Number;
         } else if (value.isString()) {
-            entrytype.t = EntryType_enum::Text;
+            entrytype.t = EntryType::Text;
             QString str = value.toString();
             if ((str.startsWith("[")) && (str.endsWith("]"))) {
-                entrytype.t = EntryType_enum::Reference;
+                entrytype.t = EntryType::Reference;
             }
         } else if (value.isBool()) {
-            entrytype.t = EntryType_enum::Bool;
+            entrytype.t = EntryType::Bool;
         }
     }
 
@@ -3377,7 +3377,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
     }
     field_name = object.value("name").toString();
     switch (entrytype.t) {
-        case EntryType_enum::Number: {
+        case EntryType::Number: {
 //disable maybe-uninitialized warning for an optional type.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
@@ -3432,7 +3432,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             }
             return std::make_unique<NumericDataEntry>(field_name, desired_value, tolerance, std::move(unit), si_prefix, std::move(nice_name));
         }
-        case EntryType_enum::Bool: {
+        case EntryType::Bool: {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
             std::experimental::optional<bool> desired_value{};
@@ -3457,7 +3457,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             return std::make_unique<BoolDataEntry>(field_name, desired_value, nice_name);
             break;
         }
-        case EntryType_enum::Text: {
+        case EntryType::Text: {
             std::experimental::optional<QString> desired_value{};
             QString nice_name{};
             for (const auto &key : keys) {
@@ -3477,7 +3477,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             }
             return std::make_unique<TextDataEntry>(field_name, desired_value, nice_name);
         }
-        case EntryType_enum::DateTime: {
+        case EntryType::DateTime: {
             QString nice_name{};
             for (const auto &key : keys) {
                 if (key == "name") {
@@ -3497,7 +3497,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             }
             return std::make_unique<DateTimeDataEntry>(field_name, nice_name);
         }
-        case EntryType_enum::Reference: {
+        case EntryType::Reference: {
             QString reference_string{};
             QString nice_name{};
             NumericTolerance tolerance{};
@@ -3528,7 +3528,7 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
             }
             return std::make_unique<ReferenceDataEntry>(field_name, reference_string, tolerance, nice_name);
         }
-        case EntryType_enum::Unspecified: {
+        case EntryType::Unspecified: {
             throw DataEngineError(DataEngineErrorNumber::invalid_data_entry_type,
                                   QString("Dataengine: Invalid type in JSON object. Field name: %1").arg(field_name));
         }
@@ -3635,7 +3635,7 @@ void NumericDataEntry::set_actual_value(double actual_value) {
 }
 
 EntryType NumericDataEntry::get_entry_type() const {
-    return EntryType{EntryType_enum::Number};
+    return EntryType{EntryType::Number};
 }
 
 bool NumericDataEntry::is_desired_value_set() const {
@@ -3759,7 +3759,7 @@ void TextDataEntry::set_actual_value(QString actual_value) {
 }
 
 EntryType TextDataEntry::get_entry_type() const {
-    return EntryType{EntryType_enum::Text};
+    return EntryType{EntryType::Text};
 }
 
 void TextDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
@@ -3868,7 +3868,7 @@ void DateTimeDataEntry::set_actual_value(DataEngineDateTime actual_value) {
 }
 
 EntryType DateTimeDataEntry::get_entry_type() const {
-    return EntryType{EntryType_enum::DateTime};
+    return EntryType{EntryType::DateTime};
 }
 
 void DateTimeDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
@@ -4002,7 +4002,7 @@ void BoolDataEntry::set_actual_value(bool value) {
 }
 
 EntryType BoolDataEntry::get_entry_type() const {
-    return EntryType{EntryType_enum::Bool};
+    return EntryType{EntryType::Bool};
 }
 
 void BoolDataEntry::set_desired_value_from_desired(DataEngineDataEntry *from) {
@@ -4538,62 +4538,43 @@ DataEngineDateTime::DataEngineDateTime(QString text) {
     //another common date string: scpidevice:get_calibration(): "yyyy.MM.dd"
 
     //standard format: "yyyy-MM-dd ...."
-    dt_m = QDateTime::fromString(text, "yyyy.MM.dd");
-    precision_m = date;
-    if (!dt_m.isValid()) {
-        dt_m = QDateTime::fromString(text, "yyyy:MM:dd HH:mm:ss");
-        precision_m = date_time_s;
-    }
-    if (!dt_m.isValid()) {
-        QString text_tz = text;
-        if (text_tz.contains("+")) {
-            text_tz = text_tz.split("+")[0];
-        } else if (text_tz.contains("-")) {
-            text_tz = text_tz.split("-")[0];
-        }
-        text_tz = text_tz.trimmed();
-        dt_m = QDateTime::fromString(text_tz, "yyyy-MM-dd HH:mm:ss");
-        precision_m = date_time_s;
-    }
-    if (!dt_m.isValid()) {
-        dt_m = QDateTime{}.fromString(text, "yyyy-MM-dd");
-        precision_m = date;
-    }
-    if (!dt_m.isValid()) {
-        dt_m = QDateTime{}.fromString(text, "yyyy-MM-dd hh:mm");
-        precision_m = date_time;
-    }
-    if (!dt_m.isValid()) {
-        dt_m = QDateTime{}.fromString(text, "yyyy-MM-dd hh:mm:ss");
-        precision_m = date_time_s;
-    }
+    precision_m = DateTimeFormatPrecision::none;
+    dt_m = QDateTime();
 
-    if (!dt_m.isValid()) {
-        dt_m = QDateTime{}.fromString(text, "yyyy-MM-dd hh:mm:ss.zzz");
-        precision_m = date_time_ms;
+    QString text_tz = text;
+    if (text_tz.contains(" +")) {
+        text_tz = text_tz.split(" +")[0];
+    } else if (text_tz.contains(" -")) {
+        text_tz = text_tz.split(" -")[0];
     }
-    if (!dt_m.isValid()) {
-        precision_m = none;
+    text = text_tz.trimmed();
+
+    for (const auto &format : formats()) {
+        dt_m = QDateTime::fromString(text, format.format);
+        if (dt_m.isValid()) {
+            precision_m = format.precision_m;
+            break;
+        }
     }
 }
 
 DataEngineDateTime::DataEngineDateTime(QDate date) {
     dt_m = QDateTime(date);
-    precision_m = DataEngineDateTime::date;
+    precision_m = DateTimeFormatPrecision::date;
 }
 
 DataEngineDateTime::DataEngineDateTime(QDateTime datetime) {
     dt_m = datetime;
-    precision_m = DataEngineDateTime::date_time_s;
+    precision_m = DateTimeFormatPrecision::date_time_s;
 }
 
 DataEngineDateTime::DataEngineDateTime(double secs_since_epoch) {
     dt_m = QDateTime::fromMSecsSinceEpoch(round(secs_since_epoch * 1000));
-    precision_m = date_time_s;
+    precision_m = DateTimeFormatPrecision::date_time_s;
 }
 
 bool DataEngineDateTime::isValid() const {
-    return (precision_m != none) && (dt_m.isValid());
+    return (precision_m != DateTimeFormatPrecision::none) && (dt_m.isValid());
 }
 
 QDateTime DataEngineDateTime::dt() const {
@@ -4602,16 +4583,42 @@ QDateTime DataEngineDateTime::dt() const {
 
 QString DataEngineDateTime::str() const {
     switch (precision_m) {
-        case DataEngineDateTime::date_time_ms:
+        case DateTimeFormatPrecision::date_time_ms:
             return dt_m.toString("yyyy-MM-dd hh:mm:ss.zzz");
-        case DataEngineDateTime::date_time_s:
+        case DateTimeFormatPrecision::date_time_s:
             return dt_m.toString("yyyy-MM-dd hh:mm:ss");
-        case DataEngineDateTime::date_time:
+        case DateTimeFormatPrecision::date_time:
             return dt_m.toString("yyyy-MM-dd hh:mm");
-        case DataEngineDateTime::date:
+        case DateTimeFormatPrecision::date:
             return dt_m.toString("yyyy-MM-dd");
-        case DataEngineDateTime::none:
+        case DateTimeFormatPrecision::none:
             return "";
     }
     return "";
+}
+
+QList<DateTimeFormatPrecision> DataEngineDateTime::formats() {
+    QList<DateTimeFormatPrecision> result{
+        //another common date string: vc.h/GITDATE: "2019-01-15" (covered by datetime_from_string)
+        //another common date string: report_dump/general/datetime_str "yyyy:MM:dd HH:mm:ss";
+        //another common date string: git_info().date: 2018-12-19 12:50:01 +0100
+        //another common date string: scpidevice:get_calibration(): "yyyy.MM.dd"
+
+        {{QString("yyyy.MM.dd"), DateTimeFormatPrecision::date}, //
+         {QString("yyyy:MM:dd HH:mm:ss"), DateTimeFormatPrecision::date_time_s},
+         {QString("yyyy-MM-dd HH:mm:ss"), DateTimeFormatPrecision::date_time_s},
+         {QString("yyyy-MM-dd"), DateTimeFormatPrecision::date},
+         {QString("yyyy-MM-dd hh:mm"), DateTimeFormatPrecision::date_time},
+         {QString("yyyy-MM-dd hh:mm:ss"), DateTimeFormatPrecision::date_time_s},
+         {QString("yyyy-MM-dd hh:mm:ss.zzz"), DateTimeFormatPrecision::date_time_ms}} //
+    };
+    return result;
+}
+
+QStringList DataEngineDateTime::allowed_formats() {
+    QStringList result;
+    for (auto fmt : formats()) {
+        result.append(fmt.format);
+    }
+    return result;
 }

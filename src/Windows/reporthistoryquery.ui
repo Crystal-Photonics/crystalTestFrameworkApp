@@ -17,7 +17,7 @@
    <item row="5" column="0" colspan="2">
     <widget class="QStackedWidget" name="stk_report_history">
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="page_2">
       <layout class="QGridLayout" name="gridLayout_5">
@@ -72,8 +72,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>197</width>
-            <height>102</height>
+            <width>746</width>
+            <height>543</height>
            </rect>
           </property>
           <attribute name="label">
@@ -285,8 +285,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>98</width>
-                <height>88</height>
+                <width>388</width>
+                <height>499</height>
                </rect>
               </property>
               <attribute name="label">
@@ -303,8 +303,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>98</width>
-                <height>28</height>
+                <width>100</width>
+                <height>30</height>
                </rect>
               </property>
               <attribute name="label">

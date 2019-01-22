@@ -16,6 +16,7 @@
 		{
 			"field_name": "report/gerate_daten/seriennummer",
 			"incremention_selector_expression":"(\\d*)",
+			"field_type" : "Number",
 			"conditions":[
 				{
 					"values" : [
