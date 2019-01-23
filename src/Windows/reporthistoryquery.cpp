@@ -80,7 +80,7 @@ void ReportHistoryQuery::add_new_query_page() {
 }
 
 void ReportHistoryQuery::add_new_query_page(ReportQuery &report_query, QGridLayout *grid_layout, QWidget *tool_widget) {
-    ui->tb_queries->addItem(tool_widget, "");
+    ui->tb_queries->addItem(tool_widget, report_query.data_engine_source_file_m);
     ui->tb_queries->setCurrentIndex(ui->tb_queries->count() - 1);
 
     connect(report_query.btn_query_report_file_browse_m, &QToolButton::clicked, [this, report_query](bool checked) {
@@ -173,7 +173,7 @@ void ReportHistoryQuery::on_btn_back_clicked() {
     }
 }
 
-void ReportHistoryQuery::load_select_ui_to_query() {
+bool ReportHistoryQuery::load_select_ui_to_query() {
     for (int i = 0; i < ui->tree_query_fields->topLevelItemCount(); i++) {
         QTreeWidgetItem *top_level_item = ui->tree_query_fields->topLevelItem(i);
         auto &query = report_query_config_file_m.find_query(top_level_item->text(0));
@@ -212,8 +212,28 @@ void ReportHistoryQuery::load_select_ui_to_query() {
     }
     QList<ReportQueryWhereField> &where_fields = report_query_config_file_m.get_where_fields_not_const();
     for (auto &where_field : where_fields) {
-        where_field.load_values_from_plain_text();
+        try {
+            where_field.load_values_from_plain_text();
+            where_field.lbl_warning_m->setText("");
+            QIcon icon_warn = QIcon{};
+            int index = ui->tb_where->indexOf(where_field.parent_m);
+            ui->tb_where->setItemIcon(index, icon_warn);
+        } catch (WhereFieldInterpretationError &e) {
+            //   qDebug() << e.what();
+            QIcon icon_warn = QIcon{"://src/icons/warning_16.ico"};
+            where_field.lbl_warning_m->setText("Error: " + QString().fromStdString(e.what()));
+            QPalette palette = where_field.lbl_warning_m->palette();
+            palette.setColor(where_field.lbl_warning_m->backgroundRole(), Qt::darkRed);
+            palette.setColor(where_field.lbl_warning_m->foregroundRole(), Qt::darkRed);
+            where_field.lbl_warning_m->setPalette(palette);
+            int index = ui->tb_where->indexOf(where_field.parent_m);
+            ui->tb_where->setItemIcon(index, icon_warn);
+            ui->tb_where->setCurrentIndex(index);
+            QMessageBox::warning(MainWindow::mw, QString("Value parsing error"), QString("There is an error in the where-values: %1").arg(e.what()));
+            return false;
+        }
     }
+    return true;
 }
 
 void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
@@ -234,10 +254,14 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
                 QString typ_name = "";
                 QTreeWidgetItem *general_entry =
                     new QTreeWidgetItem(root_general_widget, QStringList{general_field.field_name_m, general_field.field_type_m.to_string()});
-
-                general_entry->setCheckState(0, Qt::Unchecked);
+                QString fn = "general/" + general_field.field_name_m;
+                if (query.select_field_names_m.contains(fn)) {
+                    general_entry->setCheckState(0, Qt::Checked);
+                } else {
+                    general_entry->setCheckState(0, Qt::Unchecked);
+                }
                 general_entry->setFlags(item_flags_checkable);
-                general_entry->setData(0, Qt::UserRole, "general/" + general_field.field_name_m);
+                general_entry->setData(0, Qt::UserRole, fn);
                 //  qDebug() << "general/" + general_field.field_name;
             }
 
@@ -246,47 +270,58 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
                 for (const auto &data_engine_field : fields.report_fields_m.value(section_name)) {
                     QTreeWidgetItem *report_entry =
                         new QTreeWidgetItem(report_section_entry, QStringList{data_engine_field.field_name_m, data_engine_field.field_type_m.to_string()});
-                    report_entry->setCheckState(0, Qt::Unchecked);
+
+                    QString fn = "report/" + section_name + "/" + data_engine_field.field_name_m;
+                    if (query.select_field_names_m.contains(fn)) {
+                        report_entry->setCheckState(0, Qt::Checked);
+                    } else {
+                        report_entry->setCheckState(0, Qt::Unchecked);
+                    }
                     report_entry->setFlags(item_flags_checkable);
-                    report_entry->setData(0, Qt::UserRole, "report/" + section_name + "/" + data_engine_field.field_name_m);
+                    report_entry->setData(0, Qt::UserRole, fn);
                     //    qDebug() << "report/" + section_name + "/" + data_engine_field.field_name;
                 }
             }
         }
         ui->tree_query_fields->expandAll();
     } else if ((old_stk_report_history_index_m == 1) && (arg1 == 2)) {
-        load_select_ui_to_query();
-        QMap<QString, QList<QVariant>> query_result = report_query_config_file_m.execute_query();
-        ui->tableWidget->clear();
-        ui->tableWidget->setColumnCount(query_result.keys().count());
-        ui->tableWidget->setHorizontalHeaderLabels(query_result.keys());
-        int row_count = 0;
-        for (auto key : query_result.keys()) {
-            if (query_result.value(key).count() > row_count) {
-                row_count = query_result.value(key).count();
-            }
-        }
-        ui->tableWidget->setRowCount(row_count);
-        int col_index = 0;
-        for (auto key : query_result.keys()) {
-            const auto &row_values = query_result.value(key);
-            int row_index = 0;
-            for (const auto &val : row_values) {
-                QString s;
-                if (val.canConvert<DataEngineDateTime>()) {
-                    s = val.value<DataEngineDateTime>().str();
-                } else {
-                    s = val.toString();
+        if (load_select_ui_to_query()) {
+            QMap<QString, QList<QVariant>> query_result = report_query_config_file_m.execute_query();
+            ui->tableWidget->clear();
+            ui->tableWidget->setColumnCount(query_result.keys().count());
+            ui->tableWidget->setHorizontalHeaderLabels(query_result.keys());
+            int row_count = 0;
+            for (auto key : query_result.keys()) {
+                if (query_result.value(key).count() > row_count) {
+                    row_count = query_result.value(key).count();
                 }
-                QTableWidgetItem *item = new QTableWidgetItem(s, 0);
-                ui->tableWidget->setItem(row_index, col_index, item);
-                row_index++;
             }
-            col_index++;
+            ui->tableWidget->setRowCount(row_count);
+            int col_index = 0;
+            for (auto key : query_result.keys()) {
+                const auto &row_values = query_result.value(key);
+                int row_index = 0;
+                for (const auto &val : row_values) {
+                    QString s;
+                    if (val.canConvert<DataEngineDateTime>()) {
+                        s = val.value<DataEngineDateTime>().str();
+                    } else {
+                        s = val.toString();
+                    }
+                    QTableWidgetItem *item = new QTableWidgetItem(s, 0);
+                    ui->tableWidget->setItem(row_index, col_index, item);
+                    row_index++;
+                }
+                col_index++;
+            }
+        } else {
+            ui->stk_report_history->setCurrentIndex(old_stk_report_history_index_m);
+            arg1 = old_stk_report_history_index_m;
         }
     }
     old_stk_report_history_index_m = arg1;
     ui->btn_export_query->setVisible((arg1 == 1) || (arg1 == 2));
+    ui->btn_next->setVisible(arg1 < 3);
 }
 
 void ReportHistoryQuery::on_btn_close_clicked() {
@@ -322,6 +357,7 @@ void ReportQueryConfigFile::create_new_where_ui(QWidget *parent, ReportQueryWher
     if (parent) {
         QGridLayout *gl = dynamic_cast<QGridLayout *>(parent->layout());
         report_where.plainTextEdit_m = new QPlainTextEdit();
+        report_where.parent_m = parent;
         QStringList text;
         for (auto &where_seg : report_where.field_values_m) {
             for (auto &where_segment_value : where_seg.values_m) {
@@ -360,7 +396,9 @@ void ReportQueryConfigFile::create_new_where_ui(QWidget *parent, ReportQueryWher
         for (auto &t : text) {
             report_where.plainTextEdit_m->appendPlainText(t);
         }
-        gl->addWidget(report_where.plainTextEdit_m, 0, 1);
+        gl->addWidget(report_where.plainTextEdit_m, 0, 0);
+        report_where.lbl_warning_m = new QLabel();
+        gl->addWidget(report_where.lbl_warning_m, 1, 0);
     }
 };
 
@@ -746,128 +784,125 @@ void ReportQueryWhereField::load_values_from_plain_text() {
     QString plainTextEditContents = plainTextEdit_m->toPlainText();
     QStringList plain_text = plainTextEditContents.split("\n");
     field_values_m.clear();
-    try {
-        switch (field_type_m.t) {
-            case EntryType::Number: {
-                ReportQueryWhereFieldValues value;
-                for (auto s : plain_text) {
-                    s = s.trimmed();
-                    if (s == "") {
-                        continue;
-                    }
-                    if (s == "*") {
-                        value.include_greater_values_till_next_entry_m = true;
-                        field_values_m.append(value);
-                        value = ReportQueryWhereFieldValues();
-                        continue;
-                    }
-                    bool parse_ok = false;
-                    double num_value = s.toDouble(&parse_ok);
-                    if (!parse_ok) {
-                        throw WhereFieldInterpretationError("cannot convert '" + s + "' to number");
-                    }
-                    value.values_m.append(QVariant(num_value));
-                }
-                if (value.values_m.count()) {
-                    field_values_m.append(value);
-                }
-            } //
-            break;
-            case EntryType::DateTime: //
-            {
-                ReportQueryWhereFieldValues value;
-                for (auto s : plain_text) {
-                    s = s.trimmed();
-                    if (s == "") {
-                        continue;
-                    }
-                    if (s == "*") {
-                        value.include_greater_values_till_next_entry_m = true;
-                        field_values_m.append(value);
-                        value = ReportQueryWhereFieldValues();
-                        continue;
-                    }
-                    DataEngineDateTime datetime_value(s);
-                    if (!datetime_value.isValid()) {
-                        throw WhereFieldInterpretationError("cannot convert '" + s + "' to date time. Allowed formats: " +
-                                                            DataEngineDateTime::allowed_formats().join(", "));
-                    }
-                    QVariant val;
-                    val.setValue<DataEngineDateTime>(datetime_value);
-                    value.values_m.append(val);
-                }
-                if (value.values_m.count()) {
-                    field_values_m.append(value);
-                }
-                if (field_values_m.count() == 0) {
-                    throw WhereFieldInterpretationError("Match values for " + field_name_m + " are not yet defined.");
-                }
-            } //
-            break;
-            case EntryType::Text: {
-                ReportQueryWhereFieldValues value;
-                for (auto s : plain_text) {
-                    s = s.trimmed();
-                    if (s == "") {
-                        continue;
-                    }
-                    if (s == "*") {
-                        throw WhereFieldInterpretationError("Wild cards for text fields are not allowed.");
-                    }
 
-                    value.values_m.append(s);
+    switch (field_type_m.t) {
+        case EntryType::Number: {
+            ReportQueryWhereFieldValues value;
+            for (auto s : plain_text) {
+                s = s.trimmed();
+                if (s == "") {
+                    continue;
                 }
-                if (value.values_m.count()) {
+                if (s == "*") {
+                    value.include_greater_values_till_next_entry_m = true;
                     field_values_m.append(value);
+                    value = ReportQueryWhereFieldValues();
+                    continue;
                 }
-                if (field_values_m.count() == 0) {
-                    throw WhereFieldInterpretationError("Match values for " + field_name_m + " are not yet defined.");
+                bool parse_ok = false;
+                double num_value = s.toDouble(&parse_ok);
+                if (!parse_ok) {
+                    throw WhereFieldInterpretationError("cannot convert '" + s + "' to number");
                 }
-            } //
-            break;
-            case EntryType::Bool: //
-            {
-                ReportQueryWhereFieldValues value;
-                int counter = 0;
-                for (auto s : plain_text) {
-                    s = s.trimmed();
-                    if (s == "") {
-                        continue;
-                    }
-                    QStringList true_words{"true", "ja", "yes", "wahr"};
-                    QStringList false_words{"false", "nein", "no", "falsch"};
-                    if (true_words.contains(s.toLower())) {
-                        value.values_m.append(QVariant(true));
-                    } else if (false_words.contains(s.toLower())) {
-                        value.values_m.append(QVariant(false));
-                    } else {
-                        throw WhereFieldInterpretationError("cannot convert '" + s + "' to bool. Allowed formats: " + true_words.join(", ") + " / " +
-                                                            false_words.join(", "));
-                    }
+                value.values_m.append(QVariant(num_value));
+            }
+            if (value.values_m.count()) {
+                field_values_m.append(value);
+            }
+        } //
+        break;
+        case EntryType::DateTime: //
+        {
+            ReportQueryWhereFieldValues value;
+            for (auto s : plain_text) {
+                s = s.trimmed();
+                if (s == "") {
+                    continue;
+                }
+                if (s == "*") {
+                    value.include_greater_values_till_next_entry_m = true;
+                    field_values_m.append(value);
+                    value = ReportQueryWhereFieldValues();
+                    continue;
+                }
+                DataEngineDateTime datetime_value(s);
+                if (!datetime_value.isValid()) {
+                    throw WhereFieldInterpretationError("cannot convert '" + s + "' to date time. Allowed formats: " +
+                                                        DataEngineDateTime::allowed_formats().join(", "));
+                }
+                QVariant val;
+                val.setValue<DataEngineDateTime>(datetime_value);
+                value.values_m.append(val);
+            }
+            if (value.values_m.count()) {
+                field_values_m.append(value);
+            }
+            if (field_values_m.count() == 0) {
+                throw WhereFieldInterpretationError("Match values for " + field_name_m + " are not yet defined.");
+            }
+        } //
+        break;
+        case EntryType::Text: {
+            ReportQueryWhereFieldValues value;
+            for (auto s : plain_text) {
+                s = s.trimmed();
+                if (s == "") {
+                    continue;
+                }
+                if (s == "*") {
+                    throw WhereFieldInterpretationError("Wild cards for text fields are not allowed.");
+                }
 
-                    value.values_m.append(s);
-                    counter++;
+                value.values_m.append(s);
+            }
+            if (value.values_m.count()) {
+                field_values_m.append(value);
+            }
+            if (field_values_m.count() == 0) {
+                throw WhereFieldInterpretationError("Match values for " + field_name_m + " are not yet defined.");
+            }
+        } //
+        break;
+        case EntryType::Bool: //
+        {
+            ReportQueryWhereFieldValues value;
+            int counter = 0;
+            for (auto s : plain_text) {
+                s = s.trimmed();
+                if (s == "") {
+                    continue;
                 }
-                if (value.values_m.count()) {
-                    field_values_m.append(value);
+                QStringList true_words{"true", "ja", "yes", "wahr"};
+                QStringList false_words{"false", "nein", "no", "falsch"};
+                if (true_words.contains(s.toLower())) {
+                    value.values_m.append(QVariant(true));
+                } else if (false_words.contains(s.toLower())) {
+                    value.values_m.append(QVariant(false));
+                } else {
+                    throw WhereFieldInterpretationError("cannot convert '" + s + "' to bool. Allowed formats: " + true_words.join(", ") + " / " +
+                                                        false_words.join(", "));
                 }
-                if (field_values_m.count() == 0) {
-                    throw WhereFieldInterpretationError("Match values for " + field_name_m + " are not yet defined.");
-                }
-                if (counter > 1) {
-                    throw WhereFieldInterpretationError("Bool fields only allow one match value");
-                }
-            } //
+
+                value.values_m.append(s);
+                counter++;
+            }
+            if (value.values_m.count()) {
+                field_values_m.append(value);
+            }
+            if (field_values_m.count() == 0) {
+                throw WhereFieldInterpretationError("Match values for " + field_name_m + " are not yet defined.");
+            }
+            if (counter > 1) {
+                throw WhereFieldInterpretationError("Bool fields only allow one match value");
+            }
+        } //
+        break;
+        case EntryType::Unspecified: //
+            assert(0);
             break;
-            case EntryType::Unspecified: //
-                assert(0);
-                break;
-            case EntryType::Reference: //
-                assert(0);
-                break;
-        }
-    } catch (WhereFieldInterpretationError &e) {
-        qDebug() << e.what();
+        case EntryType::Reference: //
+            assert(0);
+            break;
     }
 }
 

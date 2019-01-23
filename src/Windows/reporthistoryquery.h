@@ -14,6 +14,7 @@ class QLineEdit;
 class QToolButton;
 class QGridLayout;
 class QPlainTextEdit;
+class QLabel;
 
 namespace Ui {
     class ReportHistoryQuery;
@@ -58,6 +59,8 @@ class ReportQueryWhereField {
     QList<ReportQueryWhereFieldValues> field_values_m;
 
     QPlainTextEdit *plainTextEdit_m = nullptr;
+    QWidget *parent_m = nullptr;
+    QLabel *lbl_warning_m = nullptr;
 };
 
 class DataEngineField {
@@ -172,7 +175,7 @@ class ReportHistoryQuery : public QDialog {
 
     void clear_where_pages();
     void remove_where_page(int index);
-    void load_select_ui_to_query();
+    bool load_select_ui_to_query();
     int old_stk_report_history_index_m = 0;
 };
 

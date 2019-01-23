@@ -46,5 +46,10 @@
         <file>src/icons/app_icon_128.ico</file>
         <file>src/icons/app_icon_256.ico</file>
         <file>src/icons/app_icon_multisize.ico</file>
+        <file>src/icons/warning_16.ico</file>
+        <file>examples/scripts/example/data_engine_and_report/1/data_engine_and_report_example.lua</file>
+        <file>examples/scripts/example/data_engine_and_report/1/desire_values_aka_data_engine_source.json</file>
+        <file>examples/scripts/example/data_engine_and_report/1/desire_values_aka_data_engine_source.json.template_conf</file>
+        <file>examples/scripts/example/data_engine_and_report/1/report_template.lrxml</file>
     </qresource>
 </RCC>
