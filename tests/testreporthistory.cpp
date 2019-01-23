@@ -51,7 +51,7 @@ void TestReportHistory::scan_filter_report_files() {
     ReportQueryConfigFile query_config_file;
     query_config_file.load_from_file("../../tests/scripts/report_query/query_config_2.json");
     auto file_list = query_config_file.scan_folder_for_reports("../../tests/scripts/report_query");
-    QMap<QString, QList<QVariant>> query_result = query_config_file.filter_and_select_reports(file_list);
+    QMap<QString, QList<QVariant>> query_result = query_config_file.filter_and_select_reports(file_list, nullptr);
     auto test_duration_seconds = query_result.value("test_1_source_values/general/test_duration_seconds");
     auto pcb2_chargennummer = query_result.value("test_1_source_values/report/gerate_daten/pcb2_chargennummer");
     auto seriennummer = query_result.value("test_1_source_values/report/gerate_daten/seriennummer");
@@ -110,6 +110,38 @@ void TestReportHistory::read_report_fields() {
     QCOMPARE(data_engine_sections.general_fields_m.count(), referenz_liste.count());
     for (auto ref : referenz_liste) {
         QVERIFY(data_engine_field_list_contains_path(data_engine_sections.general_fields_m, ref));
+    }
+}
+
+void TestReportHistory::test_reduce_path() {
+    QStringList input{
+        //
+        {"test1/a/b/c/d.json/report/data/sn"}, //
+        {"test1/a/b/c/e.json/report/data/sn"},
+        {"test1/a/b/c/e.json/report/data/datetime"},
+        {"test1/a/b/c/e.json/report/data/today"},
+        {"test1/a/b/c/e.json/report/data2/today"},
+        {"test1/a/b/c/e.json/report/data/equal/string"},
+        {"test1/a/b/c/e.json/report/data/equal/string"}
+        //
+    };
+
+    QStringList output_wanted{
+        //
+        {"d.json/report/data/sn"}, //
+        {"e.json/report/data/sn"},
+        {"datetime"},
+        {"data/today"},
+        {"data2/today"},
+        {"test1/a/b/c/e.json/report/data/equal/string"},
+        {"test1/a/b/c/e.json/report/data/equal/string"}
+        //
+    };
+    auto output = ReportHistoryQuery::reduce_path(input);
+    int i = 0;
+    for (auto &out_s : output) {
+        QCOMPARE(out_s, output_wanted[i]);
+        i++;
     }
 }
 

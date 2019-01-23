@@ -14,6 +14,8 @@ class QLineEdit;
 class QToolButton;
 class QGridLayout;
 class QPlainTextEdit;
+class QProgressDialog;
+class QLabel;
 
 namespace Ui {
     class ReportHistoryQuery;
@@ -58,6 +60,8 @@ class ReportQueryWhereField {
     QList<ReportQueryWhereFieldValues> field_values_m;
 
     QPlainTextEdit *plainTextEdit_m = nullptr;
+    QWidget *parent_m = nullptr;
+    QLabel *lbl_warning_m = nullptr;
 };
 
 class DataEngineField {
@@ -119,7 +123,7 @@ class ReportQueryConfigFile {
     ReportQueryWhereField &add_new_where(QWidget *parent, QString field_name, EntryType field_type);
     bool remove_where(QString field_name);
     void remove_query(int index);
-    QMap<QString, QList<QVariant>> execute_query() const;
+    QMap<QString, QList<QVariant>> execute_query(QWidget *parent) const;
 
     void create_new_query_ui(QWidget *parent, ReportQuery &report_query);
 
@@ -127,7 +131,7 @@ class ReportQueryConfigFile {
 
     protected:
     QList<ReportLink> scan_folder_for_reports(QString base_dir_str) const;
-    QMap<QString, QList<QVariant>> filter_and_select_reports(const QList<ReportLink> &report_file_list) const;
+    QMap<QString, QList<QVariant>> filter_and_select_reports(const QList<ReportLink> &report_file_list, QProgressDialog *progress_dialog) const;
 
     private:
     QList<ReportQuery> report_queries_m;
@@ -146,7 +150,7 @@ class ReportHistoryQuery : public QDialog {
     void load_data_engine_source_file(QString file_name);
     void load_query_from_file(QString file_name);
     ~ReportHistoryQuery();
-
+    static QStringList reduce_path(QStringList sl);
     private slots:
     void on_btn_next_clicked();
     void on_btn_back_clicked();
@@ -156,9 +160,15 @@ class ReportHistoryQuery : public QDialog {
     void on_btn_where_del_clicked();
     void on_tree_query_fields_itemClicked(QTreeWidgetItem *item, int column);
 
-    void on_btn_export_query_clicked();
-
     void on_btn_import_clicked();
+
+    void on_cmb_query_recent_currentIndexChanged(int index);
+
+    void on_btn_save_query_clicked();
+
+    void on_btn_save_query_as_clicked();
+
+    void on_toolButton_3_clicked();
 
     private:
     Ui::ReportHistoryQuery *ui;
@@ -172,8 +182,12 @@ class ReportHistoryQuery : public QDialog {
 
     void clear_where_pages();
     void remove_where_page(int index);
-    void load_select_ui_to_query();
+    bool load_select_ui_to_query();
+    void load_recent_query_files();
+    void add_recent_query_files(QString file_name);
     int old_stk_report_history_index_m = 0;
+    QString query_filename_m;
+    void reduce_tb_query_path();
 };
 
 #endif // TESTRESULTQUERY_H

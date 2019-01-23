@@ -26,6 +26,8 @@ namespace Globals {
     static const auto console_is_collapsed_key = "console_is_collapsed_key";
     static const auto console_human_readable_view_key = "console_human_readable_view_key";
     static const auto user_entry_cache_path_key = "user_entry_cache_path_key";
+    static const auto report_history_query_path = "report_history_query_path";
+    static const auto recent_report_history_query_paths = "recent_report_history_query_paths";
 
     static const auto ui_blink_ratio = 8;
 }
