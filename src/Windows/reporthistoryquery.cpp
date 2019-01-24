@@ -334,7 +334,8 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
                     } else {
                         s = val.toString();
                     }
-                    QTableWidgetItem *item = new QTableWidgetItem(s, 0);
+                    auto *item = new MyTableWidgetItem(s, 0);
+                    item->setData(Qt::UserRole, val);
                     ui->tableWidget->setItem(row_index, col_index, item);
                     row_index++;
                 }
@@ -353,6 +354,49 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
     ui->btn_save_query_as->setEnabled(QFileInfo::exists(query_filename_m));
     ui->btn_next->setEnabled(arg1 < 2);
     ui->btn_back->setEnabled(arg1 > 0);
+}
+
+void ReportHistoryQuery::on_btn_result_export_clicked() {
+    QFileDialog dialog(this);
+    dialog.setFileMode(QFileDialog::AnyFile);
+    dialog.setNameFilter(tr("Report query result(*.csv)"));
+    dialog.setAcceptMode(QFileDialog::AcceptSave);
+    dialog.setDirectory(QSettings{}.value(Globals::report_history_query_path, "").toString());
+    if (dialog.exec()) {
+        const QChar SEPEARTOR = '\t';
+        QString file_name = dialog.selectedFiles()[0];
+        QFile csv_file(file_name);
+        if (csv_file.open(QFile::WriteOnly | QFile::Truncate)) {
+            QTextStream csv_stream(&csv_file);
+
+            for (int r = 0; r < ui->tableWidget->rowCount(); r++) {
+                if (r == 0) {
+                    for (int c = 0; c < ui->tableWidget->columnCount(); c++) {
+                        csv_stream << ui->tableWidget->horizontalHeaderItem(c)->text();
+                        if (c < ui->tableWidget->columnCount() - 1) {
+                            csv_stream << SEPEARTOR;
+                        }
+                    }
+                    csv_stream << "\n";
+                }
+                for (int c = 0; c < ui->tableWidget->columnCount(); c++) {
+                    QVariant data = ui->tableWidget->item(r, c)->data(Qt::UserRole);
+                    QString val;
+                    if (data.type() == QVariant::String) {
+                        val = "\"" + data.toString() + "\"";
+                    } else {
+                        val = ui->tableWidget->item(r, c)->text();
+                    }
+                    csv_stream << val;
+                    if (c < ui->tableWidget->columnCount() - 1) {
+                        csv_stream << SEPEARTOR;
+                    }
+                }
+                csv_stream << "\n";
+            }
+            csv_file.close();
+        }
+    }
 }
 
 void ReportHistoryQuery::on_btn_close_clicked() {
@@ -516,7 +560,9 @@ void ReportQueryConfigFile::remove_query(int index) {
 }
 
 QMap<QString, QList<QVariant>> ReportQueryConfigFile::execute_query(QWidget *parent) const {
-    QProgressDialog progress("Scanning files", "Abort Copy", 0, 100, parent);
+    QProgressDialog progress(
+        QObject::tr("Scanning files..\nIf this gets too slow, ask your systemadmin to set up a MongoDB server and the developer to use it."),
+        QObject::tr("Scaning files.."), 0, 100, parent);
     progress.setCancelButton(nullptr);
     progress.setWindowModality(Qt::WindowModal);
 

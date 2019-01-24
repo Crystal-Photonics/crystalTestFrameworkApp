@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QMap>
 #include <QString>
+#include <QTableWidgetItem>
 
 class QVariant;
 class QTreeWidgetItem;
@@ -170,6 +171,8 @@ class ReportHistoryQuery : public QDialog {
 
     void on_toolButton_3_clicked();
 
+    void on_btn_result_export_clicked();
+
     private:
     Ui::ReportHistoryQuery *ui;
     ReportQueryConfigFile report_query_config_file_m;
@@ -188,6 +191,26 @@ class ReportHistoryQuery : public QDialog {
     int old_stk_report_history_index_m = 0;
     QString query_filename_m;
     void reduce_tb_query_path();
+};
+
+class MyTableWidgetItem : public QTableWidgetItem {
+    public:
+    MyTableWidgetItem(const QString &text, int type = Type)
+        : QTableWidgetItem(text, type) {}
+    bool operator<(const QTableWidgetItem &other) const {
+        const QVariant &my_dt = data(Qt::UserRole);
+        const QVariant &other_dt = other.data(Qt::UserRole);
+        if (my_dt.type() == other_dt.type()) {
+            if (my_dt.type() == QVariant::Int) {
+                return my_dt.toInt() < other_dt.toInt();
+            } else if (my_dt.type() == QVariant::Double) {
+                return my_dt.toDouble() < other_dt.toDouble();
+            } else if (my_dt.canConvert<DataEngineDateTime>()) {
+                return my_dt.value<DataEngineDateTime>().dt() < other_dt.value<DataEngineDateTime>().dt();
+            }
+        }
+        return text().toInt() < other.text().toInt();
+    }
 };
 
 #endif // TESTRESULTQUERY_H
