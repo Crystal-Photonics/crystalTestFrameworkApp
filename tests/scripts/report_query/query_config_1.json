@@ -2,7 +2,7 @@
 	"queries":[
 		{
 			"report_path": "reports1/",
-			"data_engine_source_file": "F:\\protokolle",
+			"data_engine_source_file": "data_engine_source_1.json",
 			"select_field_names":[
 				"general/test_duration_seconds",
 				"report/gerate_daten/pcb2_chargennummer",

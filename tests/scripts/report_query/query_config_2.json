@@ -1,11 +1,29 @@
 {
 	"queries":[
 		{
+			"id":1,
 			"report_path": "reports1/",
-			"data_engine_source_file": "reports1/test_1_source_values.json",
+			"data_engine_source_file": "data_engine_source_1.json",
 			"select_field_names":[
 				"general/test_duration_seconds",
 				"report/gerate_daten/pcb2_chargennummer",
+				"report/gerate_daten/seriennummer"
+			]
+			
+			
+		},
+		{
+			"id":2,
+			"report_path": "reports2/",
+			"data_engine_source_file": "data_engine_source_2.json",
+			"link":{
+				"other_query_id": 1,
+				"other_field": "report/gerate_daten/seriennummer",
+				"me": "report/gerate_daten/seriennummer"
+			},
+			"select_field_names":[
+				"general/display_chargennummer",
+				"report/gerate_daten/led_pcb_chargennummer",
 				"report/gerate_daten/seriennummer"
 			]
 			
