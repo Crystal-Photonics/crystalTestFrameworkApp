@@ -15,7 +15,6 @@ void message_handler(QtMsgType type, const QMessageLogContext &context, const QS
             const auto function = context.function ? context.function : "unknown function";
             qDebug() << msg << "in" << file << ":" << function << ':' << context.line;
             if (context.file == nullptr) {
-                asm("int $3");
                 break;
             }
             auto show_message = [msg, file = std::string{file}, function = std::string{function}, line = context.line] {
@@ -35,7 +34,6 @@ void message_handler(QtMsgType type, const QMessageLogContext &context, const QS
             const auto function = context.function ? context.function : "unknown function";
             qDebug() << msg << "in" << file << ":" << function << ':' << context.line;
             if (context.file == nullptr) {
-                asm("int $3");
                 break;
             }
             auto show_message = [msg, file = std::string{file}, function = std::string{function}, line = context.line] {
