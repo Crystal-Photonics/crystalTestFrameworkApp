@@ -2,14 +2,15 @@
 #define SCRIPTENGINE_H
 
 #include "sol.hpp"
+
 #include <QDebug>
 #include <QEventLoop>
 #include <QList>
-#include <QMutex>
 #include <QString>
-#include <QWaitCondition>
+#include <condition_variable>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 class CommunicationDevice;
@@ -35,16 +36,8 @@ class DeviceRequirements {
     QString alias;
 };
 
-namespace HotKeyEvent {
-    enum HotKeyEvent { confirm_pressed, skip_pressed, cancel_pressed, interrupted = -1 };
-}
-
-namespace TimerEvent {
-    enum TimerEvent { expired, interrupted = -1 };
-}
-
-namespace UiEvent {
-    enum UiEvent { activated, interrupted = -1 };
+namespace Event_id {
+    enum Event_id { Hotkey_confirm_pressed, Hotkey_skip_pressed, Hotkey_cancel_pressed, Timer_expired, UI_activated, interrupted = -1, invalid = -2 };
 }
 
 class ScriptEngine {
@@ -58,15 +51,17 @@ class ScriptEngine {
     ScriptEngine(ScriptEngine &&) = delete;
     ~ScriptEngine();
 
-    void pause_timer();
-    void resume_timer();
-    TimerEvent::TimerEvent timer_event_queue_run(int timeout_ms);
-    UiEvent::UiEvent ui_event_queue_run();
-    HotKeyEvent::HotKeyEvent hotkey_event_queue_run();
+    //TimerEvent::TimerEvent timer_event_queue_run(int timeout_ms);
+    //UiEvent::UiEvent ui_event_queue_run();
+    //HotKeyEvent::HotKeyEvent hotkey_event_queue_run();
 
-    void hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent event);
-    void ui_event_queue_send();
-    void event_queue_interrupt();
+    Event_id::Event_id await_timeout(std::chrono::milliseconds timeout);
+    Event_id::Event_id await_ui_event();
+    Event_id::Event_id await_hotkey_event();
+
+    void post_hotkey_event(Event_id::Event_id event);
+    void post_ui_event();
+    void post_interrupt(QString message = {});
 
     void load_script(const std::string &path);
     static void launch_editor(QString path, int error_line = 1);
@@ -76,7 +71,6 @@ class ScriptEngine {
     static std::string to_string(const sol::stack_proxy &object);
     QString get_absolute_filename(QString file_to_open);
 
-    void interrupt(QString msg);
     sol::table create_table();
 
     private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
@@ -97,16 +91,13 @@ class ScriptEngine {
     QString additional_pdf_path;
     QString data_engine_pdf_template_path;
 
-	QEventLoop event_loop;
-
-    int event_queue_run_();
     TestRunner *owner{nullptr};
 
-    QMutex timer_pause_mutex;
-    QWaitCondition timer_pause;
-    bool timer_pause_condition = false;
+    std::mutex await_mutex;
+    std::condition_variable await_condition_variable;
+    Event_id::Event_id await_condition = Event_id::invalid;
 
-	friend void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script_engine);
+    friend void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script_engine);
 };
 
 template <class ReturnType, class... Arguments>

@@ -28,7 +28,6 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
     assert(console);
     console->setVisible(false);
     thread.adopt(*this);
-    thread.adopt(script.event_loop);
     thread.start();
     try {
         script.load_script(description.get_filepath().toStdString());
@@ -43,9 +42,8 @@ TestRunner::~TestRunner() {
 }
 
 void TestRunner::interrupt() {
-    this->script.event_queue_interrupt();
     MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script interrupted"; });
-    script.event_loop.quit();
+    script.post_interrupt();
     thread.requestInterruption();
 }
 
@@ -53,7 +51,9 @@ void TestRunner::message_queue_join() {
     qDebug() << "Waiting from" << QThread::currentThread() << "for" << &thread.qthread_object();
     assert(not thread.is_current());
     while (!thread.wait(16)) {
+        qDebug() << "Processing events";
         QApplication::processEvents();
+        qDebug() << "Done Processing events";
     }
 }
 
@@ -61,14 +61,6 @@ void TestRunner::blocking_join() {
     qDebug() << "Waiting from" << QThread::currentThread() << "for" << &thread.qthread_object();
     assert(not thread.is_current());
     thread.wait();
-}
-
-void TestRunner::pause_timers() {
-    this->script.pause_timer();
-}
-
-void TestRunner::resume_timers() {
-    this->script.resume_timer();
 }
 
 sol::table TestRunner::create_table() {

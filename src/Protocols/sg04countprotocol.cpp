@@ -65,7 +65,6 @@ SG04CountProtocol::SG04CountProtocol(CommunicationDevice &device, DeviceProtocol
                 }
             }
         }
-
     });
 #endif
     assert(connection);
@@ -124,7 +123,7 @@ uint SG04CountProtocol::accumulate_counts(ScriptEngine *script_engine, uint time
     int timeout_interval = time_ms / SG04_COUNT_INTERVAL_MS;
 
     while (timeout_interval > 0) {
-        script_engine->timer_event_queue_run(SG04_COUNT_INTERVAL_MS * 2);
+        script_engine->await_timeout(std::chrono::milliseconds{SG04_COUNT_INTERVAL_MS} * 2);
         received_counts_mutex.lock();
         for (auto i : received_count_packages) {
             result += i;

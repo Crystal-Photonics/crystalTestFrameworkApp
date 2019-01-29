@@ -5,7 +5,6 @@
 #include "ui_container.h"
 #include "util.h"
 
-#include <QResizeEvent>
 #include <QCheckBox>
 #include <QDoubleValidator>
 #include <QHBoxLayout>
@@ -14,6 +13,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QSettings>
 #include <QShortcut>
 #include <QSplitter>
@@ -68,12 +68,12 @@ UserInstructionLabel::UserInstructionLabel(UI_container *parent, ScriptEngine *s
     hlayout->addLayout(vlayout_yes);
     hlayout->addLayout(vlayout_no);
 
-    callback_button_yes = QObject::connect(button_yes, &QPushButton::clicked,
-                                           [script_engine]() { script_engine->hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent::confirm_pressed); });
-    callback_button_no = QObject::connect(button_no, &QPushButton::clicked,
-                                          [script_engine]() { script_engine->hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent::cancel_pressed); });
-    callback_button_next = QObject::connect(button_next, &QPushButton::clicked,
-                                            [script_engine]() { script_engine->hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent::confirm_pressed); });
+    callback_button_yes =
+        QObject::connect(button_yes, &QPushButton::clicked, [this]() { this->script_engine->post_hotkey_event(Event_id::Hotkey_confirm_pressed); });
+    callback_button_no =
+        QObject::connect(button_no, &QPushButton::clicked, [this]() { this->script_engine->post_hotkey_event(Event_id::Hotkey_cancel_pressed); });
+    callback_button_next =
+        QObject::connect(button_next, &QPushButton::clicked, [this]() { this->script_engine->post_hotkey_event(Event_id::Hotkey_confirm_pressed); });
 
     start_timer();
     timer->start(500);
@@ -129,7 +129,7 @@ bool UserInstructionLabel::run_hotkey_loop() {
     Utility::promised_thread_call(MainWindow::mw, [this] {      //
         set_enabled(true);
     });
-    if (script_engine->hotkey_event_queue_run() == HotKeyEvent::HotKeyEvent::confirm_pressed) {
+    if (script_engine->await_hotkey_event() == Event_id::Hotkey_confirm_pressed) {
         return true;
     } else {
         return false;
@@ -196,7 +196,6 @@ void UserInstructionLabel::start_timer() {
             label_user_instruction->setFixedHeight(label_user_instruction->height());
         }
         blink_state++;
-
     });
 }
 ///\endcond

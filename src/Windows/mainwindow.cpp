@@ -357,13 +357,10 @@ void MainWindow::shutdown() {
     }
 
     auto done = std::async(std::launch::async, [this] {
-        for (auto &test : test_runners) {
-            qDebug() << "Joining from thread" << QThread::currentThread();
-            test->blocking_join();
-        }
-        test_runners.clear();
         Utility::promised_thread_call(this, [&] {
+            ui->test_tabs->clear();
             test_descriptions.clear(); //must clear descriptions in GUI thread because it touches GUI
+            test_runners.clear();
         });
         devices_thread.quit();
         qDebug() << "Waiting from" << QThread::currentThread() << "for" << &devices_thread;
@@ -530,6 +527,10 @@ void MainWindow::add_clear_button_to_console(QPlainTextEdit *console) {
 }
 
 void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State state) {
+    if (std::find(std::begin(test_runners), std::end(test_runners), testrunner) == std::end(test_runners)) {
+        qDebug() << "Tried to set the state of dead test runner" << static_cast<void *>(testrunner);
+        return;
+    }
     assert(currently_in_gui_thread());
     QString prefix = " ";
     Qt::GlobalColor color = Qt::black;
@@ -591,8 +592,6 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 }
 
 void MainWindow::show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon) {
-    //is called from other threads
-    assert(currently_in_gui_thread() == false);
     Utility::thread_call(this, [this, title, message, icon] {
         switch (icon) {
             default:
@@ -960,42 +959,20 @@ TestRunner *MainWindow::get_runner_from_tab_index(int index) {
 
 void MainWindow::closeEvent(QCloseEvent *event) {
 #if 1
-    bool one_is_running = false;
-    for (auto &test : test_runners) {
-        if (test->is_running()) {
-            one_is_running = true;
-            break;
-        }
-    }
+    const bool one_is_running = std::any_of(std::begin(test_runners), std::end(test_runners), [](auto &runner) { return runner->is_running(); });
     if (one_is_running) {
-        for (auto &test : test_runners) {
-            if (test->is_running()) {
-                test->pause_timers();
-            }
-        }
-
         if (QMessageBox::question(this, tr(""), tr("Scripts are still running. Abort them now?"), QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
             for (auto &test : test_runners) {
                 if (test->is_running()) {
-                    test->resume_timers();
                     test->interrupt();
                     test->message_queue_join();
                 }
             }
-
         } else {
             event->ignore();
-            for (auto &test : test_runners) {
-                if (test->is_running()) {
-                    test->resume_timers();
-                }
-            }
             return; //canceled closing the window
         }
-
-        QApplication::processEvents();
-        test_runners.clear();
-        QApplication::processEvents();
+        shutdown();
     }
     event->accept();
 #endif
@@ -1024,21 +1001,14 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
         return;
     }
     auto &runner = **runner_it;
-    if (runner.is_running()) {
-        runner.pause_timers();
-        if (QMessageBox::question(this, tr(""), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
-                                  QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
-            runner.resume_timers();
-            runner.interrupt();
-            runner.message_queue_join();
-        } else {
-            runner.resume_timers();
-            return; //canceled closing the tab
-        }
+    if (QMessageBox::question(this, tr("Abort script?"), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
+                              QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok) {
+        return; //canceled closing the tab
     }
-    QApplication::processEvents();
+    runner.interrupt();
+    runner.message_queue_join();
+    QApplication::processEvents(); //runner may have sent events referencing runner. Need to process all such events before removing runner.
     test_runners.erase(runner_it);
-    QApplication::processEvents();
     ui->test_tabs->removeTab(index);
 }
 

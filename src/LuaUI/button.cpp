@@ -1,4 +1,5 @@
 #include "button.h"
+#include "util.h"
 
 #include <QPushButton>
 #include <QSplitter>
@@ -31,9 +32,11 @@ void Button::reset_click_state() {
 }
 
 void Button::await_click() {
-    QMetaObject::Connection callback_connection = QObject::connect(button, &QPushButton::pressed, [this] { script_engine->ui_event_queue_send(); });
-    script_engine->ui_event_queue_run();
-    QObject::disconnect(callback_connection);
+    QMetaObject::Connection callback_connection;
+    auto connector = Utility::RAII_do(
+        [&callback_connection, this] { callback_connection = QObject::connect(button, &QPushButton::pressed, [this] { script_engine->post_ui_event(); }); },
+        [&callback_connection] { QObject::disconnect(callback_connection); });
+    script_engine->await_ui_event();
 }
 
 void Button::set_visible(bool visible) {

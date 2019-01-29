@@ -85,11 +85,7 @@ bool UserWaitLabel::run_hotkey_loop() {
     Utility::promised_thread_call(MainWindow::mw, [this] {      //
         set_enabled(true);
     });
-    if (script_engine->hotkey_event_queue_run() == HotKeyEvent::HotKeyEvent::confirm_pressed) {
-        return true;
-    } else {
-        return false;
-    }
+    return (script_engine->await_hotkey_event() == Event_id::Hotkey_confirm_pressed);
 }
 
 void UserWaitLabel::set_text(const std::string &instruction_text) {
@@ -107,7 +103,6 @@ void UserWaitLabel::set_enabled(bool enabled) {
 
     if (enabled) {
         timer->start(500);
-
     } else {
         timer->stop();
     }
@@ -133,7 +128,6 @@ void UserWaitLabel::start_timer() {
             label_user_instruction->setFixedHeight(label_user_instruction->height());
         }
         blink_state++;
-
     });
 }
 ///\endcond

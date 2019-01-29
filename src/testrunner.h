@@ -31,8 +31,6 @@ class TestRunner : QObject {
     void interrupt();
     void message_queue_join();
     void blocking_join();
-    void pause_timers();
-    void resume_timers();
     sol::table create_table();
     template <class ReturnType, class... Arguments>
     ReturnType call(const char *function_name, Arguments &&... args);
@@ -47,7 +45,7 @@ class TestRunner : QObject {
     QObject *obj();
 
     private:
-	Utility::Qt_thread thread{};
+    Utility::Qt_thread thread{};
     UI_container *lua_ui_container{nullptr};
     std::unique_ptr<Data_engine> data_engine{std::make_unique<Data_engine>()};
     ScriptEngine script;

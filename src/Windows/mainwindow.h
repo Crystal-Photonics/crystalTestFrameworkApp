@@ -10,6 +10,7 @@
 #include <QListWidgetItem>
 #include <QMainWindow>
 #include <QMessageBox>
+#include <QMutex>
 #include <QThread>
 #include <QTreeWidgetItem>
 #include <QtSerialPort/QSerialPortInfo>
@@ -38,6 +39,12 @@ class EXPORT MainWindow : public QMainWindow {
     Q_OBJECT
 
     enum class ViewMode { None, AllScripts, FavoriteScripts };
+
+    public:
+    signals:
+    void confirm_key_sequence_pressed();
+    void skip_key_sequence_pressed();
+    void cancel_key_sequence_key_pressed();
 
     public:
     explicit MainWindow(QWidget *parent = nullptr);
@@ -116,7 +123,7 @@ class EXPORT MainWindow : public QMainWindow {
     std::vector<std::unique_ptr<TestRunner>> test_runners;
 
     std::unique_ptr<DeviceWorker> device_worker;
-	Utility::Qt_thread devices_thread;
+    Utility::Qt_thread devices_thread;
 
     QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;

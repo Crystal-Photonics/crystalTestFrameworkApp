@@ -90,7 +90,7 @@ namespace Utility {
                 } catch (const std::exception &e) {
                     //qDebug() << e.what();
                     if (script_engine_to_terminate_on_exception__) {
-                        script_engine_to_terminate_on_exception__->interrupt(QString::fromStdString(e.what()));
+                        script_engine_to_terminate_on_exception__->post_interrupt(QString::fromStdString(e.what()));
                         //assert(!"Must not leak exceptions to qt message queue");
                         //std::terminate();
                     } else {
