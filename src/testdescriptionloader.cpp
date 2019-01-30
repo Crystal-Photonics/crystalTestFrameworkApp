@@ -54,7 +54,7 @@ TestDescriptionLoader::TestDescriptionLoader(QTreeWidget *test_list, const QStri
         name.chop(4);
     }
     ui_entry.reset(add_entry(test_list, display_name.split('/')));
-    ui_entry->setData(0, Qt::UserRole, Utility::make_qvariant(this));
+	ui_entry->setData(0, Qt::UserRole, QVariant::fromValue(this));
     reload();
 }
 
@@ -64,7 +64,7 @@ TestDescriptionLoader::TestDescriptionLoader(TestDescriptionLoader &&other)
     , name(std::move(other.name))
     , file_path(std::move(other.file_path))
     , device_requirements(std::move(other.device_requirements)) {
-    ui_entry->setData(0, Qt::UserRole, Utility::make_qvariant(this));
+	ui_entry->setData(0, Qt::UserRole, QVariant::fromValue(this));
 }
 
 TestDescriptionLoader::~TestDescriptionLoader() {}

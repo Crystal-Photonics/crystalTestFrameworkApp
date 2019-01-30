@@ -2,10 +2,10 @@
 #define MAINWINDOW_H
 
 #include "export.h"
+#include "favorite_scripts.h"
 #include "qt_util.h"
 #include "testrunner.h"
 
-#include "favorite_scripts.h"
 #include <QDebug>
 #include <QListWidgetItem>
 #include <QMainWindow>
@@ -185,7 +185,7 @@ bool operator==(const T *lhs, const std::unique_ptr<T> &rhs) {
 
 template <class Function, class... Args>
 void MainWindow::execute_in_gui_thread(Function f, Args &&... args) {
-    Utility::thread_call(this, [f = std::move(f), args...]() mutable { f(std::move(args)...); });
+	Utility::thread_call(this, [ f = std::move(f), args... ]() mutable { f(std::move(args)...); });
 }
 
 template <class Lua_UI_class>
@@ -205,5 +205,7 @@ template <class Lua_UI_class>
 Lua_UI_class &MainWindow::get_lua_UI_class(int id) {
     return lua_classes<Lua_UI_class>.at(id);
 }
+
+Q_DECLARE_METATYPE(QTreeWidgetItem *);
 
 #endif // MAINWINDOW_H

@@ -3,7 +3,6 @@
 
 #include "sol.hpp"
 
-#include <QDebug>
 #include <QEventLoop>
 #include <QList>
 #include <QString>

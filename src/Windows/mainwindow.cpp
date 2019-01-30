@@ -15,10 +15,12 @@
 #include "qt_util.h"
 #include "scriptengine.h"
 #include "testdescriptionloader.h"
+#include "testdescriptionloader.h"
 #include "testrunner.h"
 #include "ui_container.h"
 #include "ui_mainwindow.h"
 #include "util.h"
+
 #include <QAction>
 #include <QByteArray>
 #include <QDebug>
@@ -433,7 +435,7 @@ void MainWindow::load_favorites() {
     ui->test_simple_view->clear();
     QIcon icon_star = QIcon{"://src/icons/star_16.ico"};
     QIcon icon_empty_star = QIcon{"://src/icons/if_star_empty_16.png"};
-    for (TestDescriptionLoader &test : test_descriptions) {
+	for (TestDescriptionLoader &test : test_descriptions) {
         const ScriptEntry favorite_entry = favorite_scripts.get_entry(test.get_name());
         if (favorite_entry.valid) {
             QListWidgetItem *item = new QListWidgetItem{favorite_entry.script_path};
@@ -441,7 +443,7 @@ void MainWindow::load_favorites() {
                 item->setText(favorite_entry.alternative_name);
             }
             item->setFlags(item->flags() | Qt::ItemIsEditable);
-            item->setData(Qt::UserRole, Utility::make_qvariant(test.ui_entry.get()));
+			item->setData(Qt::UserRole, QVariant::fromValue(test.ui_entry.get()));
             item->setToolTip(favorite_entry.script_path);
             Identicon ident_icon{test.get_name().toLocal8Bit()};
             const int SCALE_FACTOR = 12;
@@ -737,11 +739,11 @@ TestDescriptionLoader *MainWindow::get_test_from_tree_widget(const QTreeWidgetIt
         return nullptr;
     }
     QVariant data = item->data(0, Qt::UserRole);
-    return Utility::from_qvariant<TestDescriptionLoader>(data);
+	return data.value<TestDescriptionLoader *>();
 }
 
 QTreeWidgetItem *MainWindow::get_treewidgetitem_from_listViewItem(QListWidgetItem *item) {
-    return Utility::from_qvariant<QTreeWidgetItem>(item->data(Qt::UserRole));
+	return item->data(Qt::UserRole).value<QTreeWidgetItem *>();
 }
 
 TestDescriptionLoader *MainWindow::get_test_from_listViewItem(QListWidgetItem *item) {
@@ -803,7 +805,7 @@ void MainWindow::on_test_simple_view_itemSelectionChanged() {
 
 void MainWindow::on_tests_advanced_view_itemClicked(QTreeWidgetItem *item, int column) {
     if (column == 4) {
-        auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
+		auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
         if (test) {
             QString test_name = test->get_name();
             bool modified = false;
@@ -825,7 +827,7 @@ void MainWindow::on_tests_advanced_view_itemSelectionChanged() {
     auto item = ui->tests_advanced_view->currentItem();
     if (item) {
         if (item->childCount() == 0) {
-            auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
+			auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
             if (test == nullptr) {
                 return;
             }

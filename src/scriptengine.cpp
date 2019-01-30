@@ -227,9 +227,7 @@ Event_id::Event_id ScriptEngine::await_timeout(std::chrono::milliseconds timeout
     if (await_condition == Event_id::interrupted) {
         throw std::runtime_error("Interrupted");
     }
-    qDebug() << "Starting timeout wait for" << timeout.count() << "ms at" << QTime::currentTime() << "in state" << await_condition;
     await_condition_variable.wait_for(lock, timeout, [this] { return await_condition == Event_id::interrupted; });
-    qDebug() << "Finished timeout wait for" << timeout.count() << "ms at" << QTime::currentTime() << "in state" << await_condition;
     if (await_condition == Event_id::interrupted) {
         throw std::runtime_error("Interrupted");
     }
@@ -261,7 +259,7 @@ Event_id::Event_id ScriptEngine::await_hotkey_event() {
                                                              &MainWindow::skip_key_sequence_pressed};
         std::array<Event_id::Event_id, 3> event_ids = {Event_id::Hotkey_confirm_pressed, Event_id::Hotkey_cancel_pressed, Event_id::Hotkey_skip_pressed};
         for (std::size_t i = 0; i < 3; i++) {
-            connections[i] = QObject::connect(MainWindow::mw, key_signals[i], [this, event_id = event_ids[i]] {
+			connections[i] = QObject::connect(MainWindow::mw, key_signals[i], [ this, event_id = event_ids[i] ] {
                 {
                     std::unique_lock<std::mutex> lock{await_mutex};
                     await_condition = event_id;
@@ -377,7 +375,6 @@ QString ScriptEngine::get_absolute_filename(QString file_to_open) {
 
 void ScriptEngine::load_script(const std::string &path) {
     qDebug() << "load_script " << QString::fromStdString(path);
-    qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
 
     this->path_m = QString::fromStdString(path);
 
@@ -390,7 +387,7 @@ void ScriptEngine::load_script(const std::string &path) {
 
         lua->script_file(path);
 
-        qDebug() << "laoded script"; // << lua->;
+		qDebug() << "loaded script"; // << lua->;
     } catch (const sol::error &error) {
         qDebug() << "caught sol::error@load_script";
         set_error_line(error);
@@ -527,7 +524,7 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
 
 void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
     qDebug() << "ScriptEngine::run";
-    qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
+	assert(not currently_in_gui_thread());
 
     auto reset_lua_state = [this] {
         ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString()};
@@ -549,7 +546,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
             target_filename.resize(target_filename.size() - 4);
 
             MainWindow::mw->execute_in_gui_thread(
-                [console = this->console, filename = target_filename + " console output.txt", additional_pdf_path = this->additional_pdf_path] {
+				[ console = this->console, filename = target_filename + " console output.txt", additional_pdf_path = this->additional_pdf_path ] {
                     std::ofstream f{filename};
                     f << console->toPlainText().toStdString();
                     f.close();

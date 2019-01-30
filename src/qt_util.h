@@ -18,20 +18,7 @@
 class QTabWidget;
 
 namespace Utility {
-    inline QVariant make_qvariant(void *p) {
-        return QVariant::fromValue(p);
-    }
-
     QFrame *add_handle(QSplitter *splitter);
-
-    template <class T>
-    T *from_qvariant(QVariant &qv) {
-        return static_cast<T *>(qv.value<void *>());
-    }
-    template <class T>
-    T *from_qvariant(QVariant &&qv) {
-        return static_cast<T *>(qv.value<void *>());
-    }
 
     template <typename Fun>
     void thread_call(QObject *obj, Fun &&fun, ScriptEngine *script_engine_to_terminate_on_exception = nullptr); //calls fun in the thread that owns obj
