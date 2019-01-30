@@ -355,25 +355,19 @@ void MainWindow::shutdown() {
     for (auto &test : test_runners) {
         if (test->is_running()) {
             test->interrupt();
+			test->message_queue_join();
         }
     }
 
-    auto done = std::async(std::launch::async, [this] {
-        Utility::promised_thread_call(this, [&] {
-            ui->test_tabs->clear();
-            test_descriptions.clear(); //must clear descriptions in GUI thread because it touches GUI
-            test_runners.clear();
-        });
-        devices_thread.quit();
-        qDebug() << "Waiting from" << QThread::currentThread() << "for" << &devices_thread;
-        assert(not devices_thread.is_current());
-        devices_thread.wait();
-    });
-    qDebug() << "Mainwindow thread:" << QThread::currentThread();
-    while (done.wait_for(std::chrono::milliseconds(16)) != std::future_status::ready) {
-        QApplication::processEvents();
-    }
-    done.wait();
+	QApplication::processEvents(); //process left over events
+
+	ui->test_tabs->clear();
+	test_descriptions.clear();
+	test_runners.clear();
+
+	devices_thread.quit();
+	assert(not devices_thread.is_current());
+	devices_thread.message_queue_join();
 
     QObject::disconnect(ui->tests_advanced_view, &QTreeWidget::itemSelectionChanged, this, &MainWindow::on_tests_advanced_view_itemSelectionChanged);
     QObject::disconnect(ui->test_simple_view, &QListWidget::itemSelectionChanged, this, &MainWindow::on_test_simple_view_itemSelectionChanged);
@@ -732,11 +726,9 @@ TestDescriptionLoader *MainWindow::get_test_from_tree_widget(const QTreeWidgetIt
     if (item == nullptr) {
         item = ui->tests_advanced_view->currentItem();
     }
+	assert(item != nullptr);
     if (item->childCount() > 0) {
-        item = nullptr;
-    }
-    if (item == nullptr) {
-        return nullptr;
+		return nullptr;
     }
     QVariant data = item->data(0, Qt::UserRole);
 	return data.value<TestDescriptionLoader *>();
@@ -960,24 +952,14 @@ TestRunner *MainWindow::get_runner_from_tab_index(int index) {
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
-#if 1
     const bool one_is_running = std::any_of(std::begin(test_runners), std::end(test_runners), [](auto &runner) { return runner->is_running(); });
     if (one_is_running) {
         if (QMessageBox::question(this, tr(""), tr("Scripts are still running. Abort them now?"), QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
-            for (auto &test : test_runners) {
-                if (test->is_running()) {
-                    test->interrupt();
-                    test->message_queue_join();
-                }
-            }
+			event->accept();
         } else {
             event->ignore();
-            return; //canceled closing the window
         }
-        shutdown();
     }
-    event->accept();
-#endif
 }
 
 void MainWindow::close_finished_tests() {

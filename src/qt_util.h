@@ -129,6 +129,7 @@ namespace Utility {
         void adopt(QObject &object);
         void start(QThread::Priority priority = QThread::InheritPriority);
         bool wait(unsigned long time = ULONG_MAX);
+		void message_queue_join();
         void requestInterruption();
         bool isRunning() const;
         bool is_current() const;

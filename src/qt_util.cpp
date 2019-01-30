@@ -68,7 +68,13 @@ void Utility::Qt_thread::start(QThread::Priority priority) {
 }
 
 bool Utility::Qt_thread::wait(unsigned long time) {
-    return thread.wait(time);
+	return thread.wait(time);
+}
+
+void Utility::Qt_thread::message_queue_join() {
+	while (not thread.wait(16)) {
+		QApplication::processEvents();
+	}
 }
 
 void Utility::Qt_thread::requestInterruption() {
