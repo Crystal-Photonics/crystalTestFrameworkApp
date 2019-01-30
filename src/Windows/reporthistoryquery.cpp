@@ -3,6 +3,7 @@
 #include "config.h"
 #include "data_engine/data_engine.h"
 #include "ui_reporthistoryquery.h"
+#include <QAction>
 #include <QByteArray>
 #include <QDateTime>
 #include <QDebug>
@@ -12,6 +13,7 @@
 #include <QJsonDocument>
 #include <QLineEdit>
 #include <QMainWindow>
+#include <QMenu>
 #include <QMessageBox>
 #include <QProgressDialog>
 #include <QSettings>
@@ -33,6 +35,9 @@ ReportHistoryQuery::ReportHistoryQuery(QWidget *parent)
     ui->btn_save_query->setVisible(false);
     ui->btn_save_query_as->setVisible(false);
     load_recent_query_files();
+    ui->splitter->setStretchFactor(0, 3);
+    ui->splitter->setStretchFactor(1, 1);
+    connect(ui->tree_query_fields, &QTreeWidget::customContextMenuRequested, this, &ReportHistoryQuery::link_menu);
 }
 
 void ReportHistoryQuery::load_query_from_file(QString file_name) {
@@ -206,7 +211,7 @@ bool ReportHistoryQuery::load_select_ui_to_query() {
                         if (field_item->checkState(0) == Qt::Checked) {
                             QString field_name = field_item->text(0);
                             query.select_field_names_m.append("report/" + section_name + "/" + field_name);
-                            qDebug() << "report/" + section_name + "/" + field_name;
+                            //   qDebug() << "report/" + section_name + "/" + field_name;
                         }
                     }
                 }
@@ -217,7 +222,7 @@ bool ReportHistoryQuery::load_select_ui_to_query() {
                     if (field_item->checkState(0) == Qt::Checked) {
                         QString field_name = field_item->text(0);
                         query.select_field_names_m.append("general/" + field_name);
-                        qDebug() << "general/" + field_name;
+                        // qDebug() << "general/" + field_name;
                     }
                 }
             } else {
@@ -251,59 +256,301 @@ bool ReportHistoryQuery::load_select_ui_to_query() {
     return true;
 }
 
+void ReportHistoryQuery::diplay_links_in_selects() {
+    for (int tli = 0; tli < ui->tree_query_fields->topLevelItemCount(); tli++) {
+        auto table_item = ui->tree_query_fields->topLevelItem(tli);
+        for (int repgeni = 0; repgeni < table_item->childCount(); repgeni++) {
+            auto repgen = table_item->child(repgeni);
+            //iterate over sections
+            for (int sectioni = 0; sectioni < repgen->childCount(); sectioni++) {
+                auto section_item = repgen->child(sectioni);
+                section_item->setText(2, "");
+                for (int fieldi = 0; fieldi < section_item->childCount(); fieldi++) {
+                    auto field = section_item->child(fieldi);
+                    field->setText(2, "");
+                }
+            }
+        }
+    }
+    for (auto &query : report_query_config_file_m.get_queries_not_const()) {
+        if (query.link.other_report_query) {
+            QTreeWidgetItem *from_entry = find_widget_by_field_name(query.link.other_id, query.link.other_field_name);
+            if (from_entry) {
+                QString old_text = from_entry->text(2);
+                if (old_text != "") {
+                    old_text += "\n";
+                }
+                from_entry->setText(2, old_text + QObject::tr("From: ") + query.get_table_name() + "/" + query.link.me_field_name);
+            }
+
+            QTreeWidgetItem *to_entry = find_widget_by_field_name(query.id_m, query.link.me_field_name);
+            if (query.link.other_report_query) {
+                QString old_text = to_entry->text(2);
+                if (old_text != "") {
+                    old_text += "\n";
+                }
+                to_entry->setText(2, old_text + QObject::tr("To: ") + query.link.other_report_query->get_table_name() + "/" + query.link.other_field_name);
+            }
+        }
+    }
+    for (int i = 0; i < ui->tree_query_fields->columnCount(); i++) {
+        ui->tree_query_fields->resizeColumnToContents(i);
+    }
+    QString link_message;
+    ui->btn_next->setEnabled(report_query_config_file_m.test_links(link_message));
+    ui->lbl_link->setText(link_message);
+    QPalette palette = ui->lbl_link->palette();
+    palette.setColor(ui->lbl_link->backgroundRole(), Qt::darkRed);
+    palette.setColor(ui->lbl_link->foregroundRole(), Qt::darkRed);
+    ui->lbl_link->setPalette(palette);
+}
+
+QString ReportHistoryQuery::get_table_name(const QTreeWidgetItem *item) {
+    while (item->parent()) {
+        item = item->parent();
+    }
+    return item->text(0);
+}
+
+int ReportHistoryQuery::get_table_id(const QTreeWidgetItem *item) {
+    while (item->parent()) {
+        item = item->parent();
+    }
+    return item->data(0, Qt::UserRole).toInt();
+}
+
+void ReportQueryConfigFile::find_queries_with_other_ids(int other_id, QList<int> &found_ids, bool allow_recursion) {
+    QList<int> result;
+    for (auto &query : report_queries_m) {
+        if (query.link.other_id == other_id) {
+            found_ids.append(query.id_m);
+            if (found_ids.count() > report_queries_m.count()) {
+                throw std::runtime_error(QObject::tr("Found circle link relating table: ").toStdString() + query.get_table_name().toStdString() + " (" +
+                                         QString::number(other_id).toStdString() + ")");
+            }
+            if (allow_recursion) {
+                find_queries_with_other_ids(query.id_m, found_ids, allow_recursion);
+            }
+        }
+    }
+}
+
+bool ReportQueryConfigFile::test_links(QString &message) {
+    message = "";
+    ReportQuery *possible_root_query = nullptr;
+    for (auto &query : report_queries_m) {
+        QList<int> found_ids;
+        try {
+            find_queries_with_other_ids(query.id_m, found_ids, true); //find circles
+        } catch (std::runtime_error &e) {
+            message = QString::fromStdString(e.what());
+            return false;
+        }
+#if 0
+        if (query.link.other_id == -1) {
+            if (possible_root_query) {
+                message = QObject::tr("At least the tables %1 are not linked.")
+                              .arg(query.get_table_name() + QObject::tr(" and ") + possible_root_query->get_table_name());
+                return false;
+            }
+            possible_root_query = &query;
+        }
+#endif
+        ReportQuery *my_root_query = query.follow_link_path_to_root();
+        if (possible_root_query == nullptr) {
+            possible_root_query = my_root_query;
+        }
+        if (possible_root_query != my_root_query) {
+            message = QObject::tr("At least the tables %1 are not linked.")
+                          .arg(my_root_query->get_table_name() + QObject::tr(" and ") + possible_root_query->get_table_name());
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void ReportHistoryQuery::on_btn_link_field_to_clicked() {
+    QTreeWidget *tree = ui->tree_query_fields;
+    QTreeWidgetItem *clicked_item = tree->currentItem();
+    if (clicked_item->data(0, Qt::UserRole).type() == QVariant::String) {
+        create_link_menu(ui->btn_link_field_to->mapToGlobal(QPoint(0, 0)), clicked_item);
+    }
+}
+
+void ReportHistoryQuery::link_menu(const QPoint &pos) {
+    QTreeWidget *tree = ui->tree_query_fields;
+    QTreeWidgetItem *clicked_item = tree->itemAt(pos);
+    create_link_menu(tree->mapToGlobal(pos), clicked_item);
+}
+
+void ReportHistoryQuery::create_link_menu(const QPoint &global_pos, QTreeWidgetItem *clicked_item) {
+    int clicked_table_id = get_table_id(clicked_item);
+    QVariant clicked_data = clicked_item->data(0, Qt::UserRole);
+    if (!clicked_data.isValid()) {
+        return;
+    }
+    QString clicked_field_name = clicked_data.toString();
+    QString clicked_type = clicked_item->text(1);
+
+    QList<int> clicked_table_already_receives;
+    report_query_config_file_m.find_queries_with_other_ids(clicked_table_id, clicked_table_already_receives, true);
+
+    QStringList allowed_types;
+    if (clicked_type == "Number") {
+        allowed_types = QStringList{"Number", "Text"};
+    } else if (clicked_type == "Bool") {
+        allowed_types = QStringList{"Bool"};
+    } else if (clicked_type == "Text") {
+        allowed_types = QStringList{"Number", "Text"};
+    } else if (clicked_type == "Datetime") {
+        allowed_types = QStringList{"Datetime", "Text"};
+    } else {
+        assert(0);
+    }
+
+    auto add_menu_item = [this, clicked_table_id, clicked_data, clicked_field_name, allowed_types,
+                          clicked_item](QTreeWidgetItem *field, QMenu **table_menu, QMenu **report_menu, QMenu **general_menu, QMenu **section_menu,
+                                        int current_table_id, bool is_report, QString section_name) {
+        QVariant data = field->data(0, Qt::UserRole);
+        if (data.isValid()) {
+            if ((field->checkState(0) == Qt::Checked) && (allowed_types.contains(field->text(1)))) {
+                if (is_report) {
+                    if (!*report_menu) {
+                        assert(*table_menu);
+                        *report_menu = (*table_menu)->addMenu("report");
+                    }
+
+                    if (!*section_menu) {
+                        assert(*report_menu);
+                        *section_menu = (*report_menu)->addMenu(section_name);
+                    }
+                } else {
+                    if (!*general_menu) {
+                        assert(*table_menu);
+                        *general_menu = (*table_menu)->addMenu("general");
+                    }
+                }
+
+                QString current_field_name = data.toString();
+                QAction *newAct = new QAction(field->text(0), this);
+                connect(newAct, &QAction::triggered, [this, clicked_table_id, clicked_field_name, current_table_id, current_field_name, clicked_item] {
+                    auto &query = report_query_config_file_m.find_query_by_id(clicked_table_id);
+                    auto &other_query = report_query_config_file_m.find_query_by_id(current_table_id);
+                    query.link.other_id = current_table_id;
+                    query.link.me_field_name = clicked_field_name;
+                    query.link.other_field_name = current_field_name;
+                    query.link.other_report_query = &other_query;
+                    clicked_item->setCheckState(0, Qt::Checked);
+                    diplay_links_in_selects();
+
+                });
+                if (is_report) {
+                    assert(*section_menu);
+                    (*section_menu)->addAction(newAct);
+                } else {
+                    assert(*general_menu);
+                    (*general_menu)->addAction(newAct);
+                }
+            }
+        }
+
+    };
+
+    QMenu main_menu(this);
+    QMenu *menu = main_menu.addMenu(QObject::tr("Link to.."));
+
+    for (int tli = 0; tli < ui->tree_query_fields->topLevelItemCount(); tli++) {
+        auto table_item = ui->tree_query_fields->topLevelItem(tli);
+        int current_table_id = get_table_id(table_item);
+        if (current_table_id == clicked_table_id) {
+            continue;
+        }
+        if (clicked_table_already_receives.contains(current_table_id)) {
+            continue;
+        }
+
+        QMenu *table_menu = menu->addMenu(get_table_name(table_item));
+        QMenu *report_menu = nullptr;
+        QMenu *general_menu = nullptr;
+        for (int repgeni = 0; repgeni < table_item->childCount(); repgeni++) {
+            auto repgen = table_item->child(repgeni);
+            if (repgen->text(0) == "general") {
+                //iterate over general-fields
+                QMenu *section_menu = nullptr;
+                for (int fieldi = 0; fieldi < repgen->childCount(); fieldi++) {
+                    auto field = repgen->child(fieldi);
+                    add_menu_item(field, &table_menu, &report_menu, &general_menu, &section_menu, current_table_id, false, "");
+                }
+            } else {
+                //iterate over sections
+                for (int sectioni = 0; sectioni < repgen->childCount(); sectioni++) {
+                    auto section_item = repgen->child(sectioni);
+                    QMenu *section_menu = nullptr;
+                    for (int fieldi = 0; fieldi < section_item->childCount(); fieldi++) {
+                        auto field = section_item->child(fieldi);
+                        add_menu_item(field, &table_menu, &report_menu, &general_menu, &section_menu, current_table_id, true, section_item->text(0));
+                    }
+                }
+            }
+        }
+    }
+    main_menu.exec(global_pos);
+}
+
 void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
+    ui->btn_save_query->setVisible((arg1 == 1) || (arg1 == 2));
+    ui->btn_save_query->setToolTip(QObject::tr("Saves to file: ") +
+                                   QDir(QSettings{}.value(Globals::report_history_query_path, "").toString()).relativeFilePath(query_filename_m));
+    ui->btn_save_query_as->setVisible(ui->btn_save_query->isVisible());
+    ui->btn_save_query_as->setEnabled(QFileInfo::exists(query_filename_m));
+    ui->btn_next->setEnabled(arg1 < 2);
+    ui->btn_back->setEnabled(arg1 > 0);
+
     if (arg1 == 0) {
         load_recent_query_files();
     }
     if ((old_stk_report_history_index_m == 0) && (arg1 == 1)) {
         ui->tree_query_fields->clear();
-        //T:/qt/crystalTestFramework/tests/scripts/report_query/data_engine_source_1.json
-        const Qt::ItemFlags item_flags_checkable = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable;
-
         report_query_config_file_m.set_table_names();
+        auto append_widget = [](QTreeWidgetItem *root_widget, const DataEngineField &field, const ReportQuery &query, QString prefix) {
+            const Qt::ItemFlags item_flags_checkable = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable;
+
+            QTreeWidgetItem *entry = new QTreeWidgetItem(root_widget, QStringList{field.field_name_m, field.field_type_m.to_string(), ""});
+            QString fn = prefix + field.field_name_m;
+            if (query.select_field_names_m.contains(fn)) {
+                entry->setCheckState(0, Qt::Checked);
+            } else {
+                entry->setCheckState(0, Qt::Unchecked);
+            }
+            entry->setFlags(item_flags_checkable);
+            entry->setData(0, Qt::UserRole, fn);
+            //  qDebug() << "general/" + general_field.field_name;
+        };
 
         for (auto &query : report_query_config_file_m.get_queries_not_const()) {
             QTreeWidgetItem *root_item = new QTreeWidgetItem(QStringList{query.get_table_name()});
+            root_item->setData(0, Qt::UserRole, QVariant(query.id_m));
             ui->tree_query_fields->addTopLevelItem(root_item);
 
             const DataEngineSourceFields &fields = query.get_data_engine_fields();
-            QTreeWidgetItem *root_general_widget = new QTreeWidgetItem(root_item, QStringList{"general"});
-            QTreeWidgetItem *root_report_widget = new QTreeWidgetItem(root_item, QStringList{"report"});
 
+            QTreeWidgetItem *root_general_widget = new QTreeWidgetItem(root_item, QStringList{"general"});
             for (const auto &general_field : fields.general_fields_m) {
-                QString typ_name = "";
-                QTreeWidgetItem *general_entry =
-                    new QTreeWidgetItem(root_general_widget, QStringList{general_field.field_name_m, general_field.field_type_m.to_string()});
-                QString fn = "general/" + general_field.field_name_m;
-                if (query.select_field_names_m.contains(fn)) {
-                    general_entry->setCheckState(0, Qt::Checked);
-                } else {
-                    general_entry->setCheckState(0, Qt::Unchecked);
-                }
-                general_entry->setFlags(item_flags_checkable);
-                general_entry->setData(0, Qt::UserRole, fn);
-                //  qDebug() << "general/" + general_field.field_name;
+                append_widget(root_general_widget, general_field, query, "general/");
             }
 
+            QTreeWidgetItem *root_report_widget = new QTreeWidgetItem(root_item, QStringList{"report"});
             for (const auto &section_name : fields.report_fields_m.keys()) {
                 QTreeWidgetItem *report_section_entry = new QTreeWidgetItem(root_report_widget, QStringList{section_name});
                 for (const auto &data_engine_field : fields.report_fields_m.value(section_name)) {
-                    QTreeWidgetItem *report_entry =
-                        new QTreeWidgetItem(report_section_entry, QStringList{data_engine_field.field_name_m, data_engine_field.field_type_m.to_string()});
-
-                    QString fn = "report/" + section_name + "/" + data_engine_field.field_name_m;
-                    if (query.select_field_names_m.contains(fn)) {
-                        report_entry->setCheckState(0, Qt::Checked);
-                    } else {
-                        report_entry->setCheckState(0, Qt::Unchecked);
-                    }
-                    report_entry->setFlags(item_flags_checkable);
-                    report_entry->setData(0, Qt::UserRole, fn);
-                    //    qDebug() << "report/" + section_name + "/" + data_engine_field.field_name;
+                    append_widget(report_section_entry, data_engine_field, query, "report/" + section_name + "/");
                 }
             }
         }
         ui->tree_query_fields->expandAll();
+        diplay_links_in_selects();
+
     } else if ((old_stk_report_history_index_m == 1) && (arg1 == 2)) {
         if (load_select_ui_to_query()) {
             ReportDatabase query_result = report_query_config_file_m.execute_query(this);
@@ -345,6 +592,7 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
                 row_index++;
                 ui->tableWidget->setRowCount(row_index + 1);
             }
+            ui->tableWidget->setRowCount(ui->tableWidget->rowCount() - 1);
         } else {
             ui->stk_report_history->setCurrentIndex(old_stk_report_history_index_m);
             arg1 = old_stk_report_history_index_m;
@@ -352,13 +600,6 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
     }
 
     old_stk_report_history_index_m = arg1;
-    ui->btn_save_query->setVisible((arg1 == 1) || (arg1 == 2));
-    ui->btn_save_query->setToolTip(QObject::tr("Saves to file: ") +
-                                   QDir(QSettings{}.value(Globals::report_history_query_path, "").toString()).relativeFilePath(query_filename_m));
-    ui->btn_save_query_as->setVisible(ui->btn_save_query->isVisible());
-    ui->btn_save_query_as->setEnabled(QFileInfo::exists(query_filename_m));
-    ui->btn_next->setEnabled(arg1 < 2);
-    ui->btn_back->setEnabled(arg1 > 0);
 }
 
 void ReportHistoryQuery::on_btn_result_export_clicked() {
@@ -408,7 +649,21 @@ void ReportHistoryQuery::on_btn_close_clicked() {
     close();
 }
 
+void ReportHistoryQuery::on_tree_query_fields_itemSelectionChanged() {
+    QVariant field_name_var = ui->tree_query_fields->currentItem()->data(0, Qt::UserRole);
+    if (field_name_var.type() != QVariant::String) {
+        ui->btn_link_field_to->setEnabled(false);
+        return;
+    }
+    ui->btn_link_field_to->setEnabled(true);
+}
+
 void ReportHistoryQuery::on_tree_query_fields_itemClicked(QTreeWidgetItem *item, int column) {
+    QVariant field_name_var = item->data(0, Qt::UserRole);
+    if (field_name_var.type() != QVariant::String) {
+        return;
+    }
+    QString field_name = field_name_var.toString();
     if (column == 0) {
         QString field_name = item->data(0, Qt::UserRole).toString();
         if ((item->checkState(0) == Qt::Unchecked) && (field_name.count())) {
@@ -419,6 +674,27 @@ void ReportHistoryQuery::on_tree_query_fields_itemClicked(QTreeWidgetItem *item,
                         break;
                     }
                 }
+            }
+            int clicked_id = get_table_id(item);
+
+            bool link_changed = false;
+            ReportQuery &query = report_query_config_file_m.find_query_by_id(clicked_id);
+            if (query.link.other_id != -1) {
+                link_changed = true;
+                query.remove_link();
+            }
+            QList<int> other_ids;
+            report_query_config_file_m.find_queries_with_other_ids(clicked_id, other_ids, false);
+            for (int other_id : other_ids) {
+                //remove links which dependend from the unchecked item;
+                ReportQuery &query = report_query_config_file_m.find_query_by_id(other_id);
+                if ((query.link.other_id == clicked_id) && (query.link.other_field_name == field_name)) {
+                    link_changed = true;
+                    query.remove_link();
+                }
+            }
+            if (link_changed) {
+                diplay_links_in_selects();
             }
         }
     }
@@ -735,6 +1011,7 @@ void ReportQueryConfigFile::save_to_file(QString file_name) {
     }
     for (auto &query : report_queries_m) {
         QJsonObject js_query_entry;
+        js_query_entry["id"] = query.id_m;
         js_query_entry["report_path"] = query.report_path_m;
         js_query_entry["data_engine_source_file"] = query.get_data_engine_source_file();
         QJsonArray js_query_select_array;
@@ -742,6 +1019,11 @@ void ReportQueryConfigFile::save_to_file(QString file_name) {
             js_query_select_array.append(select_file_name);
         }
         js_query_entry["select_field_names"] = js_query_select_array;
+        QJsonObject js_query_link_entry;
+        js_query_link_entry["other_query_id"] = query.link.other_id;
+        js_query_link_entry["other_field"] = query.link.other_field_name;
+        js_query_link_entry["me"] = query.link.me_field_name;
+        js_query_entry["link"] = js_query_link_entry;
         js_query_array.append(js_query_entry);
     }
     QJsonObject obj;
@@ -1111,6 +1393,13 @@ void ReportQuery::set_table_name(QString table_name) {
     table_name_m = table_name;
 }
 
+void ReportQuery::remove_link() {
+    link.other_id = -1;
+    link.me_field_name = "";
+    link.other_field_name = "";
+    link.other_report_query = nullptr;
+}
+
 QString ReportQuery::get_table_name() const {
     assert(table_name_m != "");
     return table_name_m;
@@ -1161,6 +1450,20 @@ DataEngineSourceFields ReportQuery::get_data_engine_fields() {
         QMessageBox::warning(MainWindow::mw, QString("Dataengine error"), QString("Dataengine error:\n\n %1").arg(e.what()));
     }
     return DataEngineSourceFields{};
+}
+
+ReportQuery *ReportQuery::follow_link_path_to_root_recursion(ReportQuery *other) {
+    if (other->link.other_report_query == nullptr) {
+        return other;
+    }
+    return follow_link_path_to_root_recursion(other->link.other_report_query);
+}
+
+ReportQuery *ReportQuery::follow_link_path_to_root() {
+    if (link.other_report_query == nullptr) {
+        return this;
+    }
+    return follow_link_path_to_root_recursion(link.other_report_query);
 }
 
 void ReportHistoryQuery::on_btn_save_query_clicked() {
@@ -1233,6 +1536,39 @@ void ReportHistoryQuery::reduce_tb_query_path() {
         ui->tb_queries->setItemText(i, sl[i]);
     }
     ui->tb_queries->setCurrentIndex(ui->tb_queries->count() - 1);
+}
+
+QTreeWidgetItem *ReportHistoryQuery::find_widget_by_field_name(int query_id, const QString &field_name) {
+    for (int tli = 0; tli < ui->tree_query_fields->topLevelItemCount(); tli++) {
+        auto top_level_item = ui->tree_query_fields->topLevelItem(tli);
+        if (top_level_item->data(0, Qt::UserRole).toInt() == query_id) {
+            for (int repgeni = 0; repgeni < top_level_item->childCount(); repgeni++) {
+                auto repgen = top_level_item->child(repgeni);
+                for (int section_or_gen_fieldi = 0; section_or_gen_fieldi < repgen->childCount(); section_or_gen_fieldi++) {
+                    auto section_or_gen = repgen->child(section_or_gen_fieldi);
+                    QVariant data = section_or_gen->data(0, Qt::UserRole);
+                    if (data.isValid()) {
+                        //qDebug() << data.toString() << field_name;
+                        if (data.toString() == field_name) {
+                            return section_or_gen;
+                        }
+                    }
+
+                    for (int fieldi = 0; fieldi < section_or_gen->childCount(); fieldi++) {
+                        auto field = section_or_gen->child(fieldi);
+                        QVariant data = field->data(0, Qt::UserRole);
+                        if (data.isValid()) {
+                            //   qDebug() << data.toString() << field_name;
+                            if (data.toString() == field_name) {
+                                return field;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return nullptr;
 }
 
 QStringList reduce_path(QStringList sl) {
@@ -1371,21 +1707,19 @@ void ReportTable::merge(ReportTable *other_table) {
     ReportTableLink recevier_link = get_receiver_link_by_key_other(other_link_key);
     ReportTableLink recevier_link_tally = get_receiver_link_by_key_other(other_link_key);
     QMap<int, QString> original_field_name_keys_m = field_name_keys_m;
-
-    ///    QList<ReportTableRow> original_rows = rows_m;
-
-    QMap<QVariant, int> original_receiver_index = recevier_link.index_m; //without copy this gets quite complicated and im lazy.
-
+    QMap<QVariant, int> original_receiver_index = receiver_indexes_m.value(this_link_key); //without copy this gets quite complicated and im lazy.
+    QMap<QVariant, int> receiver_index_tally = receiver_indexes_m.value(this_link_key);
     for (auto &row : rows_m) {
         row.merged_m = false;
     }
     for (ReportTableRow &other_row : other_table->rows_m) {
         const QVariant &indexed_val = other_row.row_m.value(other_link_key);
         assert(indexed_val.isValid());
+        qDebug() << indexed_val;
         QList<int> this_row_indexes = original_receiver_index.values(indexed_val);
         while (this_row_indexes.count()) { // there might be more than one row in this with this value
             int this_row_index = this_row_indexes[0];
-            recevier_link_tally.index_m.remove(indexed_val);
+            receiver_index_tally.remove(indexed_val);
             ReportTableRow &this_row = rows_m[this_row_index];
 
             if (this_row.merged_m) { //this row already treated with merging?
@@ -1421,12 +1755,12 @@ void ReportTable::merge(ReportTable *other_table) {
     //remove rows which were not in other_table:
     //we could use also row.merged. but i suppose this is faster
     QList<int> indexes_to_remove;
-    for (int index_value : recevier_link_tally.index_m) {
+    for (int index_value : receiver_index_tally) {
         indexes_to_remove.append(index_value);
     }
-    remove_indexes_from_list(rows_m, indexes_to_remove);
 
-//qDebug() << "removed: " << recevier_link_tally.index_m;
+    remove_indexes_from_list(rows_m, indexes_to_remove);
+    qDebug() << "removed: " << receiver_index_tally;
 #endif
 }
 
@@ -1501,21 +1835,34 @@ int ReportFieldNameDictionary::append_new_field_name(const QString &field_name) 
     return new_key;
 }
 
+void ReportTable::insert_receiver_index_value(const QMap<int, QVariant> &row, int row_index) {
+    QMap<int, int> receiver_keys;
+    for (ReportTableLink &receiver_link : receiver_links_m) {
+        receiver_keys.insert(receiver_link.field_key_this_m, receiver_link.field_key_other_m);
+    }
+    for (int receiver_key_this : receiver_keys.uniqueKeys()) {
+        const QVariant &link_receiver_content = row.value(receiver_key_this);
+        if (receiver_indexes_m.contains(receiver_key_this)) {
+            receiver_indexes_m.find(receiver_key_this)->insertMulti(link_receiver_content, rows_m.count());
+        } else {
+            QMap<QVariant, int> val;
+            val.insert(link_receiver_content, row_index);
+            receiver_indexes_m.insert(receiver_key_this, val);
+        }
+    }
+}
+
 void ReportTable::append_row(const QMap<int, QVariant> &row, const QDateTime &time_stamp) {
     assert(receiver_link_set_m);
     ReportTableRow rrow;
     rrow.time_stamp_m = time_stamp;
     rrow.row_m = row;
     rrow.visible_m = true;
-    for (ReportTableLink &receiver_link : receiver_links_m) {
-        const QVariant &link_receiver_content = row.value(receiver_link.get_field_key_this());
-        receiver_link.index_m.insertMulti(link_receiver_content, rows_m.count());
-    }
+    rrow.merged_m = false;
+    insert_receiver_index_value(row, rows_m.count());
     for (const auto &field_key : row.keys()) {
         assert(field_name_keys_m.contains(field_key));
     }
-    const QVariant &link_sender_content = row.value(sender_link_m.get_field_key_this());
-    sender_link_m.index_m.insertMulti(link_sender_content, rows_m.count());
     rows_m.append(rrow);
 }
 
@@ -1525,16 +1872,11 @@ QList<int> ReportTable::duplicate_rows(QList<int> &row_indexes) {
     for (int index : row_indexes) {
         ReportTableRow rrow = rows_m[index];
         rrow.merged_m = false;
-        for (ReportTableLink &receiver_link : receiver_links_m) {
-            const QVariant &link_receiver_content = rrow.row_m.value(receiver_link.get_field_key_this());
-            receiver_link.index_m.insertMulti(link_receiver_content, rows_m.count());
-        }
+        insert_receiver_index_value(rrow.row_m, rows_m.count());
 
         for (const auto &field_key : rrow.row_m.keys()) {
             assert(field_name_keys_m.contains(field_key));
         }
-        const QVariant &link_sender_content = rrow.row_m.value(sender_link_m.get_field_key_this());
-        sender_link_m.index_m.insertMulti(link_sender_content, rows_m.count());
         result.append(rows_m.count());
         rows_m.append(rrow);
     }

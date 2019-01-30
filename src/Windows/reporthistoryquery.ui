@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>794</width>
-    <height>695</height>
+    <width>1176</width>
+    <height>709</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -72,8 +72,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>746</width>
-            <height>543</height>
+            <width>1128</width>
+            <height>557</height>
            </rect>
           </property>
           <attribute name="label">
@@ -172,7 +172,7 @@
           <enum>Qt::Horizontal</enum>
          </property>
          <widget class="QWidget" name="layoutWidget">
-          <layout class="QVBoxLayout" name="verticalLayout_3">
+          <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0,0,0,0">
            <item>
             <widget class="QLabel" name="label_4">
              <property name="text">
@@ -192,8 +192,11 @@
            </item>
            <item>
             <widget class="QTreeWidget" name="tree_query_fields">
+             <property name="contextMenuPolicy">
+              <enum>Qt::CustomContextMenu</enum>
+             </property>
              <property name="columnCount">
-              <number>2</number>
+              <number>3</number>
              </property>
              <column>
               <property name="text">
@@ -205,10 +208,25 @@
                <string notr="true">Field type</string>
               </property>
              </column>
+             <column>
+              <property name="text">
+               <string>Link</string>
+              </property>
+             </column>
             </widget>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_6">
+            <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="5,1,1,10">
+             <item>
+              <widget class="QLabel" name="lbl_link">
+               <property name="text">
+                <string>lnik</string>
+               </property>
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
              <item>
               <spacer name="horizontalSpacer_5">
                <property name="orientation">
@@ -221,6 +239,16 @@
                 </size>
                </property>
               </spacer>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btn_link_field_to">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+               <property name="text">
+                <string>Link field to..</string>
+               </property>
+              </widget>
              </item>
              <item>
               <widget class="QToolButton" name="toolButton_3">
@@ -285,8 +313,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>388</width>
-                <height>499</height>
+                <width>585</width>
+                <height>513</height>
                </rect>
               </property>
               <attribute name="label">
@@ -303,8 +331,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>100</width>
-                <height>30</height>
+                <width>585</width>
+                <height>513</height>
                </rect>
               </property>
               <attribute name="label">

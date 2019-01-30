@@ -33,6 +33,8 @@ class TestReportHistory : public QObject {
 
     void verify_table_line_by_line(ReportTable *table_under_test, QList<QMap<int, QString> > &expected_lines);
 
+    void join_report_file_tables_empty_result();
+
     private:
     bool report_link_list_contains_path(const QList<ReportLink> &report_link_list, QString path);
     bool data_engine_field_list_contains_path(const QList<DataEngineField> &data_engine_field_list, QString field_name);

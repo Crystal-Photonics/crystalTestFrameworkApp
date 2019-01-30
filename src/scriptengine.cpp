@@ -444,8 +444,8 @@ QString ScriptEngine::get_absolute_filename(QString file_to_open) {
 }
 
 void ScriptEngine::load_script(const std::string &path) {
-    qDebug() << "load_script " << QString::fromStdString(path);
-    qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
+    // qDebug() << "load_script " << QString::fromStdString(path);
+    // qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
 
     this->path_m = QString::fromStdString(path);
 
@@ -458,7 +458,7 @@ void ScriptEngine::load_script(const std::string &path) {
 
         lua->script_file(path);
 
-        qDebug() << "laoded script"; // << lua->;
+        //  qDebug() << "laoded script"; // << lua->;
     } catch (const sol::error &error) {
         qDebug() << "caught sol::error@load_script";
         set_error_line(error);

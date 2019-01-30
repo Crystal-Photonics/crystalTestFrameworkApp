@@ -101,9 +101,13 @@ class ReportQuery {
     QString get_table_name() const;
     QString get_table_name_suggestion() const;
     void set_table_name(QString table_name);
+    void remove_link();
     ReportQueryLink link;
     void update_from_gui();
     DataEngineSourceFields get_data_engine_fields();
+
+    ReportQuery *follow_link_path_to_root();
+
     QLineEdit *edt_query_report_folder_m = nullptr;
     QLineEdit *edt_query_data_engine_source_file_m = nullptr;
     QToolButton *btn_query_data_engine_source_file_browse_m = nullptr;
@@ -118,6 +122,7 @@ class ReportQuery {
     bool is_valid_m = false;
     QString data_engine_source_file_m;
     QString table_name_m;
+    ReportQuery *follow_link_path_to_root_recursion(ReportQuery *other);
 };
 
 class ReportLink {
@@ -171,8 +176,8 @@ class ReportTableLink {
     public:
     ReportTableLink(const QString &field_name_this, const int field_key_this, ReportTable *table_this, const QString &field_name_other,
                     const int field_key_other, ReportTable *table_other)
-        : index_m()
-        , field_name_this_m(field_name_this)
+        : // index_m()
+        field_name_this_m(field_name_this)
         , field_name_other_m(field_name_other)
         , field_key_this_m(field_key_this)
         , field_key_other_m(field_key_other)
@@ -202,9 +207,8 @@ class ReportTableLink {
         table_other_m = table_other;
     }
 
-    QMap<QVariant, int> index_m; //int points to index of rows_m
-    QString field_name_this_m;   //field names are table_name/field_section/field_name
-    QString field_name_other_m;  //field names are table_name/field_section/field_name
+    QString field_name_this_m;  //field names are table_name/field_section/field_name
+    QString field_name_other_m; //field names are table_name/field_section/field_name
     private:
     int field_key_this_m;  //field names are table_name/field_section/field_name
     int field_key_other_m; //field names are table_name/field_section/field_name
@@ -276,6 +280,9 @@ class ReportTable {
     const QMap<int, ReportTableLink> &get_receiver_links() const;
 
     private:
+    void insert_receiver_index_value(const QMap<int, QVariant> &row, int row_index);
+    QMap<int, QMap<QVariant, int>>
+        receiver_indexes_m; //first key points to this_link_field_key and second key is the content of the field. the final value is the row of the table
     QList<int> duplicate_rows(QList<int> &row_indexes); //clones row and updates index
     const ReportTableLink &get_sender_link() const;
     void remove_cols_by_matching(const QList<int> &row_indexes, const QMap<int, QString> &allowed_cols);
@@ -320,7 +327,6 @@ class ReportQueryConfigFile {
     const QList<ReportQuery> &get_queries() const;
     QList<ReportQuery> &get_queries_not_const();
     ReportQuery &add_new_query(QWidget *parent);
-    //ReportQuery &find_query(QString data_engine_source_file);
     void build_query_link_references();
     const QList<ReportQueryWhereField> &get_where_fields();
     QList<ReportQueryWhereField> &get_where_fields_not_const();
@@ -338,6 +344,8 @@ class ReportQueryConfigFile {
     ReportQuery &find_query_by_id(int id);
 
     void set_table_names();
+    void find_queries_with_other_ids(int other_id, QList<int> &found_ids, bool allow_recursion);
+    bool test_links(QString &message);
 
     protected:
     QList<ReportLink> scan_folder_for_reports(const QString &base_dir_str) const;
@@ -383,6 +391,12 @@ class ReportHistoryQuery : public QDialog {
 
     void on_btn_result_export_clicked();
 
+    void link_menu(const QPoint &pos);
+
+    void on_btn_link_field_to_clicked();
+
+    void on_tree_query_fields_itemSelectionChanged();
+
     private:
     Ui::ReportHistoryQuery *ui;
     ReportQueryConfigFile report_query_config_file_m;
@@ -393,6 +407,7 @@ class ReportHistoryQuery : public QDialog {
     void add_new_where_page(const QString &field_id, EntryType field_typ);
     void add_new_where_page(ReportQueryWhereField &report_where, QGridLayout *grid_layout, QWidget *tool_widget);
 
+    void diplay_links_in_selects();
     void clear_where_pages();
     void remove_where_page(int index);
     bool load_select_ui_to_query();
@@ -401,6 +416,10 @@ class ReportHistoryQuery : public QDialog {
     int old_stk_report_history_index_m = 0;
     QString query_filename_m;
     void reduce_tb_query_path();
+    QTreeWidgetItem *find_widget_by_field_name(int query_id, const QString &field_name);
+    QString get_table_name(const QTreeWidgetItem *item);
+    int get_table_id(const QTreeWidgetItem *item);
+    void create_link_menu(const QPoint &global_pos, QTreeWidgetItem *clicked_item);
 };
 
 class MyTableWidgetItem : public QTableWidgetItem {

@@ -1,7 +1,7 @@
 #include "testreporthistory.h"
 #include "Windows/reporthistoryquery.h"
 
-#define DISABLE_ALL 0
+#define DISABLE_ALL 1
 
 void TestReportHistory::load_query_onfig_file() {
 #if !DISABLE_ALL || 0
@@ -99,12 +99,17 @@ void TestReportHistory::complexer_table_links_1() {
     const QMap<int, ReportTableLink> &rx_links1 = table_1->get_receiver_links();
     const QMap<int, ReportTableLink> &rx_links2 = table_2->get_receiver_links();
     const QMap<int, ReportTableLink> &rx_links3 = table_3->get_receiver_links();
-    QCOMPARE(rx_links1.keys().count(), 1);
+    QCOMPARE(rx_links1.keys().count(), 2);
     QVERIFY(rx_links2.empty());
     QVERIFY(rx_links3.empty());
 
-    QCOMPARE(rx_links1.values(rx_links1.keys()[0]).count(), 1);
-    QCOMPARE(rx_links1.value(rx_links1.keys()[0]).field_name_this_m, QString("data_engine_source_1/report/gerate_daten/seriennummer"));
+    QCOMPARE(rx_links1.keys().count(), 2);
+    QCOMPARE(rx_links1.uniqueKeys().count(), 1);
+    const QList<ReportTableLink> &rxlinks_1 = rx_links1.values(rx_links1.keys()[0]);
+    QCOMPARE(rxlinks_1[0].field_name_this_m, QString("data_engine_source_1/report/gerate_daten/seriennummer"));
+    QCOMPARE(rxlinks_1[0].field_name_other_m, QString("data_engine_source_2/report/gerate_daten/seriennummer"));
+    QCOMPARE(rxlinks_1[1].field_name_this_m, QString("data_engine_source_1/report/gerate_daten/seriennummer"));
+    QCOMPARE(rxlinks_1[1].field_name_other_m, QString("data_engine_source_3/report/gerate_daten/seriennummer"));
 
 #endif
 }
@@ -137,6 +142,26 @@ void TestReportHistory::complexer_table_links_2() {
 
     QCOMPARE(rx_links2.values(rx_links2.keys()[0]).count(), 1);
     QCOMPARE(rx_links2.value(rx_links2.keys()[0]).field_name_this_m, QString("data_engine_source_2/report/gerate_daten/seriennummer")); //comes from 4
+
+#endif
+}
+
+void TestReportHistory::join_report_file_tables_empty_result() {
+#if !DISABLE_ALL || 1
+
+    ReportQueryConfigFile query_config_file;
+    query_config_file.load_from_file("../../tests/scripts/report_query/query_config_3_empty.json");
+
+    auto file_list = query_config_file.scan_folder_for_reports("../../tests/scripts/report_query");
+    ReportDatabase query_result = query_config_file.filter_and_select_reports(file_list, nullptr);
+    query_result.join();
+    ReportTable *joined_table = query_result.get_root_table();
+
+    qDebug() << *joined_table;
+    //         |     206(1)     |     18/35(2)     |     8106(3)     |     (5)     |     18/33(6)
+    //         |     211(1)     |     18/35(2)     |     8112(3)     |     (5)     |     18/33(6)
+
+    QCOMPARE(joined_table->get_rows().count(), 0);
 
 #endif
 }
