@@ -89,7 +89,7 @@ void ReportHistoryQuery::add_new_query_page() {
 }
 
 void ReportHistoryQuery::add_new_query_page(ReportQuery &report_query, QGridLayout *grid_layout, QWidget *tool_widget) {
-    ui->tb_queries->addItem(tool_widget, report_query.data_engine_source_file_m);
+    ui->tb_queries->addItem(tool_widget, report_query.get_data_engine_source_file());
 
     reduce_tb_query_path();
 
@@ -191,7 +191,7 @@ void ReportHistoryQuery::on_btn_back_clicked() {
 bool ReportHistoryQuery::load_select_ui_to_query() {
     for (int i = 0; i < ui->tree_query_fields->topLevelItemCount(); i++) {
         QTreeWidgetItem *top_level_item = ui->tree_query_fields->topLevelItem(i);
-        auto &query = report_query_config_file_m.find_query(top_level_item->text(0));
+        auto &query = report_query_config_file_m.find_query_by_table_name(top_level_item->text(0));
         query.select_field_names_m.clear();
 
         for (int j = 0; j < top_level_item->childCount(); j++) {
@@ -259,15 +259,11 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
         ui->tree_query_fields->clear();
         //T:/qt/crystalTestFramework/tests/scripts/report_query/data_engine_source_1.json
         const Qt::ItemFlags item_flags_checkable = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable;
-        QStringList sl;
-        for (auto &query : report_query_config_file_m.get_queries()) {
-            sl.append(query.data_engine_source_file_m);
-        }
-        sl = reduce_path(sl);
-        int query_index = 0;
+
+        report_query_config_file_m.set_table_names();
+
         for (auto &query : report_query_config_file_m.get_queries_not_const()) {
-            query.update_from_gui();
-            QTreeWidgetItem *root_item = new QTreeWidgetItem(QStringList{sl[query_index]});
+            QTreeWidgetItem *root_item = new QTreeWidgetItem(QStringList{query.get_table_name()});
             ui->tree_query_fields->addTopLevelItem(root_item);
 
             const DataEngineSourceFields &fields = query.get_data_engine_fields();
@@ -306,46 +302,55 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
                     //    qDebug() << "report/" + section_name + "/" + data_engine_field.field_name;
                 }
             }
-            query_index++;
         }
         ui->tree_query_fields->expandAll();
     } else if ((old_stk_report_history_index_m == 1) && (arg1 == 2)) {
         if (load_select_ui_to_query()) {
-            QMap<QString, QList<QVariant>> query_result = report_query_config_file_m.execute_query(this);
-            ui->tableWidget->clear();
-            ui->tableWidget->setColumnCount(query_result.keys().count());
-            QStringList sl = reduce_path(query_result.keys());
-            ui->tableWidget->setHorizontalHeaderLabels(sl);
-            int row_count = 0;
-            for (auto key : query_result.keys()) {
-                if (query_result.value(key).count() > row_count) {
-                    row_count = query_result.value(key).count();
-                }
+            ReportDatabase query_result = report_query_config_file_m.execute_query(this);
+            query_result.join();
+            ReportTable *joined_table = query_result.get_root_table();
+
+            QStringList row_titles;
+            auto col_keys = joined_table->get_field_names();
+            for (int key : col_keys.uniqueKeys()) {
+                row_titles.append(query_result.get_field_name_by_int_key(key));
             }
-            ui->tableWidget->setRowCount(row_count);
-            int col_index = 0;
-            for (auto key : query_result.keys()) {
-                const auto &row_values = query_result.value(key);
-                int row_index = 0;
-                for (const auto &val : row_values) {
+            row_titles = reduce_path(row_titles);
+
+            ui->tableWidget->clear();
+            ui->tableWidget->setColumnCount(row_titles.count());
+            QStringList sl = reduce_path(row_titles);
+            ui->tableWidget->setHorizontalHeaderLabels(sl);
+            ui->tableWidget->setRowCount(1);
+
+            const QList<ReportTableRow> &joined_rows = joined_table->get_rows();
+
+            int row_index = 0;
+            for (auto &row : joined_rows) {
+                int col_index = 0;
+                for (int &col_key : col_keys.uniqueKeys()) {
+                    const QVariant &col_val = row.row_m.value(col_key);
+
                     QString s;
-                    if (val.canConvert<DataEngineDateTime>()) {
-                        s = val.value<DataEngineDateTime>().str();
+                    if (col_val.canConvert<DataEngineDateTime>()) {
+                        s = col_val.value<DataEngineDateTime>().str();
                     } else {
-                        s = val.toString();
+                        s = col_val.toString();
                     }
                     auto *item = new MyTableWidgetItem(s, 0);
-                    item->setData(Qt::UserRole, val);
+                    item->setData(Qt::UserRole, col_val);
                     ui->tableWidget->setItem(row_index, col_index, item);
-                    row_index++;
+                    col_index++;
                 }
-                col_index++;
+                row_index++;
+                ui->tableWidget->setRowCount(row_index + 1);
             }
         } else {
             ui->stk_report_history->setCurrentIndex(old_stk_report_history_index_m);
             arg1 = old_stk_report_history_index_m;
         }
     }
+
     old_stk_report_history_index_m = arg1;
     ui->btn_save_query->setVisible((arg1 == 1) || (arg1 == 2));
     ui->btn_save_query->setToolTip(QObject::tr("Saves to file: ") +
@@ -505,7 +510,7 @@ void ReportQueryConfigFile::create_new_query_ui(QWidget *parent, ReportQuery &re
         gl->addWidget(lbl_data_engine_source, 0, 0);
 
         report_query.edt_query_data_engine_source_file_m = new QLineEdit();
-        report_query.edt_query_data_engine_source_file_m->setText(report_query.data_engine_source_file_m);
+        report_query.edt_query_data_engine_source_file_m->setText(report_query.get_data_engine_source_file());
         gl->addWidget(report_query.edt_query_data_engine_source_file_m, 0, 1);
 
         report_query.btn_query_data_engine_source_file_browse_m = new QToolButton();
@@ -546,20 +551,56 @@ ReportQuery &ReportQueryConfigFile::add_new_query(QWidget *parent) {
     return report_queries_m.last();
 }
 
-ReportQuery &ReportQueryConfigFile::find_query(QString data_engine_source_file) {
+#if 0
+ReportQuery &ReportQueryConfigFile::find_query_by_source_file(QString data_engine_source_file) {
     for (auto &query : report_queries_m) {
-        if (query.data_engine_source_file_m.endsWith(data_engine_source_file)) {
+        if (query.get_data_engine_source_file().endsWith(data_engine_source_file)) {
             return query;
         }
     }
     throw std::runtime_error("ReportQueryConfigFile: can not find query with " + data_engine_source_file.toStdString() + " as filename.");
+}
+#endif
+
+ReportQuery &ReportQueryConfigFile::find_query_by_table_name(QString table_name) {
+    for (auto &query : report_queries_m) {
+        if (query.get_table_name() == table_name) {
+            return query;
+        }
+    }
+    throw std::runtime_error("ReportQueryConfigFile: can not find query with " + table_name.toStdString() + " as tablename.");
+}
+
+ReportQuery &ReportQueryConfigFile::find_query_by_id(int id) {
+    for (auto &query : report_queries_m) {
+        if (query.id_m == id) {
+            return query;
+        }
+    }
+    throw std::runtime_error("ReportQueryConfigFile: can not find query with " + QString::number(id).toStdString() + " as tableindex.");
+}
+
+void ReportQueryConfigFile::build_query_link_references() {
+    for (auto &query : report_queries_m) {
+        if (query.link.other_id >= 0) {
+            auto &query_to_probe = find_query_by_id(query.link.other_id);
+            query.link.other_report_query = &query_to_probe;
+        }
+        //for (auto &query_to_probe : report_queries_m) {
+        //  if (query.link.other_id == query_to_probe.id_m) {
+        //    query.link.other_report_query = &query_to_probe;
+        //  break;
+        //}
+        // }
+    }
+    reference_links_built_m = true;
 }
 
 void ReportQueryConfigFile::remove_query(int index) {
     report_queries_m.removeAt(index);
 }
 
-QMap<QString, QList<QVariant>> ReportQueryConfigFile::execute_query(QWidget *parent) const {
+ReportDatabase ReportQueryConfigFile::execute_query(QWidget *parent) const {
     QProgressDialog progress(
         QObject::tr("Scanning files..\nIf this gets too slow, ask your systemadmin to set up a MongoDB server and the developer to use it."),
         QObject::tr("Scaning files.."), 0, 100, parent);
@@ -620,12 +661,34 @@ void ReportQueryConfigFile::load_from_file(QString file_name) {
         ReportQuery rq;
         const auto js_query_obj = js_query.toObject();
         rq.report_path_m = js_query_obj["report_path"].toString();
-        rq.data_engine_source_file_m = js_query_obj["data_engine_source_file"].toString();
+        rq.set_data_engine_source_file(js_query_obj["data_engine_source_file"].toString());
+        rq.id_m = js_query_obj["id"].toInt(-1);
+        QJsonObject link_obj = js_query_obj["link"].toObject();
+        rq.link.other_id = link_obj["other_query_id"].toInt(-1);
+        rq.link.other_field_name = link_obj["other_field"].toString();
+        rq.link.me_field_name = link_obj["me"].toString();
         QJsonArray js_select_field_name = js_query_obj["select_field_names"].toArray();
         for (const auto v : js_select_field_name) {
             rq.select_field_names_m.append(v.toString());
         }
         report_queries_m.append(rq);
+    }
+    set_table_names();
+    build_query_link_references();
+}
+
+void ReportQueryConfigFile::set_table_names() {
+    //set_table_names by reducing the data_source_paths
+    QStringList sl;
+    for (auto &query : get_queries_not_const()) {
+        query.update_from_gui();
+        sl.append(query.get_table_name_suggestion());
+    }
+    sl = reduce_path(sl);
+    int i = 0;
+    for (auto &query : get_queries_not_const()) {
+        query.set_table_name(sl[i]);
+        i++;
     }
 }
 
@@ -673,7 +736,7 @@ void ReportQueryConfigFile::save_to_file(QString file_name) {
     for (auto &query : report_queries_m) {
         QJsonObject js_query_entry;
         js_query_entry["report_path"] = query.report_path_m;
-        js_query_entry["data_engine_source_file"] = query.data_engine_source_file_m;
+        js_query_entry["data_engine_source_file"] = query.get_data_engine_source_file();
         QJsonArray js_query_select_array;
         for (auto &select_file_name : query.select_field_names_m) {
             js_query_select_array.append(select_file_name);
@@ -692,7 +755,7 @@ void ReportQueryConfigFile::save_to_file(QString file_name) {
     saveFile.write(saveDoc.toJson());
 }
 
-const QList<ReportQuery> &ReportQueryConfigFile::get_queries() {
+const QList<ReportQuery> &ReportQueryConfigFile::get_queries() const {
     return report_queries_m;
 }
 
@@ -708,10 +771,38 @@ QList<ReportQueryWhereField> &ReportQueryConfigFile::get_where_fields_not_const(
     return query_where_fields_m;
 }
 
-QMap<QString, QList<QVariant>> ReportQueryConfigFile::filter_and_select_reports(const QList<ReportLink> &report_file_list,
-                                                                                QProgressDialog *progress_dialog) const {
-    QMap<QString, QList<QVariant>> result;
+ReportDatabase ReportQueryConfigFile::filter_and_select_reports(const QList<ReportLink> &report_file_list, QProgressDialog *progress_dialog) const {
+    ReportDatabase report_database;
     int progress = 0;
+
+    assert(reference_links_built_m);
+    for (const auto &query : get_queries()) {
+        QString other_table;
+        if (query.link.other_report_query) {
+            other_table = query.link.other_report_query->get_table_name();
+        }
+
+        QString other_field_name = other_table + "/" + query.link.other_field_name;
+        if (other_field_name == "/") {
+            other_field_name = "";
+        }
+
+        QString me_field_name = query.link.me_field_name;
+        if (me_field_name != "") {
+            me_field_name = query.get_table_name() + "/" + me_field_name;
+        }
+
+        ReportTable *table = report_database.new_table(query.get_table_name(), me_field_name, other_field_name);
+
+        QMap<int, QString> field_name_keys;
+        for (const QString &field_name : query.select_field_names_m) {
+            QString fn = query.get_table_name() + "/" + field_name;
+            field_name_keys.insert(report_database.get_int_key_by_field_name_not_const(fn), fn);
+        }
+        table->set_field_name_keys(field_name_keys);
+    }
+    report_database.build_link_tree();
+
     for (const auto &report_link : report_file_list) {
         progress++;
         if (progress_dialog) {
@@ -725,32 +816,39 @@ QMap<QString, QList<QVariant>> ReportQueryConfigFile::filter_and_select_reports(
                 continue;
             }
         }
-        QString data_engine_source_file_name = QFileInfo(report_link.query_m.data_engine_source_file_m).fileName().split('.')[0];
 
         bool match = true;
+        QString index_key;
         for (const auto &report_query_where_field : query_where_fields_m) {
             auto value = report_file.get_field_value(report_query_where_field.field_name_m);
+            index_key = index_key + value.toString();
             if (report_query_where_field.matches_value(value) == false) {
                 match = false;
                 break;
             }
         }
+
         if (match) {
-            for (auto select_field_name : report_link.query_m.select_field_names_m) {
-                QString key = data_engine_source_file_name + "/" + select_field_name;
-                if (result.contains(key)) {
-                    result[key].append(report_file.get_field_value(select_field_name));
-                } else {
-                    QList<QVariant> value{report_file.get_field_value(select_field_name)};
-                    result.insert(key, value);
-                }
+            QVariant time_stamp_var = report_file.get_field_value("general/datetime_str");
+            DataEngineDateTime time_stamp;
+            if (time_stamp_var.canConvert<DataEngineDateTime>()) {
+                time_stamp = time_stamp_var.value<DataEngineDateTime>();
             }
+
+            QMap<QString, QVariant> pre_row;
+            for (auto select_field_name : report_link.query_m.select_field_names_m) {
+                QString field_name = report_link.query_m.get_table_name() + "/" + select_field_name;
+                pre_row.insert(field_name, report_file.get_field_value(select_field_name));
+            }
+            ReportTable *report_table = report_database.get_table(report_link.query_m.get_table_name());
+            QMap<int, QVariant> table_row = report_database.translate_row_to_int_key(pre_row);
+            report_table->append_row(table_row, time_stamp.dt());
         }
     }
-    return result;
+    return report_database;
 }
 
-QList<ReportLink> ReportQueryConfigFile::scan_folder_for_reports(QString base_dir_str) const {
+QList<ReportLink> ReportQueryConfigFile::scan_folder_for_reports(const QString &base_dir_str) const {
     QList<ReportLink> result;
     for (const auto &query : report_queries_m) {
         QDir base_dir{base_dir_str};
@@ -993,6 +1091,31 @@ void ReportQueryWhereField::load_values_from_plain_text() {
     }
 }
 
+QString ReportQuery::get_data_engine_source_file() const {
+    return data_engine_source_file_m;
+}
+
+void ReportQuery::set_data_engine_source_file(const QString &data_engine_source_file) {
+    data_engine_source_file_m = data_engine_source_file;
+}
+
+QString ReportQuery::get_table_name_suggestion() const {
+    //return QFileInfo(data_engine_source_file_m).fileName().split('.')[0];
+    auto sl = data_engine_source_file_m.split(".");
+    sl.removeLast();
+    // remove file extension ".json"
+    return sl.join("/");
+}
+
+void ReportQuery::set_table_name(QString table_name) {
+    table_name_m = table_name;
+}
+
+QString ReportQuery::get_table_name() const {
+    assert(table_name_m != "");
+    return table_name_m;
+}
+
 void ReportQuery::update_from_gui() {
     if (edt_query_report_folder_m) {
         report_path_m = edt_query_report_folder_m->text();
@@ -1112,7 +1235,7 @@ void ReportHistoryQuery::reduce_tb_query_path() {
     ui->tb_queries->setCurrentIndex(ui->tb_queries->count() - 1);
 }
 
-QStringList ReportHistoryQuery::reduce_path(QStringList sl) {
+QStringList reduce_path(QStringList sl) {
     // test1/a/b/c/d.json/report/data/sn
     // test1/a/b/c/e.json/report/data/sn
     // test1/a/b/c/e.json/report/data/datetime
@@ -1166,3 +1289,316 @@ QStringList ReportHistoryQuery::reduce_path(QStringList sl) {
     }
     return result;
 }
+
+void ReportDatabase::build_link_tree() {
+    QMap<QString, ReportTableLink> receiver_links_all;
+
+    for (const auto &map_pair_outer : tables_m) {
+        ReportTable *table_outer = map_pair_outer.second.get();
+        const QString &sender_table_name = map_pair_outer.first;
+        const ReportTableLink &sender_link = table_outer->get_sender_link();
+
+        int sender_link_key = sender_link.get_field_key_other();
+
+        for (const auto &map_pair_inner : tables_m) {
+            ReportTable *table_inner = map_pair_inner.second.get();
+            const QString &reciever_table_name = map_pair_inner.first;
+            if (table_inner->field_exists(sender_link_key)) {
+                ReportTableLink sender_link_reversed(sender_link.reversed());
+                sender_link_reversed.set_table_other(table_outer);
+                receiver_links_all.insertMulti(reciever_table_name, sender_link_reversed);
+                table_outer->set_sender_link_table(table_inner);
+            }
+        }
+    }
+    for (auto &table_pair : tables_m) {
+        const QString &table_name = table_pair.first;
+        ReportTable *table = table_pair.second.get();
+
+        if (receiver_links_all.contains(table_name)) {
+            const QList<ReportTableLink> &receiver_link_table = receiver_links_all.values(table_name);
+            table->set_receiver_links(receiver_link_table);
+        } else {
+            QList<ReportTableLink> empty_links;
+            table->set_receiver_links(empty_links);
+        }
+    }
+}
+
+void ReportDatabase::join() {
+    get_root_table()->integrate_sending_tables();
+}
+
+ReportTable *ReportDatabase::get_root_table() {
+    //find root:
+    //we should start with begin()
+    //auto iter = tables_m.end();
+    //iter--;
+    auto iter = tables_m.begin();
+    ReportTable *root_table_probe = iter->second.get();
+    ReportTable *root_table = root_table_probe;
+    while (root_table_probe) {
+        root_table = root_table_probe;
+        root_table_probe = root_table_probe->get_sender_link().get_table_other();
+    }
+    return root_table;
+}
+
+void ReportTable::integrate_sending_tables() {
+    for (auto &rlink_key : receiver_links_m.uniqueKeys()) {
+        for (auto &rlink : receiver_links_m.values(rlink_key)) {
+            ReportTable *other_table = rlink.get_table_other();
+            if (other_table) {
+                other_table->integrate_sending_tables();
+            } else {
+            }
+        }
+    }
+    if (sender_link_m.table_other_m) {
+        sender_link_m.table_other_m->merge(this); // this is leaf
+    }
+}
+
+void ReportTable::merge(ReportTable *other_table) {
+    //other is leaf
+    assert(other_table);
+    //qDebug() << "other leaf's fields: " << other_table->get_field_names();
+    // qDebug() << "my fields: " << get_field_names();
+    int this_link_key = other_table->sender_link_m.get_field_key_other();
+    int other_link_key = other_table->sender_link_m.get_field_key_this();
+    (void)this_link_key;
+
+    ReportTableLink recevier_link = get_receiver_link_by_key_other(other_link_key);
+    ReportTableLink recevier_link_tally = get_receiver_link_by_key_other(other_link_key);
+    QMap<int, QString> original_field_name_keys_m = field_name_keys_m;
+
+    ///    QList<ReportTableRow> original_rows = rows_m;
+
+    QMap<QVariant, int> original_receiver_index = recevier_link.index_m; //without copy this gets quite complicated and im lazy.
+
+    for (auto &row : rows_m) {
+        row.merged_m = false;
+    }
+    for (ReportTableRow &other_row : other_table->rows_m) {
+        const QVariant &indexed_val = other_row.row_m.value(other_link_key);
+        assert(indexed_val.isValid());
+        QList<int> this_row_indexes = original_receiver_index.values(indexed_val);
+        while (this_row_indexes.count()) { // there might be more than one row in this with this value
+            int this_row_index = this_row_indexes[0];
+            recevier_link_tally.index_m.remove(indexed_val);
+            ReportTableRow &this_row = rows_m[this_row_index];
+
+            if (this_row.merged_m) { //this row already treated with merging?
+                                     //if yes..
+                QList<int> new_this_row_indexes = duplicate_rows(this_row_indexes);
+                remove_cols_by_matching(new_this_row_indexes, original_field_name_keys_m); //restore rows with original cols to join the other row with
+                this_row_indexes = new_this_row_indexes;
+                continue;
+            }
+#if 0
+            QStringList row_str;
+            for (const int &col_key : this_row.row_m.keys()) {
+                row_str.append(this_row.row_m.value(col_key).toString() + "(" + QString::number(col_key) + ")");
+            }
+            qDebug() << QString::number(this_row_index) + ":   " + row_str.join("    |    ");
+#endif
+            for (auto &other_col_key : other_row.row_m.keys()) {
+                assert(!this_row.row_m.contains(other_col_key));
+                if (other_col_key == other_link_key) {
+                    continue;
+                }
+                this_row.row_m.insert(other_col_key, other_row.row_m.value(other_col_key));
+                if (!field_name_keys_m.contains(other_col_key)) {
+                    field_name_keys_m.insert(other_col_key, "");
+                }
+            }
+            this_row.merged_m = true;
+            this_row_indexes.removeAt(0);
+        }
+    }
+
+#if 1
+    //remove rows which were not in other_table:
+    //we could use also row.merged. but i suppose this is faster
+    QList<int> indexes_to_remove;
+    for (int index_value : recevier_link_tally.index_m) {
+        indexes_to_remove.append(index_value);
+    }
+    remove_indexes_from_list(rows_m, indexes_to_remove);
+
+//qDebug() << "removed: " << recevier_link_tally.index_m;
+#endif
+}
+
+ReportTable *ReportDatabase::get_table(QString data_engine_source_file) {
+    assert(tables_m.count(data_engine_source_file)); //table_m contains data_engine_source_file?
+    return tables_m.at(data_engine_source_file).get();
+}
+
+ReportTable *ReportDatabase::new_table(const QString table_name, const QString &link_field_name_this, const QString &link_field_name_other) {
+    //int link_receiver_key = -1;
+    int link_field_key_other = -1;
+    if (link_field_name_other != "") {
+        link_field_key_other = dictionary_m.get_int_key_by_field_name(link_field_name_other);
+    }
+    int link_field_key_this = -1;
+    if (link_field_name_this != "") {
+        link_field_key_this = dictionary_m.get_int_key_by_field_name(link_field_name_this);
+    }
+    assert((link_field_name_this.startsWith("report") == false) && (link_field_name_this.startsWith("general") == false));
+    QList<QPair<QString, int>> receiver_links;
+    tables_m.emplace(table_name,
+                     std::make_unique<ReportTable>(link_field_name_this, link_field_key_this, link_field_name_other, link_field_key_other, nullptr));
+    return tables_m.at(table_name).get();
+}
+
+QMap<int, QVariant> ReportDatabase::translate_row_to_int_key(const QMap<QString, QVariant> &row_with_string_names) {
+    QMap<int, QVariant> result;
+    for (QString str_key : row_with_string_names.keys()) {
+        int int_key = dictionary_m.get_int_key_by_field_name(str_key);
+        result.insert(int_key, row_with_string_names.value(str_key));
+    }
+    return result;
+}
+
+QString ReportDatabase::get_field_name_by_int_key(int key) const {
+    return dictionary_m.get_field_name_by_int_key(key);
+}
+
+int ReportDatabase::get_int_key_by_field_name(const QString &field_name) const {
+    return dictionary_m.get_int_key_by_field_name_const(field_name);
+}
+
+int ReportDatabase::get_int_key_by_field_name_not_const(const QString &field_name) {
+    return dictionary_m.get_int_key_by_field_name(field_name);
+}
+
+QString ReportFieldNameDictionary::get_field_name_by_int_key(int key) const {
+    assert(dictionary_reverse_m.contains(key));
+    return dictionary_reverse_m.value(key);
+}
+
+int ReportFieldNameDictionary::get_int_key_by_field_name_const(const QString &field_name) const {
+    assert(dictionary_m.contains(field_name));
+    return dictionary_m.value(field_name);
+}
+
+int ReportFieldNameDictionary::get_int_key_by_field_name(const QString &field_name) {
+    assert(field_name != "");
+    if (dictionary_m.contains(field_name)) {
+        return dictionary_m.value(field_name);
+    } else {
+        return append_new_field_name(field_name);
+    }
+}
+
+int ReportFieldNameDictionary::append_new_field_name(const QString &field_name) {
+    int new_key = increment_key();
+    assert(!dictionary_m.contains(field_name));
+    assert(!dictionary_reverse_m.contains(new_key));
+    dictionary_m.insert(field_name, new_key);
+    dictionary_reverse_m.insert(new_key, field_name);
+    return new_key;
+}
+
+void ReportTable::append_row(const QMap<int, QVariant> &row, const QDateTime &time_stamp) {
+    assert(receiver_link_set_m);
+    ReportTableRow rrow;
+    rrow.time_stamp_m = time_stamp;
+    rrow.row_m = row;
+    rrow.visible_m = true;
+    for (ReportTableLink &receiver_link : receiver_links_m) {
+        const QVariant &link_receiver_content = row.value(receiver_link.get_field_key_this());
+        receiver_link.index_m.insertMulti(link_receiver_content, rows_m.count());
+    }
+    for (const auto &field_key : row.keys()) {
+        assert(field_name_keys_m.contains(field_key));
+    }
+    const QVariant &link_sender_content = row.value(sender_link_m.get_field_key_this());
+    sender_link_m.index_m.insertMulti(link_sender_content, rows_m.count());
+    rows_m.append(rrow);
+}
+
+QList<int> ReportTable::duplicate_rows(QList<int> &row_indexes) {
+    assert(receiver_link_set_m);
+    QList<int> result;
+    for (int index : row_indexes) {
+        ReportTableRow rrow = rows_m[index];
+        rrow.merged_m = false;
+        for (ReportTableLink &receiver_link : receiver_links_m) {
+            const QVariant &link_receiver_content = rrow.row_m.value(receiver_link.get_field_key_this());
+            receiver_link.index_m.insertMulti(link_receiver_content, rows_m.count());
+        }
+
+        for (const auto &field_key : rrow.row_m.keys()) {
+            assert(field_name_keys_m.contains(field_key));
+        }
+        const QVariant &link_sender_content = rrow.row_m.value(sender_link_m.get_field_key_this());
+        sender_link_m.index_m.insertMulti(link_sender_content, rows_m.count());
+        result.append(rows_m.count());
+        rows_m.append(rrow);
+    }
+    return result;
+}
+
+void ReportTable::remove_cols_by_matching(const QList<int> &row_indexes, const QMap<int, QString> &allowed_cols) {
+    for (int index : row_indexes) {
+        for (int col_key : rows_m[index].row_m.uniqueKeys()) {
+            if (!allowed_cols.contains(col_key)) {
+                rows_m[index].row_m.remove(col_key);
+            }
+        }
+    }
+}
+
+const ReportTableLink &ReportTable::get_sender_link() const {
+    return sender_link_m;
+}
+
+const QMap<int, ReportTableLink> &ReportTable::get_receiver_links() const {
+    return receiver_links_m;
+}
+
+ReportTableLink &ReportTable::get_receiver_link_by_key_other(int other_key) {
+    for (auto &rlink : receiver_links_m) {
+        if (rlink.field_key_other_m == other_key) {
+            return rlink;
+        }
+    }
+    throw std::runtime_error("ReportTable: can not find receiver link with other key " + QString::number(other_key).toStdString() + "");
+}
+
+void ReportTable::set_receiver_links(const QList<ReportTableLink> &receiver_links) {
+    for (const auto &rlink : receiver_links) {
+        receiver_links_m.insertMulti(rlink.get_field_key_this(), rlink);
+    }
+    receiver_link_set_m = true;
+}
+
+const QList<ReportTableRow> &ReportTable::get_rows() const {
+    return rows_m;
+}
+
+void ReportTable::set_field_name_keys(const QMap<int, QString> &field_name_keys) {
+    field_name_keys_m = field_name_keys;
+}
+
+bool ReportTable::field_exists(int field_name_key) const {
+    return field_name_keys_m.contains(field_name_key);
+}
+
+#if 1
+template <typename T>
+void remove_indexes_from_list(QList<T> &list, QList<int> indexes) {
+    qSort(indexes.begin(), indexes.end(), [](const int &i1, const int &i2) { return i1 < i2; });
+    int index_index = 0;
+    for (int index : indexes) {
+        list.removeAt(index);
+        for (int i = index_index; i < indexes.count(); i++) {
+            indexes[i] = indexes[i] - 1;
+        }
+        index_index++;
+    }
+}
+
+#endif

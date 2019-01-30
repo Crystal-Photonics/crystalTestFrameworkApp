@@ -1,0 +1,58 @@
+{
+	"queries":[
+		{
+			"id":1,
+			"report_path": "reports1/",
+			"data_engine_source_file": "data_engine_source_1.json",
+			"select_field_names":[
+				"general/test_duration_seconds",
+				"report/gerate_daten/pcb2_chargennummer",
+				"report/gerate_daten/seriennummer"
+			]
+			
+			
+		},
+		{
+			"id":2,
+			"report_path": "reports3/",
+			"data_engine_source_file": "data_engine_source_2.json",
+			"link":{
+				"other_query_id": 1,
+				"other_field": "report/gerate_daten/seriennummer",
+				"me": "report/gerate_daten/seriennummer"
+			},
+			"select_field_names":[
+				"general/display_chargennummer",
+				"report/gerate_daten/led_pcb_chargennummer",
+				"report/gerate_daten/seriennummer"
+			]
+			
+			
+		}
+	],
+	"where_fields":[
+		{
+			"field_name": "report/gerate_daten/seriennummer",
+			"incremention_selector_expression":"(\\d*)",
+			"field_type" : "Number",
+			"conditions":[
+				{
+					"values" : [
+						8106,
+						8107,
+						8111
+					],
+					"include_greater_values_till_next_entry" : true
+					
+				},
+				{
+					"values" : [
+						8112						
+					],
+					"include_greater_values_till_next_entry" : false
+				}
+			]
+		}
+	]
+
+}

@@ -2,12 +2,12 @@
 #define TESTRESULTQUERY_H
 
 #include "data_engine/data_engine.h"
+#include <QDebug>
 #include <QDialog>
 #include <QJsonObject>
 #include <QMap>
 #include <QString>
 #include <QTableWidgetItem>
-
 class QVariant;
 class QTreeWidgetItem;
 class TestReportHistory;
@@ -17,12 +17,16 @@ class QGridLayout;
 class QPlainTextEdit;
 class QProgressDialog;
 class QLabel;
+class ReportQuery;
 
 namespace Ui {
     class ReportHistoryQuery;
 }
 
-//std::variant;
+QStringList reduce_path(QStringList sl);
+
+template <typename T>
+void remove_indexes_from_list(QList<T> &list, QList<int> indexes);
 
 class WhereFieldInterpretationError : public std::runtime_error {
     public:
@@ -77,13 +81,27 @@ class DataEngineSourceFields {
     QMap<QString, QList<DataEngineField>> report_fields_m;
 };
 
+class ReportQueryLink {
+    public:
+    int other_id = -1;
+    ReportQuery *other_report_query = nullptr;
+    QString other_field_name;
+    QString me_field_name;
+};
+
 class ReportQuery {
     friend TestReportHistory;
 
     public:
+    int id_m = 0;
     QString report_path_m;
-    QString data_engine_source_file_m;
+    QString get_data_engine_source_file() const;
+    void set_data_engine_source_file(const QString &data_engine_source_file);
     QStringList select_field_names_m;
+    QString get_table_name() const;
+    QString get_table_name_suggestion() const;
+    void set_table_name(QString table_name);
+    ReportQueryLink link;
     void update_from_gui();
     DataEngineSourceFields get_data_engine_fields();
     QLineEdit *edt_query_report_folder_m = nullptr;
@@ -98,6 +116,8 @@ class ReportQuery {
 
     private:
     bool is_valid_m = false;
+    QString data_engine_source_file_m;
+    QString table_name_m;
 };
 
 class ReportLink {
@@ -109,36 +129,226 @@ class ReportLink {
     const ReportQuery &query_m;
 };
 
+#if 0
+struct QueryResult {
+    public:
+    QMap<QString, QMap<QString, QList<QVariant>>> data;
+    QStringList field_names;
+};
+#endif
+
+class ReportFieldNameDictionary {
+    public:
+    ReportFieldNameDictionary() {}
+    QString get_field_name_by_int_key(int key) const;
+    int get_int_key_by_field_name(const QString &field_name);
+    int get_int_key_by_field_name_const(const QString &field_name) const;
+
+    private:
+    int append_new_field_name(const QString &field_name); //adds table_name/field_section/field_name to dictionary
+    QMap<QString, int> dictionary_m;                      //stores the coloum-names and points to ReportTableRow.row_m
+    QMap<int, QString> dictionary_reverse_m;              //stores the coloum-names and points to ReportTableRow.row_m
+
+    static int increment_key() {
+        static int incrementing_key = 0;
+        incrementing_key++;
+        return incrementing_key;
+    }
+};
+
+class ReportTableRow {
+    public:
+    QMap<int, QVariant> row_m;
+    QDateTime time_stamp_m;
+    bool visible_m = true;
+    bool merged_m = false;
+};
+class ReportTable;
+
+class ReportTableLink {
+    friend ReportTable;
+
+    public:
+    ReportTableLink(const QString &field_name_this, const int field_key_this, ReportTable *table_this, const QString &field_name_other,
+                    const int field_key_other, ReportTable *table_other)
+        : index_m()
+        , field_name_this_m(field_name_this)
+        , field_name_other_m(field_name_other)
+        , field_key_this_m(field_key_this)
+        , field_key_other_m(field_key_other)
+        , table_this_m(table_this)
+        , table_other_m(table_other) {}
+
+    ReportTableLink()
+        : field_key_this_m(-1) {}
+
+    ReportTableLink reversed() const {
+        return ReportTableLink(field_name_other_m, field_key_other_m, table_other_m, field_name_this_m, field_key_this_m, table_this_m);
+    }
+
+    int get_field_key_this() const {
+        return field_key_this_m;
+    }
+
+    int get_field_key_other() const {
+        return field_key_other_m;
+    }
+
+    ReportTable *get_table_other() const {
+        return table_other_m;
+    }
+
+    void set_table_other(ReportTable *table_other) {
+        table_other_m = table_other;
+    }
+
+    QMap<QVariant, int> index_m; //int points to index of rows_m
+    QString field_name_this_m;   //field names are table_name/field_section/field_name
+    QString field_name_other_m;  //field names are table_name/field_section/field_name
+    private:
+    int field_key_this_m;  //field names are table_name/field_section/field_name
+    int field_key_other_m; //field names are table_name/field_section/field_name
+
+    ReportTable *table_this_m;
+
+    protected:
+    ReportTable *table_other_m;
+};
+class ReportDatabase;
+class ReportTable {
+    friend ReportDatabase;
+    friend TestReportHistory;
+
+    public:
+    ReportTable(const QString &link_sender_this_field_name, int link_sender_this_field_key, const QString &link_sender_other_field_name,
+                int link_sender_other_field_key, ReportTable *link_sender_other_table)
+        : sender_link_m(link_sender_this_field_name,  //
+                        link_sender_this_field_key,   //
+                        this,                         //
+                        link_sender_other_field_name, //
+                        link_sender_other_field_key,  //
+                        link_sender_other_table) {}
+
+    void append_row(const QMap<int, QVariant> &row, const QDateTime &time_stamp); //appends row and updates index
+    void set_field_name_keys(const QMap<int, QString> &field_name_keys);
+    const QList<ReportTableRow> &get_rows() const;
+
+    QMap<int, QString> get_field_names() const {
+        return field_name_keys_m;
+    }
+
+    friend QDebug operator<<(QDebug stream, const ReportTable &table) {
+        QStringList header;
+        for (int &col_key : table.field_name_keys_m.uniqueKeys()) {
+            header.append(table.field_name_keys_m.value(col_key) + "(" + QString::number(col_key) + ")");
+        }
+        //header = reduce_path(header);
+        stream.noquote() << "\n";
+        stream.noquote() << header.join("     |     ") + "\n";
+
+        for (auto const &row : table.rows_m) {
+            QStringList row_str;
+            for (int &col_key : table.field_name_keys_m.uniqueKeys()) {
+                auto &col = row.row_m.value(col_key);
+                QString col_str;
+                if (col.canConvert<DataEngineDateTime>()) {
+                    col_str = col.value<DataEngineDateTime>().str();
+                } else {
+                    col_str = col.toString();
+                }
+                row_str.append(col_str + "(" + QString::number(col_key) + ")");
+            }
+            stream.noquote() << row_str.join("     |     ") + "\n";
+        }
+        return stream;
+    }
+
+    protected:
+    void set_receiver_links(const QList<ReportTableLink> &receiver_links_m);
+    QList<ReportTableRow> get_rows_by_receiver_index(const QVariant &to_be_linked_with_receiver_index); //gets a row which matches to the receiver_link
+
+    void set_sender_link_table(ReportTable *sender_link_table) {
+        sender_link_m.table_other_m = sender_link_table;
+    }
+
+    bool field_exists(int field_name_key) const;
+    void integrate_sending_tables();
+    const QMap<int, ReportTableLink> &get_receiver_links() const;
+
+    private:
+    QList<int> duplicate_rows(QList<int> &row_indexes); //clones row and updates index
+    const ReportTableLink &get_sender_link() const;
+    void remove_cols_by_matching(const QList<int> &row_indexes, const QMap<int, QString> &allowed_cols);
+    ReportTableLink &get_receiver_link_by_key_other(int other_key);
+    void merge(ReportTable *other_table);
+    ReportTableLink sender_link_m;
+    QMap<int, ReportTableLink> receiver_links_m; //key == field key, the same as ReportTableLink.field_key_this_m
+                                                 //receiver links point to this table
+
+    QList<ReportTableRow> rows_m;
+    QMap<int, QString> field_name_keys_m; //fields which could possibly exist
+    bool receiver_link_set_m = false;
+};
+
+class ReportDatabase {
+    public:
+    ReportDatabase() {}
+
+    void build_link_tree();
+    void join();
+    ReportTable *get_root_table();
+    ReportTable *get_table(QString data_engine_source_file);
+    ReportTable *new_table(const QString table_name, const QString &link_field_name_this, const QString &link_field_name_other);
+
+    QMap<int, QVariant> translate_row_to_int_key(const QMap<QString, QVariant> &row_with_string_names);
+
+    QString get_field_name_by_int_key(int key) const;
+    int get_int_key_by_field_name(const QString &field_name) const;
+    int get_int_key_by_field_name_not_const(const QString &field_name);
+
+    private:
+    ReportFieldNameDictionary dictionary_m;
+    std::map<QString, std::unique_ptr<ReportTable>> tables_m; //key is the table name. eg. data_engine_source.json
+};
+
 class ReportQueryConfigFile {
     public:
     ReportQueryConfigFile();
     ~ReportQueryConfigFile();
     void load_from_file(QString file_name);
     void save_to_file(QString file_name);
-    const QList<ReportQuery> &get_queries();
+    const QList<ReportQuery> &get_queries() const;
     QList<ReportQuery> &get_queries_not_const();
     ReportQuery &add_new_query(QWidget *parent);
-    ReportQuery &find_query(QString data_engine_source_file);
+    //ReportQuery &find_query(QString data_engine_source_file);
+    void build_query_link_references();
     const QList<ReportQueryWhereField> &get_where_fields();
     QList<ReportQueryWhereField> &get_where_fields_not_const();
     ReportQueryWhereField &add_new_where(QWidget *parent, QString field_name, EntryType field_type);
     bool remove_where(QString field_name);
     void remove_query(int index);
-    QMap<QString, QList<QVariant>> execute_query(QWidget *parent) const;
+    ReportDatabase execute_query(QWidget *parent) const;
 
     void create_new_query_ui(QWidget *parent, ReportQuery &report_query);
 
     void create_new_where_ui(QWidget *parent, ReportQueryWhereField &report_where);
 
+    ReportQuery &find_query_by_source_file(QString data_engine_source_file);
+    ReportQuery &find_query_by_table_name(QString table_name);
+    ReportQuery &find_query_by_id(int id);
+
+    void set_table_names();
+
     protected:
-    QList<ReportLink> scan_folder_for_reports(QString base_dir_str) const;
-    QMap<QString, QList<QVariant>> filter_and_select_reports(const QList<ReportLink> &report_file_list, QProgressDialog *progress_dialog) const;
+    QList<ReportLink> scan_folder_for_reports(const QString &base_dir_str) const;
+    ReportDatabase filter_and_select_reports(const QList<ReportLink> &report_file_list, QProgressDialog *progress_dialog) const;
 
     private:
     QList<ReportQuery> report_queries_m;
     QList<ReportQueryWhereField> query_where_fields_m;
     QString file_name_m;
     bool only_successful_reports_m = true;
+    bool reference_links_built_m = false;
 
     friend TestReportHistory; //for tests
 };
@@ -151,7 +361,7 @@ class ReportHistoryQuery : public QDialog {
     void load_data_engine_source_file(QString file_name);
     void load_query_from_file(QString file_name);
     ~ReportHistoryQuery();
-    static QStringList reduce_path(QStringList sl);
+
     private slots:
     void on_btn_next_clicked();
     void on_btn_back_clicked();

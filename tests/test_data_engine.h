@@ -80,6 +80,6 @@ class Test_Data_engine : public QObject {
     void test_dummy_data_generation();
 };
 
-DECLARE_TEST(Test_Data_engine)
+//DECLARE_TEST(Test_Data_engine)
 
 #endif // TEST_DATA_ENGINE_H
