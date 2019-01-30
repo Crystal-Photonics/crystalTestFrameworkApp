@@ -114,9 +114,7 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
 
 bool DeviceMatcher::is_match_possible(DeviceWorker &device_worker, TestDescriptionLoader &test) {
     for (auto &device_requirement : test.get_device_requirements()) {
-
-            std::vector<PortDescription *> candidates =
-                device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
+		std::vector<PortDescription *> candidates = device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
 
         if ((int)candidates.size() < device_requirement.quantity_min) {
             return false;

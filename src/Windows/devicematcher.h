@@ -13,7 +13,6 @@
 #include <QList>
 #include <vector>
 
-
 enum class CommunicationDeviceType { COM, TMC, Manual, TCP, UDP, IP };
 
 QString ComDeviceTypeToString(CommunicationDeviceType t);
@@ -24,15 +23,13 @@ struct PortDescription {
 
     std::unique_ptr<CommunicationDevice> device;
     QMap<QString, QVariant> port_info;
-    QTreeWidgetItem* ui_entry;
+	QTreeWidgetItem *ui_entry;
     std::unique_ptr<Protocol> protocol;
     CommunicationDeviceType communication_type; //COM, TMC, Manual, TCP, UDP, IP
 
     void set_is_in_use(bool in_use);
     bool get_is_in_use(void);
 };
-
-
 
 class CandidateEntry {
     public:
@@ -53,9 +50,9 @@ namespace Ui {
     class DeviceMatcher;
 }
 
-struct MatchedDevice{
-    CommunicationDevice * device=nullptr;
-    Protocol * protocol = nullptr;
+struct MatchedDevice {
+	CommunicationDevice *device = nullptr;
+	Protocol *protocol = nullptr;
     QString proposed_alias;
 };
 
