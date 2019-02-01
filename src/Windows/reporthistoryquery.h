@@ -25,9 +25,6 @@ namespace Ui {
 
 QStringList reduce_path(QStringList sl);
 
-template <typename T>
-void remove_indexes_from_list(QList<T> &list, QList<int> indexes);
-
 class WhereFieldInterpretationError : public std::runtime_error {
     public:
     WhereFieldInterpretationError(const QString &str)
@@ -218,6 +215,57 @@ class ReportTableLink {
     protected:
     ReportTable *table_other_m;
 };
+
+class ReportTableIndex {
+    public:
+    void add_new_value_row_index_pair(int field_key, const QVariant &value, int row_index) {
+        QMap<QVariant, int> &index_to_treat = indexes_m[field_key];
+        index_to_treat.insertMulti(value, row_index);
+    }
+
+    void remove_row_index_from_index(const QMap<int, QVariant> &values, int row_index) {
+        for (int field_key : values.uniqueKeys()) {
+            QMap<QVariant, int> &index_to_treat = indexes_m[field_key];
+            const QVariant &value = values[field_key];
+            QList<int> possible_row_keys = index_to_treat.values(value);
+            possible_row_keys.removeAll(row_index);
+            index_to_treat.remove(value);
+            for (int survived_row_keys : possible_row_keys) {
+                index_to_treat.insertMulti(value, survived_row_keys);
+            }
+        }
+    }
+
+    QList<int> lookup_shadowed_row_indexes(int field_key, const QVariant &value) {
+        assert(shadow_index_valid[field_key]);
+        QMap<QVariant, int> &index_to_treat = shadow_index_m[field_key];
+        return index_to_treat.values(value);
+    }
+
+    void store_shadow_index(int field_key) {
+        shadow_index_m[field_key] = indexes_m[field_key];
+        shadow_index_valid[field_key] = true;
+    }
+
+    void remove_shadow_index(int field_key) {
+        assert(shadow_index_valid[field_key]);
+        shadow_index_m[field_key].clear();
+        shadow_index_valid[field_key] = false;
+    }
+
+    QList<int> get_indexed_field_keys() const {
+        return indexes_m.uniqueKeys();
+    }
+
+    private:
+    QMap<int, QMap<QVariant, int>>
+        indexes_m; //first key points to this_link_field_key and second key is the content of the field. the final value is the row of the table
+
+    QMap<int, QMap<QVariant, int>> shadow_index_m;
+
+    QMap<int, bool> shadow_index_valid;
+};
+
 class ReportDatabase;
 class ReportTable {
     friend ReportDatabase;
@@ -235,7 +283,7 @@ class ReportTable {
 
     void append_row(const QMap<int, QVariant> &row, const QDateTime &time_stamp); //appends row and updates index
     void set_field_name_keys(const QMap<int, QString> &field_name_keys);
-    const QList<ReportTableRow> &get_rows() const;
+    const QMap<int, ReportTableRow> &get_rows() const;
 
     QMap<int, QString> get_field_names() const {
         return field_name_keys_m;
@@ -280,9 +328,11 @@ class ReportTable {
     const QMap<int, ReportTableLink> &get_receiver_links() const;
 
     private:
+    void remove_rows(QList<int> indexes);
+
     void insert_receiver_index_value(const QMap<int, QVariant> &row, int row_index);
-    QMap<int, QMap<QVariant, int>>
-        receiver_indexes_m; //first key points to this_link_field_key and second key is the content of the field. the final value is the row of the table
+    ReportTableIndex receiver_index_m;
+
     QList<int> duplicate_rows(QList<int> &row_indexes); //clones row and updates index
     const ReportTableLink &get_sender_link() const;
     void remove_cols_by_matching(const QList<int> &row_indexes, const QMap<int, QString> &allowed_cols);
@@ -292,9 +342,15 @@ class ReportTable {
     QMap<int, ReportTableLink> receiver_links_m; //key == field key, the same as ReportTableLink.field_key_this_m
                                                  //receiver links point to this table
 
-    QList<ReportTableRow> rows_m;
+    QMap<int, ReportTableRow> rows_m;
     QMap<int, QString> field_name_keys_m; //fields which could possibly exist
     bool receiver_link_set_m = false;
+    int get_next_row_index() {
+        row_key_m++;
+        return row_key_m;
+    }
+    int row_key_m = 0;
+    void remove_unmerged_rows();
 };
 
 class ReportDatabase {
@@ -307,6 +363,7 @@ class ReportDatabase {
     ReportTable *get_table(QString data_engine_source_file);
     ReportTable *new_table(const QString table_name, const QString &link_field_name_this, const QString &link_field_name_other);
 
+    void print();
     QMap<int, QVariant> translate_row_to_int_key(const QMap<QString, QVariant> &row_with_string_names);
 
     QString get_field_name_by_int_key(int key) const;

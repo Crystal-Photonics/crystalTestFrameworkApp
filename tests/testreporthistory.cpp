@@ -1,7 +1,7 @@
 #include "testreporthistory.h"
 #include "Windows/reporthistoryquery.h"
 
-#define DISABLE_ALL 1
+#define DISABLE_ALL 0
 
 void TestReportHistory::load_query_onfig_file() {
 #if !DISABLE_ALL || 0
@@ -147,8 +147,7 @@ void TestReportHistory::complexer_table_links_2() {
 }
 
 void TestReportHistory::join_report_file_tables_empty_result() {
-#if !DISABLE_ALL || 1
-
+#if !DISABLE_ALL || 0
     ReportQueryConfigFile query_config_file;
     query_config_file.load_from_file("../../tests/scripts/report_query/query_config_3_empty.json");
 
@@ -157,12 +156,10 @@ void TestReportHistory::join_report_file_tables_empty_result() {
     query_result.join();
     ReportTable *joined_table = query_result.get_root_table();
 
-    qDebug() << *joined_table;
-    //         |     206(1)     |     18/35(2)     |     8106(3)     |     (5)     |     18/33(6)
-    //         |     211(1)     |     18/35(2)     |     8112(3)     |     (5)     |     18/33(6)
+    // qDebug() << *joined_table;
+    // empty
 
     QCOMPARE(joined_table->get_rows().count(), 0);
-
 #endif
 }
 

@@ -7,6 +7,7 @@
 #include <QByteArray>
 #include <QDateTime>
 #include <QDebug>
+#include <QDesktopServices>
 #include <QDirIterator>
 #include <QFileDialog>
 #include <QJsonArray>
@@ -553,6 +554,8 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
 
     } else if ((old_stk_report_history_index_m == 1) && (arg1 == 2)) {
         if (load_select_ui_to_query()) {
+            ui->tableWidget->clear();
+            ui->tableWidget->setSortingEnabled(false);
             ReportDatabase query_result = report_query_config_file_m.execute_query(this);
             query_result.join();
             ReportTable *joined_table = query_result.get_root_table();
@@ -564,13 +567,12 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
             }
             row_titles = reduce_path(row_titles);
 
-            ui->tableWidget->clear();
             ui->tableWidget->setColumnCount(row_titles.count());
             QStringList sl = reduce_path(row_titles);
             ui->tableWidget->setHorizontalHeaderLabels(sl);
             ui->tableWidget->setRowCount(1);
 
-            const QList<ReportTableRow> &joined_rows = joined_table->get_rows();
+            const QMap<int, ReportTableRow> &joined_rows = joined_table->get_rows();
 
             int row_index = 0;
             for (auto &row : joined_rows) {
@@ -593,6 +595,7 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
                 ui->tableWidget->setRowCount(row_index + 1);
             }
             ui->tableWidget->setRowCount(ui->tableWidget->rowCount() - 1);
+            ui->tableWidget->setSortingEnabled(true);
         } else {
             ui->stk_report_history->setCurrentIndex(old_stk_report_history_index_m);
             arg1 = old_stk_report_history_index_m;
@@ -605,42 +608,71 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
 void ReportHistoryQuery::on_btn_result_export_clicked() {
     QFileDialog dialog(this);
     dialog.setFileMode(QFileDialog::AnyFile);
-    dialog.setNameFilter(tr("Report query result(*.csv)"));
+    dialog.setNameFilter(tr("Report query result(*.csv);;Report query result(*.html)"));
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     dialog.setDirectory(QSettings{}.value(Globals::report_history_query_path, "").toString());
     if (dialog.exec()) {
         const QChar SEPEARTOR = '\t';
         QString file_name = dialog.selectedFiles()[0];
-        QFile csv_file(file_name);
-        if (csv_file.open(QFile::WriteOnly | QFile::Truncate)) {
-            QTextStream csv_stream(&csv_file);
+        if (QFileInfo(file_name).suffix() == "csv") {
+            QFile csv_file(file_name);
+            if (csv_file.open(QFile::WriteOnly | QFile::Truncate)) {
+                QTextStream csv_stream(&csv_file);
 
-            for (int r = 0; r < ui->tableWidget->rowCount(); r++) {
-                if (r == 0) {
+                for (int r = 0; r < ui->tableWidget->rowCount(); r++) {
+                    if (r == 0) {
+                        for (int c = 0; c < ui->tableWidget->columnCount(); c++) {
+                            csv_stream << ui->tableWidget->horizontalHeaderItem(c)->text();
+                            if (c < ui->tableWidget->columnCount() - 1) {
+                                csv_stream << SEPEARTOR;
+                            }
+                        }
+                        csv_stream << "\n";
+                    }
                     for (int c = 0; c < ui->tableWidget->columnCount(); c++) {
-                        csv_stream << ui->tableWidget->horizontalHeaderItem(c)->text();
+                        QVariant data = ui->tableWidget->item(r, c)->data(Qt::UserRole);
+                        QString val;
+                        if (data.type() == QVariant::String) {
+                            val = "\"" + data.toString() + "\"";
+                        } else {
+                            val = ui->tableWidget->item(r, c)->text();
+                        }
+                        csv_stream << val;
                         if (c < ui->tableWidget->columnCount() - 1) {
                             csv_stream << SEPEARTOR;
                         }
                     }
                     csv_stream << "\n";
                 }
-                for (int c = 0; c < ui->tableWidget->columnCount(); c++) {
-                    QVariant data = ui->tableWidget->item(r, c)->data(Qt::UserRole);
-                    QString val;
-                    if (data.type() == QVariant::String) {
-                        val = "\"" + data.toString() + "\"";
-                    } else {
-                        val = ui->tableWidget->item(r, c)->text();
-                    }
-                    csv_stream << val;
-                    if (c < ui->tableWidget->columnCount() - 1) {
-                        csv_stream << SEPEARTOR;
-                    }
-                }
-                csv_stream << "\n";
+                csv_file.close();
+                QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(file_name).absoluteFilePath()));
             }
-            csv_file.close();
+        } else if (QFileInfo(file_name).suffix() == "html") {
+            QFile html_file(file_name);
+            if (html_file.open(QFile::WriteOnly | QFile::Truncate)) {
+                QTextStream html_stream(&html_file);
+                html_stream << "<html><head><style>table, th, td {border: 1px solid black; \n border-collapse: collapse;\n}\nth, td {    padding: "
+                               "3px;}</style></head><body><table>";
+                for (int r = 0; r < ui->tableWidget->rowCount(); r++) {
+                    if (r == 0) {
+                        html_stream << "<tr>";
+                        for (int c = 0; c < ui->tableWidget->columnCount(); c++) {
+                            auto sl = ui->tableWidget->horizontalHeaderItem(c)->text().split("/");
+                            html_stream << "<th>" + sl.join("<br>") + "</th>";
+                        }
+                        html_stream << "</tr>";
+                    }
+                    html_stream << "<tr>";
+                    for (int c = 0; c < ui->tableWidget->columnCount(); c++) {
+                        QString val = ui->tableWidget->item(r, c)->text();
+                        html_stream << "<td>" + val + "</td>";
+                    }
+                    html_stream << "</tr>";
+                }
+                html_stream << "</table></body></html>";
+                html_file.close();
+                QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(file_name).absoluteFilePath()));
+            }
         }
     }
 }
@@ -666,7 +698,7 @@ void ReportHistoryQuery::on_tree_query_fields_itemClicked(QTreeWidgetItem *item,
     QString field_name = field_name_var.toString();
     if (column == 0) {
         QString field_name = item->data(0, Qt::UserRole).toString();
-        if ((item->checkState(0) == Qt::Unchecked) && (field_name.count())) {
+        if ((item->checkState(0) == Qt::Unchecked) && (field_name != "")) {
             if (report_query_config_file_m.remove_where(field_name)) {
                 for (int i = 0; i < ui->tb_where->count(); i++) {
                     if (ui->tb_where->widget(i)->property("field_name").toString() == field_name) {
@@ -679,7 +711,7 @@ void ReportHistoryQuery::on_tree_query_fields_itemClicked(QTreeWidgetItem *item,
 
             bool link_changed = false;
             ReportQuery &query = report_query_config_file_m.find_query_by_id(clicked_id);
-            if (query.link.other_id != -1) {
+            if ((query.link.other_id != -1) && (field_name == query.link.me_field_name)) {
                 link_changed = true;
                 query.remove_link();
             }
@@ -1079,6 +1111,7 @@ ReportDatabase ReportQueryConfigFile::filter_and_select_reports(const QList<Repo
         QMap<int, QString> field_name_keys;
         for (const QString &field_name : query.select_field_names_m) {
             QString fn = query.get_table_name() + "/" + field_name;
+            // qDebug() << fn;
             field_name_keys.insert(report_database.get_int_key_by_field_name_not_const(fn), fn);
         }
         table->set_field_name_keys(field_name_keys);
@@ -1127,6 +1160,7 @@ ReportDatabase ReportQueryConfigFile::filter_and_select_reports(const QList<Repo
             report_table->append_row(table_row, time_stamp.dt());
         }
     }
+    //report_database.print();
     return report_database;
 }
 
@@ -1707,19 +1741,19 @@ void ReportTable::merge(ReportTable *other_table) {
     ReportTableLink recevier_link = get_receiver_link_by_key_other(other_link_key);
     ReportTableLink recevier_link_tally = get_receiver_link_by_key_other(other_link_key);
     QMap<int, QString> original_field_name_keys_m = field_name_keys_m;
-    QMap<QVariant, int> original_receiver_index = receiver_indexes_m.value(this_link_key); //without copy this gets quite complicated and im lazy.
-    QMap<QVariant, int> receiver_index_tally = receiver_indexes_m.value(this_link_key);
+    receiver_index_m.store_shadow_index(this_link_key);
+    //receiver_indexes_m.value(this_link_key); //without copy this gets quite complicated and im lazy.
     for (auto &row : rows_m) {
         row.merged_m = false;
     }
     for (ReportTableRow &other_row : other_table->rows_m) {
         const QVariant &indexed_val = other_row.row_m.value(other_link_key);
         assert(indexed_val.isValid());
-        qDebug() << indexed_val;
-        QList<int> this_row_indexes = original_receiver_index.values(indexed_val);
+        //qDebug() << indexed_val;
+        QList<int> this_row_indexes = receiver_index_m.lookup_shadowed_row_indexes(this_link_key, indexed_val);
         while (this_row_indexes.count()) { // there might be more than one row in this with this value
             int this_row_index = this_row_indexes[0];
-            receiver_index_tally.remove(indexed_val);
+            assert(rows_m.contains(this_row_index));
             ReportTableRow &this_row = rows_m[this_row_index];
 
             if (this_row.merged_m) { //this row already treated with merging?
@@ -1751,16 +1785,10 @@ void ReportTable::merge(ReportTable *other_table) {
         }
     }
 
+    receiver_index_m.remove_shadow_index(this_link_key);
 #if 1
     //remove rows which were not in other_table:
-    //we could use also row.merged. but i suppose this is faster
-    QList<int> indexes_to_remove;
-    for (int index_value : receiver_index_tally) {
-        indexes_to_remove.append(index_value);
-    }
-
-    remove_indexes_from_list(rows_m, indexes_to_remove);
-    qDebug() << "removed: " << receiver_index_tally;
+    remove_unmerged_rows();
 #endif
 }
 
@@ -1779,11 +1807,19 @@ ReportTable *ReportDatabase::new_table(const QString table_name, const QString &
     if (link_field_name_this != "") {
         link_field_key_this = dictionary_m.get_int_key_by_field_name(link_field_name_this);
     }
+    // qDebug() << "ReportDatabase::new_table: " << table_name << link_field_name_this << link_field_name_other;
     assert((link_field_name_this.startsWith("report") == false) && (link_field_name_this.startsWith("general") == false));
     QList<QPair<QString, int>> receiver_links;
     tables_m.emplace(table_name,
                      std::make_unique<ReportTable>(link_field_name_this, link_field_key_this, link_field_name_other, link_field_key_other, nullptr));
     return tables_m.at(table_name).get();
+}
+
+void ReportDatabase::print() {
+    for (auto &table : tables_m) {
+        qDebug() << table.first;
+        qDebug() << *table.second.get();
+    }
 }
 
 QMap<int, QVariant> ReportDatabase::translate_row_to_int_key(const QMap<QString, QVariant> &row_with_string_names) {
@@ -1842,13 +1878,7 @@ void ReportTable::insert_receiver_index_value(const QMap<int, QVariant> &row, in
     }
     for (int receiver_key_this : receiver_keys.uniqueKeys()) {
         const QVariant &link_receiver_content = row.value(receiver_key_this);
-        if (receiver_indexes_m.contains(receiver_key_this)) {
-            receiver_indexes_m.find(receiver_key_this)->insertMulti(link_receiver_content, rows_m.count());
-        } else {
-            QMap<QVariant, int> val;
-            val.insert(link_receiver_content, row_index);
-            receiver_indexes_m.insert(receiver_key_this, val);
-        }
+        receiver_index_m.add_new_value_row_index_pair(receiver_key_this, link_receiver_content, row_index);
     }
 }
 
@@ -1859,32 +1889,38 @@ void ReportTable::append_row(const QMap<int, QVariant> &row, const QDateTime &ti
     rrow.row_m = row;
     rrow.visible_m = true;
     rrow.merged_m = false;
-    insert_receiver_index_value(row, rows_m.count());
+    int row_key = get_next_row_index();
+    insert_receiver_index_value(row, row_key);
     for (const auto &field_key : row.keys()) {
         assert(field_name_keys_m.contains(field_key));
     }
-    rows_m.append(rrow);
+    assert(!rows_m.contains(row_key));
+    rows_m.insert(row_key, rrow);
 }
 
 QList<int> ReportTable::duplicate_rows(QList<int> &row_indexes) {
     assert(receiver_link_set_m);
     QList<int> result;
     for (int index : row_indexes) {
+        assert(rows_m.contains(index));
         ReportTableRow rrow = rows_m[index];
         rrow.merged_m = false;
-        insert_receiver_index_value(rrow.row_m, rows_m.count());
+        int row_key = get_next_row_index();
+        insert_receiver_index_value(rrow.row_m, row_key);
 
         for (const auto &field_key : rrow.row_m.keys()) {
             assert(field_name_keys_m.contains(field_key));
         }
-        result.append(rows_m.count());
-        rows_m.append(rrow);
+        result.append(row_key);
+        assert(!rows_m.contains(row_key));
+        rows_m.insert(row_key, rrow);
     }
     return result;
 }
 
 void ReportTable::remove_cols_by_matching(const QList<int> &row_indexes, const QMap<int, QString> &allowed_cols) {
     for (int index : row_indexes) {
+        assert(rows_m.contains(index));
         for (int col_key : rows_m[index].row_m.uniqueKeys()) {
             if (!allowed_cols.contains(col_key)) {
                 rows_m[index].row_m.remove(col_key);
@@ -1899,6 +1935,31 @@ const ReportTableLink &ReportTable::get_sender_link() const {
 
 const QMap<int, ReportTableLink> &ReportTable::get_receiver_links() const {
     return receiver_links_m;
+}
+
+void ReportTable::remove_unmerged_rows() {
+    QList<int> indexed_field_keys = receiver_index_m.get_indexed_field_keys();
+    QMap<int, ReportTableRow>::iterator rows_m_i = rows_m.begin();
+    QList<int> rows_to_remove;
+    while (rows_m_i != rows_m.end()) {
+        if (rows_m_i.value().merged_m == false) {
+            rows_to_remove.append(rows_m_i.key());
+        }
+        ++rows_m_i;
+    }
+
+    for (int row_index_to_remove : rows_to_remove) {
+        assert(rows_m.contains(row_index_to_remove));
+        //still have to remove the receiver_indexes
+
+        QMap<int, QVariant> associated_values;
+        const auto &row_to_remove_later = rows_m.value(row_index_to_remove);
+        for (int indexed_field_key : indexed_field_keys) {
+            associated_values.insert(indexed_field_key, row_to_remove_later.row_m[indexed_field_key]);
+        }
+        receiver_index_m.remove_row_index_from_index(associated_values, row_index_to_remove);
+        rows_m.remove(row_index_to_remove);
+    }
 }
 
 ReportTableLink &ReportTable::get_receiver_link_by_key_other(int other_key) {
@@ -1917,7 +1978,7 @@ void ReportTable::set_receiver_links(const QList<ReportTableLink> &receiver_link
     receiver_link_set_m = true;
 }
 
-const QList<ReportTableRow> &ReportTable::get_rows() const {
+const QMap<int, ReportTableRow> &ReportTable::get_rows() const {
     return rows_m;
 }
 
@@ -1928,19 +1989,3 @@ void ReportTable::set_field_name_keys(const QMap<int, QString> &field_name_keys)
 bool ReportTable::field_exists(int field_name_key) const {
     return field_name_keys_m.contains(field_name_key);
 }
-
-#if 1
-template <typename T>
-void remove_indexes_from_list(QList<T> &list, QList<int> indexes) {
-    qSort(indexes.begin(), indexes.end(), [](const int &i1, const int &i2) { return i1 < i2; });
-    int index_index = 0;
-    for (int index : indexes) {
-        list.removeAt(index);
-        for (int i = index_index; i < indexes.count(); i++) {
-            indexes[i] = indexes[i] - 1;
-        }
-        index_index++;
-    }
-}
-
-#endif
