@@ -357,19 +357,19 @@ void MainWindow::shutdown() {
     for (auto &test : test_runners) {
         if (test->is_running()) {
             test->interrupt();
-			test->message_queue_join();
+            test->message_queue_join();
         }
     }
 
-	QApplication::processEvents(); //process left over events
+    QApplication::processEvents(); //process left over events
 
-	ui->test_tabs->clear();
-	test_descriptions.clear();
-	test_runners.clear();
+    ui->test_tabs->clear();
+    test_descriptions.clear();
+    test_runners.clear();
 
-	devices_thread.quit();
-	assert(not devices_thread.is_current());
-	devices_thread.message_queue_join();
+    devices_thread.quit();
+    assert(not devices_thread.is_current());
+    devices_thread.message_queue_join();
 
     QObject::disconnect(ui->tests_advanced_view, &QTreeWidget::itemSelectionChanged, this, &MainWindow::on_tests_advanced_view_itemSelectionChanged);
     QObject::disconnect(ui->test_simple_view, &QListWidget::itemSelectionChanged, this, &MainWindow::on_test_simple_view_itemSelectionChanged);
@@ -431,7 +431,7 @@ void MainWindow::load_favorites() {
     ui->test_simple_view->clear();
     QIcon icon_star = QIcon{"://src/icons/star_16.ico"};
     QIcon icon_empty_star = QIcon{"://src/icons/if_star_empty_16.png"};
-	for (TestDescriptionLoader &test : test_descriptions) {
+    for (TestDescriptionLoader &test : test_descriptions) {
         const ScriptEntry favorite_entry = favorite_scripts.get_entry(test.get_name());
         if (favorite_entry.valid) {
             QListWidgetItem *item = new QListWidgetItem{favorite_entry.script_path};
@@ -439,7 +439,7 @@ void MainWindow::load_favorites() {
                 item->setText(favorite_entry.alternative_name);
             }
             item->setFlags(item->flags() | Qt::ItemIsEditable);
-			item->setData(Qt::UserRole, QVariant::fromValue(test.ui_entry.get()));
+            item->setData(Qt::UserRole, QVariant::fromValue(test.ui_entry.get()));
             item->setToolTip(favorite_entry.script_path);
             Identicon ident_icon{test.get_name().toLocal8Bit()};
             const int SCALE_FACTOR = 12;
@@ -728,16 +728,16 @@ TestDescriptionLoader *MainWindow::get_test_from_tree_widget(const QTreeWidgetIt
     if (item == nullptr) {
         item = ui->tests_advanced_view->currentItem();
     }
-	assert(item != nullptr);
+    assert(item != nullptr);
     if (item->childCount() > 0) {
-		return nullptr;
+        return nullptr;
     }
     QVariant data = item->data(0, Qt::UserRole);
-	return data.value<TestDescriptionLoader *>();
+    return data.value<TestDescriptionLoader *>();
 }
 
 QTreeWidgetItem *MainWindow::get_treewidgetitem_from_listViewItem(QListWidgetItem *item) {
-	return item->data(Qt::UserRole).value<QTreeWidgetItem *>();
+    return item->data(Qt::UserRole).value<QTreeWidgetItem *>();
 }
 
 TestDescriptionLoader *MainWindow::get_test_from_listViewItem(QListWidgetItem *item) {
@@ -800,7 +800,7 @@ void MainWindow::on_test_simple_view_itemSelectionChanged() {
 
 void MainWindow::on_tests_advanced_view_itemClicked(QTreeWidgetItem *item, int column) {
     if (column == 4) {
-		auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
+        auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
         if (test) {
             QString test_name = test->get_name();
             bool modified = false;
@@ -822,7 +822,7 @@ void MainWindow::on_tests_advanced_view_itemSelectionChanged() {
     auto item = ui->tests_advanced_view->currentItem();
     if (item) {
         if (item->childCount() == 0) {
-			auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
+            auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
             if (test == nullptr) {
                 return;
             }
@@ -958,7 +958,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     const bool one_is_running = std::any_of(std::begin(test_runners), std::end(test_runners), [](auto &runner) { return runner->is_running(); });
     if (one_is_running) {
         if (QMessageBox::question(this, tr(""), tr("Scripts are still running. Abort them now?"), QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
-			event->accept();
+            event->accept();
         } else {
             event->ignore();
         }
@@ -988,13 +988,12 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
         return;
     }
     auto &runner = **runner_it;
-	if (runner.is_running() &&
-		QMessageBox::question(this, tr("Abort script?"), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
+    if (runner.is_running() &&
+        QMessageBox::question(this, tr("Abort script?"), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
                               QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok) {
         return; //canceled closing the tab
     }
-    runner.interrupt();
-    runner.message_queue_join();
+    abort_script(&runner);
     QApplication::processEvents(); //runner may have sent events referencing runner. Need to process all such events before removing runner.
     test_runners.erase(runner_it);
     ui->test_tabs->removeTab(index);
@@ -1002,7 +1001,7 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 
 void MainWindow::abort_script(TestRunner *runner) {
     runner->interrupt();
-    runner->join();
+    runner->message_queue_join();
 }
 
 void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
