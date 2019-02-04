@@ -38,6 +38,11 @@ class IsotopeSourceSelector : public UI_widget {
 
     private:
     void load_isotope_database();
+    void load_most_recent();
+    void save_most_recent();
+    void connect_isotope_selecteted();
+    void disconnect_isotope_selecteted();
+
     QComboBox *combobox = nullptr;
     QMetaObject::Connection callback_isotope_selected = {};
     //QMetaObject::Connection callback_connection = {};
@@ -46,5 +51,6 @@ class IsotopeSourceSelector : public UI_widget {
     void fill_combobox_with_isotopes(QString isotope_name);
     QList<IsotopeSource> isotope_sources;
     IsotopeSource get_source_by_serial_number(QString serial_number);
+    QString isotope_filter_m;
 };
 #endif // ISOTOPESOURCESELECTOR_H
