@@ -898,6 +898,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                                                         "set_index", thread_call_wrapper(&ComboBox::set_index),      //
                                                         "get_index", thread_call_wrapper(&ComboBox::get_index),      //
                                                         "set_visible", thread_call_wrapper(&ComboBox::set_visible),  //
+                                                        "set_name", thread_call_wrapper(&ComboBox::set_name),        //
                                                         "set_caption", thread_call_wrapper(&ComboBox::set_caption),  //
                                                         "get_caption", thread_call_wrapper(&ComboBox::get_caption),  //
                                                         "set_editable", thread_call_wrapper(&ComboBox::set_editable) //

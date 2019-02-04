@@ -7,10 +7,10 @@
 
 #include "ui_container.h"
 
-class ComboBox : public UI_widget{
+class ComboBox : public UI_widget {
     public:
     ///\cond HIDDEN_SYMBOLS
-    ComboBox(UI_container *parent,const QStringList &sl);
+    ComboBox(UI_container *parent, const QStringList &sl);
     ~ComboBox();
     ///\endcond
     void set_items(const sol::table &items);
@@ -19,12 +19,15 @@ class ComboBox : public UI_widget{
     unsigned int get_index();
 
     void set_caption(const std::string caption);
+    void set_name(const std::string name);
     std::string get_caption() const;
 
     void set_editable(bool editable);
 
     void set_visible(bool visible);
-private:
+
+    private:
+    QString name_m;
     QComboBox *combobox = nullptr;
     QLabel *label = nullptr;
 };

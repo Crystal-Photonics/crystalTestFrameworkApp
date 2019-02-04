@@ -67,11 +67,14 @@ void ComboBox::set_caption(const std::string caption) {
     //  label->setVisible(label->text().size());
 }
 
+void ComboBox::set_name(const std::string name) {
+    name_m = QString::fromStdString(name);
+}
+
 std::string ComboBox::get_caption() const {
     return label->text().toStdString();
 }
 
-void ComboBox::set_editable(bool editable)
-{
+void ComboBox::set_editable(bool editable) {
     combobox->setEditable(editable);
 }
