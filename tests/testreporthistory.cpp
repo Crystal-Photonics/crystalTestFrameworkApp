@@ -32,14 +32,14 @@ void TestReportHistory::load_report_file1() {
 #if !DISABLE_ALL || 0
     ReportFile report_file;
     report_file.load_from_file("../../tests/scripts/report_query/reports1/8110/mcu_guid3/dump-2018_12_18-09_31_09-001.json");
-    QCOMPARE(report_file.get_field_value("general/test_duration_seconds"), QVariant(258));
-    QCOMPARE(report_file.get_field_value("report/gerate_daten/pcb2_chargennummer"), QVariant("18/35"));
-    QCOMPARE(report_file.get_field_value("report/gerate_daten/seriennummer"), QVariant(8110));
-    QCOMPARE(report_file.get_field_value("report/gerate_daten/wakeup_possible_taste"), QVariant(true));
+    QCOMPARE(report_file.get_field_values("general/test_duration_seconds").first(), QVariant(258));
+    QCOMPARE(report_file.get_field_values("report/gerate_daten/pcb2_chargennummer").first(), QVariant("18/35"));
+    QCOMPARE(report_file.get_field_values("report/gerate_daten/seriennummer").first(), QVariant(8110));
+    QCOMPARE(report_file.get_field_values("report/gerate_daten/wakeup_possible_taste").first(), QVariant(true));
 
-    QCOMPARE(report_file.get_field_value("general/datetime_str").value<DataEngineDateTime>().str(), QString("2018-12-18 09:31:09"));
-    QCOMPARE(report_file.get_field_value("general/test_git_date_str").value<DataEngineDateTime>().str(), QString("2018-12-14 18:09:26"));
-    QCOMPARE(report_file.get_field_value("report/dacadc/datum_today").value<DataEngineDateTime>().str(), QString("2019-01-17 19:21:10"));
+    QCOMPARE(report_file.get_field_values("general/datetime_str").first().value<DataEngineDateTime>().str(), QString("2018-12-18 09:31:09"));
+    QCOMPARE(report_file.get_field_values("general/test_git_date_str").first().value<DataEngineDateTime>().str(), QString("2018-12-14 18:09:26"));
+    QCOMPARE(report_file.get_field_values("report/dacadc/datum_today").first().value<DataEngineDateTime>().str(), QString("2019-01-17 19:21:10"));
 #endif
 }
 
@@ -153,7 +153,7 @@ void TestReportHistory::join_report_file_tables_empty_result() {
 
     auto file_list = query_config_file.scan_folder_for_reports("../../tests/scripts/report_query");
     ReportDatabase query_result = query_config_file.filter_and_select_reports(file_list, nullptr);
-    query_result.join();
+    query_result.join(false);
     ReportTable *joined_table = query_result.get_root_table();
 
     // qDebug() << *joined_table;
@@ -171,7 +171,7 @@ void TestReportHistory::join_report_file_tables_1() {
 
     auto file_list = query_config_file.scan_folder_for_reports("../../tests/scripts/report_query");
     ReportDatabase query_result = query_config_file.filter_and_select_reports(file_list, nullptr);
-    query_result.join();
+    query_result.join(false);
     ReportTable *joined_table = query_result.get_root_table();
 
     //qDebug() << *joined_table;
@@ -199,7 +199,7 @@ void TestReportHistory::join_report_file_tables_2() {
     query_config_file.load_from_file("../../tests/scripts/report_query/query_config_3_multiple_sn.json");
     auto file_list = query_config_file.scan_folder_for_reports("../../tests/scripts/report_query");
     ReportDatabase query_result = query_config_file.filter_and_select_reports(file_list, nullptr);
-    query_result.join();
+    query_result.join(false);
     ReportTable *joined_table = query_result.get_root_table();
 
 #if 0
@@ -228,6 +228,74 @@ void TestReportHistory::join_report_file_tables_2() {
 #endif
 }
 
+void TestReportHistory::join_report_file_tables_only_latest_datasets() {
+#if !DISABLE_ALL || 0
+    ReportQueryConfigFile query_config_file;
+    query_config_file.load_from_file("../../tests/scripts/report_query/query_config_3_multiple_sn.json");
+    auto file_list = query_config_file.scan_folder_for_reports("../../tests/scripts/report_query");
+    ReportDatabase query_result = query_config_file.filter_and_select_reports(file_list, nullptr);
+    query_result.join(true);
+    ReportTable *joined_table = query_result.get_root_table();
+
+#if 0
+    QMap<int, QString> field_keys = joined_table->get_field_names();
+    for (int key : field_keys.keys()) {
+        qDebug() << query_result.get_field_name_by_int_key(key) << "(" + QString::number(key) + ")";
+    }
+    qDebug() << *joined_table;
+#endif
+
+//206(64)     |     18/35(65)     |     8106(66)     |     (68)     |     18/33(69)
+//211(64)     |     18/35(65)     |     8112(66)     |     (68)     |     18/33_8112(69)
+#if 1
+    QCOMPARE(joined_table->get_rows().count(), 2);
+    QMap<int, QStringList> allowed_values{
+        //
+        {query_result.get_int_key_by_field_name("data_engine_source_1/report/gerate_daten/seriennummer"), {"8106", "8112"}},                //
+        {query_result.get_int_key_by_field_name("data_engine_source_1/general/test_duration_seconds"), {"206", "211"}},                     //
+        {query_result.get_int_key_by_field_name("data_engine_source_1/report/gerate_daten/pcb2_chargennummer"), {"18/35", "18/35"}},        //
+        {query_result.get_int_key_by_field_name("data_engine_source_2/general/display_chargennummer"), {}},                                 //
+        {query_result.get_int_key_by_field_name("data_engine_source_2/report/gerate_daten/led_pcb_chargennummer"), {"18/33", "18/33_8112"}} //
+    };
+    TestReportHistory::verify_table(joined_table, allowed_values);
+#endif
+#endif
+}
+
+void TestReportHistory::join_report_file_tables_only_latest_datasets2() {
+#if !DISABLE_ALL || 0
+    ReportQueryConfigFile query_config_file;
+    query_config_file.load_from_file("../../tests/scripts/report_query/query_config_4_multiple_sn.json");
+    auto file_list = query_config_file.scan_folder_for_reports("../../tests/scripts/report_query");
+    ReportDatabase query_result = query_config_file.filter_and_select_reports(file_list, nullptr);
+    query_result.join(true);
+    ReportTable *joined_table = query_result.get_root_table();
+
+#if 1
+    QMap<int, QString> field_keys = joined_table->get_field_names();
+    for (int key : field_keys.keys()) {
+        qDebug() << query_result.get_field_name_by_int_key(key) << "(" + QString::number(key) + ")";
+    }
+    qDebug() << *joined_table;
+#endif
+
+//8106(1)     |     206(3)     |     18/35(4)     |     (5)     |     18/33(6)
+//8112(1)     |     211(3)     |     18/35(4)     |     (5)     |     18/33_8112(6)
+#if 1
+    QCOMPARE(joined_table->get_rows().count(), 2);
+    QMap<int, QStringList> allowed_values{
+        //
+        {query_result.get_int_key_by_field_name("data_engine_source_2/report/gerate_daten/seriennummer"), {"8106", "8112"}},                //
+        {query_result.get_int_key_by_field_name("data_engine_source_1/general/test_duration_seconds"), {"206", "211"}},                     //
+        {query_result.get_int_key_by_field_name("data_engine_source_1/report/gerate_daten/pcb2_chargennummer"), {"18/35", "18/35"}},        //
+        {query_result.get_int_key_by_field_name("data_engine_source_2/general/display_chargennummer"), {}},                                 //
+        {query_result.get_int_key_by_field_name("data_engine_source_2/report/gerate_daten/led_pcb_chargennummer"), {"18/33", "18/33_8112"}} //
+    };
+    TestReportHistory::verify_table(joined_table, allowed_values);
+#endif
+#endif
+}
+
 void TestReportHistory::join_report_file_tables_3() {
 #if !DISABLE_ALL || 0
 
@@ -235,7 +303,7 @@ void TestReportHistory::join_report_file_tables_3() {
     query_config_file.load_from_file("../../tests/scripts/report_query/query_config_4_multiple_sn.json");
     auto file_list = query_config_file.scan_folder_for_reports("../../tests/scripts/report_query");
     ReportDatabase query_result = query_config_file.filter_and_select_reports(file_list, nullptr);
-    query_result.join();
+    query_result.join(false);
     ReportTable *joined_table = query_result.get_root_table();
 #if 0
     QMap<int, QString> field_keys = joined_table->get_field_names();
@@ -286,7 +354,7 @@ void TestReportHistory::join_report_file_tables_4() {
  //   8106(2)     |     206(3)     |     (4)
  //   8112(2)     |     211(3)     |     (4)
 #endif
-    query_result.join();
+    query_result.join(false);
     ReportTable *joined_table = query_result.get_root_table();
 #if 0
     QMap<int, QString> field_keys = joined_table->get_field_names();

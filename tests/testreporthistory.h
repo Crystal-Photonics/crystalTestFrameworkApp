@@ -35,6 +35,10 @@ class TestReportHistory : public QObject {
 
     void join_report_file_tables_empty_result();
 
+    void join_report_file_tables_only_latest_datasets();
+
+    void join_report_file_tables_only_latest_datasets2();
+
     private:
     bool report_link_list_contains_path(const QList<ReportLink> &report_link_list, QString path);
     bool data_engine_field_list_contains_path(const QList<DataEngineField> &data_engine_field_list, QString field_name);

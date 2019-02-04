@@ -36,7 +36,8 @@ class ReportFile {
     ReportFile();
     ~ReportFile();
     void load_from_file(QString file_name);
-    QVariant get_field_value(QString field_name);
+
+    QList<QVariant> get_field_values(QString field_name);
 
     private:
     QJsonObject js_report_object_m;
@@ -236,10 +237,39 @@ class ReportTableIndex {
         }
     }
 
-    QList<int> lookup_shadowed_row_indexes(int field_key, const QVariant &value) {
+    QList<int> lookup_shadowed_row_indexes(int field_key, const QVariant &value, const QMap<int, ReportTableRow> &rows, bool only_pick_latest_dataset) const {
         assert(shadow_index_valid[field_key]);
-        QMap<QVariant, int> &index_to_treat = shadow_index_m[field_key];
-        return index_to_treat.values(value);
+        const QMap<QVariant, int> &index_to_treat = shadow_index_m[field_key];
+        QList<int> result = index_to_treat.values(value);
+        if (only_pick_latest_dataset && (result.count() > 1)) {
+            QDateTime max_val;
+            int max_key = result.first();
+            for (auto &row_index : result) {
+                if ((rows[row_index].time_stamp_m > max_val) || (max_val.isNull())) {
+                    max_key = row_index;
+                    max_val = rows[row_index].time_stamp_m;
+                }
+            }
+            result.clear();
+            result.append(max_key);
+        }
+        return result;
+    }
+
+    QList<int> get_row_list_by_index(int field_key, const QMap<int, ReportTableRow> &rows, bool only_pick_latest_dataset) const {
+        if ((only_pick_latest_dataset) && (field_key >= 0)) {
+            assert(shadow_index_valid[field_key]);
+            QList<int> result;
+            const QMap<QVariant, int> &index_to_treat = shadow_index_m[field_key];
+            const QList<QVariant> &index_values = index_to_treat.uniqueKeys();
+            for (auto &index_value : index_values) {
+                result.append(lookup_shadowed_row_indexes(field_key, index_value, rows, only_pick_latest_dataset));
+            }
+
+            return result;
+        } else {
+            return rows.uniqueKeys();
+        }
     }
 
     void store_shadow_index(int field_key) {
@@ -324,20 +354,21 @@ class ReportTable {
     }
 
     bool field_exists(int field_name_key) const;
-    void integrate_sending_tables();
+    void integrate_sending_tables(bool only_pick_latest_dataset);
     const QMap<int, ReportTableLink> &get_receiver_links() const;
 
     private:
     void remove_rows(QList<int> indexes);
 
-    void insert_receiver_index_value(const QMap<int, QVariant> &row, int row_index);
+    void insert_index_value(const QMap<int, QVariant> &row, int row_index);
     ReportTableIndex receiver_index_m;
+    ReportTableIndex sender_index_m;
 
     QList<int> duplicate_rows(QList<int> &row_indexes); //clones row and updates index
     const ReportTableLink &get_sender_link() const;
     void remove_cols_by_matching(const QList<int> &row_indexes, const QMap<int, QString> &allowed_cols);
     ReportTableLink &get_receiver_link_by_key_other(int other_key);
-    void merge(ReportTable *other_table);
+    void merge(ReportTable *other_table, bool only_pick_latest_dataset);
     ReportTableLink sender_link_m;
     QMap<int, ReportTableLink> receiver_links_m; //key == field key, the same as ReportTableLink.field_key_this_m
                                                  //receiver links point to this table
@@ -358,7 +389,7 @@ class ReportDatabase {
     ReportDatabase() {}
 
     void build_link_tree();
-    void join();
+    void join(bool only_pick_latest_dataset);
     ReportTable *get_root_table();
     ReportTable *get_table(QString data_engine_source_file);
     ReportTable *new_table(const QString table_name, const QString &link_field_name_this, const QString &link_field_name_other);
@@ -404,6 +435,8 @@ class ReportQueryConfigFile {
     void find_queries_with_other_ids(int other_id, QList<int> &found_ids, bool allow_recursion);
     bool test_links(QString &message);
 
+    bool only_pick_latest_dataset_m = true;
+
     protected:
     QList<ReportLink> scan_folder_for_reports(const QString &base_dir_str) const;
     ReportDatabase filter_and_select_reports(const QList<ReportLink> &report_file_list, QProgressDialog *progress_dialog) const;
@@ -414,6 +447,11 @@ class ReportQueryConfigFile {
     QString file_name_m;
     bool only_successful_reports_m = true;
     bool reference_links_built_m = false;
+    int next_query_id_m = 0;
+    int get_next_query_id() {
+        next_query_id_m++;
+        return next_query_id_m;
+    }
 
     friend TestReportHistory; //for tests
 };
@@ -493,9 +531,11 @@ class MyTableWidgetItem : public QTableWidgetItem {
                 return my_dt.toDouble() < other_dt.toDouble();
             } else if (my_dt.canConvert<DataEngineDateTime>()) {
                 return my_dt.value<DataEngineDateTime>().dt() < other_dt.value<DataEngineDateTime>().dt();
+            } else if (my_dt.type() == QVariant::String) {
+                return my_dt.toString() < other_dt.toString();
             }
         }
-        return text().toInt() < other.text().toInt();
+        return text() < other.text();
     }
 };
 

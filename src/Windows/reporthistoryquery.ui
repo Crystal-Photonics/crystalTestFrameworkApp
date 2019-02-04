@@ -216,7 +216,7 @@
             </widget>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="5,1,1,10">
+            <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="5,1,0,1,10">
              <item>
               <widget class="QLabel" name="lbl_link">
                <property name="text">
@@ -239,6 +239,13 @@
                 </size>
                </property>
               </spacer>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="cbtn_multiplekey_pick_latest">
+               <property name="text">
+                <string>Just pick latest dataset</string>
+               </property>
+              </widget>
              </item>
              <item>
               <widget class="QPushButton" name="btn_link_field_to">
