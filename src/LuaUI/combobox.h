@@ -10,7 +10,7 @@
 class ComboBox : public UI_widget {
     public:
     ///\cond HIDDEN_SYMBOLS
-    ComboBox(UI_container *parent, const QStringList &sl);
+    ComboBox(UI_container *parent, const sol::table &items);
     ~ComboBox();
     ///\endcond
     void set_items(const sol::table &items);

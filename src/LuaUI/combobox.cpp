@@ -9,12 +9,17 @@
 #include <QWidget>
 
 ///\cond HIDDEN_SYMBOLS
-ComboBox::ComboBox(UI_container *parent, const QStringList &sl)
+ComboBox::ComboBox(UI_container *parent, const sol::table &items)
     : UI_widget{parent}
     , combobox(new QComboBox(parent))
     , label(new QLabel(parent)) {
     QVBoxLayout *layout = new QVBoxLayout;
     label->setText(" ");
+    QStringList sl;
+    for (const auto &item : items) {
+        sl.append(QString::fromStdString(item.second.as<std::string>()));
+    }
+
     layout->addWidget(label);
     layout->addWidget(combobox);
     layout->addStretch(1);

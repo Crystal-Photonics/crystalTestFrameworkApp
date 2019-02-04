@@ -50,6 +50,24 @@ class LineEdit : public UI_widget {
                                                         //!  	local stringvalue = le:get_text()
                                                         //!   print(stringvalue) -- prints text
                                                         //! \endcode
+                                                        //!
+    void set_input_check(const std::string &text);      //!<\brief Enables an input check. Only input is accepted which matches the pattern.
+                                                        //!< \par examples:
+                                                        //!< \code
+                                                        //!  	local le = Ui.LineEdit.new()
+                                                        //!  	le:set_input_check("YY/WW?")
+                                                        //!         --where the first 2 digits(YY) are the year and the second(WW) is the week
+                                                        //!         --it will reject numbers in future and numbers before 2017
+                                                        //!
+                                                        //!         --only numbers like 18/33a or 18/33 are ok
+                                                        //!         --numbers like "17/33a", "33/18", "1833", "" or "-" will be rejected
+                                                        //!
+                                                        //!     le:set_input_check("YY/WW?-")
+                                                        //!         -- as "YY/WW?" except that now also "-" is allowed as input
+                                                        //!
+                                                        //!
+                                                        //! \endcode
+                                                        //!
 
     std::string get_text() const; //!<\brief Returns the string value the user entered.
                                   //!< \return the text of the line edit as a string.
@@ -171,6 +189,10 @@ class LineEdit : public UI_widget {
     std::string name_m;
     std::string caption_m;
     ScriptEngine *script_engine;
+    QString pattern_check_m;
+
+    bool is_input_matching_to_pattern();
+
     const QString date_formatstring = "dd.MM.yyyy"; //20.07.1969
 };
 /** \} */ // end of group ui

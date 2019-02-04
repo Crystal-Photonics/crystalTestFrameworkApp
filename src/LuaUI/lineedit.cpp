@@ -56,6 +56,10 @@ void LineEdit::set_placeholder_text(const std::string &text) {
     text_edit->setPlaceholderText(text.c_str());
 }
 
+void LineEdit::set_input_check(const std::string &text) {
+    pattern_check_m = QString::fromStdString(text);
+}
+
 std::string LineEdit::get_text() const {
     if (entermode == LineEdit_Entermode::TextMode) {
         return text_edit->text().toStdString();
@@ -114,6 +118,63 @@ void LineEdit::set_enabled(bool enabled) {
     date_edit->setEnabled(enabled);
 }
 
+bool LineEdit::is_input_matching_to_pattern() {
+    auto check_yy_ww_ = [](QString text_under_test) {
+        auto sl = text_under_test.split("/");
+        if (sl.count() != 2) {
+            return false;
+        }
+        bool ok = true;
+        int year = sl[0].toInt(&ok);
+        if (ok == false) {
+            return false;
+        }
+        QString week_str = sl[1];
+        if ((week_str.count() != 2) && (week_str.count() != 3)) {
+            return false;
+        }
+        if (week_str.count() == 3) {
+            if (!week_str.right(1)[0].isLetterOrNumber()) {
+                return false;
+            }
+            week_str = week_str.left(2);
+        }
+
+        int week = week_str.toInt(&ok);
+        if (ok == false) {
+            return false;
+        }
+        if (year <= 17) {
+            return false;
+        }
+
+        int current_year = QDateTime::currentDateTime().date().year();
+        int current_week = QDateTime::currentDateTime().date().weekNumber();
+
+        if (year > current_year) {
+            return false;
+        }
+        if ((week > current_week) && (year == current_year)) {
+            return false;
+        }
+        return true;
+    };
+
+    bool minus_allowed = false;
+    if (pattern_check_m == "YY/WW?-") {
+        QString text_under_test = text_edit->text();
+        if (text_under_test == "-") {
+            return true;
+        }
+        return check_yy_ww_(text_under_test);
+    }
+    if (pattern_check_m == "YY/WW?") {
+        minus_allowed = false;
+        return check_yy_ww_(text_edit->text());
+    }
+    return true;
+}
+
 std::string LineEdit::get_caption() const {
     return label->text().toStdString();
 }
@@ -169,9 +230,8 @@ double LineEdit::get_number() const {
         bool ok = true;
         double retval = text_edit->text().toDouble(&ok);
         if (ok == false) {
-            retval = QInputDialog::getDouble(text_edit, "Invalid value",
-                                             "Der Wert \"" + text_edit->text() + "\" im Feld \"" + QString::fromStdString(name_m) +
-                                                 "\" ist keine Nummer. Bitte tragen Sie die nach.");
+            retval = QInputDialog::getDouble(text_edit, "Invalid value", "Der Wert \"" + text_edit->text() + "\" im Feld \"" + QString::fromStdString(name_m) +
+                                                                             "\" ist keine Nummer. Bitte tragen Sie die nach.");
         }
         return retval;
     } else {
