@@ -158,16 +158,14 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
     //  button_no->setFixedHeight(button_exceptional_approval->height());
     //  button_next->setFixedHeight(button_exceptional_approval->height());
 
-    callback_bool_no = QObject::connect(button_no, &QPushButton::clicked,
-                                        [script_engine = this->script_engine]() { script_engine->hotkey_event_queue_send_event(HotKeyEvent::cancel_pressed); });
-    callback_bool_yes = QObject::connect(button_yes, &QPushButton::clicked, [script_engine = this->script_engine]() {
-        script_engine->hotkey_event_queue_send_event(HotKeyEvent::confirm_pressed);
-    });
+    callback_bool_no =
+        QObject::connect(button_no, &QPushButton::clicked, [this]() { this->script_engine->post_hotkey_event(Event_id::Hotkey_cancel_pressed); });
+    callback_bool_yes =
+        QObject::connect(button_yes, &QPushButton::clicked, [this]() { this->script_engine->post_hotkey_event(Event_id::Hotkey_confirm_pressed); });
+    callback_next =
+        QObject::connect(button_next, &QPushButton::clicked, [this]() { this->script_engine->post_hotkey_event(Event_id::Hotkey_confirm_pressed); });
 
-    callback_next = QObject::connect(button_next, &QPushButton::clicked,
-                                     [script_engine]() { script_engine->hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent::confirm_pressed); });
-
-    callback_exceptional_approval = QObject::connect(button_exceptional_approval, &QPushButton::clicked, [this, script_engine]() {
+    callback_exceptional_approval = QObject::connect(button_exceptional_approval, &QPushButton::clicked, [this]() {
         ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString()};
         if (data_engine->do_exceptional_approval(ea_db, field_id, MainWindow::mw)) {
             if ((field_type == FieldType::Numeric) || (field_type == FieldType::String)) {
@@ -176,7 +174,7 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
                 }
             }
 
-            script_engine->hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent::skip_pressed);
+            this->script_engine->post_hotkey_event(Event_id::Hotkey_skip_pressed);
         }
     });
 
@@ -247,9 +245,9 @@ void DataEngineInput::save_to_data_engine() {
                 double val = t.toDouble(&ok);
                 double si_prefix = data_engine->get_si_prefix(field_id);
                 if (!ok) {
-                    val = QInputDialog::getDouble(parent, "Invalid value", "Der Wert \"" + t + "\" im Feld \"" + label_de_description->text() + " " +
-                                                                               label_de_desired_value->text() +
-                                                                               "\" ist keine Nummer. Bitte tragen Sie die nach.");
+                    val = QInputDialog::getDouble(parent, "Invalid value",
+                                                  "Der Wert \"" + t + "\" im Feld \"" + label_de_description->text() + " " + label_de_desired_value->text() +
+                                                      "\" ist keine Nummer. Bitte tragen Sie die nach.");
 
 #if 0
                     auto s = QString("DataEngineInput line edit does not contain a number for field-id \"%1\"").arg(field_id);
@@ -282,12 +280,11 @@ void DataEngineInput::sleep_ms(uint timeout_ms) {
     is_waiting = true;
     set_ui_visibility();
     Utility::promised_thread_call(MainWindow::mw, [this] {
-
         if (!is_editable) {
             timer->start(BLINK_INTERVAL_MS);
         }
     });
-    script_engine->timer_event_queue_run(timeout_ms);
+    script_engine->await_timeout(std::chrono::milliseconds{timeout_ms});
     Utility::promised_thread_call(MainWindow::mw, [this] {
         timer->stop();
         is_waiting = false;
@@ -321,11 +318,11 @@ void DataEngineInput::await_event() {
         }
         set_ui_visibility();
     });
-    auto result = script_engine->hotkey_event_queue_run();
+    auto result = script_engine->await_hotkey_event();
     if (is_editable && (field_type == FieldType::Bool)) {
-        if (result == HotKeyEvent::HotKeyEvent::confirm_pressed) {
+        if (result == Event_id::Hotkey_confirm_pressed) {
             bool_result = true;
-        } else if (result == HotKeyEvent::HotKeyEvent::cancel_pressed) {
+        } else if (result == Event_id::Hotkey_cancel_pressed) {
             bool_result = false;
         } else {
             dont_save_result_to_de = true;
@@ -334,7 +331,6 @@ void DataEngineInput::await_event() {
     is_waiting = false;
 
     Utility::promised_thread_call(MainWindow::mw, [this] {
-
         timer->stop();
         if (is_editable) {
             if (dont_save_result_to_de == false) {
@@ -392,7 +388,6 @@ void DataEngineInput::start_timer() {
             label_extra_explanation->setFixedHeight(label_extra_explanation->height());
         }
         blink_state++;
-
     });
 }
 
@@ -492,7 +487,6 @@ void DataEngineInput::set_labels_enabled() {
 
 void DataEngineInput::set_ui_visibility() {
     Utility::promised_thread_call(MainWindow::mw, [this] {
-
         if (init_ok == false) {
             return;
         }

@@ -16,14 +16,15 @@
 #include "qt_util.h"
 #include "scriptengine.h"
 #include "testdescriptionloader.h"
+#include "testdescriptionloader.h"
 #include "testrunner.h"
 #include "ui_container.h"
 #include "ui_mainwindow.h"
 #include "util.h"
+
 #include <QAction>
 #include <QByteArray>
 #include <QDebug>
-#include <QDesktopServices>
 #include <QDesktopServices>
 #include <QDir>
 #include <QDirIterator>
@@ -64,7 +65,7 @@ namespace GUI {
             connectedDevices,
         };
     }
-}
+} // namespace GUI
 
 using namespace std::chrono_literals;
 
@@ -305,7 +306,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     load_default_paths_if_needed();
     favorite_scripts.load_from_file(QSettings{}.value(Globals::favorite_script_file_key, "").toString());
-    device_worker->moveToThread(&devices_thread);
+    devices_thread.adopt(*device_worker);
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
     Console::console = ui->console_edit;
     Console::mw = this;
@@ -356,24 +357,19 @@ void MainWindow::shutdown() {
     for (auto &test : test_runners) {
         if (test->is_running()) {
             test->interrupt();
+			test->message_queue_join();
         }
     }
 
-    auto done = std::async(std::launch::async, [this] {
-        for (auto &test : test_runners) {
-            test->join();
-        }
-        test_runners.clear();
-        Utility::promised_thread_call(this, [&] {
-            test_descriptions.clear(); //must clear descriptions in GUI thread because it touches GUI
-        });
-        devices_thread.quit();
-        devices_thread.wait();
-    });
-    while (done.wait_for(std::chrono::milliseconds(16)) != std::future_status::ready) {
-        QApplication::processEvents();
-    }
-    done.wait();
+	QApplication::processEvents(); //process left over events
+
+	ui->test_tabs->clear();
+	test_descriptions.clear();
+	test_runners.clear();
+
+	devices_thread.quit();
+	assert(not devices_thread.is_current());
+	devices_thread.message_queue_join();
 
     QObject::disconnect(ui->tests_advanced_view, &QTreeWidget::itemSelectionChanged, this, &MainWindow::on_tests_advanced_view_itemSelectionChanged);
     QObject::disconnect(ui->test_simple_view, &QListWidget::itemSelectionChanged, this, &MainWindow::on_test_simple_view_itemSelectionChanged);
@@ -435,7 +431,7 @@ void MainWindow::load_favorites() {
     ui->test_simple_view->clear();
     QIcon icon_star = QIcon{"://src/icons/star_16.ico"};
     QIcon icon_empty_star = QIcon{"://src/icons/if_star_empty_16.png"};
-    for (TestDescriptionLoader &test : test_descriptions) {
+	for (TestDescriptionLoader &test : test_descriptions) {
         const ScriptEntry favorite_entry = favorite_scripts.get_entry(test.get_name());
         if (favorite_entry.valid) {
             QListWidgetItem *item = new QListWidgetItem{favorite_entry.script_path};
@@ -443,7 +439,7 @@ void MainWindow::load_favorites() {
                 item->setText(favorite_entry.alternative_name);
             }
             item->setFlags(item->flags() | Qt::ItemIsEditable);
-            item->setData(Qt::UserRole, Utility::make_qvariant(test.ui_entry.get()));
+			item->setData(Qt::UserRole, QVariant::fromValue(test.ui_entry.get()));
             item->setToolTip(favorite_entry.script_path);
             Identicon ident_icon{test.get_name().toLocal8Bit()};
             const int SCALE_FACTOR = 12;
@@ -529,6 +525,10 @@ void MainWindow::add_clear_button_to_console(QPlainTextEdit *console) {
 }
 
 void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State state) {
+    if (std::find(std::begin(test_runners), std::end(test_runners), testrunner) == std::end(test_runners)) {
+        qDebug() << "Tried to set the state of dead test runner" << static_cast<void *>(testrunner);
+        return;
+    }
     assert(currently_in_gui_thread());
     QString prefix = " ";
     Qt::GlobalColor color = Qt::black;
@@ -590,8 +590,6 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
 }
 
 void MainWindow::show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon) {
-    //is called from other threads
-    assert(currently_in_gui_thread() == false);
     Utility::thread_call(this, [this, title, message, icon] {
         switch (icon) {
             default:
@@ -730,18 +728,16 @@ TestDescriptionLoader *MainWindow::get_test_from_tree_widget(const QTreeWidgetIt
     if (item == nullptr) {
         item = ui->tests_advanced_view->currentItem();
     }
+	assert(item != nullptr);
     if (item->childCount() > 0) {
-        item = nullptr;
-    }
-    if (item == nullptr) {
-        return nullptr;
+		return nullptr;
     }
     QVariant data = item->data(0, Qt::UserRole);
-    return Utility::from_qvariant<TestDescriptionLoader>(data);
+	return data.value<TestDescriptionLoader *>();
 }
 
 QTreeWidgetItem *MainWindow::get_treewidgetitem_from_listViewItem(QListWidgetItem *item) {
-    return Utility::from_qvariant<QTreeWidgetItem>(item->data(Qt::UserRole));
+	return item->data(Qt::UserRole).value<QTreeWidgetItem *>();
 }
 
 TestDescriptionLoader *MainWindow::get_test_from_listViewItem(QListWidgetItem *item) {
@@ -804,7 +800,7 @@ void MainWindow::on_test_simple_view_itemSelectionChanged() {
 
 void MainWindow::on_tests_advanced_view_itemClicked(QTreeWidgetItem *item, int column) {
     if (column == 4) {
-        auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
+		auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
         if (test) {
             QString test_name = test->get_name();
             bool modified = false;
@@ -826,7 +822,7 @@ void MainWindow::on_tests_advanced_view_itemSelectionChanged() {
     auto item = ui->tests_advanced_view->currentItem();
     if (item) {
         if (item->childCount() == 0) {
-            auto test = Utility::from_qvariant<TestDescriptionLoader>(item->data(0, Qt::UserRole));
+			auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
             if (test == nullptr) {
                 return;
             }
@@ -959,46 +955,14 @@ TestRunner *MainWindow::get_runner_from_tab_index(int index) {
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
-#if 1
-    bool one_is_running = false;
-    for (auto &test : test_runners) {
-        if (test->is_running()) {
-            one_is_running = true;
-            break;
-        }
-    }
+    const bool one_is_running = std::any_of(std::begin(test_runners), std::end(test_runners), [](auto &runner) { return runner->is_running(); });
     if (one_is_running) {
-        for (auto &test : test_runners) {
-            if (test->is_running()) {
-                test->pause_timers();
-            }
-        }
-
         if (QMessageBox::question(this, tr(""), tr("Scripts are still running. Abort them now?"), QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
-            for (auto &test : test_runners) {
-                if (test->is_running()) {
-                    test->resume_timers();
-                    test->interrupt();
-                    test->join();
-                }
-            }
-
+			event->accept();
         } else {
             event->ignore();
-            for (auto &test : test_runners) {
-                if (test->is_running()) {
-                    test->resume_timers();
-                }
-            }
-            return; //canceled closing the window
         }
-
-        QApplication::processEvents();
-        test_runners.clear();
-        QApplication::processEvents();
     }
-    event->accept();
-#endif
 }
 
 void MainWindow::close_finished_tests() {
@@ -1024,21 +988,15 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
         return;
     }
     auto &runner = **runner_it;
-    if (runner.is_running()) {
-        runner.pause_timers();
-        if (QMessageBox::question(this, tr(""), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
-                                  QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
-            runner.resume_timers();
-            runner.interrupt();
-            runner.join();
-        } else {
-            runner.resume_timers();
-            return; //canceled closing the tab
-        }
+	if (runner.is_running() &&
+		QMessageBox::question(this, tr("Abort script?"), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
+                              QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok) {
+        return; //canceled closing the tab
     }
-    QApplication::processEvents();
+    runner.interrupt();
+    runner.message_queue_join();
+    QApplication::processEvents(); //runner may have sent events referencing runner. Need to process all such events before removing runner.
     test_runners.erase(runner_it);
-    QApplication::processEvents();
     ui->test_tabs->removeTab(index);
 }
 

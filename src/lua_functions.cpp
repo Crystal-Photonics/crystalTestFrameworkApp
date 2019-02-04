@@ -55,86 +55,86 @@ std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigne
 }
 /// @endcond
 /*! \fn double measure_noise_level_czt(device rpc_device, int dacs_quantity, int max_possible_dac_value)
-	\brief Calculates the noise level of an CZT-Detector system with thresholded radioactivity counters.
-	\param rpc_device                   The communication instance of the CZT-Detector.
-	\param dacs_quantity                Number of thresholds which is also equal to the number of counter results.
-	\param max_possible_dac_value       Max digit of the DAC which controlls the thresholds. For 12 Bit this value equals 4095.
-	\return                             The lowest DAC threshold value which matches with the noise level definition.
+    \brief Calculates the noise level of an CZT-Detector system with thresholded radioactivity counters.
+    \param rpc_device                   The communication instance of the CZT-Detector.
+    \param dacs_quantity                Number of thresholds which is also equal to the number of counter results.
+    \param max_possible_dac_value       Max digit of the DAC which controlls the thresholds. For 12 Bit this value equals 4095.
+    \return                             The lowest DAC threshold value which matches with the noise level definition.
 
-	\details    This function modifies DAC thresholds in order to find the lowest NoiseLevel which matches with:<br>
+    \details    This function modifies DAC thresholds in order to find the lowest NoiseLevel which matches with:<br>
                 \f$ \int_{NoiseLevel}^\infty spectrum(energy) < LimitCPS \f$ <br>
-				where LimitCPS is defined by configuration and is set by default to 5 CPS.
-				<br> <br>
-				Because this functions iterates through the range of the spectrum to the find the noise level it is
-				necessary to have write access to the DAC thresholds and read access to the count values at the
-				DAC thresholds.
-				This is done by two call back functions which have to be implemented by the user into the lua script: <br><br>
+                where LimitCPS is defined by configuration and is set by default to 5 CPS.
+                <br> <br>
+                Because this functions iterates through the range of the spectrum to the find the noise level it is
+                necessary to have write access to the DAC thresholds and read access to the count values at the
+                DAC thresholds.
+                This is done by two call back functions which have to be implemented by the user into the lua script: <br><br>
 
-	\par function callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts
-	\code{.lua}
-			function callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts(
-					rpc_device,
-					thresholds,
-					integration_time_s,
-					count_limit_for_accumulation_abort)
-	\endcode
-	\brief  Shall modify the DAC thresholds and accumulate the counts of the counters with the new thresholds.
-	\param rpc_device                           The communication instance of the CZT-Detector.
-	\param thresholds                           Table with the length of \c dacs_quantity containing the thresholds which have to be set by this function.
-	\param integration_time_s                   Time in seconds to acquire the counts of the thresholded radioactivity counters.
-	\param count_limit_for_accumulation_abort   If not equal to zero the function can abort the count acquisition if one counter reaches
-												count_limit_for_accumulation_abort.
-	\return                                     Table of acquired counts in order of the table \c thresholds.
+    \par function callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts
+    \code{.lua}
+            function callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts(
+                    rpc_device,
+                    thresholds,
+                    integration_time_s,
+                    count_limit_for_accumulation_abort)
+    \endcode
+    \brief  Shall modify the DAC thresholds and accumulate the counts of the counters with the new thresholds.
+    \param rpc_device                           The communication instance of the CZT-Detector.
+    \param thresholds                           Table with the length of \c dacs_quantity containing the thresholds which have to be set by this function.
+    \param integration_time_s                   Time in seconds to acquire the counts of the thresholded radioactivity counters.
+    \param count_limit_for_accumulation_abort   If not equal to zero the function can abort the count acquisition if one counter reaches
+                                                count_limit_for_accumulation_abort.
+    \return                                     Table of acquired counts in order of the table \c thresholds.
 
-	\par function callback_measure_noise_level_restore_dac_thresholds_to_normal_mode
-	\code{.lua}
-		function callback_measure_noise_level_restore_dac_thresholds_to_normal_mode(rpc_device)
-	\endcode
-	\brief  Modifying thresholds often implies that a special "overwrite with custom thresholds"-mode is required. This function allows the user to leave this mode.
-	\param rpc_device                           The communication instance of the CZT-Detector.
-	\return                                     nothing.
+    \par function callback_measure_noise_level_restore_dac_thresholds_to_normal_mode
+    \code{.lua}
+        function callback_measure_noise_level_restore_dac_thresholds_to_normal_mode(rpc_device)
+    \endcode
+    \brief  Modifying thresholds often implies that a special "overwrite with custom thresholds"-mode is required. This function allows the user to leave this mode.
+    \param rpc_device                           The communication instance of the CZT-Detector.
+    \return                                     nothing.
 
-	\par examples:
-	\code{.lua}
-		function callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts(
-					rpc_device,
-					thresholds,
-					integration_time_s,
-					count_limit_for_accumulation_abort)
+    \par examples:
+    \code{.lua}
+        function callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts(
+                    rpc_device,
+                    thresholds,
+                    integration_time_s,
+                    count_limit_for_accumulation_abort)
 
-			print("chosen thresholds:", thresholds)
-			rpc_device:thresholds_set_custom_values(1 ,
-				thresholds[1],
-				thresholds[2],
-				thresholds[3],
-				thresholds[4]) --RPC Function for setting custom thresholds
-			local count_values_akku = table_create_constant(DAC_quantity,0)
-			rpc_device:get_counts_raw(1)        --RPC Function for resetting
-												--the internal count buffer
-			for i = 1, integration_time_s do    --we want to prevent overflow(16bit) by
-												--measuring 10 times 1 second instead
-												--of 10 seconds and add the results
-				sleep_ms(1000)
-				local count_values = rpc_device:get_counts_raw(1)
-				count_values_akku = table_add_table(count_values_akku,count_values)
-				if (table_max(count_values_akku) > count_limit_for_accumulation_abort)
-						and (count_limit_for_accumulation_abort ~= 0) then
-					break
-				end
-			end
+            print("chosen thresholds:", thresholds)
+            rpc_device:thresholds_set_custom_values(1 ,
+                thresholds[1],
+                thresholds[2],
+                thresholds[3],
+                thresholds[4]) --RPC Function for setting custom thresholds
+            local count_values_akku = table_create_constant(DAC_quantity,0)
+            rpc_device:get_counts_raw(1)        --RPC Function for resetting
+                                                --the internal count buffer
+            for i = 1, integration_time_s do    --we want to prevent overflow(16bit) by
+                                                --measuring 10 times 1 second instead
+                                                --of 10 seconds and add the results
+                sleep_ms(1000)
+                local count_values = rpc_device:get_counts_raw(1)
+                count_values_akku = table_add_table(count_values_akku,count_values)
+                if (table_max(count_values_akku) > count_limit_for_accumulation_abort)
+                        and (count_limit_for_accumulation_abort ~= 0) then
+                    break
+                end
+            end
 
-			local counts_cps = table_mul_constant(count_values_akku,1/integration_time_s)
-			print("measured counts[cps]:", counts_cps)
+            local counts_cps = table_mul_constant(count_values_akku,1/integration_time_s)
+            print("measured counts[cps]:", counts_cps)
             return count_values_akku
-		end
-	\endcode
-	\code{.lua}
-		function callback_measure_noise_level_restore_dac_thresholds_to_normal_mode(rpc_device)
-			--eg:
-			rpc_device:thresholds_set_custom_values(0, 0,0,0,0) --disable overwriting
-																--thresholds with custom values
-		end
-	\endcode
+        end
+    \endcode
+    \code{.lua}
+        function callback_measure_noise_level_restore_dac_thresholds_to_normal_mode(rpc_device)
+            --eg:
+            rpc_device:thresholds_set_custom_values(0, 0,0,0,0) --disable overwriting
+                                                                --thresholds with custom values
+        end
+    \endcode
 
 */
 
@@ -462,7 +462,7 @@ void show_warning(const QString &path, const sol::optional<std::string> &title, 
 /*! \fn print(argument);
 \brief Prints the string value of \c argument to the console.
 \param argument             Input value to be printed. Prints all types except for userdefined ones which come the
-							scriptengine. eg. rpc_devices or Ui elements.
+                            scriptengine. eg. rpc_devices or Ui elements.
 
 
 \details   \par Differences to the standard Lua world:
@@ -470,19 +470,19 @@ void show_warning(const QString &path, const sol::optional<std::string> &title, 
 
 \par example:
 \code{.lua}
-	local table_array = {1,2,3,4,5}
-	local table_struct = {["A"]=-5, ["B"]=-4,["C"]=-3,["D"]=-2,["E"]=-1}
-	local int_val = 536
+    local table_array = {1,2,3,4,5}
+    local table_struct = {["A"]=-5, ["B"]=-4,["C"]=-3,["D"]=-2,["E"]=-1}
+    local int_val = 536
 
-	print("Hello world")                 -- prints "Hello world"
-	print(1.1487)                        -- prints 1.148700
-	print(table_array)                   --{1,2,3,4,5}
-	print(table_struct)                  -- {["B"]=-4, ["C"]=-3, ["D"]=-2, ["E"]=-1}
-	print("outputstruct: ",table_struct) -- "outputstruct: "{["D"]=-2, ["C"]=-3,
-										 --                ["F"]=0, ["E"]=-1}
-	print("output int as string: "..int_val) --"output int as string: 536"
-	print("output int: ",int_val)        --"output int: "536
-	print(non_declared_variable)         --nil
+    print("Hello world")                 -- prints "Hello world"
+    print(1.1487)                        -- prints 1.148700
+    print(table_array)                   --{1,2,3,4,5}
+    print(table_struct)                  -- {["B"]=-4, ["C"]=-3, ["D"]=-2, ["E"]=-1}
+    print("outputstruct: ",table_struct) -- "outputstruct: "{["D"]=-2, ["C"]=-3,
+                                         --                ["F"]=0, ["E"]=-1}
+    print("output int as string: "..int_val) --"output int as string: 536"
+    print("output int: ",int_val)        --"output int: "536
+    print(non_declared_variable)         --nil
 \endcode
 */
 
@@ -497,7 +497,7 @@ void print(QPlainTextEdit *console, const sol::variadic_args &args) {
     for (auto &object : args) {
         text += ScriptEngine::to_string(object);
     }
-    Utility::thread_call(MainWindow::mw, [ console = console, text = std::move(text) ] {
+    Utility::thread_call(MainWindow::mw, [console = console, text = std::move(text)] {
         qDebug() << QString::fromStdString(text);
         Console::script(console) << text;
     });
@@ -512,8 +512,8 @@ void print(QPlainTextEdit *console, const sol::variadic_args &args) {
 
 \details    \par example:
 \code{.lua}
-	local timeout_ms = 100
-	sleep_ms(timeout_ms)  -- waits for 100 milliseconds
+    local timeout_ms = 100
+    sleep_ms(timeout_ms)  -- waits for 100 milliseconds
 \endcode
 */
 
@@ -524,7 +524,7 @@ sleep_ms(int timeout_ms);
 
 /// @cond HIDDEN_SYMBOLS
 void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms) {
-    scriptengine->timer_event_queue_run(timeout_ms);
+    scriptengine->await_timeout(std::chrono::milliseconds{timeout_ms});
     if (QThread::currentThread()->isInterruptionRequested()) {
         throw sol::error("Abort Requested");
     }
@@ -570,10 +570,10 @@ double current_date_time_ms() {
 
 \details    \par example:
 \code{.lua}
-	local value = 1.259648
-	local retval = round(value,2)  -- retval is 1.26
-	local retval = round(value,0)  -- retval is 1.0
-	print(retval)
+    local value = 1.259648
+    local retval = round(value,2)  -- retval is 1.26
+    local retval = round(value,0)  -- retval is 1.0
+    print(retval)
 \endcode
 */
 
@@ -620,7 +620,7 @@ uint16_t table_crc16(QPlainTextEdit *console, sol::table input_values) {
     for (auto &i : input_values) {
         if (i.second.as<double>() > 255) {
             const auto &message = QObject::tr("table_crc16: found field value > 255");
-            Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+            Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console::error(console) << message; });
             throw sol::error("Unsupported table field type");
         }
         uint8_t item = i.second.as<double>();
@@ -641,9 +641,9 @@ uint16_t table_crc16(QPlainTextEdit *console, sol::table input_values) {
 
 \details    \par example:
 \code{.lua}
-	local input_values = {-20, -40, 2, 30}
-	local retval = table_sum(input_values)  -- retval is -28.0
-	print(retval)
+    local input_values = {-20, -40, 2, 30}
+    local retval = table_sum(input_values)  -- retval is -28.0
+    print(retval)
 \endcode
 */
 
@@ -685,7 +685,7 @@ void lua_object_to_string(QPlainTextEdit *console, sol::object &obj, QString &v,
         t = "s";
     } else {
         const auto &message = QObject::tr("Failed to save table to file. Unsupported table field type.");
-        Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console::error(console) << message; });
         throw sol::error("Unsupported table field type");
     }
 }
@@ -718,14 +718,14 @@ void table_save_to_file(QPlainTextEdit *console, const std::string file_name, so
 
     if (fn == "") {
         const auto &message = QObject::tr("Failed open file for saving table: %1").arg(fn);
-        Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console::error(console) << message; });
         throw sol::error("could not open file");
         return;
     }
 
     if (!over_write_file && QFile::exists(fn)) {
         const auto &message = QObject::tr("File for saving table already exists and must not be overwritten: %1").arg(fn);
-        Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console::error(console) << message; });
         throw sol::error("File already exists");
         return;
     }
@@ -733,7 +733,7 @@ void table_save_to_file(QPlainTextEdit *console, const std::string file_name, so
 
     if (!saveFile.open(QIODevice::WriteOnly)) {
         const auto &message = QObject::tr("Failed open file for saving table: %1").arg(fn);
-        Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console::error(console) << message; });
         throw sol::error("could not open file");
         return;
     }
@@ -761,13 +761,13 @@ sol::object sol_object_from_type_string(QPlainTextEdit *console, sol::state &lua
         double index_d = v.toFloat(&ok);
         if (!ok) {
             const auto &message = QObject::tr("Could not convert string value to number while loading file to table. Failed string: \"%1\"").arg(v);
-            Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+            Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console::error(console) << message; });
             throw sol::error("Conversion Error");
         }
         return sol::make_object(lua, index_d);
     } else {
         const auto &message = QObject::tr("Unknown value type in file to be loaded into table. Type: \"%1\"").arg(value_type);
-        Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console::error(console) << message; });
         throw sol::error("unknown type");
     }
 }
@@ -802,13 +802,13 @@ sol::table jsonarray_to_table(QPlainTextEdit *console, sol::state &lua, const QJ
             double index_d = index.toFloat(&ok);
             if (!ok) {
                 const auto &message = QObject::tr("Could not convert string index to number while loading file to table. Failed string: \"%1\"").arg(index);
-                Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+                Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console::error(console) << message; });
                 throw sol::error("Conversion Error");
             }
             result[index_d] = val;
         } else {
             const auto &message = QObject::tr("Unknown index type in file to be loaded into table. Type: \"%1\"").arg(index_type);
-            Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+            Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console::error(console) << message; });
             throw sol::error("unknown type");
         }
     }
@@ -822,7 +822,7 @@ sol::table table_load_from_file(QPlainTextEdit *console, sol::state &lua, const 
 
     if (!loadFile.open(QIODevice::ReadOnly)) {
         const auto &message = QObject::tr("Can not open file for reading: \"%1\"").arg(fn);
-        Utility::thread_call(MainWindow::mw, [ console = console, message = std::move(message) ] { Console::error(console) << message; });
+        Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console::error(console) << message; });
         throw sol::error("cant open file");
     }
 
@@ -985,9 +985,9 @@ sol::object table_min_by_field(sol::state &lua, sol::table input_values, const s
 
 \details    \par example:
 \code{.lua}
-	local input_values = {-20, -40, 2, 30}
-	local retval = table_mean(input_values)  -- retval is -7.0
-	print(retval)
+    local input_values = {-20, -40, 2, 30}
+    local retval = table_mean(input_values)  -- retval is -7.0
+    print(retval)
 \endcode
 */
 
@@ -1088,11 +1088,11 @@ double table_standard_deviation(sol::table input_values) {
 
 \details    \par example:
 \code{.lua}
-	local input_values = {-20, -40, 2, 30}
-	local constant = {2.5}
-	local retval = table_set_constant(input_values,constant)  -- retval is {2.5, 2.5,
-															 --          2.5, 2.5}
-	print(retval)
+    local input_values = {-20, -40, 2, 30}
+    local constant = {2.5}
+    local retval = table_set_constant(input_values,constant)  -- retval is {2.5, 2.5,
+                                                             --          2.5, 2.5}
+    print(retval)
 \endcode
 */
 
@@ -1112,20 +1112,20 @@ sol::table table_set_constant(sol::state &lua, sol::table input_values, double c
 /// @endcond
 
 /*! \fn number_table table_create_constant(int size, double constant);
-	\brief Creates a table with \c size elements initialized with \c constant.
-	\param size                 Positive integer. The size of the array to be created.
-	\param constant              Int or double value. The value the array is initialized with.
+    \brief Creates a table with \c size elements initialized with \c constant.
+    \param size                 Positive integer. The size of the array to be created.
+    \param constant              Int or double value. The value the array is initialized with.
 
-	\return                     A table with \c size elements initialized with \c constant.
+    \return                     A table with \c size elements initialized with \c constant.
 
-	\details    \par example:
-	\code{.lua}
-		local size = 5
-		local constant = {2.5}
-		local retval = table_create_constant(size,constant)  -- retval is {2.5, 2.5,
-													   --          2.5, 2.5, 2.5}
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local size = 5
+        local constant = {2.5}
+        local retval = table_create_constant(size,constant)  -- retval is {2.5, 2.5,
+                                                       --          2.5, 2.5, 2.5}
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1145,14 +1145,14 @@ sol::table table_create_constant(sol::state &lua, const unsigned int size, doubl
 
 /*! \fn number_table table_add_table_at(number_table input_values_a, number_table input_values_b, int at);
     \brief Performs a vector addition of \c input_values_a[i+at-1] + \c input_values_b[i] for each i while input_values_a and input_values_b may have a different legth.
-	\param input_values_a       Input table of int or double values.
-	\param input_values_b       Input table of int or double values. The summands the table \c input_values_a is added with.
+    \param input_values_a       Input table of int or double values.
+    \param input_values_b       Input table of int or double values. The summands the table \c input_values_a is added with.
     \param at                   Position offset between input_values_a and input_values_b.
 
     \return                     A table of the differences of \c input_values_a[i+at-1] + \c input_values_b[i] for each i.
 
-	\details    \par example:
-	\code{.lua}
+    \details    \par example:
+    \code{.lua}
         local input_values_a = {1, 2, 3, 4}
         local input_values_b = {1, 2}
         local retval_1 = table_add_table_at(input_values_a,input_values_b, 1)
@@ -1171,7 +1171,7 @@ sol::table table_create_constant(sol::state &lua, const unsigned int size, doubl
             -- retval_6 is {1, 2, 3, 4, 0, 1, 2}
         print(retval_6)
 
-	\endcode
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1264,20 +1264,20 @@ sol::table table_add_table(sol::state &lua, sol::table input_values_a, sol::tabl
 /// @endcond
 
 /*! \fn number_table table_add_constant(number_table input_values,  double constant);
-	\brief Performs a vector addition of  \c input_values[i] + \c constant for each i.
-	\param input_values       Input table of int or double values.
-	\param constant            Int or double value. The summand the table \c input_values is added with.
+    \brief Performs a vector addition of  \c input_values[i] + \c constant for each i.
+    \param input_values       Input table of int or double values.
+    \param constant            Int or double value. The summand the table \c input_values is added with.
 
-	\return                     A table of the differences of \c input_values[i] + \c constant for each i.
+    \return                     A table of the differences of \c input_values[i] + \c constant for each i.
 
-	\details    \par example:
-	\code{.lua}
-		local input_values_a = {-20, -40, 2, 30}
+    \details    \par example:
+    \code{.lua}
+        local input_values_a = {-20, -40, 2, 30}
         local constant = {2}
         local retval = table_add_constant(input_values,constant) -- retval is {-18,
                                                                  --   -38, 4, 32}
-		print(retval)
-	\endcode
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1297,20 +1297,20 @@ sol::table table_add_constant(sol::state &lua, sol::table input_values, double c
 /// @endcond
 
 /*! \fn number_table table_sub_table(number_table input_values_a, number_table input_values_b);
-	\brief Performs a vector subtraction of  \c input_values_a[i] - \c input_values_b[i] for each i.
-	\param input_values_a       Input table of int or double values.
-	\param input_values_b            Input table of int or double values. The subtrahend the table \c input_values_a is subtracted with.
+    \brief Performs a vector subtraction of  \c input_values_a[i] - \c input_values_b[i] for each i.
+    \param input_values_a       Input table of int or double values.
+    \param input_values_b            Input table of int or double values. The subtrahend the table \c input_values_a is subtracted with.
 
-	\return                     A table of the differences of \c input_values_a[i] - \c input_values_b[i] for each i.
+    \return                     A table of the differences of \c input_values_a[i] - \c input_values_b[i] for each i.
 
-	\details    \par example:
-	\code{.lua}
-		local input_values_a = {-20, -40, 2, 30}
-		local input_values_a = {-1.5, 2, 0.5, 3}
-		local retval = table_sub_table(input_values_a,input_values_b) -- retval is
-														   --  {-18.5, -42, 1.5, 27}
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local input_values_a = {-20, -40, 2, 30}
+        local input_values_a = {-1.5, 2, 0.5, 3}
+        local retval = table_sub_table(input_values_a,input_values_b) -- retval is
+                                                           --  {-18.5, -42, 1.5, 27}
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1330,20 +1330,20 @@ sol::table table_sub_table(sol::state &lua, sol::table input_values_a, sol::tabl
 /// @endcond
 
 /*! \fn number_table table_mul_table(number_table input_values_a, number_table input_values_b);
-	\brief Performs a vector multiplication of  \c input_values_a[i] * \c input_values_b[i] for each i.
-	\param input_values_a       Input table of int or double values.
-	\param input_values_b       Input table of int or double values. The factors the table \c input_values_a is multiplied with.
+    \brief Performs a vector multiplication of  \c input_values_a[i] * \c input_values_b[i] for each i.
+    \param input_values_a       Input table of int or double values.
+    \param input_values_b       Input table of int or double values. The factors the table \c input_values_a is multiplied with.
 
-	\return                     A table of the products of \c input_values_a[i] * \c input_values_b[i] for each i.
+    \return                     A table of the products of \c input_values_a[i] * \c input_values_b[i] for each i.
 
-	\details    \par example:
-	\code{.lua}
-		local input_values_a = {-20, -40, 2, 30}
-		local input_values_a = {-1.5, 2, 0.5, 3}
-		local retval = table_mul_table(input_values_a,input_values_b) -- retval is
-															-- {30, -80 , 1, 90}
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local input_values_a = {-20, -40, 2, 30}
+        local input_values_a = {-1.5, 2, 0.5, 3}
+        local retval = table_mul_table(input_values_a,input_values_b) -- retval is
+                                                            -- {30, -80 , 1, 90}
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1363,20 +1363,20 @@ sol::table table_mul_table(sol::state &lua, sol::table input_values_a, sol::tabl
 /// @endcond
 
 /*! \fn number_table table_mul_constant(number_table input_values_a, double constant);
-	\brief Performs a vector multiplication of  \c input_values_a[i] * \c constant for each i.
-	\param input_values_a       Input table of int or double values.
-	\param constant             Int or double value. The factor the table \c input_values_a is multiplied with.
+    \brief Performs a vector multiplication of  \c input_values_a[i] * \c constant for each i.
+    \param input_values_a       Input table of int or double values.
+    \param constant             Int or double value. The factor the table \c input_values_a is multiplied with.
 
-	\return                     A table of the products of \c input_values_a[i] * \c constant.
+    \return                     A table of the products of \c input_values_a[i] * \c constant.
 
-	\details    \par example:
-	\code{.lua}
-		local input_values_a = {-20, -40, 2, 30}
-		local constant = 3
-		local retval = table_mul_constant(input_values_a,constant) -- retval is {-60,
-																   --     -120, 6, 90}
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local input_values_a = {-20, -40, 2, 30}
+        local constant = 3
+        local retval = table_mul_constant(input_values_a,constant) -- retval is {-60,
+                                                                   --     -120, 6, 90}
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1396,21 +1396,21 @@ sol::table table_mul_constant(sol::state &lua, sol::table input_values_a, double
 /// @endcond
 
 /*! \fn number_table table_div_table(number_table input_values_a, number_table input_values_b);
-	\brief Performs a vector division of  \c input_values_a[i] / \c input_values_b[i] for each i.
-	\param input_values_a     Input table of int or double values. Regarded as divident of the division operation.
-	\param input_values_b     Input table of int or double values. Regarded as divisor of the division operation.
+    \brief Performs a vector division of  \c input_values_a[i] / \c input_values_b[i] for each i.
+    \param input_values_a     Input table of int or double values. Regarded as divident of the division operation.
+    \param input_values_b     Input table of int or double values. Regarded as divisor of the division operation.
 
-	\return                 A table of the quotients of \c input_values_a[i] / \c input_values_b[i].
+    \return                 A table of the quotients of \c input_values_a[i] / \c input_values_b[i].
 
-	\details    \par example:
-	\code{.lua}
-		local input_values_a = {-20, -40, 2, 30}
-		local input_values_b = {5, 2, 8, 10}
-		local retval = table_div_table(input_values_a,input_values_b) -- retval is
-																	  -- {-4, -20,
-																	  --  0.25, 3}
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local input_values_a = {-20, -40, 2, 30}
+        local input_values_b = {5, 2, 8, 10}
+        local retval = table_div_table(input_values_a,input_values_b) -- retval is
+                                                                      -- {-4, -20,
+                                                                      --  0.25, 3}
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1437,20 +1437,20 @@ sol::table table_div_table(sol::state &lua, sol::table input_values_a, sol::tabl
 /// @endcond
 
 /*! \fn number_table table_round(number_table input_values, int precision);
-	\brief Returns a table with rounded values of \c input_values
-	\param input_values     Input table of int or double values.
-	\param precision        The number of digits to round
+    \brief Returns a table with rounded values of \c input_values
+    \param input_values     Input table of int or double values.
+    \param precision        The number of digits to round
 
-	\return                 A table of rounded values of \c input_values.
+    \return                 A table of rounded values of \c input_values.
 
-	\details    \par example:
-	\code{.lua}
-		local input_values = {-20.35756, -40.41188, 2.1474314, 30.247764}
-		local retval_0 = table_round(input_values,2)  -- retval_0 is {-20, -40 ,2, 30}
-		local retval_2 = table_round(input_values,2)  -- retval_2 is {-20.36, -40.41,
-																   -- 2.15, 30.25}
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local input_values = {-20.35756, -40.41188, 2.1474314, 30.247764}
+        local retval_0 = table_round(input_values,2)  -- retval_0 is {-20, -40 ,2, 30}
+        local retval_2 = table_round(input_values,2)  -- retval_2 is {-20.36, -40.41,
+                                                                   -- 2.15, 30.25}
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1470,17 +1470,17 @@ sol::table table_round(sol::state &lua, sol::table input_values, const unsigned 
 /// @endcond
 
 /*! \fn number_table table_abs(number_table input_values);
-	\brief Returns absolute values of \c input_values.
-	\param input_values     Input table of int or double values.
+    \brief Returns absolute values of \c input_values.
+    \param input_values     Input table of int or double values.
 
-	\return                 Absolute values of \c input_values.
+    \return                 Absolute values of \c input_values.
 
-	\details    \par example:
-	\code{.lua}
-		local input_values = {-20, -40, 2, 30}
-		local retval = table_abs(input_values)  -- retval is {20,40,2,30}
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local input_values = {-20, -40, 2, 30}
+        local retval = table_abs(input_values)  -- retval is {20,40,2,30}
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1500,19 +1500,19 @@ sol::table table_abs(sol::state &lua, sol::table input_values) {
 /// @endcond
 
 /*! \fn number_table table_mid(number_table input_values, int start, int length);
-	\brief Returns a fragment of the table \c input_values
-	\param input_values     Input table of int or double values.
-	\param start            Start index of the fragment of \c input_values which will be returned.
-	\param length           Length of the fragment which will be returned.
+    \brief Returns a fragment of the table \c input_values
+    \param input_values     Input table of int or double values.
+    \param start            Start index of the fragment of \c input_values which will be returned.
+    \param length           Length of the fragment which will be returned.
 
-	\return                 A fragment of the table \c input_values.
+    \return                 A fragment of the table \c input_values.
 
-	\details    \par example:
-	\code{.lua}
-		local input_values = {-20, -40, 2, 30,25,8,68,42}
-		local retval = table_mid(input_values,2,3)  -- retval is {-40,2,30}
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local input_values = {-20, -40, 2, 30,25,8,68,42}
+        local retval = table_mid(input_values,2,3)  -- retval is {-40,2,30}
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1532,21 +1532,21 @@ sol::table table_mid(sol::state &lua, sol::table input_values, const unsigned in
 /// @endcond
 
 /*! \fn bool table_equal_constant(number_table input_values_a, double input_const_val);
-	\brief Returns true if \c input_values_a[i] == input_const_val for all \c i.
-	\param input_values_a                A table of double or int values.
-	\param input_const_val               A double value to compare the table with
+    \brief Returns true if \c input_values_a[i] == input_const_val for all \c i.
+    \param input_values_a                A table of double or int values.
+    \param input_const_val               A double value to compare the table with
 
-	\return                            true or false
+    \return                            true or false
 
-	\details    \par example:
-	\code{.lua}
-		local input_values_a = {-20, -40, 2, 30}
-		local input_values_b = {-20, -20, -20, -20}
-		local input_const_val = -20
-		local retval_equ = table_equal_constant(input_values_b,input_const_val) -- true
-		local retval_neq = table_equal_constant(input_values_a,input_const_val) -- false
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local input_values_a = {-20, -40, 2, 30}
+        local input_values_b = {-20, -20, -20, -20}
+        local input_const_val = -20
+        local retval_equ = table_equal_constant(input_values_b,input_const_val) -- true
+        local retval_neq = table_equal_constant(input_values_a,input_const_val) -- false
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1565,21 +1565,21 @@ bool table_equal_constant(sol::table input_values_a, double input_const_val) {
 /// @endcond
 
 /*! \fn bool table_equal_table(number_table input_values_a, number_table input_values_b);
-	\brief Returns true if \c input_values_a[i] == input_values_b[i] for all \c i.
-	\param input_values_a                A table of double or int values.
-	\param input_values_b                A table of double or int values.
+    \brief Returns true if \c input_values_a[i] == input_values_b[i] for all \c i.
+    \param input_values_a                A table of double or int values.
+    \param input_values_b                A table of double or int values.
 
-	\return                            true or false
+    \return                            true or false
 
-	\details    \par example:
-	\code{.lua}
-		local input_values_a = {-20, -40, 2, 30}
-		local input_values_b = {-20, -40, 2, 30}
-		local input_values_c = {-20, -40, 2, 31}
-		local retval_equ = table_equal_table(input_values_a,input_values_b)  -- true
-		local retval_neq = table_equal_table(input_values_a,input_values_c)  -- false
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local input_values_a = {-20, -40, 2, 30}
+        local input_values_b = {-20, -40, 2, 30}
+        local input_values_c = {-20, -40, 2, 31}
+        local retval_equ = table_equal_table(input_values_a,input_values_b)  -- true
+        local retval_neq = table_equal_table(input_values_a,input_values_c)  -- false
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1598,17 +1598,17 @@ bool table_equal_table(sol::table input_values_a, sol::table input_values_b) {
 /// @endcond
 
 /*! \fn double table_max(number_table input_values);
-	\brief Returns the maximum value of \c input_values.
-	\param input_values                A table of double or int values.
+    \brief Returns the maximum value of \c input_values.
+    \param input_values                A table of double or int values.
 
-	\return                            The maximum absolute value of \c input_values.
+    \return                            The maximum absolute value of \c input_values.
 
-	\details    \par example:
-	\code{.lua}
-		local input_values = {-20, -40, 2, 30}
-		local retval = table_max(input_values)  -- retval is 30
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local input_values = {-20, -40, 2, 30}
+        local retval = table_max(input_values)  -- retval is 30
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1631,17 +1631,17 @@ double table_max(sol::table input_values) {
 /// @endcond
 
 /*! \fn double table_min(number_table input_values);
-	\brief Returns the minimum value of \c input_values.
-	\param input_values                A table of double or int values.
+    \brief Returns the minimum value of \c input_values.
+    \param input_values                A table of double or int values.
 
-	\return                            The minimum absolute value of \c input_values.
+    \return                            The minimum absolute value of \c input_values.
 
-	\details    \par example:
-	\code{.lua}
-		local input_values = {-20, -40, 2, 30}
-		local retval = table_min(input_values)  -- retval is -40
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local input_values = {-20, -40, 2, 30}
+        local retval = table_min(input_values)  -- retval is -40
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1665,17 +1665,17 @@ double table_min(sol::table input_values) {
 /// @endcond
 
 /*! \fn double table_max_abs(number_table input_values);
-	\brief Returns the maximum absolute value of \c input_values.
-	\param input_values                A table of double or int values.
+    \brief Returns the maximum absolute value of \c input_values.
+    \param input_values                A table of double or int values.
 
-	\return                            The maximum absolute value of \c input_values.
+    \return                            The maximum absolute value of \c input_values.
 
-	\details    \par example:
-	\code{.lua}
-		local input_values = {-20, -40, 2, 30}
-		local retval = table_max_abs(input_values)  -- retval is 40
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local input_values = {-20, -40, 2, 30}
+        local retval = table_max_abs(input_values)  -- retval is 40
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1762,17 +1762,17 @@ std::string propose_unique_filename_by_datetime(const std::string &dir_path, con
 /// @endcond
 
 /*! \fn double table_min_abs(number_table input_values);
-	\brief Returns the minimum absolute value of \c input_values.
-	\param input_values                A table of double or int values.
+    \brief Returns the minimum absolute value of \c input_values.
+    \param input_values                A table of double or int values.
 
-	\return                            The minimum absolute value of \c input_values.
+    \return                            The minimum absolute value of \c input_values.
 
-	\details    \par example:
-	\code{.lua}
-		local input_values = {-20, 2, 30}
-		local retval = table_min_abs(input_values)  -- retval is 2
-		print(retval)
-	\endcode
+    \details    \par example:
+    \code{.lua}
+        local input_values = {-20, 2, 30}
+        local retval = table_min_abs(input_values)  -- retval is 2
+        print(retval)
+    \endcode
 */
 
 #ifdef DOXYGEN_ONLY
@@ -1874,9 +1874,9 @@ QString run_external_tool(const QString &script_path, const QString &execute_dir
             throw std::runtime_error("run_external_tool(" + executable.toStdString() + ") timed out: " + QString::number(timeout).toStdString() + "s:\n " +
                                      myProcess.readAllStandardError().toStdString() + "\n " + result.toStdString());
         } else {
-            throw std::runtime_error("run_external_tool(" + executable.toStdString() + ") exit with code: " +
-                                     QString::number(myProcess.exitCode()).toStdString() + ":\n " + myProcess.readAllStandardError().toStdString() + "\n " +
-                                     result.toStdString());
+            throw std::runtime_error("run_external_tool(" + executable.toStdString() +
+                                     ") exit with code: " + QString::number(myProcess.exitCode()).toStdString() + ":\n " +
+                                     myProcess.readAllStandardError().toStdString() + "\n " + result.toStdString());
         }
     }
     return result;

@@ -1,10 +1,11 @@
 #ifndef TESTDESCRIPTIONLOADER_H
 #define TESTDESCRIPTIONLOADER_H
 
+#include "scriptengine.h"
+
 #include <QString>
 #include <memory>
 #include <vector>
-#include "scriptengine.h"
 
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -31,5 +32,7 @@ class TestDescriptionLoader {
 	QString file_path;
     std::vector<DeviceRequirements> device_requirements;
 };
+
+Q_DECLARE_METATYPE(TestDescriptionLoader *);
 
 #endif // TESTDESCRIPTIONLOADER_H

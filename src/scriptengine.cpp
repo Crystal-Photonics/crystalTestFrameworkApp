@@ -222,167 +222,97 @@ ScriptEngine::~ScriptEngine() { //
     // QThread::currentThread();
 }
 
-void ScriptEngine::pause_timer() {
-    timer_pause_mutex.lock();
-    timer_pause_condition = true;
-    timer_pause_mutex.unlock();
-}
-
-void ScriptEngine::resume_timer() {
-    timer_pause_mutex.lock();
-    timer_pause_condition = false;
-    timer_pause_mutex.unlock();
-    timer_pause.wakeAll();
-}
-
-int ScriptEngine::event_queue_run_() {
-    assert(!event_loop.isRunning());
-    assert(MainWindow::gui_thread != QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-#if 0
-    qDebug() << "eventloop start"
-             << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
-             << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
-#endif
-    auto exit_value = event_loop.exec();
-#if 0
-    qDebug() << "eventloop end"
-             << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
-             << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
-#endif
-    if (exit_value < 0) {
-        // qDebug() << "eventloop Interruption";
-        throw sol::error("Interrupted");
+Event_id::Event_id ScriptEngine::await_timeout(std::chrono::milliseconds timeout) {
+    std::unique_lock<std::mutex> lock{await_mutex};
+    if (await_condition == Event_id::interrupted) {
+        throw std::runtime_error("Interrupted");
     }
-    return exit_value;
+    await_condition_variable.wait_for(lock, timeout, [this] { return await_condition == Event_id::interrupted; });
+    if (await_condition == Event_id::interrupted) {
+        throw std::runtime_error("Interrupted");
+    }
+    return Event_id::Timer_expired;
 }
 
-TimerEvent::TimerEvent ScriptEngine::timer_event_queue_run(int timeout_ms) {
-    std::unique_ptr<QTimer> timer;
-
-    QMetaObject::Connection callback_timer;
-    auto cleanup = Utility::RAII_do([&timer, &callback_timer, this] {             //
-                                                                                  //Utility::thread_call(owner, [&timer, callback_timer] {       //
-        Utility::promised_thread_call(MainWindow::mw, [&timer, &callback_timer] { //
-            timer->stop();
-            QObject::disconnect(callback_timer);
-            timer.release();
-        });
-
-    });
-    Utility::promised_thread_call(MainWindow::mw, [this, &timer, timeout_ms, &callback_timer] { //
-        //    MainWindow::mw->execute_in_gui_thread(this, [this, &timer, timeout_ms, &callback_timer] {
-
-        timer = std::make_unique<QTimer>();
-
-        timer->setSingleShot(true);
-        timer->start(timeout_ms);
-
-        callback_timer = QObject::connect(timer.get(), &QTimer::timeout, [this] {
-            QObject *owner_obj = owner->obj();
-            Utility::thread_call(owner_obj,
-                                 [this] {
-#if 0
-                qDebug() << "quitting timer event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
-                         << "Current Thread:" << QThread::currentThreadId()
-                         << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
-#endif
-                                     timer_pause_mutex.lock();
-                                     if (timer_pause_condition) {
-                                         timer_pause.wait(&timer_pause_mutex);
-                                     }
-                                     event_loop.exit(TimerEvent::TimerEvent::expired);
-                                     timer_pause_mutex.unlock();
-                                 },
-                                 this);
-        });
-
-    });
-
-    auto exit_value = event_queue_run_();
-
-    (void)cleanup;
-
-    return static_cast<TimerEvent::TimerEvent>(exit_value);
+Event_id::Event_id ScriptEngine::await_ui_event() {
+    std::unique_lock<std::mutex> lock{await_mutex};
+    if (await_condition == Event_id::interrupted) {
+        throw std::runtime_error("Interrupted");
+    }
+    await_condition_variable.wait(lock, [this] { return await_condition == Event_id::interrupted || await_condition == Event_id::UI_activated; });
+    if (await_condition == Event_id::interrupted) {
+        throw std::runtime_error("Interrupted");
+    }
+    await_condition = Event_id::invalid;
+    return Event_id::Timer_expired;
 }
 
-UiEvent::UiEvent ScriptEngine::ui_event_queue_run() {
-    auto exit_value = event_queue_run_();
-    return static_cast<UiEvent::UiEvent>(exit_value);
-}
-
-HotKeyEvent::HotKeyEvent ScriptEngine::hotkey_event_queue_run() {
-    std::array<std::unique_ptr<QShortcut>, 3> shortcuts;
-    auto cleanup = Utility::RAII_do([&] {                            //
-        Utility::promised_thread_call(MainWindow::mw, [&shortcuts] { //
-            std::fill(std::begin(shortcuts), std::end(shortcuts), nullptr);
+Event_id::Event_id ScriptEngine::await_hotkey_event() {
+    std::unique_lock<std::mutex> lock{await_mutex};
+    if (await_condition == Event_id::interrupted) {
+        throw std::runtime_error("Interrupted");
+    }
+        // qDebug() << "eventloop Interruption";
+    auto connections = Utility::promised_thread_call(MainWindow::mw, [this] {
+        std::array<QMetaObject::Connection, 3> connections;
+        std::array<void (MainWindow::*)(), 3> key_signals = {&MainWindow::confirm_key_sequence_pressed, &MainWindow::cancel_key_sequence_key_pressed,
+                                                             &MainWindow::skip_key_sequence_pressed};
+        std::array<Event_id::Event_id, 3> event_ids = {Event_id::Hotkey_confirm_pressed, Event_id::Hotkey_cancel_pressed, Event_id::Hotkey_skip_pressed};
+        for (std::size_t i = 0; i < 3; i++) {
+			connections[i] = QObject::connect(MainWindow::mw, key_signals[i], [ this, event_id = event_ids[i] ] {
+                {
+                    std::unique_lock<std::mutex> lock{await_mutex};
+                    await_condition = event_id;
+    }
+                await_condition_variable.notify_one();
         });
-    });
-
-    Utility::promised_thread_call(MainWindow::mw, [this, &shortcuts] { //
-        const char *settings_keys[] = {Globals::confirm_key_sequence_key, Globals::skip_key_sequence_key, Globals::cancel_key_sequence_key};
-        for (std::size_t i = 0; i < shortcuts.size(); i++) {
-            shortcuts[i] = std::make_unique<QShortcut>(QKeySequence::fromString(QSettings{}.value(settings_keys[i], "").toString()), MainWindow::mw);
-            QObject::connect(shortcuts[i].get(), &QShortcut::activated, [this, i] {
-                Utility::thread_call(owner->obj(),
-                                     [this, i] {
-#if 0
-                    qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "Eventloop:" << &event_loop
-                             << "Current Thread:" << QThread::currentThreadId()
-                             << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
-#endif
-                                         event_loop.exit(i);
-                                     },
-                                     this);
-            });
         }
-
+        return connections;
     });
-
-    auto exit_value = event_queue_run_();
-    (void)cleanup;
-    return static_cast<HotKeyEvent::HotKeyEvent>(exit_value);
+        //    MainWindow::mw->execute_in_gui_thread(this, [this, &timer, timeout_ms, &callback_timer] {
+    auto disconnector = Utility::RAII_do([connections] {
+        for (auto &connection : connections) {
+            QObject::disconnect(connection);
+                                     }
+        });
+    //wait for hotkey or interrupt
+    await_condition_variable.wait(lock, [this] {
+        return await_condition != Event_id::interrupted && await_condition != Event_id::Hotkey_confirm_pressed &&
+               await_condition != Event_id::Hotkey_cancel_pressed && await_condition != Event_id::Hotkey_skip_pressed;
+    });
+    if (await_condition == Event_id::interrupted) {
+        throw std::runtime_error("Interrupted");
+    }
+    //reset condition and return result
+    auto result = await_condition;
+    await_condition = Event_id::invalid;
+    return result;
 }
 
-void ScriptEngine::ui_event_queue_send() {
-    Utility::thread_call(this->owner->obj(),
-                         [this]() { //
-                             event_loop.exit(UiEvent::UiEvent::activated);
-                         },
-                         this); //calls fun in the thread that owns obj
+void ScriptEngine::post_ui_event() {
+    {
+        std::unique_lock<std::mutex> lock{await_mutex};
+        await_condition = Event_id::UI_activated;
+    }
+    await_condition_variable.notify_one();
 }
 
-void ScriptEngine::hotkey_event_queue_send_event(HotKeyEvent::HotKeyEvent event) {
-    Utility::thread_call(this->owner->obj(),
-                         [this, event]() {
-#if 0
-        qDebug() << "quitting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "by event"
-                 << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
-                 << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
-#endif
-                             this->event_loop.exit(event);
-                         },
-                         this); //calls fun in the thread that owns obj
+void ScriptEngine::post_hotkey_event(Event_id::Event_id event) {
+    {
+        std::unique_lock<std::mutex> lock{await_mutex};
+        await_condition = event;
+        }
+    await_condition_variable.notify_one();
 }
 
-void ScriptEngine::event_queue_interrupt() {
-    //qDebug() << "event_queue_interrupt called";
-    Utility::thread_call(this->owner->obj(),
-                         [this]() { //
-#if 0
-        qDebug() << "interrupting event loop which is" << (event_loop.isRunning() ? "running" : "not running") << "by event"
-                 << "Eventloop:" << &event_loop << "Current Thread:" << QThread::currentThreadId()
-                 << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)");
-#endif
-                             // qDebug() << "event_queue_interrupt entered thread_call"
-                             //          << "eventloop running:" << event_loop.isRunning();
-                             if (event_loop.isRunning()) {
-                                 //  qDebug() << "event_queue_interrupt exit calling..";
-                                 event_loop.exit(-1);
-                                 // qDebug() << "event_queue_interrupt called.";
+void ScriptEngine::post_interrupt(QString message) {
+    Utility::thread_call(MainWindow::mw,
+                         [this, message] { Console::error(console) << "Script interrupted" << (message.isEmpty() ? "" : "because of " + message); });
+    {
+        std::unique_lock<std::mutex> lock{await_mutex};
+        await_condition = Event_id::interrupted;
                              }
-                         },
-                         this); //calls fun in the thread that owns obj
-                                //  qDebug() << "event_queue_interrupt finished";
+    await_condition_variable.notify_one();
 }
 
 std::string ScriptEngine::to_string(double d) {
@@ -458,7 +388,7 @@ void ScriptEngine::load_script(const std::string &path) {
 
         lua->script_file(path);
 
-        //  qDebug() << "laoded script"; // << lua->;
+		//qDebug() << "loaded script"; // << lua->;
     } catch (const sol::error &error) {
         qDebug() << "caught sol::error@load_script";
         set_error_line(error);
@@ -472,14 +402,6 @@ void ScriptEngine::set_error_line(const sol::error &error) {
     std::smatch match;
     if (std::regex_search(string, match, r)) {
         Utility::convert(match[1].str(), error_line);
-    }
-}
-
-void ScriptEngine::interrupt(QString msg) {
-    Utility::thread_call(MainWindow::mw, [this, msg] { Console::error(console) << msg; });
-    qDebug() << "script interrupted";
-    if (owner) {
-        owner->interrupt();
     }
 }
 
@@ -603,14 +525,14 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
 
 void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
     qDebug() << "ScriptEngine::run";
-    qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
+	assert(not currently_in_gui_thread());
 
     auto reset_lua_state = [this] {
         ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString()};
         data_engine->do_exceptional_approvals(ea_db, MainWindow::mw);
         lua = std::make_unique<sol::state>();
         data_engine->save_actual_value_statistic();
-        if ((data_engine_pdf_template_path.count()) && (data_engine_auto_dump_path.count())) {
+        if (data_engine_pdf_template_path.count() and data_engine_auto_dump_path.count()) {
             QFileInfo fi(data_engine_auto_dump_path);
             QString suffix = fi.completeSuffix();
             if (suffix == "") {
@@ -621,11 +543,23 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
             //fi.baseName("/home/abc/report.pdf") = "report"
             //fi.absolutePath("/home/abc/report.pdf") = "/home/abc/"
 
-            std::string pdf_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
-            data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), pdf_target_filename);
+            std::string target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
+            target_filename.resize(target_filename.size() - 4);
+
+            MainWindow::mw->execute_in_gui_thread(
+				[ console = this->console, filename = target_filename + " console output.txt", additional_pdf_path = this->additional_pdf_path ] {
+                    std::ofstream f{filename};
+                    f << console->toPlainText().toStdString();
+                    f.close();
             if (additional_pdf_path.count()) {
-                QFile::copy(QString::fromStdString(pdf_target_filename), additional_pdf_path);
+                        QFile::copy(QString::fromStdString(filename), additional_pdf_path);
             }
+                });
+
+            data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
+            if (additional_pdf_path.count()) {
+                QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
+        }
         }
         if (data_engine_auto_dump_path.count()) {
             QFileInfo fi(data_engine_auto_dump_path);
@@ -707,7 +641,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
             for (auto sol_device : no_alias_device_list) {
                 device_list_sol.add(sol_device);
             }
-            for (const auto alias : aliased_devices_result) {
+            for (const auto &alias : aliased_devices_result) {
                 auto values = alias.second;
                 if (values.size() == 1) {
                     device_list_sol[alias.first.toStdString()] = values[0];

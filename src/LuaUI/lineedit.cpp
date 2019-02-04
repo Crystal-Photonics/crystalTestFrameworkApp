@@ -1,5 +1,6 @@
 #include "lineedit.h"
 #include "ui_container.h"
+#include "util.h"
 
 #include <QDateTime>
 #include <QInputDialog>
@@ -151,14 +152,16 @@ void LineEdit::set_focus() {
 }
 
 void LineEdit::await_return() {
-    if (entermode == LineEdit_Entermode::TextMode) {
-        QMetaObject::Connection callback_connection =
-            QObject::connect(text_edit, &QLineEdit::returnPressed, [this] { this->script_engine->ui_event_queue_send(); });
-        script_engine->ui_event_queue_run();
-        QObject::disconnect(callback_connection);
-    } else {
-        throw std::runtime_error(QString("LineEdit: await_return is not available in Datemode.").toStdString());
+    if (entermode != LineEdit_Entermode::DateMode) {
+        throw std::runtime_error("LineEdit::await_return is only available in TextMode, not in DateMode");
     }
+
+    QMetaObject::Connection callback_connection;
+    auto connector =
+        Utility::RAII_do([&callback_connection,
+                          this] { callback_connection = QObject::connect(text_edit, &QLineEdit::returnPressed, [this] { script_engine->post_ui_event(); }); },
+                         [&callback_connection] { QObject::disconnect(callback_connection); });
+    script_engine->await_ui_event();
 }
 
 double LineEdit::get_number() const {
@@ -166,8 +169,9 @@ double LineEdit::get_number() const {
         bool ok = true;
         double retval = text_edit->text().toDouble(&ok);
         if (ok == false) {
-            retval = QInputDialog::getDouble(text_edit, "Invalid value", "Der Wert \"" + text_edit->text() + "\" im Feld \"" + QString::fromStdString(name_m) +
-                                                                             "\" ist keine Nummer. Bitte tragen Sie die nach.");
+            retval = QInputDialog::getDouble(text_edit, "Invalid value",
+                                             "Der Wert \"" + text_edit->text() + "\" im Feld \"" + QString::fromStdString(name_m) +
+                                                 "\" ist keine Nummer. Bitte tragen Sie die nach.");
         }
         return retval;
     } else {

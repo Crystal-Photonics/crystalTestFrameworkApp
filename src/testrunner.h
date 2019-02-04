@@ -23,15 +23,14 @@ struct Protocol;
 class TestRunner : QObject {
     Q_OBJECT
     public:
-	enum class State { running, finished, error };
+    enum class State { running, finished, error };
     using Lua_ui_container = QWidget;
     TestRunner(const TestDescriptionLoader &description);
     ~TestRunner();
 
     void interrupt();
-    void join();
-    void pause_timers();
-    void resume_timers();
+    void message_queue_join();
+    void blocking_join();
     sol::table create_table();
     template <class ReturnType, class... Arguments>
     ReturnType call(const char *function_name, Arguments &&... args);
@@ -46,7 +45,7 @@ class TestRunner : QObject {
     QObject *obj();
 
     private:
-    QThread thread{};
+    Utility::Qt_thread thread{};
     UI_container *lua_ui_container{nullptr};
     std::unique_ptr<Data_engine> data_engine{std::make_unique<Data_engine>()};
     ScriptEngine script;
@@ -60,7 +59,7 @@ ReturnType TestRunner::call(const char *function_name, Arguments &&... args) {
                                                      auto result = script.call<ReturnType>(function_name, std::forward<Arguments>(args)...);
                                                      return result;
                                                  } //
-                                                 );
+    );
     return p;
 }
 

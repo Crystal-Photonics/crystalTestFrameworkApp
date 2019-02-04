@@ -2,14 +2,15 @@
 #define MAINWINDOW_H
 
 #include "export.h"
+#include "favorite_scripts.h"
 #include "qt_util.h"
 #include "testrunner.h"
 
-#include "favorite_scripts.h"
 #include <QDebug>
 #include <QListWidgetItem>
 #include <QMainWindow>
 #include <QMessageBox>
+#include <QMutex>
 #include <QThread>
 #include <QTreeWidgetItem>
 #include <QtSerialPort/QSerialPortInfo>
@@ -38,6 +39,12 @@ class EXPORT MainWindow : public QMainWindow {
     Q_OBJECT
 
     enum class ViewMode { None, AllScripts, FavoriteScripts };
+
+    public:
+    signals:
+    void confirm_key_sequence_pressed();
+    void skip_key_sequence_pressed();
+    void cancel_key_sequence_key_pressed();
 
     public:
     explicit MainWindow(QWidget *parent = nullptr);
@@ -120,7 +127,7 @@ class EXPORT MainWindow : public QMainWindow {
     std::vector<std::unique_ptr<TestRunner>> test_runners;
 
     std::unique_ptr<DeviceWorker> device_worker;
-    QThread devices_thread;
+    Utility::Qt_thread devices_thread;
 
     QDialog *path_dialog = nullptr;
     Ui::MainWindow *ui;
@@ -204,5 +211,7 @@ template <class Lua_UI_class>
 Lua_UI_class &MainWindow::get_lua_UI_class(int id) {
     return lua_classes<Lua_UI_class>.at(id);
 }
+
+Q_DECLARE_METATYPE(QTreeWidgetItem *);
 
 #endif // MAINWINDOW_H

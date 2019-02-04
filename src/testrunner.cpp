@@ -27,8 +27,7 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
     lua_ui_container->add(console, nullptr);
     assert(console);
     console->setVisible(false);
-    moveToThread(&thread);
-    script.event_loop.moveToThread(&thread);
+    thread.adopt(*this);
     thread.start();
     try {
         script.load_script(description.get_filepath().toStdString());
@@ -39,29 +38,25 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
 }
 
 TestRunner::~TestRunner() {
-    join();
+    message_queue_join();
 }
 
 void TestRunner::interrupt() {
-    this->script.event_queue_interrupt();
     MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script interrupted"; });
-    thread.exit(-1);
-    thread.exit(-1);
+    script.post_interrupt();
     thread.requestInterruption();
 }
 
-void TestRunner::join() {
+void TestRunner::message_queue_join() {
+    assert(not thread.is_current());
     while (!thread.wait(16)) {
         QApplication::processEvents();
     }
 }
 
-void TestRunner::pause_timers() {
-    this->script.pause_timer();
-}
-
-void TestRunner::resume_timers() {
-    this->script.resume_timer();
+void TestRunner::blocking_join() {
+    assert(not thread.is_current());
+    thread.wait();
 }
 
 sol::table TestRunner::create_table() {
@@ -73,7 +68,6 @@ UI_container *TestRunner::get_lua_ui_container() const {
 }
 
 void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &device_worker) {
-    //    qDebug() << "run_script called@TestRunner";
 	Utility::thread_call(this, [ this, devices = std::move(devices), &device_worker ]() mutable {
         for (auto &dev_prot : devices) {
             device_worker.set_currently_running_test(dev_prot.device, name);
