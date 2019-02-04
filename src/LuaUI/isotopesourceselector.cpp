@@ -1,8 +1,10 @@
 #include "isotopesourceselector.h"
+#include "Windows/mainwindow.h"
 #include "config.h"
+#include "qt_util.h"
 #include "ui_container.h"
-
 #include <QComboBox>
+#include <QDesktopServices>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -29,9 +31,11 @@ IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     fill_combobox_with_isotopes("*");
     parent->scroll_to_bottom();
 
-    callback_isotope_selected = QObject::connect(combobox, &QComboBox::currentTextChanged, [this](const QString &text) {
-        QSettings{}.setValue(Globals::isotope_source_most_recent_key, text);
-    });
+    // it seems that issue #1196 is hard to reproduce. Maybe it works better if this signal is ignored. We still store the isotope id when it is read
+
+    //  callback_isotope_selected = QObject::connect(combobox, &QComboBox::currentTextChanged, [this](const QString &text) {
+    //      QSettings{}.setValue(Globals::isotope_source_most_recent_key, text);
+    //  });
 }
 
 IsotopeSourceSelector::~IsotopeSourceSelector() {
@@ -91,6 +95,7 @@ void IsotopeSourceSelector::load_isotope_database() {
 
     isotope_sources.clear();
 
+    bool most_recent_serial_number_found = false;
     if ((fn == "") || !QFile::exists(fn)) {
         QString msg = QString{"isotope source file %1 does not exist."}.arg(fn);
         throw sol::error(msg.toStdString());
@@ -143,9 +148,22 @@ void IsotopeSourceSelector::load_isotope_database() {
 
         if (most_recent_serial_number == isotope_source.serial_number) {
             isotope_sources.insert(0, isotope_source);
+            most_recent_serial_number_found = true;
         } else {
             isotope_sources.append(isotope_source);
         }
+    }
+    if (most_recent_serial_number_found == false) {
+        Utility::thread_call(MainWindow::mw, [most_recent_serial_number] {
+            QMessageBox::warning(
+                MainWindow::mw, "Unknown recent ID",
+                QString("Did not find recent ID in isotope database. This could be the reason for issue "
+                        "1196. Please report this to AK at http://candy/redmine/issues/1196. \nRecent ID: '%1'\n\nYou can use Strg+C and paste it at there.")
+                    .arg(most_recent_serial_number));
+
+            //
+            QDesktopServices::openUrl(QUrl("http://candy/redmine/issues/1196"));
+        });
     }
 }
 

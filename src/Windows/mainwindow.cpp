@@ -558,6 +558,7 @@ void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State 
         ui->test_tabs->tabBar()->setTabTextColor(runner_index, color);
     }
     enable_closed_finished_test_button_script_states();
+    enable_abort_button_script();
 }
 
 void MainWindow::adopt_testrunner(TestRunner *testrunner, QString title) {
