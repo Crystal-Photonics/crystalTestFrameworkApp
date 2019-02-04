@@ -333,6 +333,7 @@ MainWindow::MainWindow(QWidget *parent)
     set_list_selection_from_path(QSettings{}.value(Globals::current_list_view_selection_key, "").toString());
     enable_run_test_button_by_script_selection();
     enable_closed_finished_test_button_script_states();
+    enable_abort_button_script();
 }
 
 MainWindow::~MainWindow() {
@@ -774,6 +775,7 @@ void MainWindow::run_test_script(TestDescriptionLoader *test) {
     } else {
         runner.interrupt();
     }
+    enable_abort_button_script();
 }
 
 void MainWindow::on_test_simple_view_itemDoubleClicked(QListWidgetItem *item) {
@@ -1040,6 +1042,11 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
     ui->test_tabs->removeTab(index);
 }
 
+void MainWindow::abort_script(TestRunner *runner) {
+    runner->interrupt();
+    runner->join();
+}
+
 void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
     auto tab_index = ui->test_tabs->tabBar()->tabAt(pos);
     auto runner = get_runner_from_tab_index(tab_index);
@@ -1048,10 +1055,7 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 
         QAction action_abort_script(tr("Abort Script"), nullptr);
         if (runner->is_running()) {
-            connect(&action_abort_script, &QAction::triggered, [runner] {
-                runner->interrupt();
-                runner->join();
-            });
+            connect(&action_abort_script, &QAction::triggered, [runner, this] { abort_script(runner); });
             menu.addAction(&action_abort_script);
         }
 
@@ -1216,6 +1220,22 @@ void MainWindow::enable_closed_finished_test_button_script_states() {
     }
 }
 
+void MainWindow::enable_abort_button_script() {
+    assert(currently_in_gui_thread());
+    bool enabled = false;
+    for (const auto &tr : test_runners) {
+        if (tr->is_running()) {
+            enabled = true;
+        }
+    }
+    ui->actionactionAbort->setEnabled(enabled);
+    if (enabled) {
+        ui->actionactionAbort->setToolTip(tr("Abort running scripts"));
+    } else {
+        ui->actionactionAbort->setToolTip(tr("Abort running scripts(no script is running)"));
+    }
+}
+
 void MainWindow::set_script_view_collapse_state(bool collapse_state) {
     assert(currently_in_gui_thread());
     static QList<int> old_sizes;
@@ -1283,6 +1303,27 @@ void MainWindow::on_tbtn_view_favorite_scripts_clicked() {
 void MainWindow::on_actionClose_finished_Tests_triggered() {
     assert(currently_in_gui_thread());
     close_finished_tests();
+}
+
+void MainWindow::on_actionactionAbort_triggered() {
+    assert(currently_in_gui_thread());
+    bool scripts_running = false;
+    for (auto &tr : test_runners) {
+        if (tr->is_running()) {
+            scripts_running = true;
+        }
+    }
+
+    if (scripts_running) {
+        if (QMessageBox::question(this, tr(""), tr("Abort running scripts now?"), QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
+            for (auto &tr : test_runners) {
+                if (tr->is_running()) {
+                    abort_script(tr.get());
+                }
+            }
+            enable_abort_button_script();
+        }
+    }
 }
 
 void MainWindow::on_actionQuery_Report_history_triggered() {

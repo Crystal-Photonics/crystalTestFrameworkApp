@@ -111,6 +111,8 @@ class EXPORT MainWindow : public QMainWindow {
 
     void on_actionQuery_Report_history_triggered();
 
+    void on_actionactionAbort_triggered();
+
     private:
     FavoriteScripts favorite_scripts;
     void refresh_devices(bool only_duts);
@@ -155,6 +157,7 @@ class EXPORT MainWindow : public QMainWindow {
     void set_list_selection_from_path(QString path);
     void enable_run_test_button_by_script_selection();
     void enable_closed_finished_test_button_script_states();
+    void enable_abort_button_script();
     void set_script_view_collapse_state(bool collapse_state);
     bool script_view_is_collapsed = false;
     void set_console_view_collapse_state(bool collapse_state);
@@ -166,6 +169,7 @@ class EXPORT MainWindow : public QMainWindow {
     QTreeWidgetItem *get_treewidgetitem_from_listViewItem(QListWidgetItem *item);
     void add_clear_button_to_console(QPlainTextEdit *console);
     void show_in_graphical_shell(const QString &pathIn);
+    void abort_script(TestRunner *runner);
 };
 
 template <class T>

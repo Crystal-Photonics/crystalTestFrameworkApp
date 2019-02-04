@@ -699,6 +699,7 @@
    <addaction name="actionrefresh_devices_dut"/>
    <addaction name="separator"/>
    <addaction name="actionedit_script"/>
+   <addaction name="actionactionAbort"/>
    <addaction name="actionRunSelectedScript"/>
    <addaction name="actionClose_finished_Tests"/>
   </widget>
@@ -797,6 +798,18 @@
   <action name="actionQuery_Report_history">
    <property name="text">
     <string>Query report history</string>
+   </property>
+  </action>
+  <action name="actionactionAbort">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/src/icons/iconfinder_player_stop_1829.ico</normaloff>:/src/icons/iconfinder_player_stop_1829.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Abort Script</string>
+   </property>
+   <property name="toolTip">
+    <string>Abort Script</string>
    </property>
   </action>
  </widget>

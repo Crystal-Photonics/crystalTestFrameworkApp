@@ -51,5 +51,6 @@
         <file>examples/scripts/example/data_engine_and_report/1/desire_values_aka_data_engine_source.json</file>
         <file>examples/scripts/example/data_engine_and_report/1/desire_values_aka_data_engine_source.json.template_conf</file>
         <file>examples/scripts/example/data_engine_and_report/1/report_template.lrxml</file>
+        <file>src/icons/iconfinder_player_stop_1829.ico</file>
     </qresource>
 </RCC>

@@ -592,42 +592,47 @@ void ReportHistoryQuery::on_stk_report_history_currentChanged(int arg1) {
             query_result.join(report_query_config_file_m.only_pick_latest_dataset_m);
             ReportTable *joined_table = query_result.get_root_table();
 
-            QStringList row_titles;
-            auto col_keys = joined_table->get_field_names();
-            for (int key : col_keys.uniqueKeys()) {
-                row_titles.append(query_result.get_field_name_by_int_key(key));
-            }
-            row_titles = reduce_path(row_titles);
-
-            ui->tableWidget->setColumnCount(row_titles.count());
-            QStringList sl = reduce_path(row_titles);
-            ui->tableWidget->setHorizontalHeaderLabels(sl);
-            ui->tableWidget->setRowCount(1);
-
-            const QMap<int, ReportTableRow> &joined_rows = joined_table->get_rows();
-
-            int row_index = 0;
-            for (auto &row : joined_rows) {
-                int col_index = 0;
-                for (int &col_key : col_keys.uniqueKeys()) {
-                    const QVariant &col_val = row.row_m.value(col_key);
-
-                    QString s;
-                    if (col_val.canConvert<DataEngineDateTime>()) {
-                        s = col_val.value<DataEngineDateTime>().str();
-                    } else {
-                        s = col_val.toString();
-                    }
-                    auto *item = new MyTableWidgetItem(s, 0);
-                    item->setData(Qt::UserRole, col_val);
-                    ui->tableWidget->setItem(row_index, col_index, item);
-                    col_index++;
+            if (joined_table) {
+                QStringList row_titles;
+                auto col_keys = joined_table->get_field_names();
+                for (int key : col_keys.uniqueKeys()) {
+                    row_titles.append(query_result.get_field_name_by_int_key(key));
                 }
-                row_index++;
-                ui->tableWidget->setRowCount(row_index + 1);
+                row_titles = reduce_path(row_titles);
+
+                ui->tableWidget->setColumnCount(row_titles.count());
+                QStringList sl = reduce_path(row_titles);
+                ui->tableWidget->setHorizontalHeaderLabels(sl);
+                ui->tableWidget->setRowCount(1);
+
+                const QMap<int, ReportTableRow> &joined_rows = joined_table->get_rows();
+
+                int row_index = 0;
+                for (auto &row : joined_rows) {
+                    int col_index = 0;
+                    for (int &col_key : col_keys.uniqueKeys()) {
+                        const QVariant &col_val = row.row_m.value(col_key);
+
+                        QString s;
+                        if (col_val.canConvert<DataEngineDateTime>()) {
+                            s = col_val.value<DataEngineDateTime>().str();
+                        } else {
+                            s = col_val.toString();
+                        }
+                        auto *item = new MyTableWidgetItem(s, 0);
+                        item->setData(Qt::UserRole, col_val);
+                        ui->tableWidget->setItem(row_index, col_index, item);
+                        col_index++;
+                    }
+                    row_index++;
+                    ui->tableWidget->setRowCount(row_index + 1);
+                }
+                ui->tableWidget->setRowCount(ui->tableWidget->rowCount() - 1);
+                ui->tableWidget->setSortingEnabled(true);
+            } else {
+                ui->stk_report_history->setCurrentIndex(old_stk_report_history_index_m);
+                arg1 = old_stk_report_history_index_m;
             }
-            ui->tableWidget->setRowCount(ui->tableWidget->rowCount() - 1);
-            ui->tableWidget->setSortingEnabled(true);
         } else {
             ui->stk_report_history->setCurrentIndex(old_stk_report_history_index_m);
             arg1 = old_stk_report_history_index_m;
@@ -955,7 +960,13 @@ ReportDatabase ReportQueryConfigFile::execute_query(QWidget *parent) const {
 
     QList<ReportLink> rl = scan_folder_for_reports("");
     progress.setMaximum(rl.count());
-    return filter_and_select_reports(rl, &progress);
+    try {
+        auto result = filter_and_select_reports(rl, &progress);
+        return result;
+    } catch (std::runtime_error &e) {
+        QMessageBox::warning(MainWindow::mw, QString("Query error"), QString("Query error:\n\n %1").arg(e.what()));
+        return ReportDatabase();
+    }
 }
 
 ReportQueryConfigFile::ReportQueryConfigFile() {}
@@ -1241,7 +1252,10 @@ ReportDatabase ReportQueryConfigFile::filter_and_select_reports(const QList<Repo
             for (auto select_field_name : report_link.query_m.select_field_names_m) {
                 QString field_name = report_link.query_m.get_table_name() + "/" + select_field_name;
                 QList<QVariant> values = report_file.get_field_values(select_field_name);
-                assert(values.count() <= 1 && "Till now we can only deal with reports which have just one instance");
+                if (values.count() > 1) {
+                    throw std::runtime_error(QObject::tr("Till now it is not possible to scan reports with more than one section-instance.").toStdString());
+                }
+                //assert(values.count() <= 1 && "Till now we can only deal with reports which have just one instance");
                 if (values.count() == 0) {
                     pre_row.insert(field_name, QVariant());
                 } else {
@@ -1805,7 +1819,10 @@ void ReportDatabase::build_link_tree() {
 }
 
 void ReportDatabase::join(bool only_pick_latest_dataset) {
-    get_root_table()->integrate_sending_tables(only_pick_latest_dataset);
+    ReportTable *root = get_root_table();
+    if (root) {
+        root->integrate_sending_tables(only_pick_latest_dataset);
+    }
 }
 
 ReportTable *ReportDatabase::get_root_table() {
@@ -1813,6 +1830,9 @@ ReportTable *ReportDatabase::get_root_table() {
     //we should start with begin()
     //auto iter = tables_m.end();
     //iter--;
+    if (tables_m.empty()) {
+        return nullptr;
+    }
     auto iter = tables_m.begin();
     ReportTable *root_table_probe = iter->second.get();
     ReportTable *root_table = root_table_probe;
