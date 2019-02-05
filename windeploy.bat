@@ -12,7 +12,7 @@ copy libs\LimeReport\build\5.12.0\win32\release\lib\QtZint.dll %CTFW_RELEASE_PAT
 
 copy %QWT_PATH%\lib\5.12.0\qwt.dll %CTFW_RELEASE_PATH_local%\ || GOTO :FAIL
 
-C:\Qt\5.8\mingw53_32\bin\windeployqt -network -serialport -sql -opengl -printsupport -script -xml -test %CTFW_RELEASE_PATH_local%\crystalTestFramework.exe  || GOTO :FAIL
+C:\Qt\5.12.0\mingw73_64\bin\windeployqt -network -serialport -sql -opengl -printsupport -script -xml -test %CTFW_RELEASE_PATH_local%\crystalTestFramework.exe  || GOTO :FAIL
 
 xcopy /s /Y %CTFW_RELEASE_PATH_local% %CTFW_RELEASE_PATH_remote%
 
