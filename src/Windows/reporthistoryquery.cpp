@@ -1788,7 +1788,6 @@ void ReportDatabase::build_link_tree() {
 
     for (const auto &map_pair_outer : tables_m) {
         ReportTable *table_outer = map_pair_outer.second.get();
-        const QString &sender_table_name = map_pair_outer.first;
         const ReportTableLink &sender_link = table_outer->get_sender_link();
 
         int sender_link_key = sender_link.get_field_key_other();
