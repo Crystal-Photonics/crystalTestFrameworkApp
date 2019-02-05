@@ -1,4 +1,4 @@
-SET PATH=%PATH%;C:\Qt\Tools\mingw730_64\bin
+SET PATH=C:\Qt\Tools\mingw730_64\bin;%PATH%
 
 echo %PATH%
 
