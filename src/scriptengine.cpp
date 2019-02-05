@@ -38,6 +38,10 @@
 #include <string>
 #include <vector>
 
+void interrupt_script_engine(ScriptEngine *script_engine, QString message) {
+	script_engine->post_interrupt(message);
+}
+
 QString get_absolute_file_path(const QString &script_path, const QString &file_to_open) {
     QDir dir(file_to_open);
     QString result;
@@ -210,7 +214,7 @@ struct RPCDevice {
     ScriptEngine *engine = nullptr;
 };
 
-ScriptEngine::ScriptEngine(TestRunner *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine)
+ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine)
     : lua{std::make_unique<sol::state>()}
     , parent{parent}
     , console(console)

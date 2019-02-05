@@ -6,12 +6,13 @@
 #include "Protocols/protocol.h"
 #include "deviceworker.h"
 #include "testdescriptionloader.h"
-#include "testrunner.h"
 #include "util.h"
 
 #include <QDialog>
 #include <QList>
 #include <vector>
+
+class TestRunner;
 
 enum class CommunicationDeviceType { COM, TMC, Manual, TCP, UDP, IP };
 
@@ -60,7 +61,7 @@ class DeviceMatcher : public QDialog {
     Q_OBJECT
 
     public:
-    explicit DeviceMatcher(QWidget *parent = 0);
+	explicit DeviceMatcher(QWidget *parent = nullptr);
     ~DeviceMatcher();
 
     void match_devices(DeviceWorker &device_worker, TestRunner &runner, TestDescriptionLoader &test);

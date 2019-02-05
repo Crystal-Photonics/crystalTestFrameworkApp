@@ -1,10 +1,10 @@
 #ifndef TESTRUNNER_H
 #define TESTRUNNER_H
 
+#include "communication_logger/communication_logger.h"
 #include "data_engine/data_engine.h"
+#include "forward_decls.h"
 #include "qt_util.h"
-#include "scriptengine.h"
-#include "sol.hpp"
 
 #include <QObject>
 #include <QPlainTextEdit>
@@ -19,11 +19,11 @@ class TestDescriptionLoader;
 class UI_container;
 struct LuaUI;
 struct Protocol;
+struct Sol_table;
 
 class TestRunner : QObject {
     Q_OBJECT
     public:
-    enum class State { running, finished, error };
     using Lua_ui_container = QWidget;
     TestRunner(const TestDescriptionLoader &description);
     ~TestRunner();
@@ -31,9 +31,14 @@ class TestRunner : QObject {
     void interrupt();
     void message_queue_join();
     void blocking_join();
-    sol::table create_table();
-    template <class ReturnType, class... Arguments>
-    ReturnType call(const char *function_name, Arguments &&... args);
+	Sol_table create_table();
+	template <class Callback>
+	auto call(Callback &&cb) { /* this is a complicated way of saying script.call(lua_function);, but we do it in
+								  order to not have to include sol.hpp here to improve compilation time */
+		return Utility::promised_thread_call(this,
+											 [ this, callback = std::forward<Callback>(cb) ] { return std::forward<decltype(callback)>(callback)(script); });
+	}
+
     UI_container *get_lua_ui_container() const;
     void run_script(std::vector<MatchedDevice> devices, DeviceWorker &device_worker);
     bool is_running() const;
@@ -48,19 +53,10 @@ class TestRunner : QObject {
     Utility::Qt_thread thread{};
     UI_container *lua_ui_container{nullptr};
     std::unique_ptr<Data_engine> data_engine{std::make_unique<Data_engine>()};
-    ScriptEngine script;
+	std::unique_ptr<ScriptEngine> script_pointer;
+	ScriptEngine &script;
     QString name{};
+	Communication_logger logger;
 };
-
-template <class ReturnType, class... Arguments>
-ReturnType TestRunner::call(const char *function_name, Arguments &&... args) {
-    ReturnType p = Utility::promised_thread_call(this,
-                                                 [this, function_name, &p, &args...] { //
-                                                     auto result = script.call<ReturnType>(function_name, std::forward<Arguments>(args)...);
-                                                     return result;
-                                                 } //
-    );
-    return p;
-}
 
 #endif // TESTRUNNER_H

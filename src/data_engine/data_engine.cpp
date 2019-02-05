@@ -1494,7 +1494,7 @@ QStringList Data_engine::get_section_names() const {
     return result;
 }
 
-sol::table Data_engine::get_ids_of_section(sol::state *lua, const std::string &section_name) {
+Sol_table Data_engine::get_ids_of_section(sol::state *lua, const std::string &section_name) {
     sol::table result = lua->create_table_with();
     auto id_list = get_ids_of_section(QString::fromStdString(section_name));
     for (const auto &id : id_list) {
@@ -1503,7 +1503,7 @@ sol::table Data_engine::get_ids_of_section(sol::state *lua, const std::string &s
     return result;
 }
 
-sol::table Data_engine::get_section_names(sol::state *lua) {
+struct Sol_table Data_engine::get_section_names(sol::state *lua) {
     sol::table result = lua->create_table_with();
     auto section_names = get_section_names();
     for (const auto &section_name : section_names) {

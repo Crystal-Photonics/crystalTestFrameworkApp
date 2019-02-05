@@ -1,8 +1,9 @@
 #ifndef DATA_ENGINE_H
 #define DATA_ENGINE_H
-#include "sol.hpp"
 
 #include "exceptionalapproval.h"
+#include "forward_decls.h"
+
 #include <QJsonValue>
 #include <QList>
 #include <QString>
@@ -19,8 +20,12 @@ class QVariant;
 struct DataEngineSections;
 class QSqlDatabase;
 class QXmlStreamWriter;
-class DataEngineSection;
+struct DataEngineSection;
 class ExceptionalApprovalDB;
+struct Sol_table;
+namespace sol {
+	class state;
+}
 
 using FormID = QString;
 enum class EntryType { Unspecified, Bool, String, Reference, Numeric };
@@ -88,6 +93,7 @@ class DataEngineActualValueStatisticFile {
     void set_dut_identifier(QString dut_identifier);
     QString select_file_name_to_be_used(QStringList file_list);
     void save_to_file();
+
     private:
     void open_or_create_new_file();
     void open_file(QString file_name);
@@ -468,7 +474,8 @@ struct DataEngineSection {
     bool section_uses_variants() const;
 
     QString get_serialised_dependency_string() const;
-private:
+
+	private:
     std::experimental::optional<uint> instance_count;
 
     QString section_title;
@@ -577,11 +584,11 @@ class Data_engine {
     bool is_desired_value_set(const FormID &id) const;
 
     QStringList get_section_names() const;
-    sol::table get_section_names(sol::state *lua);
+	Sol_table get_section_names(sol::state *lua);
     bool section_uses_variants(QString section_name) const;
     QStringList get_instance_captions(const QString &section_name) const;
     uint get_instance_count(const std::string &section_name) const;
-    sol::table get_ids_of_section(sol::state *lua, const std::string &section_name);
+	struct Sol_table get_ids_of_section(sol::state *lua, const std::string &section_name);
     QStringList get_ids_of_section(const QString &section_name) const;
 
     void do_exceptional_approvals(ExceptionalApprovalDB &ea_db, QWidget *parent);

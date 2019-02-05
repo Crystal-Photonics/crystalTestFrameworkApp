@@ -16,6 +16,7 @@
 
 #include <QChar>
 #include <QDebug>
+#include <QPlainTextEdit>
 #include <QSettings>
 #include <QString>
 #include <QTreeWidgetItem>

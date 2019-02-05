@@ -20,8 +20,10 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
         return console;
     }())
     , lua_ui_container(new UI_container(MainWindow::mw))
-    , script(this, lua_ui_container, console, data_engine.get())
-    , name(description.get_name()) {
+	, script_pointer{std::make_unique<ScriptEngine>(this->obj(), lua_ui_container, console, data_engine.get())}
+	, script{*script_pointer}
+	, name(description.get_name())
+	, logger{console} {
     Console::note(console) << "Script started";
 
     lua_ui_container->add(console, nullptr);
@@ -59,7 +61,7 @@ void TestRunner::blocking_join() {
     thread.wait();
 }
 
-sol::table TestRunner::create_table() {
+Sol_table TestRunner::create_table() {
     return Utility::promised_thread_call(this, [this] { return script.create_table(); });
 }
 
@@ -69,15 +71,17 @@ UI_container *TestRunner::get_lua_ui_container() const {
 
 void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &device_worker) {
 	Utility::thread_call(this, [ this, devices = std::move(devices), &device_worker ]() mutable {
+		logger.set_file_path("TODO.log");
         for (auto &dev_prot : devices) {
             device_worker.set_currently_running_test(dev_prot.device, name);
+			logger.add(dev_prot);
         }
         try {
-            MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, State::running); });
+			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::running); });
             script.run(devices);
-            MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, State::finished); });
+			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::finished); });
         } catch (const std::runtime_error &e) {
-            MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, State::error); });
+			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::error); });
             qDebug() << "runtime_error caught @TestRunner::run_script";
 			MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] {
                 assert(console);

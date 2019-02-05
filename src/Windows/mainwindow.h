@@ -3,8 +3,8 @@
 
 #include "export.h"
 #include "favorite_scripts.h"
+#include "forward_decls.h"
 #include "qt_util.h"
-#include "testrunner.h"
 
 #include <QDebug>
 #include <QListWidgetItem>
@@ -28,6 +28,7 @@ class QTreeWidget;
 class TestDescriptionLoader;
 class UI_container;
 struct Protocol;
+class TestRunner;
 
 namespace Ui {
     class MainWindow;
@@ -72,7 +73,7 @@ class EXPORT MainWindow : public QMainWindow {
     std::unique_ptr<QTreeWidgetItem> *get_manual_devices_parent_item();
     std::unique_ptr<QTreeWidgetItem> *create_manual_devices_parent_item();
     void add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *communication_device);
-    void set_testrunner_state(TestRunner *testrunner, TestRunner::State state);
+	void set_testrunner_state(TestRunner *testrunner, TestRunner_State state);
     void adopt_testrunner(TestRunner *testrunner, QString title);
     void show_status_bar_massage(QString msg, int timeout_ms);
 

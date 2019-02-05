@@ -522,7 +522,7 @@ void MainWindow::add_clear_button_to_console(QPlainTextEdit *console) {
     connect(tbtn, &QToolButton::clicked, [console = console] { console->clear(); });
 }
 
-void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State state) {
+void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner_State state) {
     if (std::find(std::begin(test_runners), std::end(test_runners), testrunner) == std::end(test_runners)) {
         qDebug() << "Tried to set the state of dead test runner" << static_cast<void *>(testrunner);
         return;
@@ -531,16 +531,16 @@ void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner::State 
     QString prefix = " ";
     Qt::GlobalColor color = Qt::black;
     switch (state) {
-        case TestRunner::State::running:
+        case TestRunner_State::running:
             prefix = "▶";
             color = Qt::darkGreen;
             break;
-        case TestRunner::State::finished:
+        case TestRunner_State::finished:
             prefix = "█";
             color = Qt::black;
             set_script_view_collapse_state(false);
             break;
-        case TestRunner::State::error:
+        case TestRunner_State::error:
             prefix = "⚠";
             color = Qt::darkRed;
             set_script_view_collapse_state(false);

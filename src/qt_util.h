@@ -13,9 +13,10 @@
 #include <future>
 #include <utility>
 
-#include "scriptengine.h"
-
+class ScriptEngine;
 class QTabWidget;
+
+void interrupt_script_engine(ScriptEngine *script_engine, QString message = {});
 
 namespace Utility {
     QFrame *add_handle(QSplitter *splitter);
@@ -77,7 +78,7 @@ namespace Utility {
                 } catch (const std::exception &e) {
                     //qDebug() << e.what();
                     if (script_engine_to_terminate_on_exception__) {
-                        script_engine_to_terminate_on_exception__->post_interrupt(QString::fromStdString(e.what()));
+						interrupt_script_engine(script_engine_to_terminate_on_exception__, QString::fromStdString(e.what()));
                         //assert(!"Must not leak exceptions to qt message queue");
                         //std::terminate();
                     } else {

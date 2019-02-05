@@ -1,10 +1,12 @@
 #ifndef SCRIPTENGINE_H
 #define SCRIPTENGINE_H
 
+#include "qt_util.h"
 #include "sol.hpp"
 
 #include <QEventLoop>
 #include <QList>
+#include <QObject>
 #include <QString>
 #include <condition_variable>
 #include <functional>
@@ -21,6 +23,19 @@ class Data_engine;
 class UI_container;
 class TestRunner;
 struct MatchedDevice;
+
+//wrappers to get around not being able to forward-declare sol::table
+struct Sol_table {
+	sol::table table;
+	Sol_table(sol::table table)
+		: table{std::move(table)} {}
+	operator sol::table &() {
+		return table;
+	}
+	operator const sol::table &() const {
+		return table;
+	}
+};
 
 QString get_absolute_file_path(const QString &script_path, const QString &file_to_open);
 std::string get_absolute_file_path(const QString &script_path, const std::string &file_to_open);
@@ -45,14 +60,10 @@ class ScriptEngine {
     friend class TestDescriptionLoader;
     friend class DeviceWorker;
 
-    ScriptEngine(TestRunner *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine);
+	ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine);
     ScriptEngine(const ScriptEngine &) = delete;
     ScriptEngine(ScriptEngine &&) = delete;
     ~ScriptEngine();
-
-    //TimerEvent::TimerEvent timer_event_queue_run(int timeout_ms);
-    //UiEvent::UiEvent ui_event_queue_run();
-    //HotKeyEvent::HotKeyEvent hotkey_event_queue_run();
 
     Event_id::Event_id await_timeout(std::chrono::milliseconds timeout);
     Event_id::Event_id await_ui_event();
@@ -71,6 +82,10 @@ class ScriptEngine {
     QString get_absolute_filename(QString file_to_open);
 
     sol::table create_table();
+	template <class Return_type, class... Args>
+	Return_type call_lua_function(const char *lua_function, Args &&... args) {
+		return Utility::promised_thread_call(owner, [this, lua_function, &args...] { return call<Return_type>(lua_function, std::forward<Args>(args)...); });
+	}
 
     private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
     QStringList get_string_list(const QString &name);
@@ -90,7 +105,7 @@ class ScriptEngine {
     QString additional_pdf_path;
     QString data_engine_pdf_template_path;
 
-    TestRunner *owner{nullptr};
+	QObject *owner;
 
     std::mutex await_mutex;
     std::condition_variable await_condition_variable;
