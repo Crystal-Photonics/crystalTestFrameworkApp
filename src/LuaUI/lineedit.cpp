@@ -34,7 +34,7 @@ LineEdit::LineEdit(UI_container *parent, ScriptEngine *script_engine)
     callback_text_changed = QObject::connect(text_edit, &QLineEdit::textEdited, [this](const QString &text) {
         auto palette = text_edit->palette();
         if (!pattern_check_m.is_input_matching_to_pattern(text)) {
-            palette.setColor(QPalette::Text, Qt::darkRed);
+            palette.setColor(QPalette::Text, Qt::red);
             text_edit->setToolTip(QObject::tr("Pattern must match: ") + pattern_check_m.to_string() + "\n" +
                                   pattern_check_m.example_matching_to_pattern().join("\n"));
         } else {
