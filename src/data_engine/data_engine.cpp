@@ -1775,50 +1775,50 @@ bool Data_engine::generate_pdf(const std::string &form, const std::string &desti
                      // QFile::remove(db_name);
                      // assert(QFile{db_name}.exists() == false);
 #endif
-	QSqlDatabase db;
-	auto db_closer = Utility::RAII_do([&db, &db_name] { db = QSqlDatabase::addDatabase("QSQLITE", db_name); },
-									  [&db, &db_name] {
-										  db.close();
-										  db = QSqlDatabase();
-										  QSqlDatabase::removeDatabase(db_name);
-									  });
-	db.setDatabaseName(db_name);
-	bool opend = db.open();
-	if (!opend) {
+    QSqlDatabase db;
+    auto db_closer = Utility::RAII_do([&db, &db_name] { db = QSqlDatabase::addDatabase("QSQLITE", db_name); },
+                                      [&db, &db_name] {
+                                          db.close();
+                                          db = QSqlDatabase();
+                                          QSqlDatabase::removeDatabase(db_name);
+                                      });
+    db.setDatabaseName(db_name);
+    bool opend = db.open();
+    if (!opend) {
         throw std::runtime_error{db.lastError().text().toStdString()};
-	}
+    }
 
-	if (!QFile{QString::fromStdString(form)}.exists()) {
-		qDebug() << "PDF Template file does not exist: " << QString::fromStdString(form);
-		throw DataEngineError(DataEngineErrorNumber::pdf_template_file_not_existing,
-							  "Dataengine: PDF Template file does not exist: " + QString::fromStdString(form));
-	}
-	fill_database(db);
-	const auto sourced_form = form + ".tmp.lrxml";
-	replace_database_filename(form, sourced_form, QFileInfo{db_name}.absoluteFilePath().toStdString());
+    if (!QFile{QString::fromStdString(form)}.exists()) {
+        qDebug() << "PDF Template file does not exist: " << QString::fromStdString(form);
+        throw DataEngineError(DataEngineErrorNumber::pdf_template_file_not_existing,
+                              "Dataengine: PDF Template file does not exist: " + QString::fromStdString(form));
+    }
+    fill_database(db);
+    const auto sourced_form = form + ".tmp.lrxml";
+    replace_database_filename(form, sourced_form, QFileInfo{db_name}.absoluteFilePath().toStdString());
 
-	LimeReport::ReportEngine re;
-	if (re.loadFromFile(QString::fromStdString(sourced_form), false) == false) {
-		return false;
-	}
-	bool result = false;
-	{
-		QString filename = QString::fromStdString(destination);
-		//doing the error checking that LimeReport should do but doesn't.
-		QPrinter printer;
-		printer.setOutputFileName(filename);
-		QPainter painter;
-		if (painter.begin(&printer) == false) {
-			MainWindow::mw->execute_in_gui_thread([filename] {
-				QMessageBox::critical(MainWindow::mw, "Failed printing report",
-									  "Requested to write report to file " + filename + " which could not be opened.");
-			});
-		} else {
-			painter.end();
-			result = re.printToPDF(filename);
+    LimeReport::ReportEngine re;
+    if (re.loadFromFile(QString::fromStdString(sourced_form), false) == false) {
+        return false;
+    }
+    bool result = false;
+    {
+        QString filename = QString::fromStdString(destination);
+        //doing the error checking that LimeReport should do but doesn't.
+        QPrinter printer;
+        printer.setOutputFileName(filename);
+        QPainter painter;
+        if (painter.begin(&printer) == false) {
+            MainWindow::mw->execute_in_gui_thread([filename] {
+                QMessageBox::critical(MainWindow::mw, "Failed printing report",
+                                      "Requested to write report to file " + filename + " which could not be opened.");
+            });
+        } else {
+            painter.end();
+            result = re.printToPDF(filename);
         }
-	}
-	if (auto_open_pdf) {
+    }
+    if (auto_open_pdf) {
         QFileInfo fi{QString::fromStdString(destination)};
         auto p = fi.absoluteFilePath();
         if (!p.startsWith("/")) {
@@ -2984,8 +2984,8 @@ void Data_engine::replace_database_filename(const std::string &source_form_path,
     QFile xml_file_out{destination_form_path.c_str()};
     xml_file_out.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
     assert(xml_file_out.isOpen());
-    qDebug() << "xml_file_in" << xml_file_in.fileName();
-    qDebug() << "xml_file_out" << xml_file_out.fileName();
+    // qDebug() << "xml_file_in" << xml_file_in.fileName();
+    // qDebug() << "xml_file_out" << xml_file_out.fileName();
     QXmlStreamWriter &xml_out = XML::state.xml;
     xml_out.setDevice(&xml_file_out);
     while ((!xml_in.atEnd())) {

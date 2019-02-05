@@ -271,7 +271,7 @@ void TestReportHistory::join_report_file_tables_only_latest_datasets2() {
     query_result.join(true);
     ReportTable *joined_table = query_result.get_root_table();
 
-#if 1
+#if 0
     QMap<int, QString> field_keys = joined_table->get_field_names();
     for (int key : field_keys.keys()) {
         qDebug() << query_result.get_field_name_by_int_key(key) << "(" + QString::number(key) + ")";

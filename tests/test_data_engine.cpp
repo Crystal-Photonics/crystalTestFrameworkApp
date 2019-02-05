@@ -619,7 +619,7 @@ void Test_Data_engine::test_dummy_data_generation() {
     QCOMPARE(de.get_actual_dummy_value("supply/test_string"), QString("test 123"));
     QCOMPARE(de.get_actual_dummy_value("supply/test_bool"), QString("Yes"));
     QString date_str = de.get_actual_dummy_value("supply/test_datetime").split(".")[0]; //remove milliseconds
-    qDebug() << date_str;
+                                                                                        //  qDebug() << date_str;
     QDateTime prope_date_time = DataEngineDateTime(date_str).dt();
     QVERIFY(prope_date_time.isValid());
 
@@ -1238,7 +1238,7 @@ void Test_Data_engine::test_exceptional_approval() {
 
     // auto filename = QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString();
     QString filename = QString{"../../tests/scripts/sonderfreigaben.json"};
-    qDebug() << QDir::currentPath();
+    //  qDebug() << QDir::currentPath();
     ExceptionalApprovalDB ea = ExceptionalApprovalDB{filename};
     de.do_exceptional_approvals(ea, nullptr);
     auto ff = ea.get_failed_fields();
@@ -2934,7 +2934,7 @@ void Test_Data_engine::test_preview() {
         db = QSqlDatabase::addDatabase("QSQLITE");
     }
 
-    qDebug() << db_name;
+    //  qDebug() << db_name;
     db.setDatabaseName(db_name);
     bool opend = db.open();
     if (!opend) {

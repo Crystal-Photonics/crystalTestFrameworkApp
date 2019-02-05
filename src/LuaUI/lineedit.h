@@ -8,6 +8,7 @@
 #include <functional>
 #include <string>
 
+class TestScriptEngine;
 class QLabel;
 class QSplitter;
 class QLineEdit;
@@ -19,7 +20,73 @@ class QWidget;
 
 enum class LineEdit_Entermode { TextMode, DateMode };
 
+///\cond HIDDEN_SYMBOLS
+class PatternCheck {
+    public:
+    enum { None, yyww_m, yyww } t = PatternCheck::None;
+
+    PatternCheck(decltype(t) me)
+        : t{me} {}
+
+    PatternCheck(QString str) {
+        if (str == "") {
+            t = PatternCheck::None;
+        } else if (str == "YY/WW?-") {
+            t = PatternCheck::yyww_m;
+        } else if (str == "YY/WW?") {
+            t = PatternCheck::yyww;
+        } else {
+            throw std::runtime_error(
+                QObject::tr("The pattern %1 is not valid. Allowd patterns: %2").arg(str).arg(allowed_pattern_names().join("\n")).toStdString());
+        }
+    }
+
+    QString to_string() const {
+        switch (t) {
+            case PatternCheck::None:
+                return "";
+            case PatternCheck::yyww_m:
+                return "YY/WW?-";
+            case PatternCheck::yyww:
+                return "YY/WW?";
+        }
+        return "";
+    }
+
+    static QStringList allowed_pattern_names() {
+        return QStringList{"\"YY/WW?-\"", "\"YY/WW?\"", "\"\""};
+    }
+
+    QStringList example_matching_to_pattern() const {
+        switch (t) {
+            case yyww_m: {
+                return QStringList{
+                    "YY/WW?- means the first 2 characters of the year > 17\nseperated by a '/' followed be the weeknumber and\nan optional character. The "
+                    "date must not be a future date. It may be left empty with an '-'. Example:"
+                    "18/33",
+                    "18/33a", "-"};
+            }
+            case yyww: {
+                return QStringList{
+                    "YY/WW? means the first 2 characters of the year > 17\nseperated by a '/' followed be the weeknumber and\nan optional character. The "
+                    "date must not be a future date. Example:"
+                    "18/33",
+                    "18/33a"};
+            }
+            case None:
+                return QStringList{};
+        }
+        return QStringList{};
+    }
+
+    bool is_input_matching_to_pattern(const QString &string_under_test) const;
+};
+
+///\endcond
+
 class LineEdit : public UI_widget {
+    friend TestScriptEngine;
+
     public:
     ///\cond HIDDEN_SYMBOLS
     LineEdit(UI_container *parent, ScriptEngine *script_engine);
@@ -57,7 +124,7 @@ class LineEdit : public UI_widget {
                                                         //!  	local le = Ui.LineEdit.new()
                                                         //!  	le:set_input_check("YY/WW?")
                                                         //!         --where the first 2 digits(YY) are the year and the second(WW) is the week
-                                                        //!         --it will reject numbers in future and numbers before 2017
+                                                        //!         --it will reject numbers in future and numbers before 2018
                                                         //!
                                                         //!         --only numbers like 18/33a or 18/33 are ok
                                                         //!         --numbers like "17/33a", "33/18", "1833", "" or "-" will be rejected
@@ -69,15 +136,15 @@ class LineEdit : public UI_widget {
                                                         //! \endcode
                                                         //!
 
-    std::string get_text() const; //!<\brief Returns the string value the user entered.
-                                  //!< \return the text of the line edit as a string.
-                                  //!< \sa get_number()
-                                  //!< \par examples:
-                                  //!< \code
-                                  //!  	local le = Ui.LineEdit.new()
-                                  //!  	local stringvalue = le:get_text()
-                                  //!   print(stringvalue) -- prints text
-                                  //! \endcode
+    std::string get_text(); //!<\brief Returns the string value the user entered.
+                            //!< \return the text of the line edit as a string.
+                            //!< \sa get_number()
+                            //!< \par examples:
+                            //!< \code
+                            //!  	local le = Ui.LineEdit.new()
+                            //!  	local stringvalue = le:get_text()
+                            //!   print(stringvalue) -- prints text
+                            //! \endcode
 
     double get_date() const; //!<\brief Returns the date value the user entered.
                              //!< \return the date of the line edit as a seconds since epoch.
@@ -189,11 +256,12 @@ class LineEdit : public UI_widget {
     std::string name_m;
     std::string caption_m;
     ScriptEngine *script_engine;
-    QString pattern_check_m;
-
-    bool is_input_matching_to_pattern();
+    PatternCheck pattern_check_m;
+    QMetaObject::Connection callback_text_changed = {};
+    bool is_input_matching_to_pattern() const;
 
     const QString date_formatstring = "dd.MM.yyyy"; //20.07.1969
+    QStringList example_matching_to_pattern(const QString &pattern_check) const;
 };
 /** \} */ // end of group ui
 #endif    // LINEEDIT_H

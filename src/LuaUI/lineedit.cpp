@@ -17,7 +17,8 @@ LineEdit::LineEdit(UI_container *parent, ScriptEngine *script_engine)
     , label{new QLabel(parent)}
     , text_edit{new QLineEdit(parent)}
     , date_edit{new QDateEdit(parent)}
-    , script_engine{script_engine} {
+    , script_engine{script_engine}
+    , pattern_check_m(PatternCheck::None) {
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(label);
     layout->addWidget(text_edit, 0, Qt::AlignBottom);
@@ -29,11 +30,26 @@ LineEdit::LineEdit(UI_container *parent, ScriptEngine *script_engine)
     date_edit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     set_text_mode();
     parent->scroll_to_bottom();
+
+    callback_text_changed = QObject::connect(text_edit, &QLineEdit::textEdited, [this](const QString &text) {
+        auto palette = text_edit->palette();
+        if (!pattern_check_m.is_input_matching_to_pattern(text)) {
+            palette.setColor(QPalette::Text, Qt::darkRed);
+            text_edit->setToolTip(QObject::tr("Pattern must match: ") + pattern_check_m.to_string() + "\n" +
+                                  pattern_check_m.example_matching_to_pattern().join("\n"));
+        } else {
+            text_edit->setToolTip("");
+            palette.setColor(QPalette::Text, Qt::black);
+        }
+
+        text_edit->setPalette(palette);
+    });
 }
 
 LineEdit::~LineEdit() {
     text_edit->setReadOnly(true);
     date_edit->setReadOnly(true);
+    QObject::disconnect(callback_text_changed);
 }
 
 void LineEdit::set_date_mode() {
@@ -57,11 +73,20 @@ void LineEdit::set_placeholder_text(const std::string &text) {
 }
 
 void LineEdit::set_input_check(const std::string &text) {
-    pattern_check_m = QString::fromStdString(text);
+    pattern_check_m = PatternCheck(QString::fromStdString(text));
 }
 
-std::string LineEdit::get_text() const {
+std::string LineEdit::get_text() {
     if (entermode == LineEdit_Entermode::TextMode) {
+        while (!pattern_check_m.is_input_matching_to_pattern(text_edit->text())) {
+            QString retval = QInputDialog::getText(text_edit, "Invalid value",
+                                                   QObject::tr("The value \"%1\" entered in \"%2\" is not valid. Please enter a correct one.\nExplanation: %3")
+                                                       .arg(text_edit->text())
+                                                       .arg(QString::fromStdString(name_m))
+                                                       .arg(pattern_check_m.example_matching_to_pattern().join("\n")));
+            text_edit->setText(retval);
+        }
+
         return text_edit->text().toStdString();
     } else if (entermode == LineEdit_Entermode::DateMode) {
         return date_edit->date().toString(date_formatstring).toStdString();
@@ -118,7 +143,7 @@ void LineEdit::set_enabled(bool enabled) {
     date_edit->setEnabled(enabled);
 }
 
-bool LineEdit::is_input_matching_to_pattern() {
+bool PatternCheck::is_input_matching_to_pattern(const QString &string_under_test) const {
     auto check_yy_ww_ = [](QString text_under_test) {
         auto sl = text_under_test.split("/");
         if (sl.count() != 2) {
@@ -130,11 +155,12 @@ bool LineEdit::is_input_matching_to_pattern() {
             return false;
         }
         QString week_str = sl[1];
-        if ((week_str.count() != 2) && (week_str.count() != 3)) {
+        int week_str_count = week_str.count();
+        if ((week_str_count != 2) && (week_str_count != 3)) {
             return false;
         }
         if (week_str.count() == 3) {
-            if (!week_str.right(1)[0].isLetterOrNumber()) {
+            if (!week_str.right(1)[0].isLetter()) {
                 return false;
             }
             week_str = week_str.left(2);
@@ -148,7 +174,7 @@ bool LineEdit::is_input_matching_to_pattern() {
             return false;
         }
 
-        int current_year = QDateTime::currentDateTime().date().year();
+        int current_year = QDateTime::currentDateTime().date().year() - 2000;
         int current_week = QDateTime::currentDateTime().date().weekNumber();
 
         if (year > current_year) {
@@ -160,19 +186,23 @@ bool LineEdit::is_input_matching_to_pattern() {
         return true;
     };
 
-    bool minus_allowed = false;
-    if (pattern_check_m == "YY/WW?-") {
-        QString text_under_test = text_edit->text();
-        if (text_under_test == "-") {
+    switch (t) {
+        case None: {
             return true;
         }
-        return check_yy_ww_(text_under_test);
+        case yyww_m: {
+            QString text_under_test = string_under_test;
+            if (text_under_test == "-") {
+                return true;
+            }
+            return check_yy_ww_(text_under_test);
+        }
+        case yyww: {
+            return check_yy_ww_(string_under_test);
+        }
     }
-    if (pattern_check_m == "YY/WW?") {
-        minus_allowed = false;
-        return check_yy_ww_(text_edit->text());
-    }
-    return true;
+
+    return false;
 }
 
 std::string LineEdit::get_caption() const {
@@ -230,8 +260,9 @@ double LineEdit::get_number() const {
         bool ok = true;
         double retval = text_edit->text().toDouble(&ok);
         if (ok == false) {
-            retval = QInputDialog::getDouble(text_edit, "Invalid value", "Der Wert \"" + text_edit->text() + "\" im Feld \"" + QString::fromStdString(name_m) +
-                                                                             "\" ist keine Nummer. Bitte tragen Sie die nach.");
+            retval = QInputDialog::getDouble(
+                text_edit, "Invalid value",
+                QObject::tr("The value \"%1\" of \"%2\" is not a number. Please enter a number.").arg(text_edit->text()).arg(QString::fromStdString(name_m)));
         }
         return retval;
     } else {

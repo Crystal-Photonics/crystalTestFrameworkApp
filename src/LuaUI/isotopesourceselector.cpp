@@ -30,8 +30,6 @@ IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     load_isotope_database();
     fill_combobox_with_isotopes("*");
     parent->scroll_to_bottom();
-
-    // it seems that issue #1196 is hard to reproduce. Maybe it works better if this signal is ignored. We still store the isotope id when it is read
 }
 
 IsotopeSourceSelector::~IsotopeSourceSelector() {
@@ -167,7 +165,6 @@ void IsotopeSourceSelector::connect_isotope_selecteted() {
 }
 
 void IsotopeSourceSelector::disconnect_isotope_selecteted() {
-    //assert(callback_isotope_selected);
     if (callback_isotope_selected) {
         QObject::disconnect(callback_isotope_selected);
     }
