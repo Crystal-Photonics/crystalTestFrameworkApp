@@ -136,7 +136,7 @@ void SCPIProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
         ui_entry->setText(2, device_data.name);
         set_display_data(ui_entry, device_data);
     } else {
-        Console::note() << "SCPI-request \"*IDN?\" did not answer";
+		Console_handle::note() << "SCPI-request \"*IDN?\" did not answer";
     }
 }
 

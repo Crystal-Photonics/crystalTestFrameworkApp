@@ -2,6 +2,7 @@
 #include "Windows/devicematcher.h"
 #include "Windows/mainwindow.h"
 #include "console.h"
+#include "console.h"
 #include "data_engine/data_engine.h"
 #include "deviceworker.h"
 #include "scriptengine.h"
@@ -14,22 +15,22 @@
 #include <QSplitter>
 
 TestRunner::TestRunner(const TestDescriptionLoader &description)
-    : console([] {
+	: console_pointer{std::make_unique<Console>([] {
         auto console = new QPlainTextEdit();
         console->setReadOnly(true);
         console->setMaximumBlockCount(1000);
-        return console;
-    }())
+		console->setVisible(false);
+		return console;
+	}())}
     , lua_ui_container(new UI_container(MainWindow::mw))
 	, data_engine{std::make_unique<Data_engine>()}
 	, script_pointer{std::make_unique<ScriptEngine>(this->obj(), lua_ui_container, console, data_engine.get())}
 	, script{*script_pointer}
-	, name(description.get_name()) {
-    Console::note(console) << "Script started";
+	, name(description.get_name())
+	, console{*console_pointer} {
+	console.note() << "Script started";
 
-    lua_ui_container->add(console, nullptr);
-    assert(console);
-    console->setVisible(false);
+	lua_ui_container->add(console.get_plaintext_edit(), nullptr);
     thread.adopt(*this);
     thread.start();
     try {
@@ -45,7 +46,7 @@ TestRunner::~TestRunner() {
 }
 
 void TestRunner::interrupt() {
-    MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script interrupted"; });
+	MainWindow::mw->execute_in_gui_thread([this] { console.note() << "Script interrupted"; });
     script.post_interrupt();
     thread.requestInterruption();
 }
@@ -83,17 +84,14 @@ void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &de
         } catch (const std::runtime_error &e) {
 			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::error); });
             qDebug() << "runtime_error caught @TestRunner::run_script";
-			MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] {
-                assert(console);
-                Console::error(console) << message;
-            });
+			MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] { console.error() << message; });
         }
         for (auto &dev_prot : devices) {
             device_worker.set_currently_running_test(dev_prot.device, "");
         }
         moveToThread(MainWindow::gui_thread);
         thread.quit();
-        MainWindow::mw->execute_in_gui_thread([this] { Console::note(console) << "Script stopped"; });
+		MainWindow::mw->execute_in_gui_thread([this] { console.note() << "Script stopped"; });
     });
 }
 

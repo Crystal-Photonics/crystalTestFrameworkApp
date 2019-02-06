@@ -307,8 +307,8 @@ MainWindow::MainWindow(QWidget *parent)
     favorite_scripts.load_from_file(QSettings{}.value(Globals::favorite_script_file_key, "").toString());
     devices_thread.adopt(*device_worker);
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
-    Console::console = ui->console_edit;
-    Console::mw = this;
+	Console_handle::console = ui->console_edit;
+	Console_handle::mw = this;
     // connect(&action_run, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
 
     ui->test_simple_view->setVisible(false);
@@ -582,7 +582,7 @@ void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
         if (console) {
             console->appendHtml(text);
         } else {
-            Console::debug() << text;
+			Console_handle::debug() << text;
         }
     });
 }
@@ -752,7 +752,7 @@ void MainWindow::run_test_script(TestDescriptionLoader *test) {
     try {
         test_runners.push_back(std::make_unique<TestRunner>(*test));
     } catch (const std::runtime_error &e) {
-        Console::error(test->console) << "Failed running test: " << e.what();
+		Console_handle::error(test->console.get()) << "Failed running test: " << e.what();
         return;
     }
     auto &runner = *test_runners.back();

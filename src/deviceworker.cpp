@@ -109,7 +109,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
                 auto display_string = device.device->get_identifier_display_string();
 				Utility::thread_call(MainWindow::mw,
                                      [display_string] { //
-                                         Console::warning() << tr("Failed opening") << display_string;
+										 Console_handle::warning() << tr("Failed opening") << display_string;
                                      });
                 return;
             }
@@ -147,7 +147,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             if (device.device->connect(device.port_info) == false) {
                 auto display_string = device.device->get_identifier_display_string();
                 MainWindow::mw->execute_in_gui_thread([display_string] { //
-                    Console::warning() << tr("Failed opening") << display_string;
+					Console_handle::warning() << tr("Failed opening") << display_string;
                 });
                 return;
             }
@@ -192,7 +192,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
                 auto display_string = device.device->get_identifier_display_string();
 				Utility::thread_call(MainWindow::mw,
                                      [display_string] { //
-                                         Console::warning() << tr("Failed opening") << display_string;
+										 Console_handle::warning() << tr("Failed opening") << display_string;
                                      });
                 return;
             }
@@ -221,7 +221,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             auto display_string = device.device->get_identifier_display_string();
 			Utility::thread_call(MainWindow::mw,
                                  [display_string] { //
-                                     Console::warning() << tr("Failed opening") << display_string;
+									 Console_handle::warning() << tr("Failed opening") << display_string;
                                  });
             return;
         }
@@ -256,16 +256,16 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
             try {
                 protocol_check_function(*device);
             } catch (std::runtime_error &e) {
-                Console::error() << tr("Error happened while checking device '%1'. Message: '%2'").arg(device_name).arg(QString(e.what()));
+				Console_handle::error() << tr("Error happened while checking device '%1'. Message: '%2'").arg(device_name).arg(QString(e.what()));
             } catch (std::domain_error &e) {
-                Console::error() << tr("Error happened while checking device '%1'. Message: '%2'").arg(device_name).arg(QString(e.what()));
+				Console_handle::error() << tr("Error happened while checking device '%1'. Message: '%2'").arg(device_name).arg(QString(e.what()));
             }
         }
         if (device->device->isConnected() == false) { //out of protocols and still not connected
             auto display_string = device->device->get_identifier_display_string();
 			Utility::thread_call(MainWindow::mw, [display_string] {
                 assert(currently_in_gui_thread() == true);
-                Console::note() << tr("No protocol found for %1").arg(display_string);
+				Console_handle::note() << tr("No protocol found for %1").arg(display_string);
             });
         }
     }

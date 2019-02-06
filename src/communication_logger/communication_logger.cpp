@@ -6,7 +6,9 @@
 #include <QPlainTextEdit>
 #include <iomanip>
 
-Communication_logger::Communication_logger(QPlainTextEdit *console) {}
+Communication_logger::Communication_logger(Console &console) {
+	//connections.push_back(connect(console, &QPlainTextEdit::));
+}
 
 Communication_logger::~Communication_logger() {
 	for (auto &connection : connections) {

@@ -11,20 +11,16 @@
 class MainWindow;
 class QPlainTextEdit;
 
-struct Console {
+struct Console_handle {
 	private:
 	struct ConsoleProxy;
 
 	public:
 	static QPlainTextEdit *console;
 	static ConsoleProxy warning(QPlainTextEdit *console = nullptr);
-	static ConsoleProxy warning(std::unique_ptr<QPlainTextEdit> &console);
 	static ConsoleProxy note(QPlainTextEdit *console = nullptr);
-	static ConsoleProxy note(std::unique_ptr<QPlainTextEdit> &console);
 	static ConsoleProxy error(QPlainTextEdit *console = nullptr);
-	static ConsoleProxy error(std::unique_ptr<QPlainTextEdit> &console);
 	static ConsoleProxy debug(QPlainTextEdit *console = nullptr);
-	static ConsoleProxy debug(std::unique_ptr<QPlainTextEdit> &console);
 	static ConsoleProxy script(QPlainTextEdit *console);
 	static MainWindow *mw;
 
@@ -55,9 +51,31 @@ struct Console {
 };
 
 template <class T>
-Console::ConsoleProxy &&Console::ConsoleProxy::operator<<(const T &t) && {
+Console_handle::ConsoleProxy &&Console_handle::ConsoleProxy::operator<<(const T &t) && {
 	append_to(s, t);
 	return std::move(*this); //TODO: I'm not sure if this is correct or we return an expired temporary
 }
+
+struct Console {
+	Console(QPlainTextEdit *console)
+		: console{console} {}
+	auto warning() {
+		return Console_handle::warning(console);
+	}
+	auto note() {
+		return Console_handle::note(console);
+	}
+	auto error() {
+		return Console_handle::error(console);
+	}
+	auto debug() {
+		return Console_handle::debug(console);
+	}
+
+	QPlainTextEdit *get_plaintext_edit() const;
+
+	private:
+	QPlainTextEdit *console;
+};
 
 #endif // CONSOLE_H

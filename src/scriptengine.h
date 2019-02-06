@@ -23,6 +23,7 @@ class Data_engine;
 class UI_container;
 class TestRunner;
 struct MatchedDevice;
+struct Console;
 
 //wrappers to get around not being able to forward-declare sol::table
 struct Sol_table {
@@ -60,7 +61,7 @@ class ScriptEngine {
     friend class TestDescriptionLoader;
     friend class DeviceWorker;
 
-	ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine);
+	ScriptEngine(QObject *owner, UI_container *parent, Console &console, Data_engine *data_engine);
     ScriptEngine(const ScriptEngine &) = delete;
     ScriptEngine(ScriptEngine &&) = delete;
     ~ScriptEngine();
@@ -99,7 +100,7 @@ class ScriptEngine {
     QString path_m{};
     int error_line{0};
     UI_container *parent{nullptr};
-    QPlainTextEdit *console{nullptr};
+	Console &console;
     Data_engine *data_engine{nullptr};
     QString data_engine_auto_dump_path;
     QString additional_pdf_path;

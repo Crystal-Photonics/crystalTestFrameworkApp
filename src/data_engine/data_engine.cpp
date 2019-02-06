@@ -6,9 +6,9 @@
 #include "Windows/devicematcher.h"
 #include "Windows/mainwindow.h"
 #include "communication_logger/communication_logger.h"
+#include "console.h"
 #include "exceptionalapproval.h"
 #include "lua_functions.h"
-#include "util.h"
 #include "util.h"
 #include "vc.h"
 
@@ -90,7 +90,7 @@ Data_engine::Data_engine(std::istream &source)
 
 Data_engine::~Data_engine() {}
 
-void Data_engine::enable_logging(QPlainTextEdit *console, const std::vector<MatchedDevice> &devices) {
+void Data_engine::enable_logging(Console &console, const std::vector<MatchedDevice> &devices) {
 	logger = std::make_unique<Communication_logger>(console);
 	for (auto &device : devices) {
 		logger->add(device);
@@ -482,7 +482,6 @@ const VariantData *DataEngineInstance::get_variant() const {
 
     throw DataEngineError(DataEngineErrorNumber::no_variant_found,
                           QString("Dataengine: No dependency fullfilling variant found in section: \"%1\"").arg(section_name));
-    return nullptr;
 }
 
 void DataEngineInstance::delete_unmatched_variants(const QMap<QString, QList<QVariant>> &tags, uint instance_index, uint instance_count) {
@@ -580,25 +579,18 @@ QString jsonTypeToString(const QJsonValue &val) {
     switch (val.type()) {
         case QJsonValue::Null:
             return "Null";
-            break;
         case QJsonValue::Bool:
             return "Bool";
-            break;
         case QJsonValue::Double:
             return "Double";
-            break;
         case QJsonValue::String:
             return "String";
-            break;
         case QJsonValue::Array:
             return "Array";
-            break;
         case QJsonValue::Object:
             return "Object";
-            break;
         case QJsonValue::Undefined:
             return "Undefined";
-            break;
     }
     return "Unknown";
 }
@@ -2986,15 +2978,13 @@ double NumericTolerance::get_absolute_limit_beneath(const double desired) const 
         return std::numeric_limits<double>::lowest();
     }
     switch (tolerance_type) {
-        case ToleranceType::Absolute: {
+		case ToleranceType::Absolute:
             return desired - deviation_limit_beneath;
-        } break;
+
         case ToleranceType::Percent: {
             double deviation_limit_abs = std::abs(desired) * deviation_limit_beneath / 100.0;
             return desired - deviation_limit_abs;
         }
-
-        break;
     }
     assert(0);
     return 0;
@@ -3006,17 +2996,13 @@ double NumericTolerance::get_absolute_limit_above(const double desired) const {
     }
 
     switch (tolerance_type) {
-        case ToleranceType::Absolute: {
+		case ToleranceType::Absolute:
             return desired + deviation_limit_above;
 
-        } break;
         case ToleranceType::Percent: {
             double deviation_limit_abs = std::abs(desired) * deviation_limit_beneath / 100.0;
             return desired + deviation_limit_abs;
-
         }
-
-        break;
     }
     assert(0);
     return 0;
@@ -3321,7 +3307,6 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                 }
             }
             return std::make_unique<BoolDataEntry>(field_name, desired_value, nice_name);
-            break;
         }
         case EntryType::String: {
             std::experimental::optional<QString> desired_value{};
@@ -3424,27 +3409,23 @@ QString NumericDataEntry::get_desired_value_as_string() const {
     if ((bool)desired_value) {
         QString val = tolerance.to_string(desired_value.value()) + " " + unit;
         return val.trimmed();
-    } else {
-        return "";
-    }
+	}
+	return "";
 }
 
 QString NumericDataEntry::get_actual_values() const {
     if ((bool)actual_value) {
         QString val = QString::number(actual_value.value()) + " " + unit;
         return val.trimmed();
-    } else {
-        return unavailable_value;
-    }
+	}
+	return unavailable_value;
 }
 
 double NumericDataEntry::get_actual_number() const {
     if ((bool)actual_value) {
         return actual_value.value();
-    } else {
-        throw DataEngineError(DataEngineErrorNumber::actual_value_not_set, QString("Dataengine: Actual value of field %1 not set").arg(field_name));
-    }
-    return 0;
+	}
+	throw DataEngineError(DataEngineErrorNumber::actual_value_not_set, QString("Dataengine: Actual value of field %1 not set").arg(field_name));
 }
 
 QString NumericDataEntry::get_description() const {
@@ -3701,7 +3682,6 @@ QString BoolDataEntry::get_actual_values() const {
 
 double BoolDataEntry::get_actual_number() const {
     throw DataEngineError(DataEngineErrorNumber::actual_value_is_not_a_number, QString("Dataengine: Actual value of field %1 is not a number").arg(field_name));
-    return 0;
 }
 
 QString BoolDataEntry::get_description() const {
@@ -4167,7 +4147,7 @@ void DataEngineActualValueStatisticFile::close_file() {
         if (!saveFile.open(QIODevice::WriteOnly)) {
             throw DataEngineError(DataEngineErrorNumber::cannot_open_file,
                                   QString{"Dataengine: Can not open file: \"%1\" for saving actual value statistics."}.arg(used_file_name));
-            remove_lock_file();
+			remove_lock_file(); //TODO: This will never be executed. Do we need to remove the lock file or not?
             return;
         }
         QJsonDocument saveDoc(data_entries);

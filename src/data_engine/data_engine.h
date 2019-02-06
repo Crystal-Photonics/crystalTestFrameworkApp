@@ -26,6 +26,7 @@ class Communication_logger;
 struct Sol_table;
 struct MatchedDevice;
 class QPlainTextEdit;
+struct Console;
 namespace sol {
 	class state;
 }
@@ -545,7 +546,7 @@ class Data_engine {
     Data_engine(std::istream &source, const QMap<QString, QList<QVariant>> &tags);
     Data_engine(std::istream &source); //for getting dummy data structure
 	~Data_engine();
-	void enable_logging(QPlainTextEdit *console, const std::vector<MatchedDevice> &devices);
+	void enable_logging(Console &console, const std::vector<MatchedDevice> &devices);
 	void set_log_file(const std::string &file_path);
     void set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags);
     void set_source(std::istream &source);

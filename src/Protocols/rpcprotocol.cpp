@@ -156,10 +156,10 @@ bool RPCProtocol::is_correct_protocol() {
                     device_data = get_description_data(*descriptor_answer);
                 }
             } else {
-                Console::note() << "RPC-function \"get_device_descriptor\" requires unknown parameters";
+				Console_handle::note() << "RPC-function \"get_device_descriptor\" requires unknown parameters";
             }
         } else {
-            Console::note() << "No RPC-function \"get_device_descriptor\" available";
+			Console_handle::note() << "No RPC-function \"get_device_descriptor\" available";
         }
         return true;
     }
@@ -186,19 +186,19 @@ QString RPCProtocol::get_device_summary() {
 void RPCProtocol::console_message(RPCConsoleLevel level, QString message) {
     switch (level) {
         case RPCConsoleLevel::note:
-            Console::note() << message;
+			Console_handle::note() << message;
             break;
 
         case RPCConsoleLevel::error:
-            Console::error() << message;
+			Console_handle::error() << message;
             break;
 
         case RPCConsoleLevel::debug:
-            Console::debug() << message;
+			Console_handle::debug() << message;
             break;
 
         case RPCConsoleLevel::warning:
-            Console::warning() << message;
+			Console_handle::warning() << message;
             break;
     }
 }
@@ -211,7 +211,7 @@ void RPCProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
         ui_entry->setText(2, data.name);
         set_display_data(ui_entry, data);
     } else {
-        Console::note() << "RPC-function \"get_device_descriptor\" did not answer";
+		Console_handle::note() << "RPC-function \"get_device_descriptor\" did not answer";
         //TODO: add a rightclick action to resend the descriptor request
         //ui_entry->
     }
@@ -236,7 +236,6 @@ RPCFunctionCallResult RPCProtocol::call_get_hash_function(int retries) const {
 RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const int request_id) const {
     return rpc_runtime_protocol.get()->encode_function(request_id);
 }
-
 
 void RPCProtocol::clear() {
     rpc_runtime_protocol.get()->clear();

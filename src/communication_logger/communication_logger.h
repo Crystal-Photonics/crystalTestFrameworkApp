@@ -3,6 +3,7 @@
 
 struct MatchedDevice;
 struct QPlainTextEdit;
+struct Console;
 
 #include <QObject>
 #include <fstream>
@@ -13,7 +14,7 @@ struct QPlainTextEdit;
 class Communication_logger : QObject {
 	Q_OBJECT
 	public:
-	Communication_logger(QPlainTextEdit *console);
+	Communication_logger(Console &console);
 	~Communication_logger();
 	void add(const MatchedDevice &device);
 	void set_log_file(const std::string &filepath);

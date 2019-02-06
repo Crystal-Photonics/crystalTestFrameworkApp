@@ -91,7 +91,8 @@ void TestDescriptionLoader::launch_editor() {
 
 void TestDescriptionLoader::load_description() {
     ui_entry->setText(1, "");
-    ScriptEngine script{nullptr, nullptr, nullptr, nullptr};
+	Console c{console.get()};
+	ScriptEngine script{nullptr, nullptr, c, nullptr};
     try {
         //   qDebug() << "load_description  start";
         script.load_script(file_path.toStdString());
@@ -110,7 +111,7 @@ void TestDescriptionLoader::load_description() {
         //   qDebug() << "load_description  ende";
     } catch (const std::runtime_error &e) {
         ui_entry->setIcon(3, QIcon{"://src/icons/if_exclamation_16.ico"});
-        Console::error(console) << "Failed loading protocols: " << e.what();
+		Console_handle::error(console.get()) << "Failed loading protocols: " << e.what();
         //    qDebug() << "load_description  exception";
     }
 }

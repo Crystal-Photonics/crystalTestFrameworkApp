@@ -178,7 +178,7 @@ struct RPCDevice {
             throw sol::error("Abort Requested");
         }
 
-        Console::note() << QString("\"%1\" called").arg(name.c_str());
+		Console_handle::note() << QString("\"%1\" called").arg(name.c_str());
         auto function = protocol->encode_function(name);
         int param_count = 0;
         for (auto &arg : va) {
@@ -199,7 +199,7 @@ struct RPCDevice {
                     //else: multiple variables, need to make a table
                     return sol::make_object(lua->lua_state(), "TODO: Not Implemented: Parse multiple return values");
                 } catch (const sol::error &e) {
-                    Console::error() << e.what();
+					Console_handle::error() << e.what();
                     throw;
                 }
             }
@@ -214,7 +214,7 @@ struct RPCDevice {
     ScriptEngine *engine = nullptr;
 };
 
-ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, QPlainTextEdit *console, Data_engine *data_engine)
+ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, Console &console, Data_engine *data_engine)
     : lua{std::make_unique<sol::state>()}
     , parent{parent}
     , console(console)
@@ -310,8 +310,7 @@ void ScriptEngine::post_hotkey_event(Event_id::Event_id event) {
 }
 
 void ScriptEngine::post_interrupt(QString message) {
-    Utility::thread_call(MainWindow::mw,
-                         [this, message] { Console::error(console) << "Script interrupted" << (message.isEmpty() ? "" : "because of " + message); });
+	Utility::thread_call(MainWindow::mw, [this, message] { console.error() << "Script interrupted" << (message.isEmpty() ? "" : "because of " + message); });
     {
         std::unique_lock<std::mutex> lock{await_mutex};
         await_condition = Event_id::interrupted;
@@ -552,7 +551,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
             MainWindow::mw->execute_in_gui_thread(
 				[ console = this->console, filename = target_filename + " console output.txt", additional_pdf_path = this->additional_pdf_path ] {
                     std::ofstream f{filename};
-                    f << console->toPlainText().toStdString();
+					f << console.get_plaintext_edit()->toPlainText().toStdString();
                     f.close();
                     if (additional_pdf_path.count()) {
                         QFile::copy(QString::fromStdString(filename), additional_pdf_path);

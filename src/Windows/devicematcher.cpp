@@ -46,11 +46,11 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
                 const auto &message = QObject::tr("Failed to call function RPC_acceptable for device %1 \nError message: %2")
                                           .arg(QString::fromStdString(rpc_protocol->get_name()))
                                           .arg(e.what());
-                Console::error(runner.console) << message;
+				runner.console.error() << message;
             }
             if (message) {
                 //device incompatible, reason should be inside of message
-                Console::note(runner.console) << QObject::tr("Device %1 rejected:").arg(QString::fromStdString(rpc_protocol->get_name())) << message.value();
+				runner.console.note() << QObject::tr("Device %1 rejected:").arg(QString::fromStdString(rpc_protocol->get_name())) << message.value();
             } else {
                 //acceptable device found
                 devices.emplace_back(device->device.get(), device->protocol.get());
@@ -61,7 +61,7 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
                                           .arg(QString::fromStdString(scpi_protocol->get_name()))
                                           .arg(QString::fromStdString(scpi_protocol->get_serial_number()))
                                           .arg(scpi_protocol->get_approved_state_str());
-                Console::note(runner.console) << message;
+				runner.console.note() << message;
                 continue;
             }
             sol::optional<std::string> message;
@@ -76,15 +76,15 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
                                           .arg(QString::fromStdString(scpi_protocol->get_serial_number()))
                                           .arg(e.what());
 
-                Console::error(runner.console) << message;
+				runner.console.error() << message;
                 continue;
             }
             if (message) {
                 //device incompatible, reason should be inside of message
-                Console::note(runner.console) << QObject::tr("Device %1 \"%2\" rejected:")
-                                                     .arg(QString::fromStdString(scpi_protocol->get_name()))
-                                                     .arg(QString::fromStdString(scpi_protocol->get_serial_number()))
-                                              << message.value();
+				runner.console.note() << QObject::tr("Device %1 \"%2\" rejected:")
+											 .arg(QString::fromStdString(scpi_protocol->get_name()))
+											 .arg(QString::fromStdString(scpi_protocol->get_serial_number()))
+									  << message.value();
 
             } else {
                 //acceptable device found
@@ -103,7 +103,7 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
                                               .arg(QString::fromStdString(manual_protocol->get_name()))
                                               .arg(QString::fromStdString(manual_protocol->get_serial_number()))
                                               .arg(manual_protocol->get_approved_state_str());
-                    Console::note(runner.console) << message;
+					runner.console.note() << message;
                     continue;
                 }
                 //acceptable device found
@@ -165,7 +165,7 @@ void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runne
             case DevicesToMatchEntry::MatchDefinitionState::UnderDefined: {
                 //failed to find suitable device
                 successful_matching = false;
-                Console::error(runner.console)
+				runner.console.error()
                     << QObject::tr(
                            "The selected test \"%1\" requires %2 device(s) with protocol \"%3\", and the name \"%4\" but only %5 device(s) are available.")
                            .arg(test.get_name())
