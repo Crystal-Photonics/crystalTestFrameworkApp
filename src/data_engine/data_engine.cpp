@@ -3,7 +3,9 @@
 //#if IAM_NOT_LUPDATE
 #include "data_engine_strings.h"
 //#endif
+#include "Windows/devicematcher.h"
 #include "Windows/mainwindow.h"
+#include "communication_logger/communication_logger.h"
 #include "exceptionalapproval.h"
 #include "lua_functions.h"
 #include "util.h"
@@ -73,15 +75,30 @@ bool have_entries_equal_desired_values(QList<const DataEngineDataEntry *> entrie
     return true;
 }
 
+Data_engine::Data_engine() {}
+
 Data_engine::Data_engine(std::istream &source, const QMap<QString, QList<QVariant>> &tags)
     : sections{} {
     set_dependancy_tags(tags);
-    set_source(source);
+	set_source(source);
 }
 
 Data_engine::Data_engine(std::istream &source)
     : sections{} {
-    set_source(source);
+	set_source(source);
+}
+
+Data_engine::~Data_engine() {}
+
+void Data_engine::enable_logging(QPlainTextEdit *console, const std::vector<MatchedDevice> &devices) {
+	logger = std::make_unique<Communication_logger>(console);
+	for (auto &device : devices) {
+		logger->add(device);
+	}
+}
+
+void Data_engine::set_log_file(const std::string &file_path) {
+	logger->set_log_file(file_path);
 }
 
 void Data_engine::set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags) {

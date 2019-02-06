@@ -1,8 +1,6 @@
 #ifndef TESTRUNNER_H
 #define TESTRUNNER_H
 
-#include "communication_logger/communication_logger.h"
-#include "data_engine/data_engine.h"
 #include "forward_decls.h"
 #include "qt_util.h"
 
@@ -20,6 +18,8 @@ class UI_container;
 struct LuaUI;
 struct Protocol;
 struct Sol_table;
+struct MatchedDevice;
+class Data_engine;
 
 class TestRunner : QObject {
     Q_OBJECT
@@ -52,11 +52,10 @@ class TestRunner : QObject {
     private:
     Utility::Qt_thread thread{};
     UI_container *lua_ui_container{nullptr};
-    std::unique_ptr<Data_engine> data_engine{std::make_unique<Data_engine>()};
+	std::unique_ptr<Data_engine> data_engine;
 	std::unique_ptr<ScriptEngine> script_pointer;
 	ScriptEngine &script;
     QString name{};
-	Communication_logger logger;
 };
 
 #endif // TESTRUNNER_H

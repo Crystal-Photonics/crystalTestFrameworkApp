@@ -14,13 +14,6 @@ Communication_logger::~Communication_logger() {
 	}
 }
 
-void Communication_logger::set_file_path(const std::string &file_path) {
-	file.open(file_path);
-	if (not file.is_open()) {
-		qDebug() << "Warning: Failed opening log file" << file_path.c_str();
-	}
-}
-
 static std::ostream &operator<<(std::ostream &os, const QByteArray &data) {
 	for (unsigned char c : data) {
 		switch (c) {
@@ -43,7 +36,7 @@ static std::ostream &operator<<(std::ostream &os, const QByteArray &data) {
 	return os;
 }
 
-void Communication_logger::add(MatchedDevice &device) {
+void Communication_logger::add(const MatchedDevice &device) {
 	struct {
 		void (CommunicationDevice::*signal)(const QByteArray &);
 		const char *name;
@@ -58,16 +51,28 @@ void Communication_logger::add(MatchedDevice &device) {
 
 	};
 
-	file << "Info: Device " << device_count << " is " << device.device->get_identifier_display_string().toStdString() << " with protocol "
-		 << device.protocol->type.toStdString() << ".\n";
+	(*log_target) << "Info: Device " << device_count << " is " << device.device->get_identifier_display_string().toStdString() << " with protocol "
+				  << device.protocol->type.toStdString() << ".\n";
 	if (auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol)) {
-		file << "Info: Protocol version: " << rpc_protocol->get_description().get_version_number() << '\n';
+		(*log_target) << "Info: Protocol version: " << rpc_protocol->get_description().get_version_number() << '\n';
 	}
 
 	for (const auto &comdata : communication_data) {
 		connections.push_back(connect(device.device, comdata.signal, [ this, device = device_count, action = comdata.name ](const QByteArray &data) {
-			file << action << device << ": " << data << '\n';
+			(*log_target) << action << device << ": " << data << '\n';
 		}));
 	}
 	device_count++;
+}
+
+void Communication_logger::set_log_file(const std::string &filepath) {
+	logfile.close();
+	logfile.open(filepath);
+	if (not logfile.is_open()) {
+		qDebug() << __PRETTY_FUNCTION__ << "failed to open logfile " << filepath.c_str() << "so log will not be saved to file";
+	} else {
+		logfile << log.str();
+		log.str("");
+		log_target = &logfile;
+	}
 }

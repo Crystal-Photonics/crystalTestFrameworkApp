@@ -22,7 +22,10 @@ class QSqlDatabase;
 class QXmlStreamWriter;
 struct DataEngineSection;
 class ExceptionalApprovalDB;
+class Communication_logger;
 struct Sol_table;
+struct MatchedDevice;
+class QPlainTextEdit;
 namespace sol {
 	class state;
 }
@@ -538,9 +541,12 @@ class Data_engine {
     };
 
     public:
-    Data_engine() = default;
+	Data_engine();
     Data_engine(std::istream &source, const QMap<QString, QList<QVariant>> &tags);
     Data_engine(std::istream &source); //for getting dummy data structure
+	~Data_engine();
+	void enable_logging(QPlainTextEdit *console, const std::vector<MatchedDevice> &devices);
+	void set_log_file(const std::string &file_path);
     void set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags);
     void set_source(std::istream &source);
     void set_script_path(QString script_path);
@@ -652,6 +658,7 @@ class Data_engine {
     void generate_exception_approval_table() const;
     void do_exceptional_approval_(ExceptionalApprovalDB &ea_db, QList<FailedField> failed_fields, QWidget *parent);
     int generate_static_text_field(QXmlStreamWriter &xml, int y_start, const QString static_text, TextFieldDataBandPlace actual_band_position) const;
+	std::unique_ptr<Communication_logger> logger;
 };
 
 #endif // DATA_ENGINE_H

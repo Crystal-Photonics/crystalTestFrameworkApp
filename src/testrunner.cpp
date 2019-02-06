@@ -2,6 +2,7 @@
 #include "Windows/devicematcher.h"
 #include "Windows/mainwindow.h"
 #include "console.h"
+#include "data_engine/data_engine.h"
 #include "deviceworker.h"
 #include "scriptengine.h"
 #include "testdescriptionloader.h"
@@ -20,10 +21,10 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
         return console;
     }())
     , lua_ui_container(new UI_container(MainWindow::mw))
+	, data_engine{std::make_unique<Data_engine>()}
 	, script_pointer{std::make_unique<ScriptEngine>(this->obj(), lua_ui_container, console, data_engine.get())}
 	, script{*script_pointer}
-	, name(description.get_name())
-	, logger{console} {
+	, name(description.get_name()) {
     Console::note(console) << "Script started";
 
     lua_ui_container->add(console, nullptr);
@@ -71,10 +72,9 @@ UI_container *TestRunner::get_lua_ui_container() const {
 
 void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &device_worker) {
 	Utility::thread_call(this, [ this, devices = std::move(devices), &device_worker ]() mutable {
-		logger.set_file_path("TODO.log");
+		data_engine->enable_logging(console, devices);
         for (auto &dev_prot : devices) {
             device_worker.set_currently_running_test(dev_prot.device, name);
-			logger.add(dev_prot);
         }
         try {
 			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::running); });

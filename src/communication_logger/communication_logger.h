@@ -6,6 +6,7 @@ struct QPlainTextEdit;
 
 #include <QObject>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -14,11 +15,13 @@ class Communication_logger : QObject {
 	public:
 	Communication_logger(QPlainTextEdit *console);
 	~Communication_logger();
-	void set_file_path(const std::string &file_path);
-	void add(MatchedDevice &device);
+	void add(const MatchedDevice &device);
+	void set_log_file(const std::string &filepath);
 
 	private:
-	std::ofstream file;
+	std::ostringstream log;
+	std::ofstream logfile;
+	std::ostream *log_target = &log;
 	std::vector<QMetaObject::Connection> connections;
 	int device_count = 1;
 };
