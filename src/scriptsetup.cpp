@@ -242,10 +242,10 @@ namespace detail {
 //wrapper that wraps a UI function such as Button::has_been_clicked so that it is called from the main window context. Waits for processing.
 template <class ReturnType, class UI_class, class... Args>
 auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
-    if (QThread::currentThread()->isInterruptionRequested()) {
-        throw sol::error("Abort Requested");
-    }
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
+		if (QThread::currentThread()->isInterruptionRequested()) {
+			throw sol::error("Abort Requested");
+		}
         //TODO: Decide if we should use promised_thread_call or thread_call
         //promised_thread_call lets us get return values while thread_call does not
         //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
@@ -258,10 +258,10 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
 }
 template <class ReturnType, class UI_class, class... Args>
 auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
-    if (QThread::currentThread()->isInterruptionRequested()) {
-        throw sol::error("Abort Requested");
-    }
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
+		if (QThread::currentThread()->isInterruptionRequested()) {
+			throw sol::error("Abort Requested");
+		}
         //TODO: Decide if we should use promised_thread_call or thread_call
         //promised_thread_call lets us get return values while thread_call does not
         //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
@@ -276,7 +276,10 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
 //wrapper that wraps a UI function so it is NOT called from the GUI thread. The function must not call any GUI-related functions in the non-GUI thread.
 template <class ReturnType, class UI_class, class... Args>
 auto non_gui_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
-    return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
+	return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
+		if (QThread::currentThread()->isInterruptionRequested()) {
+			throw sol::error("Abort Requested");
+		}
         //TODO: Decide if we should use promised_thread_call or thread_call
         //promised_thread_call lets us get return values while thread_call does not
         //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
@@ -289,10 +292,10 @@ auto non_gui_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
 //wrapper that wraps a UI function such as Button::has_been_clicked so that it is called from the main window context. Doesn't wait for processing.
 template <class ReturnType, class UI_class, class... Args>
 auto thread_call_wrapper_non_waiting(ScriptEngine *script_engine_to_terminate_on_exception, ReturnType (UI_class::*function)(Args...)) {
-    if (QThread::currentThread()->isInterruptionRequested()) {
-        throw sol::error("Abort Requested");
-    }
     return [function, script_engine_to_terminate_on_exception](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
+		if (QThread::currentThread()->isInterruptionRequested()) {
+			throw sol::error("Abort Requested");
+		}
         Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
             UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
             return detail::call(function, ui, std::move(args));

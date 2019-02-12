@@ -33,8 +33,7 @@ class TestRunner : QObject {
 	template <class Callback>
 	auto call(Callback &&cb) { /* this is a complicated way of saying script.call(lua_function);, but we do it in
 								  order to not have to include sol.hpp here to improve compilation time */
-		return Utility::promised_thread_call(this,
-											 [ this, callback = std::forward<Callback>(cb) ] { return std::forward<decltype(callback)>(callback)(script); });
+		return Utility::promised_thread_call(this, [ this, callback = std::forward<Callback>(cb) ]() mutable { return std::move(callback)(script); });
 	}
 
     UI_container *get_lua_ui_container() const;

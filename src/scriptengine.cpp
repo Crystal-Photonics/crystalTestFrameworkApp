@@ -280,10 +280,10 @@ Event_id::Event_id ScriptEngine::await_hotkey_event() {
 		}
 	});
     //wait for hotkey or interrupt
-    await_condition_variable.wait(lock, [this] {
-        return await_condition != Event_id::interrupted && await_condition != Event_id::Hotkey_confirm_pressed &&
-               await_condition != Event_id::Hotkey_cancel_pressed && await_condition != Event_id::Hotkey_skip_pressed;
-    });
+	await_condition_variable.wait(lock, [this] {
+		return await_condition == Event_id::interrupted || await_condition == Event_id::Hotkey_confirm_pressed ||
+			   await_condition == Event_id::Hotkey_cancel_pressed || await_condition == Event_id::Hotkey_skip_pressed;
+	});
     if (await_condition == Event_id::interrupted) {
         throw std::runtime_error("Interrupted");
     }
