@@ -24,7 +24,8 @@ FORMS += \
 	Windows/dummydatacreator.ui \
 	Windows/exceptiontalapprovaldialog.ui \
 	Windows/infowindow.ui \
-	Windows/settingsform.ui
+    Windows/settingsform.ui \
+    Windows/reporthistoryquery.ui
 
 QPROTOCOL_INTERPRETER_PATH=$$PWD/../libs/qRPCRuntimeParser
 INCLUDEPATH += $$QPROTOCOL_INTERPRETER_PATH/project/src

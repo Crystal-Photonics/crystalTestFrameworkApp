@@ -104,9 +104,12 @@ CONFIG(debug, debug|release) {
 
 DEFINES += SOL_CHECK_ARGUMENTS
 
+QMAKE_CXXFLAGS += -Werror -ftemplate-depth=1000
 #QMAKE_CXXFLAGS += -Werror
 
-QMAKE_CXXFLAGS_DEBUG += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare -Wno-error=noexcept-type
+QMAKE_CXXFLAGS_DEBUG += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare
+#-Wno-error=noexcept-type unsupported
+
 unix {
     QMAKE_CXXFLAGS_DEBUG += -fno-var-tracking-assignments -fno-merge-debug-strings
     eval("SANITIZERS = $$(SANITIZER)")

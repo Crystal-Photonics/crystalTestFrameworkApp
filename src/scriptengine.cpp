@@ -256,7 +256,7 @@ Event_id::Event_id ScriptEngine::await_hotkey_event() {
     if (await_condition == Event_id::interrupted) {
         throw std::runtime_error("Interrupted");
     }
-    //register connections for hotkeys
+        // qDebug() << "eventloop Interruption";
     auto connections = Utility::promised_thread_call(MainWindow::mw, [this] {
         std::array<QMetaObject::Connection, 3> connections;
         std::array<void (MainWindow::*)(), 3> key_signals = {&MainWindow::confirm_key_sequence_pressed, &MainWindow::cancel_key_sequence_key_pressed,
@@ -267,18 +267,18 @@ Event_id::Event_id ScriptEngine::await_hotkey_event() {
                 {
                     std::unique_lock<std::mutex> lock{await_mutex};
                     await_condition = event_id;
-                }
+    }
                 await_condition_variable.notify_one();
-            });
+        });
         }
         return connections;
     });
-    //remove connections for hotkeys later
+        //    MainWindow::mw->execute_in_gui_thread(this, [this, &timer, timeout_ms, &callback_timer] {
     auto disconnector = Utility::RAII_do([connections] {
         for (auto &connection : connections) {
             QObject::disconnect(connection);
-        }
-    });
+                                     }
+        });
     //wait for hotkey or interrupt
     await_condition_variable.wait(lock, [this] {
         return await_condition != Event_id::interrupted && await_condition != Event_id::Hotkey_confirm_pressed &&
@@ -305,7 +305,7 @@ void ScriptEngine::post_hotkey_event(Event_id::Event_id event) {
     {
         std::unique_lock<std::mutex> lock{await_mutex};
         await_condition = event;
-    }
+        }
     await_condition_variable.notify_one();
 }
 
@@ -314,7 +314,7 @@ void ScriptEngine::post_interrupt(QString message) {
     {
         std::unique_lock<std::mutex> lock{await_mutex};
         await_condition = Event_id::interrupted;
-    }
+                             }
     await_condition_variable.notify_one();
 }
 
@@ -377,7 +377,8 @@ QString ScriptEngine::get_absolute_filename(QString file_to_open) {
 }
 
 void ScriptEngine::load_script(const std::string &path) {
-    qDebug() << "load_script " << QString::fromStdString(path);
+    // qDebug() << "load_script " << QString::fromStdString(path);
+    // qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
 
     this->path_m = QString::fromStdString(path);
 
@@ -390,7 +391,7 @@ void ScriptEngine::load_script(const std::string &path) {
 
         lua->script_file(path);
 
-		qDebug() << "loaded script"; // << lua->;
+		//qDebug() << "loaded script"; // << lua->;
     } catch (const sol::error &error) {
         qDebug() << "caught sol::error@load_script";
         set_error_line(error);
@@ -444,7 +445,7 @@ int get_quantity_num(sol::object &obj) {
     int result = 0;
     if (obj.get_type() == sol::type::string) {
         std::string str = obj.as<std::string>();
-        QString qstr = QString().fromStdString(str);
+        QString qstr = QString::fromStdString(str);
         bool ok = false;
 
         result = qstr.toInt(&ok);
@@ -472,7 +473,7 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
             bool protocol_does_not_provide_name = false;
             for (auto &protocol_entry_field : protocol_entry_table) {
                 if (protocol_entry_field.first.as<std::string>() == "protocol") {
-                    item.protocol_name = QString().fromStdString(protocol_entry_field.second.as<std::string>());
+                    item.protocol_name = QString::fromStdString(protocol_entry_field.second.as<std::string>());
                     if (item.protocol_name == "SG04Count") {
                         protocol_does_not_provide_name = true;
                     }
@@ -485,7 +486,7 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
                             if (str == "") {
                                 str = "*";
                             }
-                            item.device_names.append(QString().fromStdString(str));
+                            item.device_names.append(QString::fromStdString(str));
                         }
                     }
                     if (protocol_entry_field.second.get_type() == sol::type::string) {
@@ -493,7 +494,7 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
                         if (str == "") {
                             str = "*";
                         }
-                        item.device_names.append(QString().fromStdString(str));
+                        item.device_names.append(QString::fromStdString(str));
                     }
                 } else if (protocol_entry_field.first.as<std::string>() == "quantity") {
                     item.quantity_min = get_quantity_num(protocol_entry_field.second);
@@ -553,15 +554,15 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
                     std::ofstream f{filename};
 					f << console.get_plaintext_edit()->toPlainText().toStdString();
                     f.close();
-                    if (additional_pdf_path.count()) {
+            if (additional_pdf_path.count()) {
                         QFile::copy(QString::fromStdString(filename), additional_pdf_path);
-                    }
+            }
                 });
 
             data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
             if (additional_pdf_path.count()) {
                 QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
-            }
+        }
         }
         if (data_engine_auto_dump_path.count()) {
             QFileInfo fi(data_engine_auto_dump_path);

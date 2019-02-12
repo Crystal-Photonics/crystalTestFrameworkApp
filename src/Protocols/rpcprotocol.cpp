@@ -31,7 +31,7 @@ static void set_description_data(Device_data &dd, const RPCRuntimeDecodedParam &
             const auto &param_value = param.as_string();
 
             if (parameter_name == "name") {
-                dd.name = dd.name + QString().fromStdString(param_value);
+                dd.name = dd.name + QString::fromStdString(param_value);
             } else if (parameter_name == "version") {
                 dd.version = dd.version + QString::fromStdString(param_value);
             } else if (parameter_name == "guid") {

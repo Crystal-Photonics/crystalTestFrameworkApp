@@ -1,0 +1,229 @@
+{
+    "dependency_tags": {
+    },
+    "general": {
+        "data_source_path": "X:/test_nach_einschub.json",
+        "datetime_str": "2019:01:10 14:04:40",
+        "datetime_unix": 1547125480,
+        "everything_complete": true,
+        "everything_in_range": true,
+        "exceptional_approval_exists": false,
+        "framework_git_hash": "0x5e5beb3",
+        "os_username": "AL",
+        "script_path": "X:/test_nach_einschub.lua",
+        "test_duration_seconds": 206,
+        "test_git_date_str": "2019-01-10 10:58:04 +0100",
+        "test_git_hash": "53246a4",
+        "test_git_modified": "false"
+    },
+    "sections": {
+        
+        "dacadc": {
+            "instances": [
+                {
+                    "dependency_tags": {
+                    },
+                    "fields": [
+						{
+							"bool": {
+                                "actual": {
+                                    "actual_is_set": true,
+                                    "as_text": "Yes",
+                                    "value": true
+                                },
+                                "desired": {
+                                    "as_text": "Yes",
+                                    "desired_is_set": true,
+                                    "value": true
+                                }
+                            },
+                            "in_range": true,
+                            "is_complete": true,
+                            "name": "wakeup_possible_taste",
+                            "nice_name": "Aufwechen geht"
+                        },					
+                        {
+                            "in_range": true,
+                            "is_complete": true,
+                            "name": "ref_vcc",
+                            "nice_name": "VCC Spannung gemessen mit Multimeter",
+                            "numeric": {
+                                "actual": {
+                                    "actual_is_set": true,
+                                    "value": 2.99549794
+                                },
+                                "desired": {
+                                    "as_text": "3 (±0.1) V",
+                                    "desired_is_set": true,
+                                    "tolerance": {
+                                        "above": {
+                                            "limit": 3.1,
+                                            "open_range": false
+                                        },
+                                        "beneath": {
+                                            "limit": 2.9,
+                                            "open_range": false
+                                        }
+                                    },
+                                    "value": 3
+                                },
+                                "unit": "V"
+                            }
+                        },                
+                        {
+                            "datetime": {
+                                "actual": {
+                                    "actual_is_set": true,
+                                    "as_text": "2019-01-17 19:21:10",
+                                    "ms_since_epoch": 1547749270000
+                                },
+                                "desired": {
+                                    "desired_is_set": false
+                                }
+                            },
+                            "in_range": true,
+                            "is_complete": true,
+                            "name": "datum_today",
+                            "nice_name": "Datum"
+                        }                       
+                    ],
+                    "instance_caption": ""
+                }
+            ]
+        },
+        "gerate_daten": {
+            "instances": [
+                {
+                    "dependency_tags": {
+                    },
+                    "fields": [
+                        {
+                            "in_range": true,
+                            "is_complete": true,
+                            "name": "seriennummer",
+                            "nice_name": "Seriennummer",
+                            "numeric": {
+                                "actual": {
+                                    "actual_is_set": true,
+                                    "value": 8106
+                                },
+                                "desired": {
+                                    "desired_is_set": false
+                                },
+                                "unit": ""
+                            }
+                        },
+                        {
+                            "in_range": true,
+                            "is_complete": true,
+                            "name": "pcb1_chargennummer",
+                            "nice_name": "PCB1 Chargennummer",
+                            "text": {
+                                "actual": {
+                                    "actual_is_set": true,
+                                    "as_text": "",
+                                    "value": "18/33"
+                                },
+                                "desired": {
+                                    "desired_is_set": false
+                                }
+                            }
+                        },
+                        {
+                            "in_range": true,
+                            "is_complete": true,
+                            "name": "pcb2_chargennummer",
+                            "nice_name": "PCB2 Chargennummer",
+                            "text": {
+                                "actual": {
+                                    "actual_is_set": true,
+                                    "as_text": "",
+                                    "value": "18/35"
+                                },
+                                "desired": {
+                                    "desired_is_set": false
+                                }
+                            }
+                        }
+                    ],
+                    "instance_caption": ""
+                }
+            ]
+        },
+        "test_version": {
+            "instances": [
+                {
+                    "dependency_tags": {
+                    },
+                    "fields": [
+                        {
+                            "in_range": true,
+                            "is_complete": true,
+                            "name": "git_protokoll",
+                            "nice_name": "Git-Hash Protokoll",
+                            "text": {
+                                "actual": {
+                                    "actual_is_set": true,
+                                    "as_text": "",
+                                    "value": "0x53246a4"
+                                },
+                                "desired": {
+                                    "desired_is_set": false
+                                }
+                            }
+                        },
+                        {
+                            "in_range": true,
+                            "is_complete": true,
+                            "name": "git_framework",
+                            "nice_name": "Git-Hash Test Framework",
+                            "text": {
+                                "actual": {
+                                    "actual_is_set": true,
+                                    "as_text": "",
+                                    "value": "0x5E5BEB3"
+                                },
+                                "desired": {
+                                    "desired_is_set": false
+                                }
+                            }
+                        },
+                        {
+                            "in_range": true,
+                            "is_complete": true,
+                            "name": "git_protokoll_date",
+                            "nice_name": "Git-Datum Protokoll",
+                            "text": {
+                                "actual": {
+                                    "actual_is_set": true,
+                                    "as_text": "",
+                                    "value": "2019-01-10 10:58:04 +0100"
+                                },
+                                "desired": {
+                                    "desired_is_set": false
+                                }
+                            }
+                        },
+                        {
+                            "in_range": true,
+                            "is_complete": true,
+                            "name": "git_framework_date",
+                            "nice_name": "Git-Datum Test Framework",
+                            "text": {
+                                "actual": {
+                                    "actual_is_set": true,
+                                    "as_text": "",
+                                    "value": "2018-11-19"
+                                },
+                                "desired": {
+                                    "desired_is_set": false
+                                }
+                            }
+                        }
+                    ],
+                    "instance_caption": ""
+                }
+            ]
+        }
+    }
+}

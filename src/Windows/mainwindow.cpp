@@ -6,6 +6,7 @@
 #include "Protocols/sg04countprotocol.h"
 #include "Windows/dummydatacreator.h"
 #include "Windows/infowindow.h"
+#include "Windows/reporthistoryquery.h"
 #include "Windows/settingsform.h"
 #include "config.h"
 #include "console.h"
@@ -333,6 +334,7 @@ MainWindow::MainWindow(QWidget *parent)
     set_list_selection_from_path(QSettings{}.value(Globals::current_list_view_selection_key, "").toString());
     enable_run_test_button_by_script_selection();
     enable_closed_finished_test_button_script_states();
+    enable_abort_button_script();
 }
 
 MainWindow::~MainWindow() {
@@ -341,11 +343,11 @@ MainWindow::~MainWindow() {
 
 void MainWindow::shutdown() {
     /*
-     * This function should be the destructor.
-     * However, according to http://eel.is/c++draft/basic.life#1.3 the lifetime of the MainWindow ends when it enters the destructor.
-     * We need MainWindow to stay alive until all other threads end, so we cannot end other thread in ~MainWindow, so we use shutdown instead.
-     * It is believed that using the destructor instead of shutdown has caused segfaults and race conditions in practice.
-     */
+	 * This function should be the destructor.
+	 * However, according to http://eel.is/c++draft/basic.life#1.3 the lifetime of the MainWindow ends when it enters the destructor.
+	 * We need MainWindow to stay alive until all other threads end, so we cannot end other thread in ~MainWindow, so we use shutdown instead.
+	 * It is believed that using the destructor instead of shutdown has caused segfaults and race conditions in practice.
+	 */
     assert(currently_in_gui_thread());
     QSettings{}.setValue(Globals::last_view_mode_key, view_mode_to_string(view_mode_m));
     QSettings{}.setValue(Globals::expanded_paths_key, get_expanded_tree_view_paths());
@@ -355,19 +357,19 @@ void MainWindow::shutdown() {
     for (auto &test : test_runners) {
         if (test->is_running()) {
             test->interrupt();
-			test->message_queue_join();
+            test->message_queue_join();
         }
     }
 
-	QApplication::processEvents(); //process left over events
+    QApplication::processEvents(); //process left over events
 
-	ui->test_tabs->clear();
-	test_descriptions.clear();
-	test_runners.clear();
+    ui->test_tabs->clear();
+    test_descriptions.clear();
+    test_runners.clear();
 
-	devices_thread.quit();
-	assert(not devices_thread.is_current());
-	devices_thread.message_queue_join();
+    devices_thread.quit();
+    assert(not devices_thread.is_current());
+    devices_thread.message_queue_join();
 
     QObject::disconnect(ui->tests_advanced_view, &QTreeWidget::itemSelectionChanged, this, &MainWindow::on_tests_advanced_view_itemSelectionChanged);
     QObject::disconnect(ui->test_simple_view, &QListWidget::itemSelectionChanged, this, &MainWindow::on_test_simple_view_itemSelectionChanged);
@@ -429,7 +431,7 @@ void MainWindow::load_favorites() {
     ui->test_simple_view->clear();
     QIcon icon_star = QIcon{"://src/icons/star_16.ico"};
     QIcon icon_empty_star = QIcon{"://src/icons/if_star_empty_16.png"};
-	for (TestDescriptionLoader &test : test_descriptions) {
+    for (TestDescriptionLoader &test : test_descriptions) {
         const ScriptEntry favorite_entry = favorite_scripts.get_entry(test.get_name());
         if (favorite_entry.valid) {
             QListWidgetItem *item = new QListWidgetItem{favorite_entry.script_path};
@@ -437,7 +439,7 @@ void MainWindow::load_favorites() {
                 item->setText(favorite_entry.alternative_name);
             }
             item->setFlags(item->flags() | Qt::ItemIsEditable);
-			item->setData(Qt::UserRole, QVariant::fromValue(test.ui_entry.get()));
+            item->setData(Qt::UserRole, QVariant::fromValue(test.ui_entry.get()));
             item->setToolTip(favorite_entry.script_path);
             Identicon ident_icon{test.get_name().toLocal8Bit()};
             const int SCALE_FACTOR = 12;
@@ -556,6 +558,7 @@ void MainWindow::set_testrunner_state(TestRunner *testrunner, TestRunner_State s
         ui->test_tabs->tabBar()->setTabTextColor(runner_index, color);
     }
     enable_closed_finished_test_button_script_states();
+    enable_abort_button_script();
 }
 
 void MainWindow::adopt_testrunner(TestRunner *testrunner, QString title) {
@@ -726,16 +729,16 @@ TestDescriptionLoader *MainWindow::get_test_from_tree_widget(const QTreeWidgetIt
     if (item == nullptr) {
         item = ui->tests_advanced_view->currentItem();
     }
-	assert(item != nullptr);
+    assert(item != nullptr);
     if (item->childCount() > 0) {
-		return nullptr;
+        return nullptr;
     }
     QVariant data = item->data(0, Qt::UserRole);
-	return data.value<TestDescriptionLoader *>();
+    return data.value<TestDescriptionLoader *>();
 }
 
 QTreeWidgetItem *MainWindow::get_treewidgetitem_from_listViewItem(QListWidgetItem *item) {
-	return item->data(Qt::UserRole).value<QTreeWidgetItem *>();
+    return item->data(Qt::UserRole).value<QTreeWidgetItem *>();
 }
 
 TestDescriptionLoader *MainWindow::get_test_from_listViewItem(QListWidgetItem *item) {
@@ -769,6 +772,7 @@ void MainWindow::run_test_script(TestDescriptionLoader *test) {
     } else {
         runner.interrupt();
     }
+    enable_abort_button_script();
 }
 
 void MainWindow::on_test_simple_view_itemDoubleClicked(QListWidgetItem *item) {
@@ -797,7 +801,7 @@ void MainWindow::on_test_simple_view_itemSelectionChanged() {
 
 void MainWindow::on_tests_advanced_view_itemClicked(QTreeWidgetItem *item, int column) {
     if (column == 4) {
-		auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
+        auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
         if (test) {
             QString test_name = test->get_name();
             bool modified = false;
@@ -819,7 +823,7 @@ void MainWindow::on_tests_advanced_view_itemSelectionChanged() {
     auto item = ui->tests_advanced_view->currentItem();
     if (item) {
         if (item->childCount() == 0) {
-			auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
+            auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
             if (test == nullptr) {
                 return;
             }
@@ -955,7 +959,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     const bool one_is_running = std::any_of(std::begin(test_runners), std::end(test_runners), [](auto &runner) { return runner->is_running(); });
     if (one_is_running) {
         if (QMessageBox::question(this, tr(""), tr("Scripts are still running. Abort them now?"), QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
-			event->accept();
+            event->accept();
         } else {
             event->ignore();
         }
@@ -985,16 +989,20 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
         return;
     }
     auto &runner = **runner_it;
-	if (runner.is_running() &&
-		QMessageBox::question(this, tr("Abort script?"), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
+    if (runner.is_running() &&
+        QMessageBox::question(this, tr("Abort script?"), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
                               QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok) {
         return; //canceled closing the tab
     }
-    runner.interrupt();
-    runner.message_queue_join();
+    abort_script(&runner);
     QApplication::processEvents(); //runner may have sent events referencing runner. Need to process all such events before removing runner.
     test_runners.erase(runner_it);
     ui->test_tabs->removeTab(index);
+}
+
+void MainWindow::abort_script(TestRunner *runner) {
+    runner->interrupt();
+    runner->message_queue_join();
 }
 
 void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
@@ -1005,10 +1013,7 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 
         QAction action_abort_script(tr("Abort Script"), nullptr);
         if (runner->is_running()) {
-            connect(&action_abort_script, &QAction::triggered, [runner] {
-                runner->interrupt();
-                runner->message_queue_join();
-            });
+            connect(&action_abort_script, &QAction::triggered, [runner, this] { abort_script(runner); });
             menu.addAction(&action_abort_script);
         }
 
@@ -1173,6 +1178,22 @@ void MainWindow::enable_closed_finished_test_button_script_states() {
     }
 }
 
+void MainWindow::enable_abort_button_script() {
+    assert(currently_in_gui_thread());
+    bool enabled = false;
+    for (const auto &tr : test_runners) {
+        if (tr->is_running()) {
+            enabled = true;
+        }
+    }
+    ui->actionactionAbort->setEnabled(enabled);
+    if (enabled) {
+        ui->actionactionAbort->setToolTip(tr("Abort running scripts"));
+    } else {
+        ui->actionactionAbort->setToolTip(tr("Abort running scripts(no script is running)"));
+    }
+}
+
 void MainWindow::set_script_view_collapse_state(bool collapse_state) {
     assert(currently_in_gui_thread());
     static QList<int> old_sizes;
@@ -1240,4 +1261,30 @@ void MainWindow::on_tbtn_view_favorite_scripts_clicked() {
 void MainWindow::on_actionClose_finished_Tests_triggered() {
     assert(currently_in_gui_thread());
     close_finished_tests();
+}
+
+void MainWindow::on_actionactionAbort_triggered() {
+    assert(currently_in_gui_thread());
+    bool scripts_running = false;
+    for (auto &tr : test_runners) {
+        if (tr->is_running()) {
+            scripts_running = true;
+        }
+    }
+
+    if (scripts_running) {
+        if (QMessageBox::question(this, tr(""), tr("Abort running scripts now?"), QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
+            for (auto &tr : test_runners) {
+                if (tr->is_running()) {
+                    abort_script(tr.get());
+                }
+            }
+            enable_abort_button_script();
+        }
+    }
+}
+
+void MainWindow::on_actionQuery_Report_history_triggered() {
+    auto *testresultquery_window = new ReportHistoryQuery{this};
+    testresultquery_window->show();
 }

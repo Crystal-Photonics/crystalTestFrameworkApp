@@ -1,0 +1,633 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report>
+    <object Type="Object" ClassName="LimeReport::ReportEnginePrivate">
+        <pages Type="Collection">
+            <item Type="Object" ClassName="LimeReport::PageDesignIntf">
+                <pageItem Type="Object" ClassName="PageItem">
+                    <objectName Type="QString">ReportPage</objectName>
+                    <children Type="Collection">
+                        <item Type="Object" ClassName="ReportHeader">
+                            <bandIndex Type="int" Value="0"/>
+                            <objectName Type="QString">report_title</objectName>
+                            <children Type="Collection">
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="2000" height="100" x="0" y="0" Type="QRect"/>
+                                    <font pointSize="20" family="Arial" weight="50" italic="0" Type="QFont" stylename="" bold="1" underline="0"/>
+                                    <alignment Value="132" Type="enumAndFlags"/>
+                                    <content Type="QString">Report Example 1</content>
+                                    <objectName Type="QString">report_title</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="1000" height="50" x="0" y="200" Type="QRect"/>
+                                    <font pointSize="10" family="Arial" weight="50" italic="0" Type="QFont" stylename="" bold="0" underline="0"/>
+                                    <fontColor Value="#000000" Type="QColor"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <allowHTML Value="1" Type="bool"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">&lt;b&gt;Datum&lt;/b&gt;: $D{allgemein_datum_today.Actual}</content>
+                                    <objectName Type="QString">field_datum_today</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="1000" height="50" x="1000" y="200" Type="QRect"/>
+                                    <font pointSize="10" family="Arial" weight="50" italic="0" Type="QFont" stylename="" bold="0" underline="0"/>
+                                    <fontColor Value="#000000" Type="QColor"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <allowHTML Value="1" Type="bool"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">&lt;b&gt;Testende Person&lt;/b&gt;: $D{allgemein_testende_person.Actual}</content>
+                                    <objectName Type="QString">field_testende_person</objectName>
+                                </item>
+                            </children>
+                            <geometry width="2000" height="250" Type="QRect"/>
+                            <autoHeight Value="1" Type="bool"/>
+                        </item>
+                        <item Type="Object" ClassName="PageHeader">
+                            <bandIndex Type="int" Value="1"/>
+                            <objectName Type="QString">PageFooter_Band</objectName>
+                            <children Type="Collection"/>
+                            <geometry height="30" Type="QRect" width="2000"/>
+                            <autoHeight Value="1" Type="bool"/>
+                        </item>
+                        <item Type="Object" ClassName="PageFooter">
+                            <bandIndex Type="int" Value="2"/>
+                            <objectName Type="QString">PageFooter_Band</objectName>
+                            <children Type="Collection">
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="1000" height="30" x="0" y="0" Type="QRect"/>
+                                    <font pointSize="6" family="Arial" weight="50" italic="0" Type="QFont" stylename="" bold="0" underline="0"/>
+                                    <fontColor Value="#a8a8a8" Type="QColor"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <allowHTML Value="1" Type="bool"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">&lt;b&gt;Git-Hash Protokoll&lt;/b&gt;: $D{test_version_git_protokoll.Actual}</content>
+                                    <objectName Type="QString">field_git_protokoll</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="1000" height="30" x="1000" y="0" Type="QRect"/>
+                                    <font pointSize="6" family="Arial" weight="50" italic="0" Type="QFont" stylename="" bold="0" underline="0"/>
+                                    <fontColor Value="#a8a8a8" Type="QColor"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <allowHTML Value="1" Type="bool"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">&lt;b&gt;Git-Hash Test Framework&lt;/b&gt;: $D{test_version_git_framework.Actual}</content>
+                                    <objectName Type="QString">field_git_framework</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="1000" height="30" x="0" y="30" Type="QRect"/>
+                                    <font pointSize="6" family="Arial" weight="50" italic="0" Type="QFont" stylename="" bold="0" underline="0"/>
+                                    <fontColor Value="#a8a8a8" Type="QColor"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <allowHTML Value="1" Type="bool"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">&lt;b&gt;Git-Datum Protokoll&lt;/b&gt;: $D{test_version_git_protokoll_date.Actual}</content>
+                                    <objectName Type="QString">field_git_protokoll_date</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="1000" height="30" x="1000" y="30" Type="QRect"/>
+                                    <font pointSize="6" family="Arial" weight="50" italic="0" Type="QFont" stylename="" bold="0" underline="0"/>
+                                    <fontColor Value="#a8a8a8" Type="QColor"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <allowHTML Value="1" Type="bool"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">&lt;b&gt;Git-Datum Test Framework&lt;/b&gt;: $D{test_version_git_framework_date.Actual}</content>
+                                    <objectName Type="QString">field_git_framework_date</objectName>
+                                </item>
+                                <item ClassName="TextItem">
+                                    <geometry width="2000" height="50" x="0" y="60" Type="QRect"/>
+                                    <font pointSize="10" family="Arial" weight="50" italic="0" Type="QFont" stylename="" underline="0"/>
+                                    <alignment Value="36" Type="enumAndFlags"/>
+                                    <content Type="QString">$V{#PAGE}/$V{#PAGE_COUNT}</content>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <objectName Type="QString">Pagenumber</objectName>
+                                </item>
+                            </children>
+                            <geometry height="110" Type="QRect" width="2000"/>
+                            <autoHeight Value="1" Type="bool"/>
+                        </item>
+                        <item Type="Object" ClassName="ReportFooter">
+                            <bandIndex Type="int" Value="3"/>
+                            <objectName Type="QString">report_footer</objectName>
+                            <children Type="Collection">
+                                <item ClassName="ShapeItem">
+                                    <geometry width="1000" height="50" x="500" y="300" Type="QRect"/>
+                                </item>
+                                <item ClassName="TextItem">
+                                    <geometry width="200" height="50" x="1300" y="325" Type="QRect"/>
+                                    <font pointSize="10" family="Arial" weight="50" italic="0" Type="QFont" stylename="" underline="0"/>
+                                    <alignment Value="34" Type="enumAndFlags"/>
+                                    <content Type="QString">Signature</content>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <objectName Type="QString">text_signature</objectName>
+                                </item>
+                                <item ClassName="TextItem">
+                                    <geometry width="200" height="50" x="40" y="300" Type="QRect"/>
+                                    <font pointSize="10" family="Arial" weight="50" italic="0" Type="QFont" stylename="" underline="0"/>
+                                    <alignment Value="36" Type="enumAndFlags"/>
+                                    <content Type="QString">$S{dateFormat(now())}</content>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <objectName Type="QString">text_signature_date</objectName>
+                                </item>
+                                <item ClassName="TextItem">
+                                    <geometry width="250" height="50" x="250" y="300" Type="QRect"/>
+                                    <font pointSize="10" family="Arial" weight="50" italic="0" Type="QFont" stylename="" underline="0"/>
+                                    <alignment Value="36" Type="enumAndFlags"/>
+                                    <content Type="QString">Test operated by: $D{allgemein_testende_person_automatic.Actual}</content>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <objectName Type="QString">text_tester</objectName>
+                                </item>
+                            </children>
+                            <geometry width="2000" height="375" Type="QRect"/>
+                            <autoHeight Value="1" Type="bool"/>
+                        </item>
+                        <item Type="Object" ClassName="DataHeader">
+                            <bandIndex Type="int" Value="4"/>
+                            <parentBand Type="QString">DataBandmessmittel</parentBand>
+                            <geometry width="2000" height="170" x="0" y="100" Type="QRect"/>
+                            <objectName Type="QString">DataBandHeader_messmittel</objectName>
+                            <printAlways Value="1" Type="bool"/>
+                            <splittable Value="0" Type="bool"/>
+                            <children Type="Collection">
+                                <item Type="Object" ClassName="TextItem">
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="16" underline="0" italic="0" bold="1"/>
+                                    <geometry width="2000" height="100" x="0" y="50" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <content Type="QString">Messmittel</content>
+                                    <objectName Type="QString">DataHeaderTitle_messmittel</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="800" height="50" x="0" y="130" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="0" bold="1"/>
+                                    <content Type="QString">Name</content>
+                                    <objectName Type="QString">DataHeaderColumnHeader_Name_messmittel_instance</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="400" height="50" x="800" y="130" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="0" bold="1"/>
+                                    <content Type="QString">Target Value</content>
+                                    <objectName Type="QString">DataHeaderColumnHeader_Target Value_messmittel_instance</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="400" height="50" x="1200" y="130" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="0" bold="1"/>
+                                    <content Type="QString">Actual Value</content>
+                                    <objectName Type="QString">DataHeaderColumnHeader_Actual Value_messmittel_instance</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="400" height="50" x="1600" y="130" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="0" bold="1"/>
+                                    <content Type="QString">Result</content>
+                                    <objectName Type="QString">DataHeaderColumnHeader_Result_messmittel_instance</objectName>
+                                </item>
+                            </children>
+                        </item>
+                        <item Type="Object" ClassName="Data">
+                            <bandIndex Type="int" Value="5"/>
+                            <geometry width="2000" height="80" x="0" y="200" Type="QRect"/>
+                            <objectName Type="QString">DataBandmessmittel</objectName>
+                            <datasource Type="QString">messmittel_instance</datasource>
+                            <splittable Value="0" Type="bool"/>
+                            <keepBottomSpace Value="0" Type="bool"/>
+                            <printIfEmpty Value="1" Type="bool"/>
+                            <keepFooterTogether Value="0" Type="bool"/>
+                            <keepSubdetailTogether Value="0" Type="bool"/>
+                            <children Type="Collection">
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="2000" height="50" x="0" y="20" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="1" bold="0"/>
+                                    <content Type="QString">$D{messmittel_instance.Caption}</content>
+                                    <objectName Type="QString">DataSectionName_messmittel</objectName>
+                                </item>
+                            </children>
+                        </item>
+                        <item Type="Object" ClassName="SubDetail">
+                            <bandIndex Type="int" Value="6"/>
+                            <parentBand Type="QString">DataBandmessmittel</parentBand>
+                            <geometry width="2000" height="50" x="0" y="300" Type="QRect"/>
+                            <objectName Type="QString">SubDetailmessmittel</objectName>
+                            <datasource Type="QString">messmittel</datasource>
+                            <splittable Value="0" Type="bool"/>
+                            <alternateBackgroundColor Value="#F2F2F2" Type="QColor"/>
+                            <keepBottomSpace Value="0" Type="bool"/>
+                            <keepFooterTogether Value="0" Type="bool"/>
+                            <children Type="Collection">
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="800" height="50" x="0" y="0" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">$D{messmittel.Description}</content>
+                                    <objectName Type="QString">DataHeaderColumnNamemessmittel</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="400" height="50" x="800" y="0" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">$D{messmittel.Desired}</content>
+                                    <objectName Type="QString">DataHeaderColumnTarget Valuemessmittel</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="400" height="50" x="1200" y="0" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">$D{messmittel.Actual}</content>
+                                    <objectName Type="QString">DataHeaderColumnActual Valuemessmittel</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="400" height="50" x="1600" y="0" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">$D{messmittel.Inrange}</content>
+                                    <objectName Type="QString">DataHeaderColumnResultmessmittel</objectName>
+                                </item>
+                            </children>
+                        </item>
+                        <item Type="Object" ClassName="SubDetailFooter">
+                            <bandIndex Type="int" Value="7"/>
+                            <parentBand Type="QString">SubDetailmessmittel</parentBand>
+                            <geometry width="2000" height="25" x="0" y="400" Type="QRect"/>
+                            <objectName Type="QString">SubDetailFootermessmittel</objectName>
+                            <splittable Value="0" Type="bool"/>
+                            <keepBottomSpace Value="1" Type="bool"/>
+                            <keepFooterTogether Value="1" Type="bool"/>
+                            <autoHeight Value="0" Type="bool"/>
+                            <printIfEmpty Value="1" Type="bool"/>
+                            <printAlways Value="1" Type="bool"/>
+                        </item>
+                        <item Type="Object" ClassName="DataFooter">
+                            <bandIndex Type="int" Value="8"/>
+                            <parentBand Type="QString">DataBandmessmittel</parentBand>
+                            <geometry width="2000" height="50" x="0" y="500" Type="QRect"/>
+                            <objectName Type="QString">DataFootermessmittel</objectName>
+                            <splittable Value="0" Type="bool"/>
+                            <keepBottomSpace Value="1" Type="bool"/>
+                            <keepFooterTogether Value="1" Type="bool"/>
+                            <autoHeight Value="0" Type="bool"/>
+                            <printIfEmpty Value="1" Type="bool"/>
+                            <printAlways Value="1" Type="bool"/>
+                        </item>
+                        <item Type="Object" ClassName="DataHeader">
+                            <bandIndex Type="int" Value="9"/>
+                            <parentBand Type="QString">DataBandgerate_daten</parentBand>
+                            <geometry width="2000" height="170" x="0" y="600" Type="QRect"/>
+                            <objectName Type="QString">DataBandHeader_gerate_daten</objectName>
+                            <printAlways Value="1" Type="bool"/>
+                            <splittable Value="0" Type="bool"/>
+                            <children Type="Collection">
+                                <item Type="Object" ClassName="TextItem">
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="16" underline="0" italic="0" bold="1"/>
+                                    <geometry width="2000" height="100" x="0" y="50" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <content Type="QString">Geräte Daten</content>
+                                    <objectName Type="QString">DataHeaderTitle_gerate_daten</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="800" height="50" x="0" y="130" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="0" bold="1"/>
+                                    <content Type="QString">Name</content>
+                                    <objectName Type="QString">DataHeaderColumnHeader_Name_gerate_daten_instance</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="400" height="50" x="800" y="130" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="0" bold="1"/>
+                                    <content Type="QString">Target Value</content>
+                                    <objectName Type="QString">DataHeaderColumnHeader_Target Value_gerate_daten_instance</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="400" height="50" x="1200" y="130" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="0" bold="1"/>
+                                    <content Type="QString">Actual Value</content>
+                                    <objectName Type="QString">DataHeaderColumnHeader_Actual Value_gerate_daten_instance</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="400" height="50" x="1600" y="130" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="0" bold="1"/>
+                                    <content Type="QString">Result</content>
+                                    <objectName Type="QString">DataHeaderColumnHeader_Result_gerate_daten_instance</objectName>
+                                </item>
+                            </children>
+                        </item>
+                        <item Type="Object" ClassName="Data">
+                            <bandIndex Type="int" Value="10"/>
+                            <geometry width="2000" height="80" x="0" y="700" Type="QRect"/>
+                            <objectName Type="QString">DataBandgerate_daten</objectName>
+                            <datasource Type="QString">gerate_daten_instance</datasource>
+                            <splittable Value="0" Type="bool"/>
+                            <keepBottomSpace Value="0" Type="bool"/>
+                            <printIfEmpty Value="1" Type="bool"/>
+                            <keepFooterTogether Value="0" Type="bool"/>
+                            <keepSubdetailTogether Value="0" Type="bool"/>
+                            <children Type="Collection">
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="2000" height="50" x="0" y="20" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="1" bold="0"/>
+                                    <content Type="QString">$D{gerate_daten_instance.Caption}</content>
+                                    <objectName Type="QString">DataSectionName_gerate_daten</objectName>
+                                </item>
+                            </children>
+                        </item>
+                        <item Type="Object" ClassName="SubDetail">
+                            <bandIndex Type="int" Value="11"/>
+                            <parentBand Type="QString">DataBandgerate_daten</parentBand>
+                            <geometry width="2000" height="50" x="0" y="800" Type="QRect"/>
+                            <objectName Type="QString">SubDetailgerate_daten</objectName>
+                            <datasource Type="QString">gerate_daten</datasource>
+                            <splittable Value="0" Type="bool"/>
+                            <alternateBackgroundColor Value="#F2F2F2" Type="QColor"/>
+                            <keepBottomSpace Value="0" Type="bool"/>
+                            <keepFooterTogether Value="0" Type="bool"/>
+                            <children Type="Collection">
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="800" height="50" x="0" y="0" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">$D{gerate_daten.Description}</content>
+                                    <objectName Type="QString">DataHeaderColumnNamegerate_daten</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="400" height="50" x="800" y="0" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">$D{gerate_daten.Desired}</content>
+                                    <objectName Type="QString">DataHeaderColumnTarget Valuegerate_daten</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="400" height="50" x="1200" y="0" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">$D{gerate_daten.Actual}</content>
+                                    <objectName Type="QString">DataHeaderColumnActual Valuegerate_daten</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="400" height="50" x="1600" y="0" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">$D{gerate_daten.Inrange}</content>
+                                    <objectName Type="QString">DataHeaderColumnResultgerate_daten</objectName>
+                                </item>
+                            </children>
+                        </item>
+                        <item Type="Object" ClassName="SubDetailFooter">
+                            <bandIndex Type="int" Value="12"/>
+                            <parentBand Type="QString">SubDetailgerate_daten</parentBand>
+                            <geometry width="2000" height="25" x="0" y="900" Type="QRect"/>
+                            <objectName Type="QString">SubDetailFootergerate_daten</objectName>
+                            <splittable Value="0" Type="bool"/>
+                            <keepBottomSpace Value="1" Type="bool"/>
+                            <keepFooterTogether Value="1" Type="bool"/>
+                            <autoHeight Value="0" Type="bool"/>
+                            <printIfEmpty Value="1" Type="bool"/>
+                            <printAlways Value="1" Type="bool"/>
+                        </item>
+                        <item Type="Object" ClassName="DataFooter">
+                            <bandIndex Type="int" Value="13"/>
+                            <parentBand Type="QString">DataBandgerate_daten</parentBand>
+                            <geometry width="2000" height="50" x="0" y="1000" Type="QRect"/>
+                            <objectName Type="QString">DataFootergerate_daten</objectName>
+                            <splittable Value="0" Type="bool"/>
+                            <keepBottomSpace Value="1" Type="bool"/>
+                            <keepFooterTogether Value="1" Type="bool"/>
+                            <autoHeight Value="0" Type="bool"/>
+                            <printIfEmpty Value="1" Type="bool"/>
+                            <printAlways Value="1" Type="bool"/>
+                        </item>
+                        <item Type="Object" ClassName="DataHeader">
+                            <bandIndex Type="int" Value="14"/>
+                            <parentBand Type="QString">DataBandexceptional_approvals</parentBand>
+                            <geometry width="2000" height="170" x="0" y="1100" Type="QRect"/>
+                            <objectName Type="QString">DataBandHeader_exceptional_approval</objectName>
+                            <printAlways Value="0" Type="bool"/>
+                            <splittable Value="0" Type="bool"/>
+                            <children Type="Collection">
+                                <item Type="Object" ClassName="TextItem">
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="16" underline="0" italic="0" bold="1"/>
+                                    <geometry width="2000" height="100" x="0" y="50" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <content Type="QString">Exceptional Approvals</content>
+                                    <objectName Type="QString">DataHeaderTitle_exceptional_approval</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="100" height="50" x="0" y="130" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="0" bold="1"/>
+                                    <content Type="QString">ID</content>
+                                    <objectName Type="QString">DataHeaderColumnHeader_ID_exceptional_approval</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="800" height="50" x="100" y="130" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="0" bold="1"/>
+                                    <content Type="QString">Description</content>
+                                    <objectName Type="QString">DataHeaderColumnHeader_Description_exceptional_approval</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="500" height="50" x="900" y="130" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="0" bold="1"/>
+                                    <content Type="QString">Approved by</content>
+                                    <objectName Type="QString">DataHeaderColumnHeader_Approved by_exceptional_approval</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="600" height="50" x="1400" y="130" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <font Value="129" Type="QFont" stylename="" weight="50" family="Arial" pointSize="10" underline="0" italic="0" bold="1"/>
+                                    <content Type="QString">Signature</content>
+                                    <objectName Type="QString">DataHeaderColumnHeader_Signature_exceptional_approval</objectName>
+                                </item>
+                            </children>
+                        </item>
+                        <item Type="Object" ClassName="Data">
+                            <bandIndex Type="int" Value="15"/>
+                            <geometry width="2000" height="80" x="0" y="1200" Type="QRect"/>
+                            <objectName Type="QString">DataBandexceptional_approvals</objectName>
+                            <datasource Type="QString">exceptional_approvals</datasource>
+                            <splittable Value="0" Type="bool"/>
+                            <keepBottomSpace Value="0" Type="bool"/>
+                            <printIfEmpty Value="0" Type="bool"/>
+                            <keepFooterTogether Value="0" Type="bool"/>
+                            <children Type="Collection">
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="100" height="70" x="0" y="0" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">$D{exceptional_approvals.ID}</content>
+                                    <objectName Type="QString">DataHeaderColumnIDexceptional_approvals</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="800" height="70" x="100" y="0" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">$D{exceptional_approvals.Description}</content>
+                                    <objectName Type="QString">DataHeaderColumnDescriptionexceptional_approvals</objectName>
+                                </item>
+                                <item Type="Object" ClassName="TextItem">
+                                    <geometry width="500" height="70" x="900" y="0" Type="QRect"/>
+                                    <alignment Value="129" Type="enumAndFlags"/>
+                                    <autoHeight Value="1" Type="bool"/>
+                                    <backgroundMode Value="0" Type="enumAndFlags"/>
+                                    <content Type="QString">$D{exceptional_approvals.approving_person}</content>
+                                    <objectName Type="QString">DataHeaderColumnApproved byexceptional_approvals</objectName>
+                                </item>
+                                <item ClassName="ShapeItem">
+                                    <geometry width="600" height="-1" x="1400" y="69" Type="QRect"/>
+                                </item>
+                            </children>
+                        </item>
+                        <item Type="Object" ClassName="DataFooter">
+                            <bandIndex Type="int" Value="16"/>
+                            <parentBand Type="QString">DataBandexceptional_approvals</parentBand>
+                            <geometry width="2000" height="50" x="0" y="1300" Type="QRect"/>
+                            <objectName Type="QString">DataFooterexceptional_approvals</objectName>
+                            <splittable Value="0" Type="bool"/>
+                            <keepBottomSpace Value="1" Type="bool"/>
+                            <keepFooterTogether Value="1" Type="bool"/>
+                            <autoHeight Value="0" Type="bool"/>
+                            <printIfEmpty Value="0" Type="bool"/>
+                            <printAlways Value="0" Type="bool"/>
+                        </item>
+                    </children>
+                </pageItem>
+            </item>
+        </pages>
+        <datasourcesManager Type="Object" ClassName="LimeReport::DataSourceManager">
+            <objectName Type="QString">datasources</objectName>
+            <connections Type="Collection">
+                <item ClassName="LimeReport::ConnectionDesc" Type="Object">
+                    <name Type="QString">default_connection</name>
+                    <driver Type="QString">QSQLITE</driver>
+                    <databaseName Type="QString">X:\Alle\CrystalTestFramework\scripts\ak\data_engine_and_report\1\report_template.lrxml.db</databaseName>
+                </item>
+            </connections>
+            <queries Type="Collection">
+                <item ClassName="LimeReport::QueryDesc" Type="Object">
+                    <queryName Type="QString">allgemein_instance</queryName>
+                    <queryText Type="QString">SELECT * FROM allgemein_instance</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                </item>
+                <item ClassName="LimeReport::QueryDesc" Type="Object">
+                    <queryName Type="QString">gerate_daten_instance</queryName>
+                    <queryText Type="QString">SELECT * FROM gerate_daten_instance</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                </item>
+                <item ClassName="LimeReport::QueryDesc" Type="Object">
+                    <queryName Type="QString">messmittel_instance</queryName>
+                    <queryText Type="QString">SELECT * FROM messmittel_instance</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                </item>
+                <item ClassName="LimeReport::QueryDesc" Type="Object">
+                    <queryName Type="QString">test_version_instance</queryName>
+                    <queryText Type="QString">SELECT * FROM test_version_instance</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                </item>
+                <item ClassName="LimeReport::QueryDesc" Type="Object">
+                    <queryName Type="QString">unprinted_1_instance</queryName>
+                    <queryText Type="QString">SELECT * FROM unprinted_1_instance</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                </item>
+                <item ClassName="LimeReport::QueryDesc" Type="Object">
+                    <queryName Type="QString">allgemein_datum_today</queryName>
+                    <queryText Type="QString">SELECT * FROM allgemein WHERE Name = &quot;allgemein/datum_today&quot;</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                </item>
+                <item ClassName="LimeReport::QueryDesc" Type="Object">
+                    <queryName Type="QString">allgemein_testende_person</queryName>
+                    <queryText Type="QString">SELECT * FROM allgemein WHERE Name = &quot;allgemein/testende_person&quot;</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                </item>
+                <item ClassName="LimeReport::QueryDesc" Type="Object">
+                    <queryName Type="QString">test_version_git_protokoll</queryName>
+                    <queryText Type="QString">SELECT * FROM test_version WHERE Name = &quot;test_version/git_protokoll&quot;</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                </item>
+                <item ClassName="LimeReport::QueryDesc" Type="Object">
+                    <queryName Type="QString">test_version_git_framework</queryName>
+                    <queryText Type="QString">SELECT * FROM test_version WHERE Name = &quot;test_version/git_framework&quot;</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                </item>
+                <item ClassName="LimeReport::QueryDesc" Type="Object">
+                    <queryName Type="QString">test_version_git_protokoll_date</queryName>
+                    <queryText Type="QString">SELECT * FROM test_version WHERE Name = &quot;test_version/git_protokoll_date&quot;</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                </item>
+                <item ClassName="LimeReport::QueryDesc" Type="Object">
+                    <queryName Type="QString">test_version_git_framework_date</queryName>
+                    <queryText Type="QString">SELECT * FROM test_version WHERE Name = &quot;test_version/git_framework_date&quot;</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                </item>
+                <item ClassName="LimeReport::QueryDesc" Type="Object">
+                    <queryName Type="QString">allgemein_testende_person_automatic</queryName>
+                    <queryText Type="QString">SELECT * FROM allgemein WHERE Name = &quot;allgemein/testende_person&quot;</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                </item>
+                <item ClassName="LimeReport::QueryDesc" Type="Object">
+                    <queryName Type="QString">exceptional_approvals</queryName>
+                    <queryText Type="QString">SELECT * FROM exceptional_approvals ORDER BY ID</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                </item>
+            </queries>
+            <subqueries Type="Collection">
+                <item ClassName="LimeReport::SubQueryDesc" Type="Object">
+                    <queryName Type="QString">allgemein</queryName>
+                    <queryText Type="QString">SELECT * FROM allgemein WHERE InstanceID = $D{allgemein_instance.InstanceID}</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                    <master Type="QString">allgemein_instance</master>
+                </item>
+                <item ClassName="LimeReport::SubQueryDesc" Type="Object">
+                    <queryName Type="QString">gerate_daten</queryName>
+                    <queryText Type="QString">SELECT * FROM gerate_daten WHERE InstanceID = $D{gerate_daten_instance.InstanceID}</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                    <master Type="QString">gerate_daten_instance</master>
+                </item>
+                <item ClassName="LimeReport::SubQueryDesc" Type="Object">
+                    <queryName Type="QString">messmittel</queryName>
+                    <queryText Type="QString">SELECT * FROM messmittel WHERE InstanceID = $D{messmittel_instance.InstanceID}</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                    <master Type="QString">messmittel_instance</master>
+                </item>
+                <item ClassName="LimeReport::SubQueryDesc" Type="Object">
+                    <queryName Type="QString">test_version</queryName>
+                    <queryText Type="QString">SELECT * FROM test_version WHERE InstanceID = $D{test_version_instance.InstanceID}</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                    <master Type="QString">test_version_instance</master>
+                </item>
+                <item ClassName="LimeReport::SubQueryDesc" Type="Object">
+                    <queryName Type="QString">unprinted_1</queryName>
+                    <queryText Type="QString">SELECT * FROM unprinted_1 WHERE InstanceID = $D{unprinted_1_instance.InstanceID}</queryText>
+                    <connectionName Type="QString">default_connection</connectionName>
+                    <master Type="QString">unprinted_1_instance</master>
+                </item>
+            </subqueries>
+        </datasourcesManager>
+        <scriptContext Type="Object" ClassName="LimeReport::ScriptEngineContext"/>
+    </object>
+</Report>

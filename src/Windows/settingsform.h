@@ -2,10 +2,10 @@
 #define SETTINGSFORM_H
 
 #include <QDialog>
+#include <QKeySequenceEdit>
+#include <QLineEdit>
 #include <QSettings>
 #include <vector>
-#include <QLineEdit>
-#include <QKeySequenceEdit>
 
 namespace Ui {
     class SettingsForm;
@@ -37,8 +37,9 @@ class SettingsForm : public QDialog {
     void on_skip_keySequenceEdit_clear_button_clicked();
     void on_cancel_keySequenceEdit_clear_button_clicked();
 
+    void on_report_history_query_selector_clicked();
 
-private:
+    private:
     Ui::SettingsForm *ui;
     std::vector<std::pair<QLineEdit *, const char *>> get_config_lines() const;
     void write_ui_to_settings(QSettings &q_settings);
@@ -49,7 +50,6 @@ private:
         const char *config{};
         const char *default_key{};
     };
-
 
     std::vector<SettingsForm::Key_config> get_key_sequence_config() const;
 };

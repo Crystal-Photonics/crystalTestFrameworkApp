@@ -117,6 +117,10 @@ class EXPORT MainWindow : public QMainWindow {
     void on_actionReload_All_Scripts_triggered();
     void on_tbtn_collapse_console_clicked();
 
+    void on_actionQuery_Report_history_triggered();
+
+    void on_actionactionAbort_triggered();
+
     private:
     FavoriteScripts favorite_scripts;
     void refresh_devices(bool only_duts);
@@ -161,6 +165,7 @@ class EXPORT MainWindow : public QMainWindow {
     void set_list_selection_from_path(QString path);
     void enable_run_test_button_by_script_selection();
     void enable_closed_finished_test_button_script_states();
+    void enable_abort_button_script();
     void set_script_view_collapse_state(bool collapse_state);
     bool script_view_is_collapsed = false;
     void set_console_view_collapse_state(bool collapse_state);
@@ -172,6 +177,7 @@ class EXPORT MainWindow : public QMainWindow {
     QTreeWidgetItem *get_treewidgetitem_from_listViewItem(QListWidgetItem *item);
     void add_clear_button_to_console(QPlainTextEdit *console);
     void show_in_graphical_shell(const QString &pathIn);
+    void abort_script(TestRunner *runner);
 };
 
 template <class T>
@@ -186,7 +192,7 @@ bool operator==(const T *lhs, const std::unique_ptr<T> &rhs) {
 
 template <class Function, class... Args>
 void MainWindow::execute_in_gui_thread(Function f, Args &&... args) {
-	Utility::thread_call(this, [ f = std::move(f), args... ]() mutable { f(std::move(args)...); });
+    Utility::thread_call(this, [ f = std::move(f), args... ]() mutable { f(std::move(args)...); });
 }
 
 template <class Lua_UI_class>

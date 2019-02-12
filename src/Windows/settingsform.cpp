@@ -44,7 +44,6 @@ void SettingsForm::load_ui_from_settings(QSettings &q_settings) {
     }
 }
 
-
 void SettingsForm::on_btn_ok_clicked() {
     QSettings q_settigns{};
     write_ui_to_settings(q_settigns);
@@ -66,6 +65,7 @@ std::vector<std::pair<QLineEdit *, const char *>> SettingsForm::get_config_lines
             {ui->env_var_path, Globals::path_to_environment_variables_key},
             {ui->edit_exceptional_approval, Globals::path_to_excpetional_approval_db_key},
             {ui->favorite_script_path, Globals::favorite_script_file_key},
+            {ui->report_history_query, Globals::report_history_query_path},
             {ui->search_path, Globals::search_path_key}};
 }
 
@@ -82,6 +82,10 @@ static void request_user_file(QLineEdit *text, QString title, const char *key, c
     if (!selected_file.isEmpty()) {
         text->setText(selected_file);
     }
+}
+
+void SettingsForm::on_report_history_query_selector_clicked() {
+    request_user_dir(ui->report_history_query, tr("Select query path"), Globals::report_history_query_path);
 }
 
 void SettingsForm::on_test_script_path_selector_clicked() {
@@ -160,8 +164,6 @@ void SettingsForm::on_btn_import_clicked() {
         load_ui_from_settings(settings_file);
     }
 }
-
-
 
 void SettingsForm::on_confirm_keySequenceEdit_clear_button_clicked() {
     ui->confirm_keySequenceEdit->clear();

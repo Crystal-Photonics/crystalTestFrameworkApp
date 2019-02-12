@@ -1,0 +1,32 @@
+{
+	"test_version":{
+		"title":"Protokollversion",
+		"data":[
+			{	"name": "git_protokoll",        	"type": "string",									"nice_name":   "Git-Hash Protokoll"    						},
+			{   "name": "git_framework",	 		"type": "string",      								"nice_name":   "Git-Hash Test Framework"        			},
+			{	"name": "git_protokoll_date",       "type": "string",									"nice_name":   "Git-Datum Protokoll"    					},
+			{   "name": "git_framework_date",	 	"type": "string",      								"nice_name":   "Git-Datum Test Framework"        			}
+		]
+	},
+	
+	
+	"gerate_daten":{
+		"title":"Geräte Daten",
+		"data":[
+			{	"name": "seriennummer",        	"type": "number",											"nice_name":   "Seriennummer" 				},
+			{	"name": "led_pcb_chargennummer",   			"type": "string",   							"nice_name":   "PCB1 Chargennummer"    		},
+			{	"name": "display_chargennummer",   			"type": "string",   							"nice_name":   "PCB2 Chargennummer"    		}
+		]
+	},
+	
+	"dacadc":{
+		"title":"DAC / ADC",
+		"data":[
+			{	"name": "datum_test",        			"type": "datetime",										"nice_name":   "Datum"    						},
+			{	"name": "supply_voltage",   		      	"value": 3,   											"tolerance": 0.1,	"unit": "V", 	"si_prefix": 1, 	"nice_name":    "VCC Spannung gemessen mit Multimeter"  		},
+			{	"name": "led_blinkt",         							"value": true,   		 															"nice_name":    "Aufwachen aus Standby duch Bewegung funktioniert"  }
+
+		]
+	}
+}
+

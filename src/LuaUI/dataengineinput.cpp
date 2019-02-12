@@ -80,15 +80,15 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
     }
 
     auto entry_type = data_engine->get_entry_type(this->field_id);
-    switch (entry_type) {
+    switch (entry_type.t) {
         case EntryType::Bool: {
             field_type = FieldType::Bool;
 
         } break;
-        case EntryType::Numeric: {
+        case EntryType::Number: {
             field_type = FieldType::Numeric;
         } break;
-        case EntryType::String: {
+        case EntryType::Text: {
             field_type = FieldType::String;
         } break;
         default:
@@ -235,11 +235,11 @@ void DataEngineInput::save_to_data_engine() {
     assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     if (is_editable) {
         auto entry_type = data_engine->get_entry_type(field_id);
-        switch (entry_type) {
+        switch (entry_type.t) {
             case EntryType::Bool: {
                 data_engine->set_actual_bool(field_id, bool_result.value());
             } break;
-            case EntryType::Numeric: {
+            case EntryType::Number: {
                 QString t = lineedit->text();
                 bool ok;
                 double val = t.toDouble(&ok);
@@ -259,7 +259,7 @@ void DataEngineInput::save_to_data_engine() {
                 data_engine->set_actual_number(field_id, val * si_prefix);
 
             } break;
-            case EntryType::String: {
+            case EntryType::Text: {
                 data_engine->set_actual_text(field_id, lineedit->text());
             } break;
             default:
@@ -344,7 +344,7 @@ void DataEngineInput::await_event() {
 
 void DataEngineInput::set_explanation_text(const std::string &extra_explanation) {
     assert(MainWindow::gui_thread == QThread::currentThread());
-    this->extra_explanation = QString().fromStdString(extra_explanation);
+    this->extra_explanation = QString::fromStdString(extra_explanation);
     label_extra_explanation->setText(this->extra_explanation);
 }
 

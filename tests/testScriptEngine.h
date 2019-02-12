@@ -19,6 +19,7 @@ class TestScriptEngine : public QObject {
     void test_file_name_path();
     void test_create_name_path();
     void test_serachpath();
+    void test_pattern_check();
 };
 
 DECLARE_TEST(TestScriptEngine)

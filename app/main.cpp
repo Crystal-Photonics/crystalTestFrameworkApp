@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QDebug>
 #include <QMessageBox>
+#include <QSettings>
 #include <cassert>
 
 static QtMessageHandler old_handler;
@@ -11,17 +12,12 @@ void message_handler(QtMsgType type, const QMessageLogContext &context, const QS
     switch (type) {
         case QtCriticalMsg:
         case QtFatalMsg: {
-            const auto file = context.file ? context.file : "unknown file";
-            const auto function = context.function ? context.function : "unknown function";
-            qDebug() << msg << "in" << file << ":" << function << ':' << context.line;
-            if (context.file == nullptr) {
-                break;
-            }
-            auto show_message = [msg, file = std::string{file}, function = std::string{function}, line = context.line] {
-                QMessageBox::critical(MainWindow::mw, "Qt Error",
-                                      '\"' + msg + '\"' + "\nwas caused by " + function.c_str() + " in " + file.c_str() + ":" + QString::number(line) +
-                                          ".\n"
-                                          "Press CTRL+C to copy the content of this message box to your clipboard.");
+            qDebug() << msg;
+            auto show_message = [ msg, file = QString{context.file}, function = QString{context.function}, line = context.line ] {
+                QMessageBox::critical(MainWindow::mw, "Qt Error", '\"' + msg + '\"' + "\nwas caused by " + function + " in " + file + ":" +
+                                                                      QString::number(line) +
+                                                                      ".\n"
+                                                                      "Press CTRL+C to copy the content of this message box to your clipboard.");
             };
             if (MainWindow::mw != nullptr) {
                 MainWindow::mw->execute_in_gui_thread(show_message);
@@ -30,17 +26,12 @@ void message_handler(QtMsgType type, const QMessageLogContext &context, const QS
             }
         } break;
         case QtWarningMsg: {
-            const auto file = context.file ? context.file : "unknown file";
-            const auto function = context.function ? context.function : "unknown function";
-            qDebug() << msg << "in" << file << ":" << function << ':' << context.line;
-            if (context.file == nullptr) {
-                break;
-            }
-            auto show_message = [msg, file = std::string{file}, function = std::string{function}, line = context.line] {
-                QMessageBox::warning(MainWindow::mw, "Qt Warning",
-                                     '\"' + msg + '\"' + "\nwas caused by " + function.c_str() + " in " + file.c_str() + ":" + QString::number(line) +
-                                         ".\n"
-                                         "Press CTRL+C to copy the content of this message box to your clipboard.");
+            qDebug() << msg;
+            auto show_message = [ msg, file = QString{context.file}, function = QString{context.function}, line = context.line ] {
+                QMessageBox::warning(MainWindow::mw, "Qt Warning", '\"' + msg + '\"' + "\nwas caused by " + function + " in " + file + ":" +
+                                                                       QString::number(line) +
+                                                                       ".\n"
+                                                                       "Press CTRL+C to copy the content of this message box to your clipboard.");
             };
             if (MainWindow::mw != nullptr) {
                 MainWindow::mw->execute_in_gui_thread(show_message);
@@ -58,6 +49,7 @@ int main(int argc, char *argv[]) {
     QCoreApplication::setOrganizationName("CPG");
     QCoreApplication::setApplicationName("Crystal Test Framework App");
     old_handler = qInstallMessageHandler(message_handler);
+    //QSettings::setDefaultFormat(QSettings::IniFormat); //this way we would save the settings in an ini file. but better keep it in registry to maintain compatibility
     QApplication a(argc, argv);
     MainWindow w;
     w.showMaximized();

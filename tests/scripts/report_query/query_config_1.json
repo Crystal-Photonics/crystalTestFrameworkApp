@@ -1,0 +1,41 @@
+{
+	"queries":[
+		{
+			"report_path": "reports1/",
+			"data_engine_source_file": "data_engine_source_1.json",
+			"select_field_names":[
+				"general/test_duration_seconds",
+				"report/gerate_daten/pcb2_chargennummer",
+				"report/gerate_daten/seriennummer"
+			]
+			
+			
+		}
+	],
+	"where_fields":[
+		{
+			"field_name": "report/gerate_daten/seriennummer",
+			"incremention_selector_expression":"(\\d*)",
+			"field_type" : "Number",
+			"conditions":[
+				{
+					"values" : [
+						50050,
+						50056
+					],
+					"include_greater_values_till_next_entry" : true
+					
+				},
+				{
+					"values" : [
+						50070,
+						50042,
+						50043
+					],
+					"include_greater_values_till_next_entry" : false
+				}
+			]
+		}
+	]
+
+}

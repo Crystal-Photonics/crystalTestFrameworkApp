@@ -1,8 +1,10 @@
 #include "isotopesourceselector.h"
+#include "Windows/mainwindow.h"
 #include "config.h"
+#include "qt_util.h"
 #include "ui_container.h"
-
 #include <QComboBox>
+#include <QDesktopServices>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -28,20 +30,16 @@ IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     load_isotope_database();
     fill_combobox_with_isotopes("*");
     parent->scroll_to_bottom();
-
-    callback_isotope_selected = QObject::connect(combobox, &QComboBox::currentTextChanged, [this](const QString &text) {
-        QSettings{}.setValue(Globals::isotope_source_most_recent_key, text);
-    });
 }
 
 IsotopeSourceSelector::~IsotopeSourceSelector() {
     combobox->setEnabled(false);
-    QObject::disconnect(callback_isotope_selected);
+    disconnect_isotope_selecteted();
 }
 
 double IsotopeSourceSelector::get_selected_activity_Bq() {
     QString my_serial_number = combobox->currentText();
-    QSettings{}.setValue(Globals::isotope_source_most_recent_key, my_serial_number);
+    save_most_recent();
     return get_source_by_serial_number(combobox->currentText()).get_activtiy_becquerel(QDate::currentDate());
 }
 
@@ -54,6 +52,7 @@ void IsotopeSourceSelector::set_enabled(bool enabled) {
 }
 
 void IsotopeSourceSelector::filter_by_isotope(std::string isotope_name) {
+    isotope_filter_m = QString::fromStdString(isotope_name);
     fill_combobox_with_isotopes(QString::fromStdString(isotope_name));
 }
 
@@ -67,12 +66,15 @@ std::string IsotopeSourceSelector::get_selected_name() {
 }
 
 void IsotopeSourceSelector::fill_combobox_with_isotopes(QString isotope_name) {
+    disconnect_isotope_selecteted();
     combobox->clear();
     for (auto item : isotope_sources) {
         if ((isotope_name == "") || (isotope_name == "*") || (item.isotope.toLower() == isotope_name.toLower())) {
             combobox->addItem(item.serial_number);
         }
     }
+    load_most_recent();
+    connect_isotope_selecteted();
 }
 
 IsotopeSource IsotopeSourceSelector::get_source_by_serial_number(QString serial_number) {
@@ -86,7 +88,6 @@ IsotopeSource IsotopeSourceSelector::get_source_by_serial_number(QString serial_
 }
 
 void IsotopeSourceSelector::load_isotope_database() {
-    QString most_recent_serial_number = QSettings{}.value(Globals::isotope_source_most_recent_key, "").toString();
     QString fn = QSettings{}.value(Globals::isotope_source_data_base_path_key, "").toString();
 
     isotope_sources.clear();
@@ -140,12 +141,32 @@ void IsotopeSourceSelector::load_isotope_database() {
             QString msg = QString{"dont knwo halftime of isotope \"%1\" in isotope source database."}.arg(isotope_source.isotope);
             throw sol::error(msg.toStdString());
         }
+        isotope_sources.append(isotope_source);
+    }
+}
 
-        if (most_recent_serial_number == isotope_source.serial_number) {
-            isotope_sources.insert(0, isotope_source);
-        } else {
-            isotope_sources.append(isotope_source);
-        }
+void IsotopeSourceSelector::load_most_recent() {
+    QString most_recent_serial_number = QSettings{}.value(QString(Globals::isotope_source_most_recent_key) + "_" + isotope_filter_m.toLower(), "").toString();
+    if (combobox->findText(most_recent_serial_number) > -1) {
+        combobox->setCurrentText(most_recent_serial_number);
+    }
+}
+
+void IsotopeSourceSelector::save_most_recent() {
+    QSettings{}.setValue(QString(Globals::isotope_source_most_recent_key) + "_" + isotope_filter_m.toLower(), combobox->currentText());
+}
+
+void IsotopeSourceSelector::connect_isotope_selecteted() {
+    assert(!callback_isotope_selected);
+    callback_isotope_selected = QObject::connect(combobox, &QComboBox::currentTextChanged, [this](const QString &text) {
+        save_most_recent();
+        (void)text;
+    });
+}
+
+void IsotopeSourceSelector::disconnect_isotope_selecteted() {
+    if (callback_isotope_selected) {
+        QObject::disconnect(callback_isotope_selected);
     }
 }
 
