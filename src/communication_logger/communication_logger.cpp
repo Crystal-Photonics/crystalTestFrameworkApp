@@ -1,13 +1,22 @@
 #include "communication_logger.h"
 #include "Protocols/rpcprotocol.h"
 #include "Windows/devicematcher.h"
+#include "console.h"
 
 #include <QDebug>
 #include <QPlainTextEdit>
+#include <QTextDocument>
 #include <iomanip>
 
 Communication_logger::Communication_logger(Console &console) {
 	//connections.push_back(connect(console, &QPlainTextEdit::));
+	const auto document = console.get_plaintext_edit()->document();
+	connections.push_back(
+		connect(document, &QTextDocument::contentsChange, [ document, log_target = this->log_target ](int position, int /*removed*/, int added) {
+			if (added) {
+				(*log_target) << "Console: " << document->toPlainText().mid(position, added).toStdString() << '\n';
+			}
+		}));
 }
 
 Communication_logger::~Communication_logger() {

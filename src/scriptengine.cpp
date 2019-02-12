@@ -256,7 +256,7 @@ Event_id::Event_id ScriptEngine::await_hotkey_event() {
     if (await_condition == Event_id::interrupted) {
         throw std::runtime_error("Interrupted");
     }
-        // qDebug() << "eventloop Interruption";
+	// qDebug() << "eventloop Interruption";
     auto connections = Utility::promised_thread_call(MainWindow::mw, [this] {
         std::array<QMetaObject::Connection, 3> connections;
         std::array<void (MainWindow::*)(), 3> key_signals = {&MainWindow::confirm_key_sequence_pressed, &MainWindow::cancel_key_sequence_key_pressed,
@@ -267,18 +267,18 @@ Event_id::Event_id ScriptEngine::await_hotkey_event() {
                 {
                     std::unique_lock<std::mutex> lock{await_mutex};
                     await_condition = event_id;
-    }
+				}
                 await_condition_variable.notify_one();
-        });
+			});
         }
         return connections;
     });
-        //    MainWindow::mw->execute_in_gui_thread(this, [this, &timer, timeout_ms, &callback_timer] {
+	//    MainWindow::mw->execute_in_gui_thread(this, [this, &timer, timeout_ms, &callback_timer] {
     auto disconnector = Utility::RAII_do([connections] {
         for (auto &connection : connections) {
             QObject::disconnect(connection);
-                                     }
-        });
+		}
+	});
     //wait for hotkey or interrupt
     await_condition_variable.wait(lock, [this] {
         return await_condition != Event_id::interrupted && await_condition != Event_id::Hotkey_confirm_pressed &&
@@ -305,7 +305,7 @@ void ScriptEngine::post_hotkey_event(Event_id::Event_id event) {
     {
         std::unique_lock<std::mutex> lock{await_mutex};
         await_condition = event;
-        }
+	}
     await_condition_variable.notify_one();
 }
 
@@ -314,7 +314,7 @@ void ScriptEngine::post_interrupt(QString message) {
     {
         std::unique_lock<std::mutex> lock{await_mutex};
         await_condition = Event_id::interrupted;
-                             }
+	}
     await_condition_variable.notify_one();
 }
 
@@ -553,16 +553,17 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
 				[ console = this->console, filename = target_filename + " console output.txt", additional_pdf_path = this->additional_pdf_path ] {
                     std::ofstream f{filename};
 					f << console.get_plaintext_edit()->toPlainText().toStdString();
-                    f.close();
-            if (additional_pdf_path.count()) {
+					f.close();
+					if (additional_pdf_path.count()) {
                         QFile::copy(QString::fromStdString(filename), additional_pdf_path);
-            }
+					}
                 });
 
             data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
+			data_engine->set_log_file(target_filename + " log.txt");
             if (additional_pdf_path.count()) {
                 QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
-        }
+			}
         }
         if (data_engine_auto_dump_path.count()) {
             QFileInfo fi(data_engine_auto_dump_path);
