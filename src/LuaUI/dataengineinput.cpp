@@ -1,5 +1,4 @@
 #include "dataengineinput.h"
-
 #include "Windows/mainwindow.h"
 #include "config.h"
 #include "ui_container.h"
@@ -22,6 +21,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <cassert>
 
 ///\cond HIDDEN_SYMBOLS
 DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_engine, Data_engine *data_engine_, std::string field_id_,
@@ -245,9 +245,9 @@ void DataEngineInput::save_to_data_engine() {
                 double val = t.toDouble(&ok);
                 double si_prefix = data_engine->get_si_prefix(field_id);
                 if (!ok) {
-                    val = QInputDialog::getDouble(parent, "Invalid value",
-                                                  "Der Wert \"" + t + "\" im Feld \"" + label_de_description->text() + " " + label_de_desired_value->text() +
-                                                      "\" ist keine Nummer. Bitte tragen Sie die nach.");
+					val = QInputDialog::getDouble(parent, "Invalid value", "Der Wert \"" + t + "\" im Feld \"" + label_de_description->text() + " " +
+																			   label_de_desired_value->text() +
+																			   "\" ist keine Nummer. Bitte tragen Sie die nach.");
 
 #if 0
                     auto s = QString("DataEngineInput line edit does not contain a number for field-id \"%1\"").arg(field_id);
