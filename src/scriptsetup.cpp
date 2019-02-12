@@ -23,6 +23,7 @@
 #include "chargecounter.h"
 #include "communication_devices.h"
 #include "config.h"
+#include "console.h"
 #include "data_engine/data_engine.h"
 #include "datalogger.h"
 #include "environmentvariables.h"
@@ -330,12 +331,12 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             show_warning(QString::fromStdString(path), title, message);
         };
 
-        lua["print"] = [console = script_engine.console](const sol::variadic_args &args) {
+		lua["print"] = [console = script_engine.console.get_plaintext_edit()](const sol::variadic_args &args) {
             if (QThread::currentThread()->isInterruptionRequested()) {
                 throw sol::error("Abort Requested");
             }
 
-            print(console, args);
+			print(console, args);
         };
 
         lua["sleep_ms"] = [&script_engine](const unsigned int timeout_ms) { sleep_ms(&script_engine, timeout_ms); };
@@ -365,15 +366,15 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
     //table functions
     {
         lua["table_save_to_file"] =
-            [ console = script_engine.console, path = path ](const std::string file_name, sol::table input_table, bool over_write_file) {
+			[ console = script_engine.console.get_plaintext_edit(), path = path ](const std::string file_name, sol::table input_table, bool over_write_file) {
             table_save_to_file(console, get_absolute_file_path(QString::fromStdString(path), file_name), input_table, over_write_file);
         };
-        lua["table_load_from_file"] = [&lua, console = script_engine.console, path = path ](const std::string file_name) {
+		lua["table_load_from_file"] = [&lua, console = script_engine.console.get_plaintext_edit(), path = path ](const std::string file_name) {
             return table_load_from_file(console, lua, get_absolute_file_path(QString::fromStdString(path), file_name));
         };
         lua["table_sum"] = [](sol::table table) { return table_sum(table); };
 
-        lua["table_crc16"] = [console = script_engine.console](sol::table table) {
+		lua["table_crc16"] = [console = script_engine.console.get_plaintext_edit()](sol::table table) {
             return table_crc16(console, table);
         };
 
@@ -434,8 +435,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
         lua["git_info"] = [&lua, path = path ](std::string dir_path, bool allow_modified) {
             return git_info(lua, get_absolute_file_path(QString::fromStdString(path), dir_path), allow_modified);
         };
-        lua["run_external_tool"] =
-            [&lua, path = path ](const std::string &execute_directory, const std::string &executable, const sol::table &arguments, uint timeout_s) {
+		lua["run_external_tool"] = [path = path](const std::string &execute_directory, const std::string &executable, const sol::table &arguments,
+												 uint timeout_s) {
             return run_external_tool(QString::fromStdString(path),
                                      QString::fromStdString(get_absolute_file_path(QString::fromStdString(path), execute_directory)),
                                      QString::fromStdString(executable), arguments, timeout_s)
@@ -460,7 +461,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
     {
         lua.new_usertype<DataLogger>(
             "DataLogger", //
-            sol::meta_function::construct, sol::factories([ console = script_engine.console, path = path ](
+			sol::meta_function::construct, sol::factories([ console = script_engine.console.get_plaintext_edit(), path = path ](
                                                const std::string &file_name, char seperating_character, sol::table field_names, bool over_write_file) {
                 return DataLogger{console, get_absolute_file_path(QString::fromStdString(path), file_name), seperating_character, field_names, over_write_file};
             }), //

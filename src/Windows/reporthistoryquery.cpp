@@ -2,7 +2,9 @@
 #include "Windows/mainwindow.h"
 #include "config.h"
 #include "data_engine/data_engine.h"
+#include "sol.hpp"
 #include "ui_reporthistoryquery.h"
+
 #include <QAction>
 #include <QByteArray>
 #include <QDateTime>
@@ -204,6 +206,12 @@ void ReportHistoryQuery::clear_where_pages() {
     }
 }
 
+void ReportHistoryQuery::link_menu(const QPoint &pos) {
+	QTreeWidget *tree = ui->tree_query_fields;
+	QTreeWidgetItem *clicked_item = tree->itemAt(pos);
+	create_link_menu(tree->mapToGlobal(pos), clicked_item);
+}
+
 void ReportHistoryQuery::on_btn_next_clicked() {
     int i = ui->stk_report_history->currentIndex() + 1;
     if (i < ui->stk_report_history->count()) {
@@ -402,12 +410,6 @@ void ReportHistoryQuery::on_btn_link_field_to_clicked() {
     if (clicked_item->data(0, Qt::UserRole).type() == QVariant::String) {
         create_link_menu(ui->btn_link_field_to->mapToGlobal(QPoint(0, 0)), clicked_item);
     }
-}
-
-void ReportHistoryQuery::link_menu(const QPoint &pos) {
-    QTreeWidget *tree = ui->tree_query_fields;
-    QTreeWidgetItem *clicked_item = tree->itemAt(pos);
-    create_link_menu(tree->mapToGlobal(pos), clicked_item);
 }
 
 void ReportHistoryQuery::create_link_menu(const QPoint &global_pos, QTreeWidgetItem *clicked_item) {
@@ -977,7 +979,7 @@ void ReportQueryConfigFile::load_from_file(QString file_name) {
     int max_query_id = 0;
     if ((file_name == "") || !QFile::exists(file_name)) {
         QString msg = QString{"report query config file %1 does not exist."}.arg(file_name);
-        throw sol::error(msg.toStdString());
+		throw sol::error(msg.toStdString());
     }
     QFile loadFile(file_name);
     if (!loadFile.open(QIODevice::ReadOnly)) {

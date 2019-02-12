@@ -77,6 +77,7 @@ HEADERS += \
 	Windows/exceptiontalapprovaldialog.h \
 	Windows/infowindow.h \
 	Windows/mainwindow.h \
+	Windows/reporthistoryquery.h \
 	Windows/scpimetadatadeviceselector.h \
 	Windows/settingsform.h \
 	chargecounter.h \
@@ -145,6 +146,7 @@ SOURCES += \
 	Windows/exceptiontalapprovaldialog.cpp \
 	Windows/infowindow.cpp \
 	Windows/mainwindow.cpp \
+	Windows/reporthistoryquery.cpp \
 	Windows/scpimetadatadeviceselector.cpp \
 	Windows/settingsform.cpp \
 	chargecounter.cpp \

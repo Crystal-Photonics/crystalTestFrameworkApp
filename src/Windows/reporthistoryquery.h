@@ -466,6 +466,7 @@ class ReportHistoryQuery : public QDialog {
     ~ReportHistoryQuery();
 
     private slots:
+	void link_menu(const QPoint &pos);
     void on_btn_next_clicked();
     void on_btn_back_clicked();
     void on_btn_close_clicked();
@@ -473,23 +474,13 @@ class ReportHistoryQuery : public QDialog {
     void on_tree_query_fields_itemDoubleClicked(QTreeWidgetItem *item, int column);
     void on_btn_where_del_clicked();
     void on_tree_query_fields_itemClicked(QTreeWidgetItem *item, int column);
-
     void on_btn_import_clicked();
-
     void on_cmb_query_recent_currentIndexChanged(int index);
-
     void on_btn_save_query_clicked();
-
     void on_btn_save_query_as_clicked();
-
     void on_toolButton_3_clicked();
-
     void on_btn_result_export_clicked();
-
-    void link_menu(const QPoint &pos);
-
     void on_btn_link_field_to_clicked();
-
     void on_tree_query_fields_itemSelectionChanged();
 
     private:
