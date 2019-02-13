@@ -549,18 +549,8 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
             std::string target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
             target_filename.resize(target_filename.size() - 4);
 
-            MainWindow::mw->execute_in_gui_thread(
-				[ console = this->console, filename = target_filename + " console output.txt", additional_pdf_path = this->additional_pdf_path ] {
-                    std::ofstream f{filename};
-					f << console.get_plaintext_edit()->toPlainText().toStdString();
-					f.close();
-					if (additional_pdf_path.count()) {
-                        QFile::copy(QString::fromStdString(filename), additional_pdf_path);
-					}
-                });
-
             data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
-			data_engine->set_log_file(target_filename + " log.txt");
+			data_engine->set_log_file(target_filename + "_log.txt");
             if (additional_pdf_path.count()) {
                 QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
 			}
