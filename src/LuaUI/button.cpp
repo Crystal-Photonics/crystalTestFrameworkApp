@@ -1,6 +1,6 @@
 #include "button.h"
+#include "Windows/mainwindow.h"
 #include "util.h"
-
 #include <QPushButton>
 #include <QSplitter>
 #include <QString>
@@ -16,11 +16,13 @@ Button::Button(UI_container *parent, ScriptEngine *script_engine, const std::str
     button->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     pressed_connection = QObject::connect(button, &QPushButton::pressed, [this] { pressed = true; });
     parent->scroll_to_bottom();
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
 Button::~Button() {
     QObject::disconnect(pressed_connection);
     button->setEnabled(false);
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 ///\endcond
 bool Button::has_been_clicked() const {
@@ -41,4 +43,5 @@ void Button::await_click() {
 
 void Button::set_visible(bool visible) {
     button->setVisible(visible);
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }

@@ -3,6 +3,7 @@
 #include "label.h"
 #include "ui_container.h"
 
+#include "Windows/mainwindow.h"
 #include <QDebug>
 #include <QFrame>
 #include <QVBoxLayout>
@@ -22,12 +23,15 @@ HLine::HLine(UI_container *parent)
     parent->add(layout, this);
 
     parent->scroll_to_bottom();
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
 HLine::~HLine() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     line->setEnabled(false);
 }
 
 void HLine::set_visible(bool visible) {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     line->setVisible(visible);
 }

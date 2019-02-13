@@ -59,7 +59,7 @@ DataEngineInput::DataEngineInput(UI_container *parent_, ScriptEngine *script_eng
 
     label_extra_explanation->setText(extra_explanation);
     label_extra_explanation->setWordWrap(true);
-
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     assert(data_engine);
     QString desc = data_engine->get_description(this->field_id);
     label_de_description->setText(desc);
@@ -200,6 +200,7 @@ DataEngineInput::~DataEngineInput() {
     QObject::disconnect(callback_next);
     QObject::disconnect(callback_bool_no);
     QObject::disconnect(callback_bool_yes);
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     set_enabled(false);
 }
 ///\endcond
@@ -224,7 +225,7 @@ void DataEngineInput::set_editable() {
     if (is_editable) {
         return;
     }
-
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     label_extra_explanation->setText(extra_explanation);
 
     is_editable = true;
@@ -245,9 +246,9 @@ void DataEngineInput::save_to_data_engine() {
                 double val = t.toDouble(&ok);
                 double si_prefix = data_engine->get_si_prefix(field_id);
                 if (!ok) {
-					val = QInputDialog::getDouble(parent, "Invalid value", "Der Wert \"" + t + "\" im Feld \"" + label_de_description->text() + " " +
-																			   label_de_desired_value->text() +
-																			   "\" ist keine Nummer. Bitte tragen Sie die nach.");
+                    val = QInputDialog::getDouble(parent, "Invalid value", "Der Wert \"" + t + "\" im Feld \"" + label_de_description->text() + " " +
+                                                                               label_de_desired_value->text() +
+                                                                               "\" ist keine Nummer. Bitte tragen Sie die nach.");
 
 #if 0
                     auto s = QString("DataEngineInput line edit does not contain a number for field-id \"%1\"").arg(field_id);
@@ -267,7 +268,8 @@ void DataEngineInput::save_to_data_engine() {
         }
     } else {
         throw std::runtime_error(
-            QString("DataEngineInput for field-id \"%1\" shall write to dataengine but since it is not in edit mode, there is no data to write.")
+            QObject::tr("DataEngineInput for field-id \"%1\" shall write to dataengine but since it is not in edit mode, there is no data to "
+                        "write. The functions save_to_data_engine, load_actual_value and await_event set the editable flag to false.")
                 .arg(field_id)
                 .toStdString());
     }
@@ -291,7 +293,7 @@ void DataEngineInput::sleep_ms(uint timeout_ms) {
     });
     set_ui_visibility();
     if (QThread::currentThread()->isInterruptionRequested()) {
-        throw sol::error("Abort Requested");
+        throw sol::error(QObject::tr("Abort Requested").toStdString());
     }
 }
 
@@ -471,6 +473,7 @@ void DataEngineInput::set_button_visibility(bool next, bool yes_no) {
 }
 
 void DataEngineInput::set_labels_enabled() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     label_extra_explanation->setEnabled(is_enabled);
     label_de_description->setEnabled(is_enabled);
     label_de_desired_value->setEnabled(is_enabled);
@@ -487,6 +490,7 @@ void DataEngineInput::set_labels_enabled() {
 
 void DataEngineInput::set_ui_visibility() {
     Utility::promised_thread_call(MainWindow::mw, [this] {
+        assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
         if (init_ok == false) {
             return;
         }
