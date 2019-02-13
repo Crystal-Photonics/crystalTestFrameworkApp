@@ -129,7 +129,7 @@ script:
   - make clean
   - rm .qmake.stash
   - qmake "CONFIG+=debug"
-  - make -j$(nproc)
+  - travis_wait make -j$(nproc)
   - cd $TRAVIS_BUILD_DIR/bin/debug/
   - xvfb-run --auto-servernum ./tests
 
@@ -139,7 +139,7 @@ script:
   - make clean
   - rm .qmake.stash
   - qmake "CONFIG+=debug"
-  - make -j$(nproc)
+  - travis_wait make -j$(nproc)
   - cd $TRAVIS_BUILD_DIR/bin/debug/
   - xvfb-run --auto-servernum ./tests
 
