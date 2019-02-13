@@ -9,6 +9,7 @@
 #include <QList>
 #include <QString>
 #include <QVariant>
+#include <cassert>
 #include <experimental/optional>
 #include <istream>
 #include <memory>
