@@ -365,6 +365,7 @@ void MainWindow::shutdown() {
 
     ui->test_tabs->clear();
     test_descriptions.clear();
+	ui->test_simple_view->clear();
     test_runners.clear();
 
     devices_thread.quit();
