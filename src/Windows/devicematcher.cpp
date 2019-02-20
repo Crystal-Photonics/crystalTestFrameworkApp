@@ -130,69 +130,74 @@ bool DeviceMatcher::is_match_possible(DeviceWorker &device_worker, TestDescripti
 }
 
 void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runner, TestDescriptionLoader &test) {
-    successful_matching = true;
-    bool over_defined_found = false;
-    devices_to_match.clear();
+	return match_devices(device_worker, runner, test.get_device_requirements(), test.get_name());
+}
 
-    for (auto &device_requirement : test.get_device_requirements()) {
-        DevicesToMatchEntry device_match_entry;
-        std::vector<std::pair<CommunicationDevice *, Protocol *>> accepted_candidates;
-        //TODO: do not only loop over comport_devices, but other devices as well
-        {
-            std::vector<PortDescription *> candidates =
-                device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
+void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runner, const std::vector<DeviceRequirements> &device_requirements,
+								  const QString &testname) {
+	successful_matching = true;
+	bool over_defined_found = false;
+	devices_to_match.clear();
 
-            accepted_candidates = test_acceptances(candidates, runner);
-        }
-        device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
-        if ((device_requirement.quantity_min <= (int)accepted_candidates.size()) && ((int)accepted_candidates.size() <= device_requirement.quantity_max)) {
-            device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::FullDefined;
-        } else if ((int)accepted_candidates.size() > device_requirement.quantity_max) {
-            device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::OverDefined;
-        } else if ((int)accepted_candidates.size() < device_requirement.quantity_min) {
-            device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
-        }
-        for (auto ce : accepted_candidates) {
-            CandidateEntry candidate_entry{};
-            candidate_entry.communication_device = ce.first;
-            candidate_entry.protocol = ce.second;
-            candidate_entry.selected = false;
-            device_match_entry.accepted_candidates.push_back(candidate_entry);
-        }
-        device_match_entry.device_requirement = device_requirement;
+	for (auto &device_requirement : device_requirements) {
+		DevicesToMatchEntry device_match_entry;
+		std::vector<std::pair<CommunicationDevice *, Protocol *>> accepted_candidates;
+		//TODO: do not only loop over comport_devices, but other devices as well
+		{
+			std::vector<PortDescription *> candidates =
+				device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
 
-        switch (device_match_entry.match_definition) {
-            case DevicesToMatchEntry::MatchDefinitionState::UnderDefined: {
-                //failed to find suitable device
-                successful_matching = false;
+			accepted_candidates = test_acceptances(candidates, runner);
+		}
+		device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
+		if ((device_requirement.quantity_min <= (int)accepted_candidates.size()) && ((int)accepted_candidates.size() <= device_requirement.quantity_max)) {
+			device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::FullDefined;
+		} else if ((int)accepted_candidates.size() > device_requirement.quantity_max) {
+			device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::OverDefined;
+		} else if ((int)accepted_candidates.size() < device_requirement.quantity_min) {
+			device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
+		}
+		for (auto ce : accepted_candidates) {
+			CandidateEntry candidate_entry{};
+			candidate_entry.communication_device = ce.first;
+			candidate_entry.protocol = ce.second;
+			candidate_entry.selected = false;
+			device_match_entry.accepted_candidates.push_back(candidate_entry);
+		}
+		device_match_entry.device_requirement = device_requirement;
+
+		switch (device_match_entry.match_definition) {
+			case DevicesToMatchEntry::MatchDefinitionState::UnderDefined: {
+				//failed to find suitable device
+				successful_matching = false;
 				runner.console.error()
-                    << QObject::tr(
-                           "The selected test \"%1\" requires %2 device(s) with protocol \"%3\", and the name \"%4\" but only %5 device(s) are available.")
-                           .arg(test.get_name())
-                           .arg(device_requirement.quantity_min)
-                           .arg(device_requirement.protocol_name)
-                           .arg(device_requirement.device_names.join("/"))
-                           .arg((int)accepted_candidates.size());
-            } break;
-            case DevicesToMatchEntry::MatchDefinitionState::FullDefined: {
-                for (auto &ce : device_match_entry.accepted_candidates) {
-                    ce.selected = true;
-                }
-            } break;
-            case DevicesToMatchEntry::MatchDefinitionState::OverDefined: {
-                successful_matching = false;
-                over_defined_found = true;
-                for (auto &ce : device_match_entry.accepted_candidates) {
-                    ce.selected = true;
-                }
-            }
-        }
-        devices_to_match.append(device_match_entry);
-    }
-    if (over_defined_found) {
-        make_treeview();
-        exec();
-    }
+					<< QObject::tr(
+						   "The selected test \"%1\" requires %2 device(s) with protocol \"%3\", and the name \"%4\" but only %5 device(s) are available.")
+						   .arg(testname)
+						   .arg(device_requirement.quantity_min)
+						   .arg(device_requirement.protocol_name)
+						   .arg(device_requirement.device_names.join("/"))
+						   .arg((int)accepted_candidates.size());
+			} break;
+			case DevicesToMatchEntry::MatchDefinitionState::FullDefined: {
+				for (auto &ce : device_match_entry.accepted_candidates) {
+					ce.selected = true;
+				}
+			} break;
+			case DevicesToMatchEntry::MatchDefinitionState::OverDefined: {
+				successful_matching = false;
+				over_defined_found = true;
+				for (auto &ce : device_match_entry.accepted_candidates) {
+					ce.selected = true;
+				}
+			}
+		}
+		devices_to_match.append(device_match_entry);
+	}
+	if (over_defined_found) {
+		make_treeview();
+		exec();
+	}
 }
 
 std::vector<MatchedDevice> DeviceMatcher::get_matched_devices() {

@@ -65,6 +65,7 @@ class DeviceMatcher : public QDialog {
     ~DeviceMatcher();
 
     void match_devices(DeviceWorker &device_worker, TestRunner &runner, TestDescriptionLoader &test);
+	void match_devices(DeviceWorker &device_worker, TestRunner &runner, const std::vector<DeviceRequirements> &device_requirements, const QString &testname);
     bool is_match_possible(DeviceWorker &device_worker, TestDescriptionLoader &test);
 
     std::vector<MatchedDevice> get_matched_devices();
@@ -76,9 +77,7 @@ class DeviceMatcher : public QDialog {
     void on_tree_available_itemChanged(QTreeWidgetItem *item, int column);
     void on_btn_cancel_clicked();
     void on_btn_ok_clicked();
-
     void on_btn_check_all_clicked();
-
     void on_btn_uncheck_all_clicked();
 
     void poll_sg04_counts();

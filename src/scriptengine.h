@@ -61,7 +61,7 @@ class ScriptEngine {
     friend class TestDescriptionLoader;
     friend class DeviceWorker;
 
-	ScriptEngine(QObject *owner, UI_container *parent, Console &console, Data_engine *data_engine);
+	ScriptEngine(QObject *owner, UI_container *parent, Console &console, Data_engine *data_engine, TestRunner *runner, QString test_name);
     ScriptEngine(const ScriptEngine &) = delete;
     ScriptEngine(ScriptEngine &&) = delete;
     ~ScriptEngine();
@@ -87,10 +87,14 @@ class ScriptEngine {
 	Return_type call_lua_function(const char *lua_function, Args &&... args) {
 		return Utility::promised_thread_call(owner, [this, lua_function, &args...] { return call<Return_type>(lua_function, std::forward<Args>(args)...); });
 	}
+	TestRunner *runner;
+	QString test_name;
+	std::vector<DeviceRequirements> get_device_requirement_list(const sol::table &device_requirements);
 
     private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
     QStringList get_string_list(const QString &name);
-    std::vector<DeviceRequirements> get_device_requirement_list(const QString &name);
+	std::vector<DeviceRequirements> get_device_requirement_list(const QString &name);
+	sol::table get_devices(const std::vector<MatchedDevice> &devices);
     void run(std::vector<MatchedDevice> &devices);
     template <class ReturnType, class... Arguments>
     ReturnType call(const char *function_name, Arguments &&... args);

@@ -24,7 +24,7 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
 	}())}
     , lua_ui_container(new UI_container(MainWindow::mw))
 	, data_engine{std::make_unique<Data_engine>()}
-	, script_pointer{std::make_unique<ScriptEngine>(this->obj(), lua_ui_container, *console_pointer, data_engine.get())}
+	, script_pointer{std::make_unique<ScriptEngine>(this->obj(), lua_ui_container, *console_pointer, data_engine.get(), this, description.get_name())}
 	, script{*script_pointer}
 	, name(description.get_name())
 	, console{*console_pointer} {

@@ -8,6 +8,7 @@
 #include "config.h"
 #include "console.h"
 #include "data_engine/data_engine.h"
+#include "data_engine/exceptionalapproval.h"
 #include "datalogger.h"
 #include "lua_functions.h"
 #include "rpcruntime_decoded_function_call.h"
@@ -18,7 +19,6 @@
 #include "ui_container.h"
 #include "util.h"
 
-#include "data_engine/exceptionalapproval.h"
 #include <QDebug>
 #include <QDir>
 #include <QKeyEvent>
@@ -132,7 +132,7 @@ static void set_runtime_parameter(RPCRuntimeEncodedParam &param, sol::object obj
     }
 }
 
-void add_enum_type(const RPCRuntimeParameterDescription &param, sol::state &lua) {
+static void add_enum_type(const RPCRuntimeParameterDescription &param, sol::state &lua) {
     if (param.get_type() == RPCRuntimeParameterDescription::Type::enumeration) {
         const auto &enum_description = param.as_enumeration();
         auto table = lua.create_named_table(enum_description.enum_name);
@@ -150,7 +150,7 @@ void add_enum_type(const RPCRuntimeParameterDescription &param, sol::state &lua)
     }
 }
 
-void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua) {
+static void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua) {
     for (auto &param : function.get_request_parameters()) {
         add_enum_type(param, lua);
     }
@@ -214,11 +214,14 @@ struct RPCDevice {
     ScriptEngine *engine = nullptr;
 };
 
-ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, Console &console, Data_engine *data_engine)
-    : lua{std::make_unique<sol::state>()}
+ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, Console &console, Data_engine *data_engine, TestRunner *runner, QString test_name)
+	: runner{runner}
+	, test_name{std::move(test_name)}
+	, lua{std::make_unique<sol::state>()}
     , parent{parent}
     , console(console)
     , data_engine(data_engine)
+
     , owner{owner} {}
 
 ScriptEngine::~ScriptEngine() { //
@@ -373,7 +376,7 @@ std::string ScriptEngine::to_string(const sol::stack_proxy &object) {
 }
 
 QString ScriptEngine::get_absolute_filename(QString file_to_open) {
-    return get_absolute_file_path(path_m, file_to_open);
+	return get_absolute_file_path(path_m, file_to_open);
 }
 
 void ScriptEngine::load_script(const std::string &path) {
@@ -422,7 +425,7 @@ void ScriptEngine::launch_editor() const {
 }
 
 sol::table ScriptEngine::create_table() {
-    return lua->create_table_with();
+	return lua->create_table_with();
 }
 
 QStringList ScriptEngine::get_string_list(const QString &name) {
@@ -458,11 +461,11 @@ int get_quantity_num(sol::object &obj) {
     return result;
 }
 
-std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const QString &name) {
-    std::vector<DeviceRequirements> result{};
-    try {
+std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const sol::table &device_requirements) {
+	std::vector<DeviceRequirements> result{};
+	try {
 #if 1
-        sol::table protocol_entries = lua->get<sol::table>(name.toStdString());
+		const sol::table &protocol_entries = device_requirements;
         if (protocol_entries.valid() == false) {
             return result;
         }
@@ -519,11 +522,97 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
 #endif
     }
 
-    catch (const sol::error &error) {
-        set_error_line(error);
-        throw;
-    }
-    return result;
+	catch (const sol::error &error) {
+		set_error_line(error);
+		throw;
+	}
+	return result;
+}
+
+std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const QString &name) {
+	try {
+		return get_device_requirement_list(lua->get<sol::table>(name.toStdString()));
+	} catch (const sol::error &error) {
+		set_error_line(error);
+		throw;
+	}
+}
+
+sol::table ScriptEngine::get_devices(const std::vector<MatchedDevice> &devices) {
+	QMultiMap<QString, MatchedDevice> aliased_devices;
+	for (auto &device_protocol : devices) {
+		aliased_devices.insertMulti(device_protocol.proposed_alias, device_protocol);
+	}
+	std::vector<sol::object> no_alias_device_list;
+	std::map<QString, std::vector<sol::object>> aliased_devices_result;
+
+	//creating devices..
+	auto aliases = aliased_devices.keys();
+	for (auto alias : aliases) {
+		auto values = aliased_devices.values(alias);
+		std::vector<sol::object> device_list;
+		for (const auto &device_protocol : values) {
+			if (auto rpcp = dynamic_cast<RPCProtocol *>(device_protocol.protocol)) {
+				sol::object rpc_device_sol = sol::make_object(*lua, RPCDevice{&*lua, rpcp, device_protocol.device, this});
+				device_list.push_back(rpc_device_sol);
+
+				auto type_reg = lua->create_simple_usertype<RPCDevice>();
+				for (auto &function : rpcp->get_description().get_functions()) {
+					const auto &function_name = function.get_function_name();
+					type_reg.set(function_name,
+								 [function_name](RPCDevice &device, const sol::variadic_args &va) { return device.call_rpc_function(function_name, va); });
+					add_enum_types(function, *lua);
+				}
+				type_reg.set("get_protocol_name", [](RPCDevice &device) { return device.get_protocol_name(); });
+				type_reg.set("is_protocol_device_available", [](RPCDevice &device) { return device.is_protocol_device_available(); });
+				const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
+				lua->set_usertype(type_name, type_reg);
+				while (device_protocol.device->waitReceived(CommunicationDevice::Duration{0}, 1)) {
+					//ignore leftover data in the receive buffer
+				}
+				rpcp->clear();
+
+			} else if (auto scpip = dynamic_cast<SCPIProtocol *>(device_protocol.protocol)) {
+				sol::object scpip_device_sol = sol::make_object(*lua, SCPIDevice{&*lua, scpip, device_protocol.device, this});
+
+				device_list.push_back(scpip_device_sol);
+				scpip->clear();
+			} else if (auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device_protocol.protocol)) {
+				sol::object sg04_device_sol = sol::make_object(*lua, SG04CountDevice{&*lua, sg04_count_protocol, device_protocol.device, this});
+				device_list.push_back(sg04_device_sol);
+			} else if (auto manual_protocol = dynamic_cast<ManualProtocol *>(device_protocol.protocol)) {
+				sol::object manual_device_sol = sol::make_object(*lua, ManualDevice{&*lua, manual_protocol, device_protocol.device, this});
+				device_list.push_back(manual_device_sol);
+			} else {
+				//TODO: other protocols
+				throw std::runtime_error("invalid protocol: " + device_protocol.protocol->type.toStdString());
+			}
+		}
+		if (alias == "") {
+			no_alias_device_list.insert(no_alias_device_list.end(), device_list.begin(), device_list.end());
+		} else {
+			aliased_devices_result[alias] = device_list;
+		}
+	}
+
+	//ordering/grouping devices..
+	auto device_list_sol = lua->create_table_with();
+	for (auto sol_device : no_alias_device_list) {
+		device_list_sol.add(sol_device);
+	}
+	for (const auto &alias : aliased_devices_result) {
+		auto values = alias.second;
+		if (values.size() == 1) {
+			device_list_sol[alias.first.toStdString()] = values[0];
+		} else {
+			auto devices_with_same_alias = lua->create_table_with();
+			for (const auto &value : values) {
+				devices_with_same_alias.add(value);
+			}
+			device_list_sol[alias.first.toStdString()] = devices_with_same_alias;
+		}
+	}
+	return device_list_sol;
 }
 
 void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
@@ -573,82 +662,8 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
     };
     try {
         {
-            QMultiMap<QString, MatchedDevice> aliased_devices;
-            for (auto &device_protocol : devices) {
-                aliased_devices.insertMulti(device_protocol.proposed_alias, device_protocol);
-            }
-            std::vector<sol::object> no_alias_device_list;
-            std::map<QString, std::vector<sol::object>> aliased_devices_result;
-
-            //creating devices..
-            auto aliases = aliased_devices.keys();
-            for (auto alias : aliases) {
-                auto values = aliased_devices.values(alias);
-                std::vector<sol::object> device_list;
-                for (const auto &device_protocol : values) {
-                    if (auto rpcp = dynamic_cast<RPCProtocol *>(device_protocol.protocol)) {
-                        sol::object rpc_device_sol = sol::make_object(*lua, RPCDevice{&*lua, rpcp, device_protocol.device, this});
-                        device_list.push_back(rpc_device_sol);
-
-                        auto type_reg = lua->create_simple_usertype<RPCDevice>();
-                        for (auto &function : rpcp->get_description().get_functions()) {
-                            const auto &function_name = function.get_function_name();
-                            type_reg.set(function_name, [function_name](RPCDevice &device, const sol::variadic_args &va) {
-                                return device.call_rpc_function(function_name, va);
-                            });
-                            add_enum_types(function, *lua);
-                        }
-                        type_reg.set("get_protocol_name", [](RPCDevice &device) { return device.get_protocol_name(); });
-                        type_reg.set("is_protocol_device_available", [](RPCDevice &device) { return device.is_protocol_device_available(); });
-                        const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
-                        lua->set_usertype(type_name, type_reg);
-                        while (device_protocol.device->waitReceived(CommunicationDevice::Duration{0}, 1)) {
-                            //ignore leftover data in the receive buffer
-                        }
-                        rpcp->clear();
-
-                    } else if (auto scpip = dynamic_cast<SCPIProtocol *>(device_protocol.protocol)) {
-                        sol::object scpip_device_sol = sol::make_object(*lua, SCPIDevice{&*lua, scpip, device_protocol.device, this});
-
-                        device_list.push_back(scpip_device_sol);
-                        scpip->clear();
-                    } else if (auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device_protocol.protocol)) {
-                        sol::object sg04_device_sol = sol::make_object(*lua, SG04CountDevice{&*lua, sg04_count_protocol, device_protocol.device, this});
-                        device_list.push_back(sg04_device_sol);
-                    } else if (auto manual_protocol = dynamic_cast<ManualProtocol *>(device_protocol.protocol)) {
-                        sol::object manual_device_sol = sol::make_object(*lua, ManualDevice{&*lua, manual_protocol, device_protocol.device, this});
-                        device_list.push_back(manual_device_sol);
-                    } else {
-                        //TODO: other protocols
-                        throw std::runtime_error("invalid protocol: " + device_protocol.protocol->type.toStdString());
-                    }
-                }
-                if (alias == "") {
-                    no_alias_device_list.insert(no_alias_device_list.end(), device_list.begin(), device_list.end());
-                } else {
-                    aliased_devices_result[alias] = device_list;
-                }
-            }
-
-            //ordering/grouping devices..
-            auto device_list_sol = lua->create_table_with();
-            for (auto sol_device : no_alias_device_list) {
-                device_list_sol.add(sol_device);
-            }
-            for (const auto &alias : aliased_devices_result) {
-                auto values = alias.second;
-                if (values.size() == 1) {
-                    device_list_sol[alias.first.toStdString()] = values[0];
-                } else {
-                    auto devices_with_same_alias = lua->create_table_with();
-                    for (const auto &value : values) {
-                        devices_with_same_alias.add(value);
-                    }
-                    device_list_sol[alias.first.toStdString()] = devices_with_same_alias;
-                }
-            }
             sol::protected_function run = (*lua)["run"];
-            auto result = run(device_list_sol);
+			auto result = run(get_devices(devices));
             if (not result.valid()) {
                 sol::error error = result;
                 throw error;

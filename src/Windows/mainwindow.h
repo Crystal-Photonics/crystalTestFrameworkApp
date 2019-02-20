@@ -29,6 +29,7 @@ class TestDescriptionLoader;
 class UI_container;
 struct Protocol;
 class TestRunner;
+struct DeviceMatcher;
 
 namespace Ui {
     class MainWindow;
@@ -66,6 +67,7 @@ class EXPORT MainWindow : public QMainWindow {
 
     void show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon);
     void remove_test_runner(TestRunner *runner);
+	static std::vector<struct MatchedDevice> discover_devices(ScriptEngine &se, const struct Sol_table &device_desciption);
 
     QList<QTreeWidgetItem *> get_devices_to_forget_by_root_treewidget(QTreeWidgetItem *root_item);
     void remove_device_item(QTreeWidgetItem *root_item);
@@ -116,9 +118,7 @@ class EXPORT MainWindow : public QMainWindow {
     void on_tbtn_refresh_scripts_clicked();
     void on_actionReload_All_Scripts_triggered();
     void on_tbtn_collapse_console_clicked();
-
     void on_actionQuery_Report_history_triggered();
-
     void on_actionactionAbort_triggered();
 
     private:

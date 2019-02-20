@@ -92,7 +92,7 @@ void TestDescriptionLoader::launch_editor() {
 void TestDescriptionLoader::load_description() {
     ui_entry->setText(1, "");
 	Console c{console.get()};
-	ScriptEngine script{nullptr, nullptr, c, nullptr};
+	ScriptEngine script{nullptr, nullptr, c, nullptr, nullptr, ""};
     try {
         //   qDebug() << "load_description  start";
         script.load_script(file_path.toStdString());

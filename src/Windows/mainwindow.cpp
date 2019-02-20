@@ -133,7 +133,7 @@ void MainWindow::load_default_paths_if_needed() {
             qDebug() << "set default setting: " << key << default_value << path;
             QSettings{}.setValue(key, path);
         }
-    }
+	}
 }
 
 QString MainWindow::view_mode_to_string(MainWindow::ViewMode view_mode) {
@@ -612,7 +612,22 @@ void MainWindow::show_message_box(const QString &title, const QString &message, 
 }
 
 void MainWindow::remove_test_runner(TestRunner *runner) {
-    test_runners.erase(std::find(std::begin(test_runners), std::end(test_runners), runner));
+	test_runners.erase(std::find(std::begin(test_runners), std::end(test_runners), runner));
+}
+
+std::vector<MatchedDevice> MainWindow::discover_devices(ScriptEngine &se, const Sol_table &device_desciption) {
+	assert(not currently_in_gui_thread()); //should be in scriptengine thread
+	const auto &dr = se.get_device_requirement_list(device_desciption);
+	return Utility::promised_thread_call(mw, [&]() -> std::vector<MatchedDevice> {
+		assert(mw);
+		assert(mw->device_worker);
+		DeviceMatcher device_matcher(mw);
+		device_matcher.match_devices(*mw->device_worker, *se.runner, dr, se.test_name);
+		if (device_matcher.was_successful()) {
+			return device_matcher.get_matched_devices();
+		}
+		return {};
+	});
 }
 
 void MainWindow::on_actionSettings_triggered() {

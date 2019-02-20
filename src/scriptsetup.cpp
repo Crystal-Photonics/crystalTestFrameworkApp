@@ -19,6 +19,7 @@
 #include "Protocols/manualprotocol.h"
 #include "Protocols/scpiprotocol.h"
 #include "Protocols/sg04countprotocol.h"
+#include "Windows/devicematcher.h"
 #include "Windows/mainwindow.h"
 #include "chargecounter.h"
 #include "communication_devices.h"
@@ -80,20 +81,20 @@ int Lua_UI_Wrapper<T>::id_counter;
 namespace detail {
     //this might be replacable by std::invoke once C++17 is available
     template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs, std::size_t... I>
-    ReturnType call_helper(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<ParamArgs...> const &params, std::index_sequence<I...>) {
+	static ReturnType call_helper(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<ParamArgs...> const &params, std::index_sequence<I...>) {
         return (ui.*func)(std::get<I>(params)...);
     }
     template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs, std::size_t... I>
-    ReturnType call_helper(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<ParamArgs...> const &params, std::index_sequence<I...>) {
+	static ReturnType call_helper(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<ParamArgs...> const &params, std::index_sequence<I...>) {
         return (ui.*func)(std::get<I>(params)...);
     }
 
     template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs>
-    ReturnType call(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<ParamArgs...> const &params) {
+	static ReturnType call(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<ParamArgs...> const &params) {
         return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
     }
     template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs>
-    ReturnType call(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<ParamArgs...> const &params) {
+	static ReturnType call(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<ParamArgs...> const &params) {
         return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
     }
 
@@ -124,24 +125,24 @@ namespace detail {
 
     //call a function with a list of sol::objects as the arguments
     template <class Function, std::size_t... indexes>
-    auto call(std::vector<sol::object> &objects, Function &&function, std::index_sequence<indexes...>) {
+	static auto call(std::vector<sol::object> &objects, Function &&function, std::index_sequence<indexes...>) {
         return function(Converter(objects[indexes])...);
     }
 
     //check if a list of sol::objects is convertible to a given variadic template parameter pack
     template <int index>
-    bool is_convertible(std::vector<sol::object> &) {
+	static bool is_convertible(std::vector<sol::object> &) {
         return true;
     }
     template <int index, class Head, class... Tail>
-    bool is_convertible(std::vector<sol::object> &objects) {
+	static bool is_convertible(std::vector<sol::object> &objects) {
         if (objects[index].is<Head>()) {
             return is_convertible<index + 1, Tail...>(objects);
         }
         return false;
     }
     template <class... Args>
-    bool is_convertible(Type_list<Args...>, std::vector<sol::object> &objects) {
+	static bool is_convertible(Type_list<Args...>, std::vector<sol::object> &objects) {
         return is_convertible<0, Args...>(objects);
     }
 
@@ -184,15 +185,15 @@ namespace detail {
 
     //call a function if it is callable with the given sol::objects
     template <class ReturnType>
-    ReturnType try_call(std::false_type /*return void*/, std::vector<sol::object> &) {
+	static ReturnType try_call(std::false_type /*return void*/, std::vector<sol::object> &) {
         throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
     }
     template <class ReturnType>
-    void try_call(std::true_type /*return void*/, std::vector<sol::object> &) {
+	static void try_call(std::true_type /*return void*/, std::vector<sol::object> &) {
         throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
     }
     template <class ReturnType, class FunctionHead, class... FunctionsTail>
-    ReturnType try_call(std::false_type /*return void*/, std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
+	static ReturnType try_call(std::false_type /*return void*/, std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
         constexpr auto arity = detail::number_of_parameters<FunctionHead>;
         //skip function if it has the wrong number of parameters
         if (arity != objects.size()) {
@@ -206,7 +207,7 @@ namespace detail {
         return try_call<ReturnType>(std::false_type{}, objects, functions...);
     }
     template <class ReturnType, class FunctionHead, class... FunctionsTail>
-    void try_call(std::true_type /*return void*/, std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
+	static void try_call(std::true_type /*return void*/, std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
         constexpr auto arity = detail::number_of_parameters<FunctionHead>;
         //skip function if it has the wrong number of parameters
         if (arity != objects.size()) {
@@ -222,7 +223,7 @@ namespace detail {
     }
 
     template <class ReturnType, class... Functions>
-    auto overloaded_function_helper(std::false_type /*should_returntype_be_deduced*/, Functions &&... functions) {
+	static auto overloaded_function_helper(std::false_type /*should_returntype_be_deduced*/, Functions &&... functions) {
         return [functions...](sol::variadic_args args) {
             std::vector<sol::object> objects;
             for (auto object : args) {
@@ -233,7 +234,8 @@ namespace detail {
     }
 
     template <class ReturnType, class Functions_head, class... Functions_tail>
-    auto overloaded_function_helper(std::true_type /*should_returntype_be_deduced*/, Functions_head &&functions_head, Functions_tail &&... functions_tail) {
+	static auto overloaded_function_helper(std::true_type /*should_returntype_be_deduced*/, Functions_head &&functions_head,
+										   Functions_tail &&... functions_tail) {
         return overloaded_function_helper<return_type_t<Functions_head>>(std::false_type{}, std::forward<Functions_head>(functions_head),
                                                                          std::forward<Functions_tail>(functions_tail)...);
     }
@@ -241,7 +243,7 @@ namespace detail {
 
 //wrapper that wraps a UI function such as Button::has_been_clicked so that it is called from the main window context. Waits for processing.
 template <class ReturnType, class UI_class, class... Args>
-auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
+static auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
 		if (QThread::currentThread()->isInterruptionRequested()) {
 			throw sol::error("Abort Requested");
@@ -257,7 +259,7 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
     };
 }
 template <class ReturnType, class UI_class, class... Args>
-auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
+static auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
 		if (QThread::currentThread()->isInterruptionRequested()) {
 			throw sol::error("Abort Requested");
@@ -275,7 +277,7 @@ auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
 
 //wrapper that wraps a UI function so it is NOT called from the GUI thread. The function must not call any GUI-related functions in the non-GUI thread.
 template <class ReturnType, class UI_class, class... Args>
-auto non_gui_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
+static auto non_gui_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
 	return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
 		if (QThread::currentThread()->isInterruptionRequested()) {
 			throw sol::error("Abort Requested");
@@ -291,7 +293,7 @@ auto non_gui_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
 
 //wrapper that wraps a UI function such as Button::has_been_clicked so that it is called from the main window context. Doesn't wait for processing.
 template <class ReturnType, class UI_class, class... Args>
-auto thread_call_wrapper_non_waiting(ScriptEngine *script_engine_to_terminate_on_exception, ReturnType (UI_class::*function)(Args...)) {
+static auto thread_call_wrapper_non_waiting(ScriptEngine *script_engine_to_terminate_on_exception, ReturnType (UI_class::*function)(Args...)) {
     return [function, script_engine_to_terminate_on_exception](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
 		if (QThread::currentThread()->isInterruptionRequested()) {
 			throw sol::error("Abort Requested");
@@ -306,7 +308,7 @@ auto thread_call_wrapper_non_waiting(ScriptEngine *script_engine_to_terminate_on
 
 //create an overloaded function from a list of functions. When called the overloaded function will pick one of the given functions based on arguments.
 template <class ReturnType = std::false_type, class... Functions>
-auto overloaded_function(Functions &&... functions) {
+static auto overloaded_function(Functions &&... functions) {
     return detail::overloaded_function_helper<ReturnType>(typename std::is_same<ReturnType, std::false_type>::type{}, std::forward<Functions>(functions)...);
 }
 
@@ -364,6 +366,10 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                 default: { throw sol::error("interrupted"); }
             }
         };
+		lua["discover_devices"] = [&script_engine](const sol::table &device_description) {
+			const auto &devices = MainWindow::mw->discover_devices(script_engine, device_description);
+			return script_engine.get_devices(devices);
+		};
     }
 
     //table functions
