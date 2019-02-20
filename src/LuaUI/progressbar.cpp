@@ -1,5 +1,5 @@
 #include "progressbar.h"
-
+#include "Windows/mainwindow.h"
 #include "ui_container.h"
 
 #include <QLabel>
@@ -24,12 +24,15 @@ ProgressBar::ProgressBar(UI_container *parent)
     progressbar->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     progressbar->setMaximum(100);
     parent->scroll_to_bottom();
+    assert(MainWindow::gui_thread == QThread::currentThread());
 }
 
 ProgressBar::~ProgressBar() {}
+
 ///\endcond
 
 void ProgressBar::set_max_value(const int value) {
+    assert(MainWindow::gui_thread == QThread::currentThread());
     progressbar->setMaximum(value);
     if (progressbar->value() > value) {
         progressbar->setValue(value);
@@ -37,6 +40,7 @@ void ProgressBar::set_max_value(const int value) {
 }
 
 void ProgressBar::set_min_value(const int value) {
+    assert(MainWindow::gui_thread == QThread::currentThread());
     progressbar->setMinimum(value);
     if (progressbar->value() < value) {
         progressbar->setValue(value);
@@ -44,14 +48,17 @@ void ProgressBar::set_min_value(const int value) {
 }
 
 void ProgressBar::set_value(const int value) {
+    assert(MainWindow::gui_thread == QThread::currentThread());
     progressbar->setValue(value);
 }
 
 void ProgressBar::increment_value() {
+    assert(MainWindow::gui_thread == QThread::currentThread());
     progressbar->setValue(progressbar->value() + 1);
 }
 
 void ProgressBar::set_caption(const std::string &caption) {
+    assert(MainWindow::gui_thread == QThread::currentThread());
     label->setText(QString::fromStdString(caption));
     if (caption == "") {
         label->setText(" ");
@@ -60,10 +67,12 @@ void ProgressBar::set_caption(const std::string &caption) {
 }
 
 std::string ProgressBar::get_caption() const {
+    assert(MainWindow::gui_thread == QThread::currentThread());
     return label->text().toStdString();
 }
 
 void ProgressBar::set_visible(bool visible) {
+    assert(MainWindow::gui_thread == QThread::currentThread());
     progressbar->setVisible(visible);
     label->setVisible(visible);
 }

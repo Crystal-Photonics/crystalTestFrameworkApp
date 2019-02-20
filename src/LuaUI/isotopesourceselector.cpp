@@ -30,24 +30,29 @@ IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     load_isotope_database();
     fill_combobox_with_isotopes("*");
     parent->scroll_to_bottom();
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
 IsotopeSourceSelector::~IsotopeSourceSelector() {
     combobox->setEnabled(false);
     disconnect_isotope_selecteted();
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
 double IsotopeSourceSelector::get_selected_activity_Bq() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     QString my_serial_number = combobox->currentText();
     save_most_recent();
     return get_source_by_serial_number(combobox->currentText()).get_activtiy_becquerel(QDate::currentDate());
 }
 
 void IsotopeSourceSelector::set_visible(bool visible) {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     combobox->setVisible(visible);
 }
 
 void IsotopeSourceSelector::set_enabled(bool enabled) {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     combobox->setEnabled(enabled);
 }
 
@@ -57,6 +62,7 @@ void IsotopeSourceSelector::filter_by_isotope(std::string isotope_name) {
 }
 
 std::string IsotopeSourceSelector::get_selected_serial_number() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     return combobox->currentText().toStdString();
 }
 
@@ -66,6 +72,7 @@ std::string IsotopeSourceSelector::get_selected_name() {
 }
 
 void IsotopeSourceSelector::fill_combobox_with_isotopes(QString isotope_name) {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     disconnect_isotope_selecteted();
     combobox->clear();
     for (auto item : isotope_sources) {
@@ -146,6 +153,7 @@ void IsotopeSourceSelector::load_isotope_database() {
 }
 
 void IsotopeSourceSelector::load_most_recent() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     QString most_recent_serial_number = QSettings{}.value(QString(Globals::isotope_source_most_recent_key) + "_" + isotope_filter_m.toLower(), "").toString();
     if (combobox->findText(most_recent_serial_number) > -1) {
         combobox->setCurrentText(most_recent_serial_number);
@@ -153,10 +161,12 @@ void IsotopeSourceSelector::load_most_recent() {
 }
 
 void IsotopeSourceSelector::save_most_recent() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     QSettings{}.setValue(QString(Globals::isotope_source_most_recent_key) + "_" + isotope_filter_m.toLower(), combobox->currentText());
 }
 
 void IsotopeSourceSelector::connect_isotope_selecteted() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     assert(!callback_isotope_selected);
     callback_isotope_selected = QObject::connect(combobox, &QComboBox::currentTextChanged, [this](const QString &text) {
         save_most_recent();

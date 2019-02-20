@@ -1,6 +1,7 @@
 #include "combofileselector.h"
 #include "ui_container.h"
 
+#include "Windows/mainwindow.h"
 #include <QDir>
 #include <QHBoxLayout>
 #include <QMessageBox>
@@ -40,7 +41,7 @@ void showInGraphicalShell(QWidget *parent, const QString &pathIn) {
 #else
     Q_UNUSED(parent)
     Q_UNUSED(pathIn)
-    // we cannot select a file here, because no file browser really supports it...
+// we cannot select a file here, because no file browser really supports it...
 #if 0
     const QFileInfo fileInfo(pathIn);
     const QString folder = fileInfo.absoluteFilePath();
@@ -77,22 +78,31 @@ ComboBoxFileSelector::ComboBoxFileSelector(UI_container *parent, const std::stri
     button_clicked_connection = QObject::connect(button, &QPushButton::pressed, [this] { showInGraphicalShell(this->parent, this->current_directory); });
 
     this->filters = filter;
-
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     scan_directory();
     fill_combobox();
     parent->scroll_to_bottom();
 }
 
 ComboBoxFileSelector::~ComboBoxFileSelector() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     combobox->setEnabled(false);
     QObject::disconnect(button_clicked_connection);
 }
 
 std::string ComboBoxFileSelector::get_selected_file() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+    if (combobox->count() == 0) {
+        throw sol::error("No files listed in ComboBoxFileSelector.");
+    }
+    if (combobox->currentIndex() < 0) {
+        throw sol::error("No file selected in ComboBoxFileSelector.");
+    }
     return file_entries[combobox->currentIndex()].filenpath.toStdString();
 }
 
 void ComboBoxFileSelector::set_order_by(const std::string &field, const bool ascending) {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     QString order_by = QString::fromStdString(field).toLower().trimmed();
     if (order_by == "name") {
         qSort(file_entries.begin(), file_entries.end(), [ascending](FileEntry &p1, FileEntry &p2) {
@@ -118,6 +128,7 @@ void ComboBoxFileSelector::set_order_by(const std::string &field, const bool asc
 }
 
 void ComboBoxFileSelector::set_visible(bool visible) {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     combobox->setVisible(visible);
     button->setVisible(visible);
 }
@@ -142,6 +153,7 @@ void ComboBoxFileSelector::scan_directory() {
 }
 
 void ComboBoxFileSelector::fill_combobox() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     combobox->clear();
     for (auto &fe : file_entries) {
         combobox->addItem(fe.filename);

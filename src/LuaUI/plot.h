@@ -3,15 +3,15 @@
 
 #include "color.h"
 
+#include "scriptengine.h"
+#include "ui_container.h"
 #include <QObject>
 #include <functional>
 #include <memory>
 #include <vector>
-#include "ui_container.h"
-#include "scriptengine.h"
 
 namespace Utility {
-	class Event_filter;
+    class Event_filter;
 }
 class Plot;
 class QAction;
@@ -179,47 +179,46 @@ class Curve {
                                                            //! curve:set_median_kernel_size(5)      -- median kernel size = 5
                                                            //! \endcode
 
-	void set_color(const Color &color); //!<\brief Sets the color of the curve.
-										//!< \param color Color.
-										//!< \par examples:
-										//!< \code
-										//! local plot = Ui.Plot.new()
-										//! local curve = plot:add_curve()
+    void set_color(const Color &color); //!<\brief Sets the color of the curve.
+                                        //!< \param color Color.
+                                        //!< \par examples:
+                                        //!< \code
+                                        //! local plot = Ui.Plot.new()
+                                        //! local curve = plot:add_curve()
                                         //! local color = Ui.Color_from_name("red")
-										//! curve:set_color(color) --turns curve red
-										//! \endcode
-	///\cond HIDDEN_SYMBOLS
-	void set_onetime_click_callback(std::function<void(double, double)> click_callback);
+                                        //! curve:set_color(color) --turns curve red
+                                        //! \endcode
+    ///\cond HIDDEN_SYMBOLS
+    void set_onetime_click_callback(std::function<void(double, double)> click_callback);
     ///\endcond
-
 
     double pick_x_coord();
     sol::table get_y_values_as_array();
-private:
+
+    private:
     ///\cond HIDDEN_SYMBOLS
 
     void update();
     void detach();
-	Curve_data &curve_data();
-
+    Curve_data &curve_data();
 
     ///\endcond
     Plot *plot{nullptr};
     QwtPlotCurve *curve{nullptr};
-	Utility::Event_filter *event_filter{nullptr};
-	///\endcond
+    Utility::Event_filter *event_filter{nullptr};
+    ///\endcond
     friend class Plot;
-    ScriptEngine *script_engine_ ;
+    ScriptEngine *script_engine_;
 };
 /** \} */ // end of group ui
 
 /** \ingroup ui
  *  \{
  */
-class Plot : public UI_widget{
+class Plot : public UI_widget {
     public:
     ///\cond HIDDEN_SYMBOLS
-	Plot(UI_container *parent);
+    Plot(UI_container *parent);
     Plot(Plot &&other);
     Plot &operator=(Plot &&other);
     ~Plot();
@@ -239,39 +238,40 @@ class Plot : public UI_widget{
     curve add_curve();
 #endif
 
-	void clear(); //!<\brief Deletes all curves from a plot.
-				  //!< \sa Curve
-				  //!< \par examples:
-				  //!< \code
-				  //! local plot = Ui.Plot.new()
-				  //! local curve = plot:add_curve()
-				  //! plot.clear(); -- deletes all curves. Plot is empty now
-				  //! \endcode
-				  //!TODO: Testen was passiert wenn man auf Kurve zugreift nachdem man clear aufgerufen hat.
+    void clear(); //!<\brief Deletes all curves from a plot.
+                  //!< \sa Curve
+                  //!< \par examples:
+                  //!< \code
+                  //! local plot = Ui.Plot.new()
+                  //! local curve = plot:add_curve()
+                  //! plot.clear(); -- deletes all curves. Plot is empty now
+                  //! \endcode
+                  //!TODO: Testen was passiert wenn man auf Kurve zugreift nachdem man clear aufgerufen hat.
 
-	void set_x_marker(const std::string &title, double xpos, const Color &color); //!<\brief Adds a vertical marker to the plot to mark an x-position.
+    void set_x_marker(const std::string &title, double xpos, const Color &color); //!<\brief Adds a vertical marker to the plot to mark an x-position.
                                                                                   //!< \param title A string value.
                                                                                   //!< \param xpos A number.
                                                                                   //!< \param color Color with the type Color.
-																				  //!< \par examples:
-																				  //!< \code
-																				  //! local plot = Ui.Plot.new()
+                                                                                  //!< \par examples:
+                                                                                  //!< \code
+                                                                                  //! local plot = Ui.Plot.new()
                                                                                   //! plot:set_x_marker(10, Ui.Color_from_name("blue"))
-																				  //! \endcode
+                                                                                  //! \endcode
 
-        void set_visible(bool visible);
+    void set_visible(bool visible);
+
     private:
     void update();
     void set_rightclick_action();
 
-	QwtPlot *plot{nullptr};
-	QAction *save_as_csv_action{nullptr};
-	QwtPlotPicker *picker{nullptr};
+    QwtPlot *plot{nullptr};
+    QAction *save_as_csv_action{nullptr};
+    QwtPlotPicker *picker{nullptr};
     QwtPlotPicker *track_picker{nullptr};
-	QwtPickerClickPointMachine *clicker{nullptr};
+    QwtPickerClickPointMachine *clicker{nullptr};
     QwtPickerTrackerMachine *tracker{nullptr};
-	std::vector<Curve *> curves{};
-	int curve_id_counter{0};
+    std::vector<Curve *> curves{};
+    int curve_id_counter{0};
 
     friend class Curve;
 };

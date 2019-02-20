@@ -16,7 +16,7 @@ class ComboBox : public UI_widget {
     void set_items(const sol::table &items);
     std::string get_text() const;
     void set_index(unsigned int index);
-    unsigned int get_index();
+    unsigned int get_index(); //return == 0 means: "no item is selected"
 
     void set_caption(const std::string caption);
     void set_name(const std::string name);

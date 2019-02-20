@@ -1,7 +1,7 @@
 #include "lineedit.h"
+#include "Windows/mainwindow.h"
 #include "ui_container.h"
 #include "util.h"
-
 #include <QDateTime>
 #include <QInputDialog>
 #include <QLabel>
@@ -43,22 +43,27 @@ LineEdit::LineEdit(UI_container *parent, ScriptEngine *script_engine)
         }
 
         text_edit->setPalette(palette);
+        assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     });
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
 LineEdit::~LineEdit() {
     text_edit->setReadOnly(true);
     date_edit->setReadOnly(true);
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     QObject::disconnect(callback_text_changed);
 }
 
 void LineEdit::set_date_mode() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     entermode = LineEdit_Entermode::DateMode;
     text_edit->setVisible(false);
     date_edit->setVisible(true);
 }
 
 void LineEdit::set_text_mode() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     entermode = LineEdit_Entermode::TextMode;
     text_edit->setVisible(true);
     date_edit->setVisible(false);
@@ -66,6 +71,7 @@ void LineEdit::set_text_mode() {
 
 ///\endcond
 void LineEdit::set_placeholder_text(const std::string &text) {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     if (entermode == LineEdit_Entermode::DateMode) {
         throw std::runtime_error(QString("LineEdit:set_placeholder_text is not available in DateMode.").toStdString());
     }
@@ -77,6 +83,7 @@ void LineEdit::set_input_check(const std::string &text) {
 }
 
 std::string LineEdit::get_text() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     if (entermode == LineEdit_Entermode::TextMode) {
         while (!pattern_check_m.is_input_matching_to_pattern(text_edit->text())) {
             QString retval = QInputDialog::getText(text_edit, "Invalid value",
@@ -96,6 +103,7 @@ std::string LineEdit::get_text() {
 }
 
 double LineEdit::get_date() const {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     if (entermode == LineEdit_Entermode::TextMode) {
         throw std::runtime_error(QString("LineEdit:get_date is not available in Textmode.").toStdString());
     }
@@ -104,11 +112,13 @@ double LineEdit::get_date() const {
 }
 
 void LineEdit::set_text(const std::string &text) {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     set_text_mode();
     text_edit->setText(QString::fromStdString(text));
 }
 
 void LineEdit::set_date(double date_value_since_epoch) {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     set_date_mode();
     QDateTime date_;
     date_.setSecsSinceEpoch((uint64_t)date_value_since_epoch);
@@ -124,6 +134,7 @@ std::string LineEdit::get_name() const {
 }
 
 void LineEdit::set_caption(const std::string &caption) {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     label->setText(QString::fromStdString(caption));
     //label->setVisible(label->text().size());
     if (caption == "") {
@@ -132,12 +143,14 @@ void LineEdit::set_caption(const std::string &caption) {
 }
 
 void LineEdit::set_visible(bool visible) {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     label->setVisible(visible);
     text_edit->setVisible(visible);
     date_edit->setVisible(visible);
 }
 
 void LineEdit::set_enabled(bool enabled) {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     label->setEnabled(enabled);
     text_edit->setEnabled(enabled);
     date_edit->setEnabled(enabled);
@@ -206,6 +219,7 @@ bool PatternCheck::is_input_matching_to_pattern(const QString &string_under_test
 }
 
 std::string LineEdit::get_caption() const {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     return label->text().toStdString();
 }
 
@@ -235,6 +249,7 @@ void LineEdit::save_to_cache() {
 }
 
 void LineEdit::set_focus() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     if (entermode == LineEdit_Entermode::TextMode) {
         text_edit->setFocus();
     } else if (entermode == LineEdit_Entermode::DateMode) {
@@ -243,7 +258,7 @@ void LineEdit::set_focus() {
 }
 
 void LineEdit::await_return() {
-    if (entermode != LineEdit_Entermode::DateMode) {
+    if (entermode == LineEdit_Entermode::DateMode) {
         throw std::runtime_error("LineEdit::await_return is only available in TextMode, not in DateMode");
     }
 
@@ -256,6 +271,7 @@ void LineEdit::await_return() {
 }
 
 double LineEdit::get_number() const {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     if (entermode == LineEdit_Entermode::TextMode) {
         bool ok = true;
         double retval = text_edit->text().toDouble(&ok);

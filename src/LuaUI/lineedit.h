@@ -61,17 +61,13 @@ class PatternCheck {
         switch (t) {
             case yyww_m: {
                 return QStringList{
-                    "YY/WW?- means the first 2 characters of the year > 17\nseperated by a '/' followed be the weeknumber and\nan optional character. The "
-                    "date must not be a future date. It may be left empty with an '-'. Example:"
-                    "18/33",
-                    "18/33a", "-"};
+                    "YY/WW?- means the first 2 characters of the year > 17\nseperated by a '/' followed be the weeknumber and an optional character.\nThe "
+                    "date must not be a future date. It may be left empty with an '-'. Example:\n'18/33', '18/33a', '-'"};
             }
             case yyww: {
                 return QStringList{
-                    "YY/WW? means the first 2 characters of the year > 17\nseperated by a '/' followed be the weeknumber and\nan optional character. The "
-                    "date must not be a future date. Example:"
-                    "18/33",
-                    "18/33a"};
+                    "YY/WW? means the first 2 characters of the year > 17\nseperated by a '/' followed be the weeknumber and an optional character.\nThe "
+                    "date must not be a future date. Example:\n'18/33', '18/33a'"};
             }
             case None:
                 return QStringList{};

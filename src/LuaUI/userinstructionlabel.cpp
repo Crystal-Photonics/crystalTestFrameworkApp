@@ -106,6 +106,7 @@ UserInstructionLabel::~UserInstructionLabel() {
 ///\endcond
 
 void UserInstructionLabel::scale_columns() {
+    assert(MainWindow::gui_thread == QThread::currentThread());
     int col_size = 6;
     button_next->setFixedWidth(total_width / col_size);
     button_no->setFixedWidth(total_width / (2 * col_size));
@@ -137,11 +138,13 @@ bool UserInstructionLabel::run_hotkey_loop() {
 }
 
 void UserInstructionLabel::set_instruction_text(const std::string &instruction_text) {
+    assert(MainWindow::gui_thread == QThread::currentThread());
     this->instruction_text = QString::fromStdString(instruction_text);
     label_user_instruction->setText(this->instruction_text);
 }
 
 void UserInstructionLabel::set_visible(bool visible) {
+    assert(MainWindow::gui_thread == QThread::currentThread());
     label_user_instruction->setVisible(visible);
 
     button_yes->setVisible(visible && is_question_mode);
@@ -177,6 +180,7 @@ void UserInstructionLabel::set_enabled(bool enabled) {
 }
 
 void UserInstructionLabel::resizeMe(QResizeEvent *event) {
+    assert(MainWindow::gui_thread == QThread::currentThread());
     total_width = event->size().width();
     if (is_init) {
         scale_columns();
@@ -186,6 +190,7 @@ void UserInstructionLabel::resizeMe(QResizeEvent *event) {
 ///\cond HIDDEN_SYMBOLS
 void UserInstructionLabel::start_timer() {
     callback_timer = QObject::connect(timer, &QTimer::timeout, [this]() {
+        assert(MainWindow::gui_thread == QThread::currentThread());
         if (blink_state == Globals::ui_blink_ratio) {
             label_user_instruction->setText(" ");
             blink_state = 0;
