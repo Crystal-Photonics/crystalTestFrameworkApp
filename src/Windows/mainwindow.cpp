@@ -315,7 +315,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->test_simple_view->setVisible(false);
     add_clear_button_to_console(ui->console_edit);
     devices_thread.start();
-    connect(device_worker.get(), SIGNAL(device_discrovery_done()), this, SLOT(slot_device_discovery_done()));
+	connect(device_worker.get(), &DeviceWorker::device_discovery_done, this, &MainWindow::slot_device_discovery_done);
     refresh_devices(false);
 
     load_scripts();

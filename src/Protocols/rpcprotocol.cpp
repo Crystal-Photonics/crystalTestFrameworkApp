@@ -247,11 +247,9 @@ std::string RPCProtocol::get_name() {
 
 CommunicationDeviceWrapper::CommunicationDeviceWrapper(CommunicationDevice &device)
     : com_device(device) {
-    connect(this, SIGNAL(decoded_received(const QByteArray &)), &com_device, SIGNAL(decoded_received(const QByteArray &)));
-
-    connect(this, SIGNAL(message(const QByteArray &)), &com_device, SIGNAL(message(const QByteArray &)));
-
-    connect(&com_device, SIGNAL(received(const QByteArray &)), this, SIGNAL(received(const QByteArray &)));
+	connect(this, &CommunicationDeviceWrapper::decoded_received, &com_device, &CommunicationDevice::decoded_received);
+	connect(this, &CommunicationDeviceWrapper::message, &com_device, &CommunicationDevice::message);
+	connect(&com_device, &CommunicationDevice::received, this, &CommunicationDeviceWrapper::received);
 }
 
 void CommunicationDeviceWrapper::send(std::vector<unsigned char> data, std::vector<unsigned char> pre_encodec_data) {

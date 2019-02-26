@@ -370,6 +370,18 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 			const auto &devices = MainWindow::mw->discover_devices(script_engine, device_description);
 			return script_engine.get_devices(devices);
 		};
+		lua["refresh_devices"] = +[] {
+			Utility::thread_call(MainWindow::mw, +[] {
+				MainWindow::mw->on_actionrefresh_devices_all_triggered(); //does not wait for devices to be refreshed, so we wait for 2 seconds.
+			});
+			std::this_thread::sleep_for(std::chrono::seconds(2));
+		};
+		lua["refresh_DUTs"] = +[] {
+			Utility::thread_call(MainWindow::mw, +[] {
+				MainWindow::mw->on_actionrefresh_devices_dut_triggered(); //does not wait for devices to be refreshed, so we wait for 2 seconds.
+			});
+			std::this_thread::sleep_for(std::chrono::seconds(2));
+		};
     }
 
     //table functions

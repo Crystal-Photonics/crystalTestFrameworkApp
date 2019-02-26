@@ -277,7 +277,10 @@ DeviceWorker::~DeviceWorker() {}
 
 void DeviceWorker::refresh_devices(QTreeWidgetItem *root, bool dut_only) {
     assert(currently_in_gui_thread() == true);
-    refresh_semaphore.acquire();
+	if (not refresh_semaphore.tryAcquire()) {
+		//someone else is currently refreshing devices. Good enough.
+		return;
+	}
     QList<QTreeWidgetItem *> device_items = MainWindow::mw->get_devices_to_forget_by_root_treewidget(root);
 
     int j = 0;
@@ -307,7 +310,7 @@ void DeviceWorker::refresh_devices(QTreeWidgetItem *root, bool dut_only) {
         j++;
     }
 
-    Utility::thread_call(this, [this, device_items, dut_only] {
+	Utility::thread_call(this, [this, device_items] {
         for (auto &item : device_items) {
             forget_device_(item);
             // qDebug() << "forgetting:" << item->text(0);
@@ -316,7 +319,7 @@ void DeviceWorker::refresh_devices(QTreeWidgetItem *root, bool dut_only) {
         update_devices();
         QApplication::processEvents();
         detect_devices();
-        emit device_discrovery_done();
+		emit device_discovery_done();
         refresh_semaphore.release();
     });
 }

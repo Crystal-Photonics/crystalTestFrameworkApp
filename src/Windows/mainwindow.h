@@ -81,9 +81,10 @@ class EXPORT MainWindow : public QMainWindow {
 
     public slots:
     void align_columns();
-
     void add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *communication_device);
     void append_html_to_console(QString text, QPlainTextEdit *console);
+	void on_actionrefresh_devices_all_triggered();
+	void on_actionrefresh_devices_dut_triggered();
 
     private slots:
     void slot_device_discovery_done();
@@ -106,8 +107,6 @@ class EXPORT MainWindow : public QMainWindow {
     void on_tbtn_view_all_scripts_clicked();
     void on_tbtn_view_favorite_scripts_clicked();
     void on_actionRunSelectedScript_triggered();
-    void on_actionrefresh_devices_all_triggered();
-    void on_actionrefresh_devices_dut_triggered();
     void on_actionClose_finished_Tests_triggered();
     void on_test_simple_view_itemSelectionChanged();
     void on_tests_advanced_view_itemSelectionChanged();
