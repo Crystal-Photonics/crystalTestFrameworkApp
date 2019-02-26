@@ -525,9 +525,6 @@ sleep_ms(int timeout_ms);
 /// @cond HIDDEN_SYMBOLS
 void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms) {
     scriptengine->await_timeout(std::chrono::milliseconds{timeout_ms});
-    if (QThread::currentThread()->isInterruptionRequested()) {
-        throw sol::error("Abort Requested");
-    }
 #if 0
     QEventLoop event_loop;
     static const auto secret_exit_code = -0xF42F;
