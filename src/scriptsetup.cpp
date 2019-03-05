@@ -382,6 +382,9 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 		lua["discover_devices"] = [&script_engine](const sol::table &device_description) {
 			abort_check();
 			const auto &devices = MainWindow::mw->discover_devices(script_engine, device_description);
+			for (const auto &device : devices) {
+				script_engine.adopt_device(device);
+			}
 			return script_engine.get_devices(devices);
 		};
 		lua["refresh_devices"] = +[] {

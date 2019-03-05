@@ -81,6 +81,7 @@ class ScriptEngine {
     static std::string to_string(const sol::object &o);
     static std::string to_string(const sol::stack_proxy &object);
     QString get_absolute_filename(QString file_to_open);
+	bool adopt_device(const MatchedDevice &device);
 
     sol::table create_table();
 	template <class Return_type, class... Args>

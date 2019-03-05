@@ -379,6 +379,10 @@ QString ScriptEngine::get_absolute_filename(QString file_to_open) {
 	return get_absolute_file_path(path_m, file_to_open);
 }
 
+bool ScriptEngine::adopt_device(const MatchedDevice &device) {
+	return runner->adopt_device(device);
+}
+
 void ScriptEngine::load_script(const std::string &path) {
     // qDebug() << "load_script " << QString::fromStdString(path);
     // qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();

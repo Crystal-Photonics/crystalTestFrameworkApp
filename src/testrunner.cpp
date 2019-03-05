@@ -73,6 +73,7 @@ UI_container *TestRunner::get_lua_ui_container() const {
 }
 
 void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &device_worker) {
+	device_worker_pointer = &device_worker;
 	Utility::thread_call(this, [ this, devices = std::move(devices), &device_worker ]() mutable {
 		data_engine->enable_logging(console, devices);
         for (auto &dev_prot : devices) {
@@ -80,16 +81,20 @@ void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &de
         }
         try {
 			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::running); });
-            script.run(devices);
+			script.run(devices);
 			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::finished); });
         } catch (const std::runtime_error &e) {
 			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::error); });
             qDebug() << "runtime_error caught @TestRunner::run_script";
 			MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] { console.error() << message; });
         }
+		device_worker_pointer = nullptr;
         for (auto &dev_prot : devices) {
             device_worker.set_currently_running_test(dev_prot.device, "");
         }
+		for (auto &extra_device : extra_devices) {
+			device_worker.set_currently_running_test(extra_device, "");
+		}
         moveToThread(MainWindow::gui_thread);
         thread.quit();
 		MainWindow::mw->execute_in_gui_thread([this] { console.note() << "Script stopped"; });
@@ -109,5 +114,16 @@ void TestRunner::launch_editor() const {
 }
 
 QObject *TestRunner::obj() {
-    return this;
+	return this;
+}
+
+bool TestRunner::adopt_device(const MatchedDevice &device) {
+	const auto dw = device_worker_pointer.load();
+	if (dw) {
+		//TODO: Find a way to check if the device is already owned by another script without causing a data race and abort if it is
+		dw->set_currently_running_test(device.device, name);
+		extra_devices.push_back(device.device);
+		return true;
+	}
+	return false;
 }

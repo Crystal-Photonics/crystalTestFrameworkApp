@@ -43,6 +43,7 @@ class TestRunner : QObject {
     void launch_editor() const;
 
     QObject *obj();
+	bool adopt_device(const MatchedDevice &device);
 
     private:
 	std::unique_ptr<Console> console_pointer;
@@ -52,6 +53,8 @@ class TestRunner : QObject {
 	std::unique_ptr<ScriptEngine> script_pointer;
 	ScriptEngine &script;
     QString name{};
+	std::atomic<DeviceWorker *> device_worker_pointer{nullptr};
+	std::vector<CommunicationDevice *> extra_devices;
 
 	public:
 	Console &console;
