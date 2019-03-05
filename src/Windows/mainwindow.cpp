@@ -1010,15 +1010,15 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
                               QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok) {
         return; //canceled closing the tab
     }
-    abort_script(&runner);
+	abort_script(runner);
     QApplication::processEvents(); //runner may have sent events referencing runner. Need to process all such events before removing runner.
     test_runners.erase(runner_it);
     ui->test_tabs->removeTab(index);
 }
 
-void MainWindow::abort_script(TestRunner *runner) {
-    runner->interrupt();
-    runner->message_queue_join();
+void MainWindow::abort_script(TestRunner &runner) {
+	runner.interrupt();
+	runner.message_queue_join();
 }
 
 void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
@@ -1029,7 +1029,7 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 
         QAction action_abort_script(tr("Abort Script"), nullptr);
         if (runner->is_running()) {
-            connect(&action_abort_script, &QAction::triggered, [runner, this] { abort_script(runner); });
+			connect(&action_abort_script, &QAction::triggered, [runner, this] { abort_script(*runner); });
             menu.addAction(&action_abort_script);
         }
 
@@ -1292,7 +1292,7 @@ void MainWindow::on_actionactionAbort_triggered() {
         if (QMessageBox::question(this, tr(""), tr("Abort running scripts now?"), QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
             for (auto &tr : test_runners) {
                 if (tr->is_running()) {
-                    abort_script(tr.get());
+					abort_script(*tr.get());
                 }
             }
             enable_abort_button_script();

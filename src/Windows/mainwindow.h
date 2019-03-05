@@ -176,7 +176,7 @@ class EXPORT MainWindow : public QMainWindow {
     QTreeWidgetItem *get_treewidgetitem_from_listViewItem(QListWidgetItem *item);
     void add_clear_button_to_console(QPlainTextEdit *console);
     void show_in_graphical_shell(const QString &pathIn);
-    void abort_script(TestRunner *runner);
+	void abort_script(TestRunner &runner);
 };
 
 template <class T>
