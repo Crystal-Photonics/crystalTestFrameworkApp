@@ -379,6 +379,10 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                 default: { throw sol::error("interrupted"); }
             }
 		};
+	}
+
+	//Add device discovery functions
+	{
 		lua["discover_devices"] = [&script_engine](const sol::table &device_description) {
 			abort_check();
 			const auto &devices = MainWindow::mw->discover_devices(script_engine, device_description);
@@ -390,14 +394,14 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 		lua["refresh_devices"] = +[] {
 			abort_check();
 			Utility::thread_call(MainWindow::mw, +[] {
-				MainWindow::mw->on_actionrefresh_devices_all_triggered(); //does not wait for devices to be refreshed, so we wait for 2 seconds.
+				MainWindow::mw->on_actionrefresh_devices_all_triggered(); //does not wait for devices to be refreshed, so we wait afterwards
 			});
 			std::this_thread::sleep_for(std::chrono::seconds(2));
 		};
 		lua["refresh_DUTs"] = +[] {
 			abort_check();
 			Utility::thread_call(MainWindow::mw, +[] {
-				MainWindow::mw->on_actionrefresh_devices_dut_triggered(); //does not wait for devices to be refreshed, so we wait for 2 seconds.
+				MainWindow::mw->on_actionrefresh_devices_dut_triggered(); //does not wait for devices to be refreshed, so we wait afterwards
 			});
 			std::this_thread::sleep_for(std::chrono::seconds(2));
 		};
@@ -1419,4 +1423,33 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 
                                        );
     }
+	//set up import functionality
+	{
+		lua["find_script"] = [&script_engine](const std::string &name) { return script_engine.get_script_import_path(name); };
+		lua.script(R"(
+		   --from Tyler https://stackoverflow.com/a/26367080/3484570
+		   function table_copy(obj, seen)
+			   if type(obj) ~= 'table' then
+				   return obj
+			   end
+			   if seen and seen[obj] then
+				   return seen[obj]
+			   end
+			   local s = seen or {}
+			   local res = setmetatable({}, getmetatable(obj))
+			   s[obj] = res
+			   for k, v in pairs(obj) do
+				   res[table_copy(k, s)] = table_copy(v, s)
+			   end
+			   return res
+		   end
+
+		   local import_env = table_copy(_G) --save default environment to be used for imports
+
+		   function import(name)
+			   local _ENV = import_env
+			   return assert(loadfile(assert(find_script(name))))()
+		   end
+		)");
+	}
 }
