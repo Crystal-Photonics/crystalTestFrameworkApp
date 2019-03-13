@@ -1426,30 +1426,33 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 	//set up import functionality
 	{
 		lua["find_script"] = [&script_engine](const std::string &name) { return script_engine.get_script_import_path(name); };
-		lua.script(R"(
-		   --from Tyler https://stackoverflow.com/a/26367080/3484570
-		   function table_copy(obj, seen)
-			   if type(obj) ~= 'table' then
-				   return obj
-			   end
-			   if seen and seen[obj] then
-				   return seen[obj]
-			   end
-			   local s = seen or {}
-			   local res = setmetatable({}, getmetatable(obj))
-			   s[obj] = res
-			   for k, v in pairs(obj) do
-				   res[table_copy(k, s)] = table_copy(v, s)
-			   end
-			   return res
-		   end
+		lua.script(R"xx(
+				   assert(_VERSION == "Lua 5.3")
+				   --might also work with 5.2
+				   --definitely does not work with 5.1 and below because _ENV did not exist
+				   --may work with 5.4+, but that does not exist at time of writing
 
-		   local import_env = table_copy(_G) --save default environment to be used for imports
+				   function env_copy(obj)
+					   obj = obj or _ENV
+					   local res = {}
+					   for k, v in pairs(obj) do
+						   if string.find("boolean number string function table", type(v)) then --not copying "thread" and "userdata"
+							   --print("Copied " .. k .. " of type " .. type(v))
+							   res[k] = v
+						   else
+							   print("Skipped " .. k .. " of type " .. type(v))
+						   end
+					   end
+					   return res
+				   end
 
-		   function import(name)
-			   local _ENV = import_env
-			   return assert(loadfile(assert(find_script(name))))()
-		   end
-		)");
+				   local default_env = env_copy()
+
+				   function import(name)
+					   local env = env_copy(default_env)
+					   assert(loadfile(assert(name), "t", env))()
+					   return env
+				   end
+		)xx");
 	}
 }
