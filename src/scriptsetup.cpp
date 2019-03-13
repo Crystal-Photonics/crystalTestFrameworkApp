@@ -359,12 +359,32 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 			abort_check();
 			return round_double(value, precision);
 		};
-		lua["require"] = [ path = path, &lua ](const std::string &file) {
-			abort_check();
-            QDir dir(QString::fromStdString(path));
-            dir.cdUp();
-            lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
+//TODO: Figure out why the lambda version crashes on Windows and the Require version does not.
+#if 1
+		struct Require {
+			std::string path;
+			sol::state &lua;
+			Require(const std::string &path, sol::state &lua)
+				: path{path}
+				, lua{lua} {}
+			void operator()(const std::string &file) {
+				abort_check();
+				QDir dir(QString::fromStdString(path));
+				dir.cdUp();
+				lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
+			}
 		};
+
+		lua["require"] = Require{path, lua};
+#else
+
+		lua["require"] = [path, &lua](const std::string &file) {
+			abort_check();
+			QDir dir(QString::fromStdString(path));
+			dir.cdUp();
+			lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
+		};
+#endif
 		lua["await_hotkey"] = [&script_engine] {
 			abort_check();
 			auto exit_value = script_engine.await_hotkey_event();
@@ -1440,7 +1460,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 							   --print("Copied " .. k .. " of type " .. type(v))
 							   res[k] = v
 						   else
-							   print("Skipped " .. k .. " of type " .. type(v))
+							   --print("Skipped " .. k .. " of type " .. type(v))
 						   end
 					   end
 					   return res
