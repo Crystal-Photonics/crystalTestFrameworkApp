@@ -1470,7 +1470,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 
 				   function import(name)
 					   local env = env_copy(default_env)
-					   assert(loadfile(assert(name), "t", env))()
+					   assert(loadfile(assert(find_script(name)), "t", env))()
 					   return env
 				   end
 		)xx");

@@ -338,6 +338,7 @@ std::string ScriptEngine::to_string(const sol::object &o) {
         case sol::type::number:
             return to_string(o.as<double>());
         case sol::type::nil:
+			return "nil";
         case sol::type::none:
             return "nil";
         case sol::type::string:
@@ -394,13 +395,14 @@ std::string ScriptEngine::get_script_import_path(const std::string &name) {
 		script += ".lua";
 	}
 
-	QDir script_dir{path_m};
-	QDir dir{QSettings{}.value(Globals::test_script_path_settings_key).toString()};
-	auto filepath = dir.filePath(script);
-	if (QFile::exists(filepath)) {
-		return filepath.toStdString();
+	QDir current_script_dir{path_m};
+	current_script_dir.cdUp();
+	for (auto &dir : {current_script_dir, QDir{QSettings{}.value(Globals::test_script_path_settings_key).toString()}, QDir{}}) {
+		const auto filepath = dir.filePath(script);
+		if (QFile::exists(filepath)) {
+			return filepath.toStdString();
+		}
 	}
-
 	return name;
 }
 
