@@ -359,12 +359,32 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 			abort_check();
 			return round_double(value, precision);
 		};
-		lua["require"] = [ path = path, &lua ](const std::string &file) {
-			abort_check();
-            QDir dir(QString::fromStdString(path));
-            dir.cdUp();
-            lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
+//TODO: Figure out why the lambda version crashes on Windows and the Require version does not.
+#if 1
+		struct Require {
+			std::string path;
+			sol::state &lua;
+			Require(const std::string &path, sol::state &lua)
+				: path{path}
+				, lua{lua} {}
+			void operator()(const std::string &file) {
+				abort_check();
+				QDir dir(QString::fromStdString(path));
+				dir.cdUp();
+				lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
+			}
 		};
+
+		lua["require"] = Require{path, lua};
+#else
+
+		lua["require"] = [path, &lua](const std::string &file) {
+			abort_check();
+			QDir dir(QString::fromStdString(path));
+			dir.cdUp();
+			lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
+		};
+#endif
 		lua["await_hotkey"] = [&script_engine] {
 			abort_check();
 			auto exit_value = script_engine.await_hotkey_event();
@@ -379,6 +399,10 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                 default: { throw sol::error("interrupted"); }
             }
 		};
+	}
+
+	//Add device discovery functions
+	{
 		lua["discover_devices"] = [&script_engine](const sol::table &device_description) {
 			abort_check();
 			const auto &devices = MainWindow::mw->discover_devices(script_engine, device_description);
@@ -390,14 +414,14 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 		lua["refresh_devices"] = +[] {
 			abort_check();
 			Utility::thread_call(MainWindow::mw, +[] {
-				MainWindow::mw->on_actionrefresh_devices_all_triggered(); //does not wait for devices to be refreshed, so we wait for 2 seconds.
+				MainWindow::mw->on_actionrefresh_devices_all_triggered(); //does not wait for devices to be refreshed, so we wait afterwards
 			});
 			std::this_thread::sleep_for(std::chrono::seconds(2));
 		};
 		lua["refresh_DUTs"] = +[] {
 			abort_check();
 			Utility::thread_call(MainWindow::mw, +[] {
-				MainWindow::mw->on_actionrefresh_devices_dut_triggered(); //does not wait for devices to be refreshed, so we wait for 2 seconds.
+				MainWindow::mw->on_actionrefresh_devices_dut_triggered(); //does not wait for devices to be refreshed, so we wait afterwards
 			});
 			std::this_thread::sleep_for(std::chrono::seconds(2));
 		};
@@ -1419,4 +1443,36 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 
                                        );
     }
+	//set up import functionality
+	{
+		lua["find_script"] = [&script_engine](const std::string &name) { return script_engine.get_script_import_path(name); };
+		lua.script(R"xx(
+				   assert(_VERSION == "Lua 5.3")
+				   --might also work with 5.2
+				   --definitely does not work with 5.1 and below because _ENV did not exist
+				   --may work with 5.4+, but that does not exist at time of writing
+
+				   function env_copy(obj)
+					   obj = obj or _ENV
+					   local res = {}
+					   for k, v in pairs(obj) do
+						   if string.find("boolean number string function table", type(v)) then --not copying "thread" and "userdata"
+							   --print("Copied " .. k .. " of type " .. type(v))
+							   res[k] = v
+						   else
+							   --print("Skipped " .. k .. " of type " .. type(v))
+						   end
+					   end
+					   return res
+				   end
+
+				   local default_env = env_copy()
+
+				   function import(name)
+					   local env = env_copy(default_env)
+					   assert(loadfile(assert(name), "t", env))()
+					   return env
+				   end
+		)xx");
+	}
 }

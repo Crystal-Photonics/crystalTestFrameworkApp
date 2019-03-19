@@ -31,6 +31,7 @@
 #include <QShortcut>
 #include <QThread>
 #include <QTimer>
+#include <QVariant>
 #include <cmath>
 #include <functional>
 #include <memory>
@@ -381,6 +382,26 @@ QString ScriptEngine::get_absolute_filename(QString file_to_open) {
 
 bool ScriptEngine::adopt_device(const MatchedDevice &device) {
 	return runner->adopt_device(device);
+}
+
+static bool ends_with(const std::string &s, const std::string &suffix) { //TODO: replace with C++20 std::string::ends_with
+	return std::equal(s.rbegin(), s.rbegin() + suffix.size(), suffix.rbegin(), suffix.rend());
+}
+
+std::string ScriptEngine::get_script_import_path(const std::string &name) {
+	auto script = QString::fromStdString(name);
+	if (not script.endsWith(".lua")) {
+		script += ".lua";
+	}
+
+	QDir script_dir{path_m};
+	QDir dir{QSettings{}.value(Globals::test_script_path_settings_key).toString()};
+	auto filepath = dir.filePath(script);
+	if (QFile::exists(filepath)) {
+		return filepath.toStdString();
+	}
+
+	return name;
 }
 
 void ScriptEngine::load_script(const std::string &path) {
