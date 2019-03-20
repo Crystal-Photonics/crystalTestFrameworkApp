@@ -311,9 +311,9 @@ static auto overloaded_function(Functions &&... functions) {
 }
 
 void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script_engine) {
-    //load the standard libs if necessary
+	//load the standard libs
     lua.open_libraries();
-
+	//load environment variables
     EnvironmentVariables env_variables(QSettings{}.value(Globals::path_to_environment_variables_key, "").toString());
     env_variables.load_to_lua(&lua);
 
@@ -364,10 +364,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 		struct Require {
 			std::string path;
 			sol::state &lua;
-			Require(const std::string &path, sol::state &lua)
-				: path{path}
-				, lua{lua} {}
-			void operator()(const std::string &file) {
+			void operator()(const std::string &file) const {
 				abort_check();
 				QDir dir(QString::fromStdString(path));
 				dir.cdUp();
@@ -400,33 +397,43 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             }
 		};
 	}
-
 	//Add device discovery functions
 	{
 		lua["discover_devices"] = [&script_engine](const sol::table &device_description) {
 			abort_check();
-			const auto &devices = MainWindow::mw->discover_devices(script_engine, device_description);
-			for (const auto &device : devices) {
-				script_engine.adopt_device(device);
+			if (device_description.empty()) {
+				return device_description; //empty device description, return empty matches
+			}
+			auto devices = MainWindow::mw->discover_devices(script_engine, device_description);
+			while (devices.empty()) {
+				Utility::promised_thread_call(MainWindow::mw, +[] {
+					MainWindow::mw->on_actionrefresh_devices_all_triggered(); //does not wait for devices to be refreshed, so we wait afterwards
+				});
+				std::this_thread::sleep_for(std::chrono::seconds(2));
+				devices = MainWindow::mw->discover_devices(script_engine, device_description);
 			}
 			return script_engine.get_devices(devices);
 		};
+		lua.script(R"(
+			function discover_device(device)
+				return discover_devices({device})
+			end
+		)");
 		lua["refresh_devices"] = +[] {
 			abort_check();
-			Utility::thread_call(MainWindow::mw, +[] {
+			Utility::promised_thread_call(MainWindow::mw, +[] {
 				MainWindow::mw->on_actionrefresh_devices_all_triggered(); //does not wait for devices to be refreshed, so we wait afterwards
 			});
 			std::this_thread::sleep_for(std::chrono::seconds(2));
 		};
 		lua["refresh_DUTs"] = +[] {
 			abort_check();
-			Utility::thread_call(MainWindow::mw, +[] {
+			Utility::promised_thread_call(MainWindow::mw, +[] {
 				MainWindow::mw->on_actionrefresh_devices_dut_triggered(); //does not wait for devices to be refreshed, so we wait afterwards
 			});
 			std::this_thread::sleep_for(std::chrono::seconds(2));
 		};
     }
-
     //table functions
     {
 		lua["table_save_to_file"] =
@@ -601,7 +608,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 			return get_os_username();
 		};
     }
-
+	//noise level
     {
 		lua["measure_noise_level_czt"] = [&lua](sol::table rpc_device, const unsigned int dacs_quantity, const unsigned int max_possible_dac_value) {
 			abort_check();
@@ -656,7 +663,6 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 										} //
                                         );
     }
-
     //bind data engine
     {
         lua.new_usertype<Data_engine_handle>(
@@ -878,10 +884,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             },
 			"all_values_in_range", [](Data_engine_handle &handle) { return handle.data_engine->all_values_in_range(); });
     }
-
     //bind UI
-    auto ui_table = lua.create_named_table("Ui");
-
+	auto ui_table = lua.create_named_table("Ui");
     //UI functions
     {
 		ui_table["set_column_count"] = [ container = script_engine.parent, &script_engine ](int count) {
@@ -898,18 +902,17 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 		};
 #endif
     }
-
-#if 0
 	//bind charge UserEntryCache
 	{
+#if 0
 		lua.new_usertype<UserEntryCache>("UserEntryCache", //
 										  sol::meta_function::construct,sol::factories(
 										  []() { //
 											  abort_check();
 											  return UserEntryCache{};
 										  }));
-	}
 #endif
+	}
     //bind plot
     {
         ui_table.new_usertype<Lua_UI_Wrapper<Curve>>(
@@ -1229,7 +1232,6 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                                                         "get_text", thread_call_wrapper(&CheckBox::get_text));
     }
     //bind Image
-
     {
         ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image", sol::meta_function::construct,
                                                      sol::factories([ parent = script_engine.parent, path = path, &script_engine ]() {
@@ -1255,7 +1257,6 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                                                       "await_click", non_gui_call_wrapper(&Button::await_click)             //
                                                       );
     }
-
     //bind edit field
     {
         ui_table.new_usertype<Lua_UI_Wrapper<LineEdit>>(
@@ -1283,6 +1284,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             "load_from_cache", non_gui_call_wrapper(&LineEdit::load_from_cache) //
             );
     }
+	//bind SPI
     {
 		lua.new_usertype<SCPIDevice>("SCPIDevice",                                       //
 									 sol::meta_function::construct, sol::no_constructor, //
@@ -1369,7 +1371,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 
 									 );
     }
-
+	//bind SG04
     {
 		lua.new_usertype<SG04CountDevice>("SG04CountDevice",                                  //
 										  sol::meta_function::construct, sol::no_constructor, //
@@ -1396,6 +1398,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 										  } //
                                           );
     }
+	//bind manual device
     {
 		lua.new_usertype<ManualDevice>("ManualDevice",                                     //
 									   sol::meta_function::construct, sol::no_constructor, //

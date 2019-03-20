@@ -624,6 +624,9 @@ std::vector<MatchedDevice> MainWindow::discover_devices(ScriptEngine &se, const 
 		DeviceMatcher device_matcher(mw);
 		device_matcher.match_devices(*mw->device_worker, *se.runner, dr, se.test_name);
 		if (device_matcher.was_successful()) {
+			for (auto &device : device_matcher.get_matched_devices()) {
+				se.adopt_device(device);
+			}
 			return device_matcher.get_matched_devices();
 		}
 		return {};

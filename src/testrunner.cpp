@@ -118,9 +118,11 @@ QObject *TestRunner::obj() {
 }
 
 bool TestRunner::adopt_device(const MatchedDevice &device) {
+	assert(currently_in_gui_thread()); //only gui thread may move devices to avoid races
+	assert(not device.device->is_in_use);
+	device.device->is_in_use = true;
 	const auto dw = device_worker_pointer.load();
 	if (dw) {
-		//TODO: Find a way to check if the device is already owned by another script without causing a data race and abort if it is
 		dw->set_currently_running_test(device.device, name);
 		extra_devices.push_back(device.device);
 		return true;

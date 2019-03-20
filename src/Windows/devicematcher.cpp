@@ -414,11 +414,11 @@ void DeviceMatcher::on_btn_uncheck_all_clicked() {
 }
 
 void PortDescription::set_is_in_use(bool in_use) {
-    device.get()->set_is_in_use(in_use);
+	device.get()->is_in_use = in_use;
 }
 
 bool PortDescription::get_is_in_use() {
-    return device.get()->get_is_in_use();
+	return device.get()->is_in_use;
 }
 
 void DeviceMatcher::poll_sg04_counts() {
