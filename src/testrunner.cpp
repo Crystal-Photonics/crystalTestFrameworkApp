@@ -119,8 +119,7 @@ QObject *TestRunner::obj() {
 
 bool TestRunner::adopt_device(const MatchedDevice &device) {
 	assert(currently_in_gui_thread()); //only gui thread may move devices to avoid races
-	assert(not device.device->is_in_use);
-	device.device->is_in_use = true;
+	assert(not device.device->is_in_use());
 	const auto dw = device_worker_pointer.load();
 	if (dw) {
 		dw->set_currently_running_test(device.device, name);

@@ -406,6 +406,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 			}
 			auto devices = MainWindow::mw->discover_devices(script_engine, device_description);
 			while (devices.empty()) {
+				abort_check();
 				Utility::promised_thread_call(MainWindow::mw, +[] {
 					MainWindow::mw->on_actionrefresh_devices_all_triggered(); //does not wait for devices to be refreshed, so we wait afterwards
 				});

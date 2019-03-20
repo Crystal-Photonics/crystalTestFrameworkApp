@@ -36,6 +36,7 @@ namespace Ui {
 }
 
 bool currently_in_gui_thread();
+bool currently_in_devices_thread();
 
 class EXPORT MainWindow : public QMainWindow {
     Q_OBJECT

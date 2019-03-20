@@ -72,9 +72,14 @@ using namespace std::chrono_literals;
 MainWindow *MainWindow::mw = nullptr;
 
 QThread *MainWindow::gui_thread;
+static Utility::Qt_thread *devices_thread_pointer{};
 
 bool currently_in_gui_thread() {
     return QThread::currentThread() == MainWindow::gui_thread;
+}
+
+bool currently_in_devices_thread() {
+	return devices_thread_pointer->is_current();
 }
 
 void MainWindow::load_default_paths_if_needed() {
@@ -298,6 +303,7 @@ MainWindow::MainWindow(QWidget *parent)
     , device_worker(std::make_unique<DeviceWorker>())
     , ui(new Ui::MainWindow) {
     MainWindow::gui_thread = QThread::currentThread();
+	devices_thread_pointer = &devices_thread;
     mw = this;
     ui->setupUi(this);
 
@@ -621,6 +627,13 @@ std::vector<MatchedDevice> MainWindow::discover_devices(ScriptEngine &se, const 
 	return Utility::promised_thread_call(mw, [&]() -> std::vector<MatchedDevice> {
 		assert(mw);
 		assert(mw->device_worker);
+		assert(currently_in_gui_thread());
+		static bool currently_discovering_devices; //this non-threadsafe "locking" is fine because this lambda will always be run in the GUI thread
+		if (currently_discovering_devices) {
+			return {};
+		}
+		auto discover_lock = Utility::RAII_do([] { currently_discovering_devices = true; }, [] { currently_discovering_devices = false; });
+
 		DeviceMatcher device_matcher(mw);
 		device_matcher.match_devices(*mw->device_worker, *se.runner, dr, se.test_name);
 		if (device_matcher.was_successful()) {

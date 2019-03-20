@@ -23,10 +23,10 @@ DeviceMatcher::~DeviceMatcher() {
     delete ui;
 }
 
-std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::vector<PortDescription *> candidates, TestRunner &runner) {
+static std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::vector<PortDescription *> candidates, TestRunner &runner) {
     std::vector<std::pair<CommunicationDevice *, Protocol *>> devices;
     for (auto device : candidates) {
-        if (device->get_is_in_use()) {
+		if (device->device->is_in_use()) {
             continue;
         }
 
@@ -118,6 +118,7 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
 }
 
 bool DeviceMatcher::is_match_possible(DeviceWorker &device_worker, TestDescriptionLoader &test) {
+	assert(currently_in_gui_thread());
     for (auto &device_requirement : test.get_device_requirements()) {
 		std::vector<PortDescription *> candidates = device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
 
@@ -130,11 +131,13 @@ bool DeviceMatcher::is_match_possible(DeviceWorker &device_worker, TestDescripti
 }
 
 void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runner, TestDescriptionLoader &test) {
+	assert(currently_in_gui_thread());
 	return match_devices(device_worker, runner, test.get_device_requirements(), test.get_name());
 }
 
 void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runner, const std::vector<DeviceRequirements> &device_requirements,
 								  const QString &testname) {
+	assert(currently_in_gui_thread());
 	successful_matching = true;
 	bool over_defined_found = false;
 	devices_to_match.clear();
@@ -146,7 +149,6 @@ void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runne
 		{
 			std::vector<PortDescription *> candidates =
 				device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
-
 			accepted_candidates = test_acceptances(candidates, runner);
 		}
 		device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
@@ -201,6 +203,7 @@ void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runne
 }
 
 std::vector<MatchedDevice> DeviceMatcher::get_matched_devices() {
+	assert(currently_in_gui_thread());
     std::vector<MatchedDevice> device_matching_result;
     for (auto d : devices_to_match) {
         if (d.match_definition == DevicesToMatchEntry::MatchDefinitionState::FullDefined) {
@@ -217,12 +220,14 @@ std::vector<MatchedDevice> DeviceMatcher::get_matched_devices() {
 }
 
 bool DeviceMatcher::was_successful() {
+	assert(currently_in_gui_thread());
     return successful_matching;
 }
 
 void DeviceMatcher::on_DeviceMatcher_accepted() {}
 
 void DeviceMatcher::calc_gui_match_definition() {
+	assert(currently_in_gui_thread());
     int i = 0;
     bool evertything_ok = true;
     for (auto d : devices_to_match) {
@@ -248,6 +253,7 @@ void DeviceMatcher::calc_gui_match_definition() {
 }
 
 void DeviceMatcher::make_treeview() {
+	assert(currently_in_gui_thread());
     ui->tree_required->setColumnCount(2);
     int select_index = 0;
     bool first_match_error_found = false;
@@ -328,6 +334,7 @@ void DeviceMatcher::load_available_devices(int required_index) {
 }
 
 void DeviceMatcher::calc_requirement_definitions() {
+	assert(currently_in_gui_thread());
     for (auto &device_match_entry : devices_to_match) {
         int selected_devices = 0;
         for (auto sc : device_match_entry.accepted_candidates) {
@@ -350,12 +357,14 @@ void DeviceMatcher::calc_requirement_definitions() {
 }
 
 void DeviceMatcher::on_tree_required_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous) {
+	assert(currently_in_gui_thread());
     (void)previous;
     selected_requirement = nullptr;
     load_available_devices(ui->tree_required->indexOfTopLevelItem(current));
 }
 
 void DeviceMatcher::align_columns() {
+	assert(currently_in_gui_thread());
     ui->tree_required->expandAll();
     ui->tree_available->expandAll();
     for (int i = 0; i < ui->tree_available->columnCount(); i++) {
@@ -367,6 +376,7 @@ void DeviceMatcher::align_columns() {
 }
 
 void DeviceMatcher::on_tree_available_itemChanged(QTreeWidgetItem *item, int column) {
+	assert(currently_in_gui_thread());
     (void)column;
     if (selected_requirement) {
         int row = ui->tree_available->indexOfTopLevelItem(item);
@@ -391,15 +401,18 @@ void DeviceMatcher::on_tree_available_itemChanged(QTreeWidgetItem *item, int col
 }
 
 void DeviceMatcher::on_btn_cancel_clicked() {
+	assert(currently_in_gui_thread());
     close();
 }
 
 void DeviceMatcher::on_btn_ok_clicked() {
+	assert(currently_in_gui_thread());
     successful_matching = true;
     close();
 }
 
 void DeviceMatcher::on_btn_check_all_clicked() {
+	assert(currently_in_gui_thread());
     for (unsigned int i = 0; i < selected_requirement->accepted_candidates.size(); i++) {
         auto item_to_uncheck = ui->tree_available->topLevelItem(i);
         item_to_uncheck->setCheckState(0, Qt::Checked);
@@ -407,21 +420,15 @@ void DeviceMatcher::on_btn_check_all_clicked() {
 }
 
 void DeviceMatcher::on_btn_uncheck_all_clicked() {
+	assert(currently_in_gui_thread());
     for (unsigned int i = 0; i < selected_requirement->accepted_candidates.size(); i++) {
         auto item_to_uncheck = ui->tree_available->topLevelItem(i);
         item_to_uncheck->setCheckState(0, Qt::Unchecked);
     }
 }
 
-void PortDescription::set_is_in_use(bool in_use) {
-	device.get()->is_in_use = in_use;
-}
-
-bool PortDescription::get_is_in_use() {
-	return device.get()->is_in_use;
-}
-
 void DeviceMatcher::poll_sg04_counts() {
+	assert(currently_in_gui_thread());
     const QString sg04_prot_string = "SG04Count";
     int index = 0;
     if (selected_requirement) {

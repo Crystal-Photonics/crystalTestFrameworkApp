@@ -22,7 +22,6 @@ struct PortDescription;
 class DeviceWorker : public QObject {
     Q_OBJECT
     public:
-    DeviceWorker();
     ~DeviceWorker();
 
     void refresh_devices(QTreeWidgetItem *device_items, bool dut_only);
