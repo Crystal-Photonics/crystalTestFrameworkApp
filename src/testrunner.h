@@ -30,6 +30,7 @@ class TestRunner : QObject {
     void message_queue_join();
     void blocking_join();
 	Sol_table create_table();
+	Sol_table get_device_requirements_table();
 	template <class Callback>
 	auto call(Callback &&cb) { /* this is a complicated way of saying script.call(lua_function);, but we do it in
 								  order to not have to include sol.hpp here to improve compilation time */

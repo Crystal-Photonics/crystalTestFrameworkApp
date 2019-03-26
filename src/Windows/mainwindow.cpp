@@ -635,7 +635,7 @@ std::vector<MatchedDevice> MainWindow::discover_devices(ScriptEngine &se, const 
 		auto discover_lock = Utility::RAII_do([] { currently_discovering_devices = true; }, [] { currently_discovering_devices = false; });
 
 		DeviceMatcher device_matcher(mw);
-		device_matcher.match_devices(*mw->device_worker, *se.runner, dr, se.test_name);
+		device_matcher.match_devices(*mw->device_worker, *se.runner, dr, se.test_name, device_desciption);
 		if (device_matcher.was_successful()) {
 			for (auto &device : device_matcher.get_matched_devices()) {
 				se.adopt_device(device);
@@ -794,7 +794,7 @@ void MainWindow::run_test_script(TestDescriptionLoader *test) {
     const auto tab_index = ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name());
     ui->test_tabs->setCurrentIndex(tab_index);
     DeviceMatcher device_matcher(this);
-    device_matcher.match_devices(*device_worker, runner, *test);
+	device_matcher.match_devices(*device_worker, runner, *test, runner.get_device_requirements_table());
     auto devices = device_matcher.get_matched_devices();
     if (device_matcher.was_successful()) {
         if (QSettings{}.value(Globals::collapse_script_explorer_on_scriptstart_key, false).toBool()) {

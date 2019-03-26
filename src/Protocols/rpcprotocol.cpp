@@ -218,6 +218,7 @@ void RPCProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
 }
 
 void RPCProtocol::get_lua_device_descriptor(sol::table &t) const {
+	assert(not currently_in_gui_thread());
     return device_data.get_lua_data(t);
 }
 

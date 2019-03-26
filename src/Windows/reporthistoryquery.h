@@ -127,9 +127,9 @@ class ReportLink {
     public:
     ReportLink(QString report_path, const ReportQuery &query)
         : report_path_m{report_path}
-        , query_m{query} {}
+		, query_m{&query} {}
     QString report_path_m;
-    const ReportQuery &query_m;
+	const ReportQuery *query_m;
 };
 
 #if 0

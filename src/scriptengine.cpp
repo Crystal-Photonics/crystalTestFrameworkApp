@@ -11,6 +11,7 @@
 #include "data_engine/exceptionalapproval.h"
 #include "datalogger.h"
 #include "lua_functions.h"
+#include "qt_util.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_encoded_function_call.h"
 #include "rpcruntime_function.h"
@@ -471,7 +472,8 @@ QStringList ScriptEngine::get_string_list(const QString &name) {
     }
     return retval;
 }
-int get_quantity_num(sol::object &obj) {
+
+static int get_quantity_num(sol::object &obj) {
     int result = 0;
     if (obj.get_type() == sol::type::string) {
         std::string str = obj.as<std::string>();
@@ -491,7 +493,6 @@ int get_quantity_num(sol::object &obj) {
 std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const sol::table &device_requirements) {
 	std::vector<DeviceRequirements> result{};
 	try {
-#if 1
 		const sol::table &protocol_entries = device_requirements;
         if (protocol_entries.valid() == false) {
             return result;
@@ -502,12 +503,13 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
             bool device_name_found = false;
             bool protocol_does_not_provide_name = false;
             for (auto &protocol_entry_field : protocol_entry_table) {
-                if (protocol_entry_field.first.as<std::string>() == "protocol") {
+				const std::string key = protocol_entry_field.first.as<std::string>();
+				if (key == "protocol") {
                     item.protocol_name = QString::fromStdString(protocol_entry_field.second.as<std::string>());
                     if (item.protocol_name == "SG04Count") {
                         protocol_does_not_provide_name = true;
                     }
-                } else if (protocol_entry_field.first.as<std::string>() == "device_names") {
+				} else if (key == "device_names") {
                     device_name_found = true;
                     if (protocol_entry_field.second.get_type() == sol::type::table) {
                         sol::table device_names = protocol_entry_field.second.as<sol::table>();
@@ -526,16 +528,25 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
                         }
                         item.device_names.append(QString::fromStdString(str));
                     }
-                } else if (protocol_entry_field.first.as<std::string>() == "quantity") {
+				} else if (key == "quantity") {
                     item.quantity_min = get_quantity_num(protocol_entry_field.second);
                     item.quantity_max = item.quantity_min;
-                } else if (protocol_entry_field.first.as<std::string>() == "quantity_min") {
+				} else if (key == "quantity_min") {
                     item.quantity_min = get_quantity_num(protocol_entry_field.second);
-                } else if (protocol_entry_field.first.as<std::string>() == "quantity_max") {
+				} else if (key == "quantity_max") {
                     item.quantity_max = get_quantity_num(protocol_entry_field.second);
-                } else if (protocol_entry_field.first.as<std::string>() == "alias") {
+				} else if (key == "alias") {
                     item.alias = QString::fromStdString(protocol_entry_field.second.as<std::string>());
-                }
+				} else if (key == "acceptable") {
+					if (not protocol_entry_field.second.is<sol::function>()) {
+						throw std::runtime_error("The \"acceptable\" field in device requirements must be a function or left out.");
+					}
+					item.has_acceptance_function = true;
+				} else {
+					Utility::thread_call(MainWindow::mw, [ key, console = this->console ]() mutable {
+						console.warning() << QObject::tr("Ignored device requirement \"%1\" because it is not a known requirement.").arg(key.c_str());
+					});
+				}
             }
             if (protocol_does_not_provide_name) {
                 device_name_found = false;
@@ -546,7 +557,6 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
             }
             result.push_back(item);
         }
-#endif
     }
 
 	catch (const sol::error &error) {
@@ -556,9 +566,17 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
 	return result;
 }
 
-std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const QString &name) {
+sol::table ScriptEngine::get_device_requirements_table() {
+	return lua->get<sol::table>("device_requirements");
+}
+
+std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list() {
 	try {
-		return get_device_requirement_list(lua->get<sol::table>(name.toStdString()));
+		sol::optional<sol::table> requirements_table = lua->get<sol::table>("device_requirements");
+		if (requirements_table) {
+			return get_device_requirement_list(requirements_table.value());
+		}
+		return {};
 	} catch (const sol::error &error) {
 		set_error_line(error);
 		throw;

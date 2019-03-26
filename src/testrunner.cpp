@@ -65,7 +65,11 @@ void TestRunner::blocking_join() {
 }
 
 Sol_table TestRunner::create_table() {
-    return Utility::promised_thread_call(this, [this] { return script.create_table(); });
+	return Utility::promised_thread_call(this, [this] { return script.create_table(); });
+}
+
+Sol_table TestRunner::get_device_requirements_table() {
+	return Utility::promised_thread_call(this, [this] { return script.get_device_requirements_table(); });
 }
 
 UI_container *TestRunner::get_lua_ui_container() const {

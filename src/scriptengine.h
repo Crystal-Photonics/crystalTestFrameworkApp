@@ -49,6 +49,7 @@ class DeviceRequirements {
     int quantity_max = INT_MAX;
     QString get_description() const;
     QString alias;
+	bool has_acceptance_function = false;
 };
 
 namespace Event_id {
@@ -92,10 +93,11 @@ class ScriptEngine {
 	TestRunner *runner;
 	QString test_name;
 	std::vector<DeviceRequirements> get_device_requirement_list(const sol::table &device_requirements);
+	sol::table get_device_requirements_table(); //The returned table must be destroyed before the script. TODO: Fix or diagnose better
 
     private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
     QStringList get_string_list(const QString &name);
-	std::vector<DeviceRequirements> get_device_requirement_list(const QString &name);
+	std::vector<DeviceRequirements> get_device_requirement_list();
 	sol::table get_devices(const std::vector<MatchedDevice> &devices);
     void run(std::vector<MatchedDevice> &devices);
     template <class ReturnType, class... Arguments>
