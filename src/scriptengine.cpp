@@ -344,26 +344,8 @@ std::string ScriptEngine::to_string(const sol::object &o) {
             return "nil";
         case sol::type::string:
             return "\"" + o.as<std::string>() + "\"";
-        case sol::type::table: {
-            auto table = o.as<sol::table>();
-            std::string retval{"{"};
-            int index = 1;
-            for (auto &object : table) {
-                auto first_object_string = to_string(object.first);
-                if (first_object_string == std::to_string(index++)) {
-                    retval += to_string(object.second);
-                } else {
-                    retval += '[' + std::move(first_object_string) + "]=" + to_string(object.second);
-                }
-                retval += ", ";
-            }
-            if (retval.size() > 1) {
-                retval.pop_back();
-                retval.back() = '}';
-                return retval;
-            }
-            return "{}";
-        }
+		case sol::type::table:
+			return to_string(o.as<sol::table>());
         case sol::type::userdata:
             if (o.is<Color>()) {
                 return "Ui.Color(0x" + QString::number(o.as<Color>().rgb & 0xFFFFFFu, 16).toStdString() + ")";
@@ -375,7 +357,27 @@ std::string ScriptEngine::to_string(const sol::object &o) {
 }
 
 std::string ScriptEngine::to_string(const sol::stack_proxy &object) {
-    return to_string(sol::object{object});
+	return to_string(sol::object{object});
+}
+
+std::string ScriptEngine::to_string(const sol::table &table) {
+	std::string retval{"{"};
+	int index = 1;
+	for (auto &object : table) {
+		auto first_object_string = to_string(object.first);
+		if (first_object_string == std::to_string(index++)) {
+			retval += to_string(object.second);
+		} else {
+			retval += '[' + std::move(first_object_string) + "]=" + to_string(object.second);
+		}
+		retval += ", ";
+	}
+	if (retval.size() > 1) {
+		retval.pop_back();
+		retval.back() = '}';
+		return retval;
+	}
+	return "{}";
 }
 
 QString ScriptEngine::get_absolute_filename(QString file_to_open) {

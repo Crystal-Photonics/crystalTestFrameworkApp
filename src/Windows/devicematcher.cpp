@@ -47,10 +47,13 @@ static std::vector<std::pair<CommunicationDevice *, Protocol *>> get_acceptable_
 						try {
 							auto function = requirements.table.get<sol::protected_function>("acceptable");
 							assert(function.valid());
-							auto result = function(table);
-							if (result.valid()) {
-								accepted = result;
+							sol::optional<bool> result = function(table);
+							if (result) {
+								accepted = result.value();
+							} else {
+								throw std::runtime_error{"Acceptance function did not return a boolean."};
 							}
+
 						} catch (const std::exception &e) {
 							qDebug() << e.what();
 							throw;
@@ -163,6 +166,7 @@ void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runne
 	bool over_defined_found = false;
 	devices_to_match.clear();
 
+	auto table_pos = requirements.table.begin();
 	for (auto &device_requirement : device_requirements) {
 		DevicesToMatchEntry device_match_entry;
 		std::vector<std::pair<CommunicationDevice *, Protocol *>> accepted_candidates;
@@ -170,7 +174,12 @@ void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runne
 		{
 			std::vector<PortDescription *> candidates =
 				device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
-			accepted_candidates = get_acceptable_candidates(candidates, runner, device_requirement, requirements);
+			const auto &requirement = (*table_pos).second;
+			if (not requirement.is<sol::table>()) {
+				throw std::runtime_error{"Invalid device requirements table"};
+			}
+			accepted_candidates = get_acceptable_candidates(candidates, runner, device_requirement, requirement.as<sol::table>());
+			++table_pos;
 		}
 		device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
 		if ((device_requirement.quantity_min <= accepted_candidates.size()) && (accepted_candidates.size() <= device_requirement.quantity_max)) {
