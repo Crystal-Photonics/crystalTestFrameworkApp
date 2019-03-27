@@ -62,7 +62,7 @@ class ScriptEngine {
     friend class TestDescriptionLoader;
     friend class DeviceWorker;
 
-	ScriptEngine(QObject *owner, UI_container *parent, Console &console, Data_engine *data_engine, TestRunner *runner, QString test_name);
+	ScriptEngine(QObject *owner, UI_container *parent, Console &console, TestRunner *runner, QString test_name);
     ScriptEngine(const ScriptEngine &) = delete;
     ScriptEngine(ScriptEngine &&) = delete;
     ~ScriptEngine();
@@ -110,12 +110,8 @@ class ScriptEngine {
     int error_line{0};
     UI_container *parent{nullptr};
 	Console &console;
-    Data_engine *data_engine{nullptr};
-    QString data_engine_auto_dump_path;
-    QString additional_pdf_path;
-    QString data_engine_pdf_template_path;
-
 	QObject *owner;
+	std::vector<MatchedDevice> *matched_devices;
 
     std::mutex await_mutex;
     std::condition_variable await_condition_variable;

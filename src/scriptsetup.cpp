@@ -42,8 +42,58 @@
 #include <fstream>
 
 struct Data_engine_handle {
-    Data_engine *data_engine{nullptr};
+	std::shared_ptr<Data_engine> data_engine; //TODO: Switch to unique_ptr
     Data_engine_handle() = delete;
+	Data_engine_handle(std::unique_ptr<Data_engine> de)
+		: data_engine{std::move(de)} {}
+	Data_engine_handle(Data_engine_handle &&) = default;
+
+	QString data_engine_auto_dump_path;
+	QString additional_pdf_path;
+	QString data_engine_pdf_template_path;
+	~Data_engine_handle() {
+		if (not data_engine) { //moved from
+			return;
+		}
+		ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString()};
+		data_engine->do_exceptional_approvals(ea_db, MainWindow::mw);
+		data_engine->save_actual_value_statistic();
+		if (data_engine_pdf_template_path.count() and data_engine_auto_dump_path.count()) {
+			QFileInfo fi(data_engine_auto_dump_path);
+			QString suffix = fi.completeSuffix();
+			if (suffix == "") {
+				QString path = append_separator_to_path(fi.absoluteFilePath());
+				path += "report.pdf";
+				fi.setFile(path);
+			}
+			//fi.baseName("/home/abc/report.pdf") = "report"
+			//fi.absolutePath("/home/abc/report.pdf") = "/home/abc/"
+
+			std::string target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
+			target_filename.resize(target_filename.size() - 4);
+
+			data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
+			data_engine->set_log_file(target_filename + "_log.txt");
+			if (additional_pdf_path.count()) {
+				QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
+			}
+		}
+		if (data_engine_auto_dump_path.count()) {
+			QFileInfo fi(data_engine_auto_dump_path);
+			QString suffix = fi.completeSuffix();
+			if (suffix == "") {
+				QString path = append_separator_to_path(fi.absoluteFilePath());
+				path += "dump.json";
+				fi.setFile(path);
+			}
+			std::string json_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".json");
+			try {
+				data_engine->save_to_json(QString::fromStdString(json_target_filename));
+			} catch (const DataEngineError &e) {
+				qDebug() << "Failed dumping data to json: " << e.what() << " because of " << static_cast<int>(e.get_error_number());
+			}
+		}
+	}
 };
 
 template <class T>
@@ -619,24 +669,22 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
     //bind DataLogger
     {
         lua.new_usertype<DataLogger>(
-            "DataLogger", //
-			sol::meta_function::construct, sol::factories([ console = script_engine.console.get_plaintext_edit(), path = path ](
-                                               const std::string &file_name, char seperating_character, sol::table field_names, bool over_write_file) {
+			"DataLogger", sol::meta_function::construct,
+			sol::factories([ console = script_engine.console.get_plaintext_edit(), path = path ](const std::string &file_name, char seperating_character,
+																								 sol::table field_names, bool over_write_file) {
 				abort_check();
 				return DataLogger{console, get_absolute_file_path(QString::fromStdString(path), file_name), seperating_character, field_names, over_write_file};
-            }), //
-
+			}),
             "append_data",
 			[](DataLogger &handle, const sol::table &data_record) {
 				abort_check();
 				return handle.append_data(data_record);
-			}, //
+			},
 			"save",
 			[](DataLogger &handle) {
 				abort_check();
 				handle.save();
-			} //
-            );
+			});
     }
     //bind charge counter
     {
@@ -668,10 +716,13 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
     {
         lua.new_usertype<Data_engine_handle>(
             "Data_engine", //
-            sol::meta_function::construct,
-            sol::factories([ path = path, &script_engine ](const std::string &pdf_template_file, const std::string &json_file,
-                                                           const std::string &auto_json_dump_path, const sol::table &dependency_tags) {
+			sol::meta_function::construct,
+			sol::factories([ path = path, &script_engine ](const std::string &pdf_template_file, const std::string &json_file,
+														   const std::string &auto_json_dump_path, const sol::table &dependency_tags) {
 				abort_check();
+				Data_engine_handle de{std::make_unique<Data_engine>()};
+				de.data_engine->set_script_path(script_engine.path_m);
+				de.data_engine->enable_logging(script_engine.console, *script_engine.matched_devices);
 				auto file_path = get_absolute_file_path(QString::fromStdString(path), json_file);
                 auto xml_file = get_absolute_file_path(QString::fromStdString(path), pdf_template_file);
                 auto auto_dump_path = get_absolute_file_path(QString::fromStdString(path), auto_json_dump_path);
@@ -714,15 +765,13 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 
                     tags.insert(QString::fromStdString(tag_name), values);
                 }
-                script_engine.data_engine->set_dependancy_tags(tags);
-                script_engine.data_engine->set_source(f);
-                script_engine.data_engine->set_source_path(QString::fromStdString(file_path));
-                script_engine.data_engine_pdf_template_path = QString::fromStdString(xml_file);
-                script_engine.data_engine_auto_dump_path = QString::fromStdString(auto_dump_path);
-                //*pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
-                //*form_filepath = get_absolute_file_path(path, xml_file);
+				de.data_engine->set_dependancy_tags(tags);
+				de.data_engine->set_source(f);
+				de.data_engine->set_source_path(QString::fromStdString(file_path));
+				de.data_engine_pdf_template_path = QString::fromStdString(xml_file);
+				de.data_engine_auto_dump_path = QString::fromStdString(auto_dump_path);
 
-                return Data_engine_handle{script_engine.data_engine};
+				return de;
             }), //
             "set_start_time_seconds_since_epoch",
 			[](Data_engine_handle &handle, const double start_time) {
@@ -798,11 +847,12 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 				auto fn = get_absolute_file_path(QString::fromStdString(path), file_name);
                 handle.data_engine->save_to_json(QString::fromStdString(fn));
             },
-            "add_extra_pdf_path", [ path = path, &script_engine ](Data_engine_handle & handle, const std::string &file_name) {
+			"add_extra_pdf_path",
+			[path = path](Data_engine_handle & handle, const std::string &file_name) {
 				abort_check();
 				(void)handle;
                 // data_engine_auto_dump_path = QString::fromStdString(auto_dump_path);
-                script_engine.additional_pdf_path = QString::fromStdString(get_absolute_file_path(QString::fromStdString(path), file_name));
+				handle.additional_pdf_path = QString::fromStdString(get_absolute_file_path(QString::fromStdString(path), file_name));
                 //  handle.data_engine->save_to_json(QString::fromStdString(fn));
             },
             "set_open_pdf_on_pdf_creation",
@@ -1037,7 +1087,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                 for (const auto &item : items) {
                     sl.append(QString::fromStdString(item.second.as<std::string>()));
                 }
-                return Lua_UI_Wrapper<PollDataEngine>{parent, &script_engine, &script_engine, handle.data_engine, sl};
+				return Lua_UI_Wrapper<PollDataEngine>{parent, &script_engine, &script_engine, handle.data_engine.get(), sl};
             }), //
 
             "set_visible",
@@ -1055,7 +1105,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                                                                              const std::string &extra_explanation, const std::string &empty_value_placeholder,
                                                                              const std::string &actual_prefix, const std::string &desired_prefix) {
 				abort_check();
-				return Lua_UI_Wrapper<DataEngineInput>{parent,        &script_engine,    &script_engine,          handle.data_engine,
+				return Lua_UI_Wrapper<DataEngineInput>{parent,        &script_engine,    &script_engine,          handle.data_engine.get(),
                                                        field_id,      extra_explanation, empty_value_placeholder, actual_prefix,
                                                        desired_prefix};
             }), //

@@ -23,8 +23,7 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
 		return console;
 	}())}
     , lua_ui_container(new UI_container(MainWindow::mw))
-	, data_engine{std::make_unique<Data_engine>()}
-	, script_pointer{std::make_unique<ScriptEngine>(this->obj(), lua_ui_container, *console_pointer, data_engine.get(), this, description.get_name())}
+	, script_pointer{std::make_unique<ScriptEngine>(this->obj(), lua_ui_container, *console_pointer, this, description.get_name())}
 	, script{*script_pointer}
 	, name(description.get_name())
 	, console{*console_pointer} {
@@ -79,7 +78,6 @@ UI_container *TestRunner::get_lua_ui_container() const {
 void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &device_worker) {
 	device_worker_pointer = &device_worker;
 	Utility::thread_call(this, [ this, devices = std::move(devices), &device_worker ]() mutable {
-		data_engine->enable_logging(console, devices);
         for (auto &dev_prot : devices) {
             device_worker.set_currently_running_test(dev_prot.device, name);
         }
