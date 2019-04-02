@@ -557,12 +557,16 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
 }
 
 sol::table ScriptEngine::get_device_requirements_table() {
-	return lua->get<sol::table>("device_requirements");
+	auto table = lua->get<sol::optional<sol::table>>("device_requirements");
+	if (table) {
+		return table.value();
+	}
+	return create_table();
 }
 
 std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list() {
 	try {
-		sol::optional<sol::table> requirements_table = lua->get<sol::table>("device_requirements");
+		auto requirements_table = lua->get<sol::optional<sol::table>>("device_requirements");
 		if (requirements_table) {
 			return get_device_requirement_list(requirements_table.value());
 		}

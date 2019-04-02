@@ -42,7 +42,7 @@
 #include <fstream>
 
 struct Data_engine_handle {
-	std::shared_ptr<Data_engine> data_engine; //TODO: Switch to unique_ptr
+	std::unique_ptr<Data_engine> data_engine;
     Data_engine_handle() = delete;
 	Data_engine_handle(std::unique_ptr<Data_engine> de, Console &console)
 		: data_engine{std::move(de)}
