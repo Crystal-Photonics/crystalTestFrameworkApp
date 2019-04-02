@@ -44,13 +44,15 @@
 struct Data_engine_handle {
 	std::shared_ptr<Data_engine> data_engine; //TODO: Switch to unique_ptr
     Data_engine_handle() = delete;
-	Data_engine_handle(std::unique_ptr<Data_engine> de)
-		: data_engine{std::move(de)} {}
+	Data_engine_handle(std::unique_ptr<Data_engine> de, Console &console)
+		: data_engine{std::move(de)}
+		, console{&console} {}
 	Data_engine_handle(Data_engine_handle &&) = default;
 
 	QString data_engine_auto_dump_path;
 	QString additional_pdf_path;
 	QString data_engine_pdf_template_path;
+	Console *console;
 	~Data_engine_handle() {
 		if (not data_engine) { //moved from
 			return;
@@ -72,10 +74,14 @@ struct Data_engine_handle {
 			std::string target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
 			target_filename.resize(target_filename.size() - 4);
 
-			data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
-			data_engine->set_log_file(target_filename + "_log.txt");
-			if (additional_pdf_path.count()) {
-				QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
+			try {
+				data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
+				data_engine->set_log_file(target_filename + "_log.txt");
+				if (additional_pdf_path.count()) {
+					QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
+				}
+			} catch (const DataEngineError &dee) {
+				console->error() << dee.what();
 			}
 		}
 		if (data_engine_auto_dump_path.count()) {
@@ -90,7 +96,7 @@ struct Data_engine_handle {
 			try {
 				data_engine->save_to_json(QString::fromStdString(json_target_filename));
 			} catch (const DataEngineError &e) {
-				qDebug() << "Failed dumping data to json: " << e.what() << " because of " << static_cast<int>(e.get_error_number());
+				console->error() << e.what();
 			}
 		}
 	}
@@ -720,7 +726,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 			sol::factories([ path = path, &script_engine ](const std::string &pdf_template_file, const std::string &json_file,
 														   const std::string &auto_json_dump_path, const sol::table &dependency_tags) {
 				abort_check();
-				Data_engine_handle de{std::make_unique<Data_engine>()};
+				Data_engine_handle de{std::make_unique<Data_engine>(), script_engine.console};
 				de.data_engine->set_script_path(script_engine.path_m);
 				de.data_engine->enable_logging(script_engine.console, *script_engine.matched_devices);
 				auto file_path = get_absolute_file_path(QString::fromStdString(path), json_file);
