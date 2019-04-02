@@ -216,14 +216,12 @@ struct RPCDevice {
     ScriptEngine *engine = nullptr;
 };
 
-ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, Console &console, Data_engine *data_engine, TestRunner *runner, QString test_name)
+ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, Console &console, TestRunner *runner, QString test_name)
 	: runner{runner}
 	, test_name{std::move(test_name)}
 	, lua{std::make_unique<sol::state>()}
     , parent{parent}
     , console(console)
-    , data_engine(data_engine)
-
     , owner{owner} {}
 
 ScriptEngine::~ScriptEngine() { //
@@ -410,21 +408,11 @@ std::string ScriptEngine::get_script_import_path(const std::string &name) {
 }
 
 void ScriptEngine::load_script(const std::string &path) {
-    // qDebug() << "load_script " << QString::fromStdString(path);
-    // qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
-
-    this->path_m = QString::fromStdString(path);
-
-    if (data_engine) {
-        data_engine->set_script_path(path_m);
-    }
+	path_m = QString::fromStdString(path);
 
     try {
         script_setup(*lua, path, *this);
-
         lua->script_file(path);
-
-		//qDebug() << "loaded script"; // << lua->;
     } catch (const sol::error &error) {
         qDebug() << "caught sol::error@load_script";
         set_error_line(error);
@@ -665,64 +653,28 @@ sol::table ScriptEngine::get_devices(const std::vector<MatchedDevice> &devices) 
 void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
     qDebug() << "ScriptEngine::run";
 	assert(not currently_in_gui_thread());
+	matched_devices = &devices;
 
-    auto reset_lua_state = [this] {
-        ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString()};
-        data_engine->do_exceptional_approvals(ea_db, MainWindow::mw);
-        lua = std::make_unique<sol::state>();
-        data_engine->save_actual_value_statistic();
-        if (data_engine_pdf_template_path.count() and data_engine_auto_dump_path.count()) {
-            QFileInfo fi(data_engine_auto_dump_path);
-            QString suffix = fi.completeSuffix();
-            if (suffix == "") {
-                QString path = append_separator_to_path(fi.absoluteFilePath());
-                path += "report.pdf";
-                fi.setFile(path);
-            }
-            //fi.baseName("/home/abc/report.pdf") = "report"
-            //fi.absolutePath("/home/abc/report.pdf") = "/home/abc/"
-
-            std::string target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
-            target_filename.resize(target_filename.size() - 4);
-
-            data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
-			data_engine->set_log_file(target_filename + "_log.txt");
-            if (additional_pdf_path.count()) {
-                QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
-			}
-        }
-        if (data_engine_auto_dump_path.count()) {
-            QFileInfo fi(data_engine_auto_dump_path);
-            QString suffix = fi.completeSuffix();
-            if (suffix == "") {
-                QString path = append_separator_to_path(fi.absoluteFilePath());
-                path += "dump.json";
-                fi.setFile(path);
-            }
-            std::string json_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".json");
-            try {
-                data_engine->save_to_json(QString::fromStdString(json_target_filename));
-            } catch (const DataEngineError &e) {
-                qDebug() << "Failed dumping data to json: " << e.what() << " because of " << static_cast<int>(e.get_error_number());
-            }
-        }
-    };
-    try {
+	auto reset_lua_state = [this] { lua = std::make_unique<sol::state>(); };
+	try {
         {
-            sol::protected_function run = (*lua)["run"];
+			sol::protected_function run = (*lua)["run"];
+			if (not run.valid()) {
+				throw std::runtime_error{"Script does not have a \"run\" function."};
+			}
 			auto result = run(get_devices(devices));
             if (not result.valid()) {
                 sol::error error = result;
                 throw error;
             }
         }
-        reset_lua_state();
-    } catch (const sol::error &e) {
+		reset_lua_state();
+	} catch (const sol::error &e) {
         qDebug() << "caught sol::error@run";
         set_error_line(e);
-        reset_lua_state();
-        throw;
-    }
+		reset_lua_state();
+		throw;
+	}
 }
 
 QString DeviceRequirements::get_description() const {

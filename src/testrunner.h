@@ -16,7 +16,6 @@ struct LuaUI;
 struct Protocol;
 struct Sol_table;
 struct MatchedDevice;
-class Data_engine;
 struct Console;
 
 class TestRunner : QObject {
@@ -50,7 +49,6 @@ class TestRunner : QObject {
 	std::unique_ptr<Console> console_pointer;
     Utility::Qt_thread thread{};
     UI_container *lua_ui_container{nullptr};
-	std::unique_ptr<Data_engine> data_engine;
 	std::unique_ptr<ScriptEngine> script_pointer;
 	ScriptEngine &script;
     QString name{};
