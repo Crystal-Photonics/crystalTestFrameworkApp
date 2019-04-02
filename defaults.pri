@@ -108,6 +108,7 @@ QMAKE_CXXFLAGS += -Werror -ftemplate-depth=1000
 #QMAKE_CXXFLAGS += -Werror
 
 QMAKE_CXXFLAGS_DEBUG += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare
+QMAKE_CXXFLAGS_RELEASE += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare
 #-Wno-error=noexcept-type unsupported
 
 unix {
@@ -125,7 +126,7 @@ unix {
 } else {
     QMAKE_CXXFLAGS_DEBUG += -fsanitize-undefined-trap-on-error
 }
-QMAKE_CXXFLAGS_RELEASE += -Wall -Wunused-function -Wunused-parameter -Wunused-variable -O1
+QMAKE_CXXFLAGS_RELEASE += -Wall -Wunused-function -Wunused-parameter -Wunused-variable -O2
 QMAKE_CXXFLAGS_DEBUG += -ggdb -fno-omit-frame-pointer -Wa,-mbig-obj -Og
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
 #QMAKE_CXXFLAGS_DEBUG += -static-libasan -static-libubsan #some day windows will support a reasonable development environment ...

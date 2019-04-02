@@ -386,10 +386,6 @@ bool ScriptEngine::adopt_device(const MatchedDevice &device) {
 	return runner->adopt_device(device);
 }
 
-static bool ends_with(const std::string &s, const std::string &suffix) { //TODO: replace with C++20 std::string::ends_with
-	return std::equal(s.rbegin(), s.rbegin() + suffix.size(), suffix.rbegin(), suffix.rend());
-}
-
 std::string ScriptEngine::get_script_import_path(const std::string &name) {
 	auto script = QString::fromStdString(name);
 	if (not script.endsWith(".lua")) {
