@@ -107,8 +107,7 @@ struct Lua_UI_Wrapper {
     template <class... Args>
     Lua_UI_Wrapper(UI_container *parent, ScriptEngine *script_engine_to_terminate_on_exception, Args &&... args) {
         this->script_engine_to_terminate_on_exception = script_engine_to_terminate_on_exception;
-        Utility::thread_call(MainWindow::mw, [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); },
-                             script_engine_to_terminate_on_exception);
+		Utility::promised_thread_call(MainWindow::mw, [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); });
     }
     Lua_UI_Wrapper(Lua_UI_Wrapper &&other)
         : id(other.id)
