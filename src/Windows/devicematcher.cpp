@@ -39,18 +39,18 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
             try {
                 sol::table table = runner.create_table();
                 rpc_protocol->get_lua_device_descriptor(table);
-				message = runner.call([&table](ScriptEngine &script) {
-					return script.call_lua_function<sol::optional<std::string>>("RPC_acceptable", std::move(table));
-				}); //TODO: If fails, the program should not crash
+                message = runner.call([&table](ScriptEngine &script) {
+                    return script.call_lua_function<sol::optional<std::string>>("RPC_acceptable", std::move(table));
+                }); //TODO: If fails, the program should not crash
             } catch (const sol::error &e) {
                 const auto &message = QObject::tr("Failed to call function RPC_acceptable for device %1 \nError message: %2")
                                           .arg(QString::fromStdString(rpc_protocol->get_name()))
                                           .arg(e.what());
-				runner.console.error() << message;
+                runner.console.error() << message;
             }
             if (message) {
                 //device incompatible, reason should be inside of message
-				runner.console.note() << QObject::tr("Device %1 rejected:").arg(QString::fromStdString(rpc_protocol->get_name())) << message.value();
+                runner.console.note() << QObject::tr("Device %1 rejected:").arg(QString::fromStdString(rpc_protocol->get_name())) << message.value();
             } else {
                 //acceptable device found
                 devices.emplace_back(device->device.get(), device->protocol.get());
@@ -61,30 +61,30 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
                                           .arg(QString::fromStdString(scpi_protocol->get_name()))
                                           .arg(QString::fromStdString(scpi_protocol->get_serial_number()))
                                           .arg(scpi_protocol->get_approved_state_str());
-				runner.console.note() << message;
+                runner.console.error() << message;
                 continue;
             }
             sol::optional<std::string> message;
             try {
                 sol::table table = runner.create_table();
                 scpi_protocol->get_lua_device_descriptor(table);
-				message =
-					runner.call([&table](ScriptEngine &se) { return se.call_lua_function<sol::optional<std::string>>("SCPI_acceptable", std::move(table)); });
+                message =
+                    runner.call([&table](ScriptEngine &se) { return se.call_lua_function<sol::optional<std::string>>("SCPI_acceptable", std::move(table)); });
             } catch (const sol::error &e) {
                 const auto &message = QObject::tr("Failed to call function SCPI_acceptable for device %1 with serial number =\"%2 \"  \nError message: %3")
                                           .arg(QString::fromStdString(scpi_protocol->get_name()))
                                           .arg(QString::fromStdString(scpi_protocol->get_serial_number()))
                                           .arg(e.what());
 
-				runner.console.error() << message;
+                runner.console.error() << message;
                 continue;
             }
             if (message) {
                 //device incompatible, reason should be inside of message
-				runner.console.note() << QObject::tr("Device %1 \"%2\" rejected:")
-											 .arg(QString::fromStdString(scpi_protocol->get_name()))
-											 .arg(QString::fromStdString(scpi_protocol->get_serial_number()))
-									  << message.value();
+                runner.console.note() << QObject::tr("Device %1 \"%2\" rejected:")
+                                             .arg(QString::fromStdString(scpi_protocol->get_name()))
+                                             .arg(QString::fromStdString(scpi_protocol->get_serial_number()))
+                                      << message.value();
 
             } else {
                 //acceptable device found
@@ -103,7 +103,7 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
                                               .arg(QString::fromStdString(manual_protocol->get_name()))
                                               .arg(QString::fromStdString(manual_protocol->get_serial_number()))
                                               .arg(manual_protocol->get_approved_state_str());
-					runner.console.note() << message;
+                    runner.console.note() << message;
                     continue;
                 }
                 //acceptable device found
@@ -119,7 +119,7 @@ std::vector<std::pair<CommunicationDevice *, Protocol *>> test_acceptances(std::
 
 bool DeviceMatcher::is_match_possible(DeviceWorker &device_worker, TestDescriptionLoader &test) {
     for (auto &device_requirement : test.get_device_requirements()) {
-		std::vector<PortDescription *> candidates = device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
+        std::vector<PortDescription *> candidates = device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
 
         if ((int)candidates.size() < device_requirement.quantity_min) {
             return false;
@@ -130,74 +130,74 @@ bool DeviceMatcher::is_match_possible(DeviceWorker &device_worker, TestDescripti
 }
 
 void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runner, TestDescriptionLoader &test) {
-	return match_devices(device_worker, runner, test.get_device_requirements(), test.get_name());
+    return match_devices(device_worker, runner, test.get_device_requirements(), test.get_name());
 }
 
 void DeviceMatcher::match_devices(DeviceWorker &device_worker, TestRunner &runner, const std::vector<DeviceRequirements> &device_requirements,
-								  const QString &testname) {
-	successful_matching = true;
-	bool over_defined_found = false;
-	devices_to_match.clear();
+                                  const QString &testname) {
+    successful_matching = true;
+    bool over_defined_found = false;
+    devices_to_match.clear();
 
-	for (auto &device_requirement : device_requirements) {
-		DevicesToMatchEntry device_match_entry;
-		std::vector<std::pair<CommunicationDevice *, Protocol *>> accepted_candidates;
-		//TODO: do not only loop over comport_devices, but other devices as well
-		{
-			std::vector<PortDescription *> candidates =
-				device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
+    for (auto &device_requirement : device_requirements) {
+        DevicesToMatchEntry device_match_entry;
+        std::vector<std::pair<CommunicationDevice *, Protocol *>> accepted_candidates;
+        //TODO: do not only loop over comport_devices, but other devices as well
+        {
+            std::vector<PortDescription *> candidates =
+                device_worker.get_devices_with_protocol(device_requirement.protocol_name, device_requirement.device_names);
 
-			accepted_candidates = test_acceptances(candidates, runner);
-		}
-		device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
-		if ((device_requirement.quantity_min <= (int)accepted_candidates.size()) && ((int)accepted_candidates.size() <= device_requirement.quantity_max)) {
-			device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::FullDefined;
-		} else if ((int)accepted_candidates.size() > device_requirement.quantity_max) {
-			device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::OverDefined;
-		} else if ((int)accepted_candidates.size() < device_requirement.quantity_min) {
-			device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
-		}
-		for (auto ce : accepted_candidates) {
-			CandidateEntry candidate_entry{};
-			candidate_entry.communication_device = ce.first;
-			candidate_entry.protocol = ce.second;
-			candidate_entry.selected = false;
-			device_match_entry.accepted_candidates.push_back(candidate_entry);
-		}
-		device_match_entry.device_requirement = device_requirement;
+            accepted_candidates = test_acceptances(candidates, runner);
+        }
+        device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
+        if ((device_requirement.quantity_min <= (int)accepted_candidates.size()) && ((int)accepted_candidates.size() <= device_requirement.quantity_max)) {
+            device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::FullDefined;
+        } else if ((int)accepted_candidates.size() > device_requirement.quantity_max) {
+            device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::OverDefined;
+        } else if ((int)accepted_candidates.size() < device_requirement.quantity_min) {
+            device_match_entry.match_definition = DevicesToMatchEntry::MatchDefinitionState::UnderDefined;
+        }
+        for (auto ce : accepted_candidates) {
+            CandidateEntry candidate_entry{};
+            candidate_entry.communication_device = ce.first;
+            candidate_entry.protocol = ce.second;
+            candidate_entry.selected = false;
+            device_match_entry.accepted_candidates.push_back(candidate_entry);
+        }
+        device_match_entry.device_requirement = device_requirement;
 
-		switch (device_match_entry.match_definition) {
-			case DevicesToMatchEntry::MatchDefinitionState::UnderDefined: {
-				//failed to find suitable device
-				successful_matching = false;
-				runner.console.error()
-					<< QObject::tr(
-						   "The selected test \"%1\" requires %2 device(s) with protocol \"%3\", and the name \"%4\" but only %5 device(s) are available.")
-						   .arg(testname)
-						   .arg(device_requirement.quantity_min)
-						   .arg(device_requirement.protocol_name)
-						   .arg(device_requirement.device_names.join("/"))
-						   .arg((int)accepted_candidates.size());
-			} break;
-			case DevicesToMatchEntry::MatchDefinitionState::FullDefined: {
-				for (auto &ce : device_match_entry.accepted_candidates) {
-					ce.selected = true;
-				}
-			} break;
-			case DevicesToMatchEntry::MatchDefinitionState::OverDefined: {
-				successful_matching = false;
-				over_defined_found = true;
-				for (auto &ce : device_match_entry.accepted_candidates) {
-					ce.selected = true;
-				}
-			}
-		}
-		devices_to_match.append(device_match_entry);
-	}
-	if (over_defined_found) {
-		make_treeview();
-		exec();
-	}
+        switch (device_match_entry.match_definition) {
+            case DevicesToMatchEntry::MatchDefinitionState::UnderDefined: {
+                //failed to find suitable device
+                successful_matching = false;
+                runner.console.error()
+                    << QObject::tr(
+                           "The selected test \"%1\" requires %2 device(s) with protocol \"%3\", and the name \"%4\" but only %5 device(s) are available.")
+                           .arg(testname)
+                           .arg(device_requirement.quantity_min)
+                           .arg(device_requirement.protocol_name)
+                           .arg(device_requirement.device_names.join("/"))
+                           .arg((int)accepted_candidates.size());
+            } break;
+            case DevicesToMatchEntry::MatchDefinitionState::FullDefined: {
+                for (auto &ce : device_match_entry.accepted_candidates) {
+                    ce.selected = true;
+                }
+            } break;
+            case DevicesToMatchEntry::MatchDefinitionState::OverDefined: {
+                successful_matching = false;
+                over_defined_found = true;
+                for (auto &ce : device_match_entry.accepted_candidates) {
+                    ce.selected = true;
+                }
+            }
+        }
+        devices_to_match.append(device_match_entry);
+    }
+    if (over_defined_found) {
+        make_treeview();
+        exec();
+    }
 }
 
 std::vector<MatchedDevice> DeviceMatcher::get_matched_devices() {
