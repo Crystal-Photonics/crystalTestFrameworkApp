@@ -1,17 +1,17 @@
 #ifndef DEVICEWORKER_H
 #define DEVICEWORKER_H
 
-#include "Protocols/protocol.h"
-#include "qt_util.h"
-#include "scriptengine.h"
-
 #include "CommunicationDevices/libusbscan.h"
 #include "CommunicationDevices/usbtmc.h"
+#include "Protocols/protocol.h"
+#include "qt_util.h"
 #include "scpimetadata.h"
+#include "scriptengine.h"
+
+#include <QSemaphore>
 #include <future>
 #include <list>
 #include <vector>
-#include <QSemaphore>
 
 class CommunicationDevice;
 class MainWindow;
@@ -22,7 +22,6 @@ struct PortDescription;
 class DeviceWorker : public QObject {
     Q_OBJECT
     public:
-    DeviceWorker();
     ~DeviceWorker();
 
     void refresh_devices(QTreeWidgetItem *device_items, bool dut_only);
@@ -34,9 +33,9 @@ class DeviceWorker : public QObject {
 
     bool is_dut_device(QTreeWidgetItem *item);
     bool is_device_in_use(QTreeWidgetItem *item);
-
     bool is_connected_to_device(QTreeWidgetItem *item);
-private:
+
+	private:
     void forget_device(QTreeWidgetItem *item);
     void detect_device(QTreeWidgetItem *item);
     void update_devices();
@@ -46,16 +45,14 @@ private:
     void detect_devices(std::vector<PortDescription *> device_list);
     DeviceMetaData device_meta_data;
     LIBUSBScan usbtmc_scan;
-    QSemaphore  refresh_semaphore{1};
-    //QWaitCondition refresh_wait_condition{};
-    bool refreshing_devices = false;
+	QSemaphore refresh_semaphore{1};
     bool is_dut_device_(QTreeWidgetItem *item);
     bool is_device_in_use_(QTreeWidgetItem *item);
     void forget_device_(QTreeWidgetItem *item);
 
     bool is_connected_to_device_(QTreeWidgetItem *item);
-signals:
-    void device_discrovery_done();
+	signals:
+	void device_discovery_done();
 };
 
 #endif // DEVICEWORKER_H

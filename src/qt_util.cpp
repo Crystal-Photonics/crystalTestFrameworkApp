@@ -78,7 +78,10 @@ void Utility::Qt_thread::message_queue_join() {
 }
 
 void Utility::Qt_thread::requestInterruption() {
-    thread.requestInterruption();
+	if (thread.isRunning()) {
+		thread.requestInterruption();
+		thread.exit();
+	}
 }
 
 bool Utility::Qt_thread::isRunning() const {

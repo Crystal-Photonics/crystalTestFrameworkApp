@@ -42,8 +42,64 @@
 #include <fstream>
 
 struct Data_engine_handle {
-    Data_engine *data_engine{nullptr};
+	std::unique_ptr<Data_engine> data_engine;
     Data_engine_handle() = delete;
+	Data_engine_handle(std::unique_ptr<Data_engine> de, Console &console)
+		: data_engine{std::move(de)}
+		, console{&console} {}
+	Data_engine_handle(Data_engine_handle &&) = default;
+
+	QString data_engine_auto_dump_path;
+	QString additional_pdf_path;
+	QString data_engine_pdf_template_path;
+	Console *console;
+	~Data_engine_handle() {
+		if (not data_engine) { //moved from
+			return;
+		}
+		ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString()};
+		data_engine->do_exceptional_approvals(ea_db, MainWindow::mw);
+		data_engine->save_actual_value_statistic();
+		if (data_engine_pdf_template_path.count() and data_engine_auto_dump_path.count()) {
+			QFileInfo fi(data_engine_auto_dump_path);
+			QString suffix = fi.completeSuffix();
+			if (suffix == "") {
+				QString path = append_separator_to_path(fi.absoluteFilePath());
+				path += "report.pdf";
+				fi.setFile(path);
+			}
+			//fi.baseName("/home/abc/report.pdf") = "report"
+			//fi.absolutePath("/home/abc/report.pdf") = "/home/abc/"
+
+			std::string target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
+			target_filename.resize(target_filename.size() - 4);
+
+			try {
+				data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
+				data_engine->set_log_file(target_filename + "_log.txt");
+				if (additional_pdf_path.count()) {
+					QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
+				}
+			} catch (const DataEngineError &dee) {
+				console->error() << dee.what();
+			}
+		}
+		if (data_engine_auto_dump_path.count()) {
+			QFileInfo fi(data_engine_auto_dump_path);
+			QString suffix = fi.completeSuffix();
+			if (suffix == "") {
+				QString path = append_separator_to_path(fi.absoluteFilePath());
+				path += "dump.json";
+				fi.setFile(path);
+			}
+			std::string json_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".json");
+			try {
+				data_engine->save_to_json(QString::fromStdString(json_target_filename));
+			} catch (const DataEngineError &e) {
+				console->error() << e.what();
+			}
+		}
+	}
 };
 
 template <class T>
@@ -51,8 +107,7 @@ struct Lua_UI_Wrapper {
     template <class... Args>
     Lua_UI_Wrapper(UI_container *parent, ScriptEngine *script_engine_to_terminate_on_exception, Args &&... args) {
         this->script_engine_to_terminate_on_exception = script_engine_to_terminate_on_exception;
-        Utility::thread_call(MainWindow::mw, [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); },
-                             script_engine_to_terminate_on_exception);
+		Utility::promised_thread_call(MainWindow::mw, [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); });
     }
     Lua_UI_Wrapper(Lua_UI_Wrapper &&other)
         : id(other.id)
@@ -241,13 +296,17 @@ namespace detail {
     }
 } // namespace detail
 
+static void abort_check() {
+	if (QThread::currentThread()->isInterruptionRequested()) {
+		throw sol::error("Abort Requested");
+	}
+}
+
 //wrapper that wraps a UI function such as Button::has_been_clicked so that it is called from the main window context. Waits for processing.
 template <class ReturnType, class UI_class, class... Args>
 static auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
-		if (QThread::currentThread()->isInterruptionRequested()) {
-			throw sol::error("Abort Requested");
-		}
+		abort_check();
         //TODO: Decide if we should use promised_thread_call or thread_call
         //promised_thread_call lets us get return values while thread_call does not
         //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
@@ -261,9 +320,7 @@ static auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
 template <class ReturnType, class UI_class, class... Args>
 static auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
-		if (QThread::currentThread()->isInterruptionRequested()) {
-			throw sol::error("Abort Requested");
-		}
+		abort_check();
         //TODO: Decide if we should use promised_thread_call or thread_call
         //promised_thread_call lets us get return values while thread_call does not
         //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
@@ -279,10 +336,8 @@ static auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const)
 template <class ReturnType, class UI_class, class... Args>
 static auto non_gui_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
 	return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
-		if (QThread::currentThread()->isInterruptionRequested()) {
-			throw sol::error("Abort Requested");
-		}
-        //TODO: Decide if we should use promised_thread_call or thread_call
+		abort_check();
+		//TODO: Decide if we should use promised_thread_call or thread_call
         //promised_thread_call lets us get return values while thread_call does not
         //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
         //using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
@@ -295,14 +350,12 @@ static auto non_gui_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
 template <class ReturnType, class UI_class, class... Args>
 static auto thread_call_wrapper_non_waiting(ScriptEngine *script_engine_to_terminate_on_exception, ReturnType (UI_class::*function)(Args...)) {
     return [function, script_engine_to_terminate_on_exception](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
-		if (QThread::currentThread()->isInterruptionRequested()) {
-			throw sol::error("Abort Requested");
-		}
-        Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
+		abort_check();
+		Utility::thread_call(MainWindow::mw, [ function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...) ]() mutable {
             UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
             return detail::call(function, ui, std::move(args));
         },
-                             script_engine_to_terminate_on_exception);
+							 script_engine_to_terminate_on_exception);
     };
 }
 
@@ -313,51 +366,83 @@ static auto overloaded_function(Functions &&... functions) {
 }
 
 void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script_engine) {
-    //load the standard libs if necessary
+	//load the standard libs
     lua.open_libraries();
-
+	//load environment variables
     EnvironmentVariables env_variables(QSettings{}.value(Globals::path_to_environment_variables_key, "").toString());
     env_variables.load_to_lua(&lua);
 
     //add generic function
     {
-        lua["show_file_save_dialog"] = [path](const std::string &title, const std::string &preselected_path, sol::table filters) {
+		lua["show_file_save_dialog"] = [path](const std::string &title, const std::string &preselected_path, sol::table filters) {
+			abort_check();
             return show_file_save_dialog(title, get_absolute_file_path(QString::fromStdString(path), preselected_path), filters);
-        };
-        lua["show_question"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table) {
-            return show_question(QString::fromStdString(path), title, message, button_table);
-        };
+		};
+		lua["show_question"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table) {
+			abort_check();
+			return show_question(QString::fromStdString(path), title, message, button_table);
+		};
 
-        lua["show_info"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
-            show_info(QString::fromStdString(path), title, message);
-        };
+		lua["show_info"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
+			abort_check();
+			show_info(QString::fromStdString(path), title, message);
+		};
 
-        lua["show_warning"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
-            show_warning(QString::fromStdString(path), title, message);
-        };
+		lua["show_warning"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
+			abort_check();
+			show_warning(QString::fromStdString(path), title, message);
+		};
 
 		lua["print"] = [console = script_engine.console.get_plaintext_edit()](const sol::variadic_args &args) {
-            if (QThread::currentThread()->isInterruptionRequested()) {
-                throw sol::error("Abort Requested");
-            }
-
+			abort_check();
 			print(console, args);
-        };
+		};
 
-        lua["sleep_ms"] = [&script_engine](const unsigned int timeout_ms) { sleep_ms(&script_engine, timeout_ms); };
-        lua["pc_speaker_beep"] = []() { pc_speaker_beep(); };
-        lua["current_date_time_ms"] = []() { return current_date_time_ms(); };
-        lua["round"] = [](const double value, const unsigned int precision = 0) { return round_double(value, precision); };
-        lua["require"] = [ path = path, &lua ](const std::string &file) {
-            QDir dir(QString::fromStdString(path));
-            dir.cdUp();
-            lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
-        };
-        lua["await_hotkey"] = [&script_engine] {
-            auto exit_value = script_engine.await_hotkey_event();
+		lua["sleep_ms"] = [&script_engine](const unsigned int timeout_ms) {
+			abort_check();
+			sleep_ms(&script_engine, timeout_ms);
+		};
+		lua["pc_speaker_beep"] = +[]() {
+			abort_check();
+			pc_speaker_beep();
+		};
+		lua["current_date_time_ms"] = +[] {
+			abort_check();
+			return current_date_time_ms();
+		};
+		lua["round"] = +[](const double value, const unsigned int precision = 0) {
+			abort_check();
+			return round_double(value, precision);
+		};
+//TODO: Figure out why the lambda version crashes on Windows and the Require version does not.
+#if 1
+		struct Require {
+			std::string path;
+			sol::state &lua;
+			void operator()(const std::string &file) const {
+				abort_check();
+				QDir dir(QString::fromStdString(path));
+				dir.cdUp();
+				lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
+			}
+		};
+
+		lua["require"] = Require{path, lua};
+#else
+
+		lua["require"] = [path, &lua](const std::string &file) {
+			abort_check();
+			QDir dir(QString::fromStdString(path));
+			dir.cdUp();
+			lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
+		};
+#endif
+		lua["await_hotkey"] = [&script_engine] {
+			abort_check();
+			auto exit_value = script_engine.await_hotkey_event();
 
             switch (exit_value) {
-                case Event_id::Hotkey_confirm_pressed:
+				case Event_id::Hotkey_confirm_pressed:
                     return "confirm";
                 case Event_id::Hotkey_skip_pressed:
                     return "skip";
@@ -365,145 +450,285 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                     return "cancel";
                 default: { throw sol::error("interrupted"); }
             }
-        };
+		};
+	}
+	//Add device discovery functions
+	{
 		lua["discover_devices"] = [&script_engine](const sol::table &device_description) {
-			const auto &devices = MainWindow::mw->discover_devices(script_engine, device_description);
+			abort_check();
+			if (device_description.empty()) {
+				return device_description; //empty device description, return empty matches
+			}
+			auto devices = MainWindow::mw->discover_devices(script_engine, device_description);
+			while (devices.empty()) {
+				abort_check();
+				Utility::promised_thread_call(MainWindow::mw, +[] {
+					MainWindow::mw->on_actionrefresh_devices_all_triggered(); //does not wait for devices to be refreshed, so we wait afterwards
+				});
+				std::this_thread::sleep_for(std::chrono::seconds(2));
+				devices = MainWindow::mw->discover_devices(script_engine, device_description);
+			}
 			return script_engine.get_devices(devices);
 		};
+		lua.script(R"(
+			function discover_device(device)
+				return discover_devices({device})
+			end
+		)");
+		lua["refresh_devices"] = +[] {
+			abort_check();
+			Utility::promised_thread_call(MainWindow::mw, +[] {
+				MainWindow::mw->on_actionrefresh_devices_all_triggered(); //does not wait for devices to be refreshed, so we wait afterwards
+			});
+			std::this_thread::sleep_for(std::chrono::seconds(2));
+		};
+		lua["refresh_DUTs"] = +[] {
+			abort_check();
+			Utility::promised_thread_call(MainWindow::mw, +[] {
+				MainWindow::mw->on_actionrefresh_devices_dut_triggered(); //does not wait for devices to be refreshed, so we wait afterwards
+			});
+			std::this_thread::sleep_for(std::chrono::seconds(2));
+		};
     }
-
     //table functions
     {
-        lua["table_save_to_file"] =
+		lua["table_save_to_file"] =
 			[ console = script_engine.console.get_plaintext_edit(), path = path ](const std::string file_name, sol::table input_table, bool over_write_file) {
-            table_save_to_file(console, get_absolute_file_path(QString::fromStdString(path), file_name), input_table, over_write_file);
-        };
+			abort_check();
+			table_save_to_file(console, get_absolute_file_path(QString::fromStdString(path), file_name), input_table, over_write_file);
+		};
 		lua["table_load_from_file"] = [&lua, console = script_engine.console.get_plaintext_edit(), path = path ](const std::string file_name) {
-            return table_load_from_file(console, lua, get_absolute_file_path(QString::fromStdString(path), file_name));
-        };
-        lua["table_sum"] = [](sol::table table) { return table_sum(table); };
+			abort_check();
+			return table_load_from_file(console, lua, get_absolute_file_path(QString::fromStdString(path), file_name));
+		};
+		lua["table_sum"] = [](sol::table table) {
+			abort_check();
+			return table_sum(table);
+		};
 
 		lua["table_crc16"] = [console = script_engine.console.get_plaintext_edit()](sol::table table) {
-            return table_crc16(console, table);
-        };
+			abort_check();
+			return table_crc16(console, table);
+		};
 
-        lua["table_mean"] = [](sol::table table) { return table_mean(table); };
+		lua["table_mean"] = [](sol::table table) {
+			abort_check();
+			return table_mean(table);
+		};
 
-        lua["table_variance"] = [](sol::table table) { return table_variance(table); };
+		lua["table_variance"] = [](sol::table table) {
+			abort_check();
+			return table_variance(table);
+		};
 
-        lua["table_standard_deviation"] = [](sol::table table) { return table_standard_deviation(table); };
+		lua["table_standard_deviation"] = [](sol::table table) {
+			abort_check();
+			return table_standard_deviation(table);
+		};
 
-        lua["table_set_constant"] = [&lua](sol::table input_values, double constant) { return table_set_constant(lua, input_values, constant); };
+		lua["table_set_constant"] = [&lua](sol::table input_values, double constant) {
+			abort_check();
+			return table_set_constant(lua, input_values, constant);
+		};
 
-        lua["table_create_constant"] = [&lua](const unsigned int size, double constant) { return table_create_constant(lua, size, constant); };
+		lua["table_create_constant"] = [&lua](const unsigned int size, double constant) {
+			abort_check();
+			return table_create_constant(lua, size, constant);
+		};
 
-        lua["table_add_table"] = [&lua](sol::table input_values_a, sol::table input_values_b) { return table_add_table(lua, input_values_a, input_values_b); };
+		lua["table_add_table"] = [&lua](sol::table input_values_a, sol::table input_values_b) {
+			abort_check();
+			return table_add_table(lua, input_values_a, input_values_b);
+		};
 
-        lua["table_add_table_at"] = [&lua](sol::table input_values_a, sol::table input_values_b, unsigned int at) {
-            return table_add_table_at(lua, input_values_a, input_values_b, at);
-        };
+		lua["table_add_table_at"] = [&lua](sol::table input_values_a, sol::table input_values_b, unsigned int at) {
+			abort_check();
+			return table_add_table_at(lua, input_values_a, input_values_b, at);
+		};
 
-        lua["table_add_constant"] = [&lua](sol::table input_values, double constant) { return table_add_constant(lua, input_values, constant); };
+		lua["table_add_constant"] = [&lua](sol::table input_values, double constant) {
+			abort_check();
+			return table_add_constant(lua, input_values, constant);
+		};
 
-        lua["table_sub_table"] = [&lua](sol::table input_values_a, sol::table input_values_b) { return table_sub_table(lua, input_values_a, input_values_b); };
+		lua["table_sub_table"] = [&lua](sol::table input_values_a, sol::table input_values_b) {
+			abort_check();
+			return table_sub_table(lua, input_values_a, input_values_b);
+		};
 
-        lua["table_mul_table"] = [&lua](sol::table input_values_a, sol::table input_values_b) { return table_mul_table(lua, input_values_a, input_values_b); };
+		lua["table_mul_table"] = [&lua](sol::table input_values_a, sol::table input_values_b) {
+			abort_check();
+			return table_mul_table(lua, input_values_a, input_values_b);
+		};
 
-        lua["table_mul_constant"] = [&lua](sol::table input_values_a, double constant) { return table_mul_constant(lua, input_values_a, constant); };
+		lua["table_mul_constant"] = [&lua](sol::table input_values_a, double constant) {
+			abort_check();
+			return table_mul_constant(lua, input_values_a, constant);
+		};
 
-        lua["table_div_table"] = [&lua](sol::table input_values_a, sol::table input_values_b) { return table_div_table(lua, input_values_a, input_values_b); };
+		lua["table_div_table"] = [&lua](sol::table input_values_a, sol::table input_values_b) {
+			abort_check();
+			return table_div_table(lua, input_values_a, input_values_b);
+		};
 
-        lua["table_round"] = [&lua](sol::table input_values, const unsigned int precision = 0) { return table_round(lua, input_values, precision); };
+		lua["table_round"] = [&lua](sol::table input_values, const unsigned int precision = 0) {
+			abort_check();
+			return table_round(lua, input_values, precision);
+		};
 
-        lua["table_abs"] = [&lua](sol::table input_values) { return table_abs(lua, input_values); };
+		lua["table_abs"] = [&lua](sol::table input_values) {
+			abort_check();
+			return table_abs(lua, input_values);
+		};
 
-        lua["table_mid"] = [&lua](sol::table input_values, const unsigned int start, const unsigned int length) {
-            return table_mid(lua, input_values, start, length);
-        };
+		lua["table_mid"] = [&lua](sol::table input_values, const unsigned int start, const unsigned int length) {
+			abort_check();
+			return table_mid(lua, input_values, start, length);
+		};
 
-        lua["table_equal_constant"] = [](sol::table input_values_a, double input_const_val) { return table_equal_constant(input_values_a, input_const_val); };
+		lua["table_equal_constant"] = [](sol::table input_values_a, double input_const_val) {
+			abort_check();
+			return table_equal_constant(input_values_a, input_const_val);
+		};
 
-        lua["table_equal_table"] = [](sol::table input_values_a, sol::table input_values_b) { return table_equal_table(input_values_a, input_values_b); };
+		lua["table_equal_table"] = [](sol::table input_values_a, sol::table input_values_b) {
+			abort_check();
+			return table_equal_table(input_values_a, input_values_b);
+		};
 
-        lua["table_max"] = [](sol::table input_values) { return table_max(input_values); };
+		lua["table_max"] = [](sol::table input_values) {
+			abort_check();
+			return table_max(input_values);
+		};
 
-        lua["table_min"] = [](sol::table input_values) { return table_min(input_values); };
+		lua["table_min"] = [](sol::table input_values) {
+			abort_check();
+			return table_min(input_values);
+		};
 
-        lua["table_max_abs"] = [](sol::table input_values) { return table_max_abs(input_values); };
+		lua["table_max_abs"] = [](sol::table input_values) {
+			abort_check();
+			return table_max_abs(input_values);
+		};
 
-        lua["table_min_abs"] = [](sol::table input_values) { return table_min_abs(input_values); };
+		lua["table_min_abs"] = [](sol::table input_values) {
+			abort_check();
+			return table_min_abs(input_values);
+		};
 
-        lua["table_max_by_field"] = [&lua](sol::table input_values, const std::string field_name) { return table_max_by_field(lua, input_values, field_name); };
+		lua["table_max_by_field"] = [&lua](sol::table input_values, const std::string field_name) {
+			abort_check();
+			return table_max_by_field(lua, input_values, field_name);
+		};
 
 #if 1
-        lua["table_min_by_field"] = [&lua](sol::table input_values, const std::string field_name) { return table_min_by_field(lua, input_values, field_name); };
+		lua["table_min_by_field"] = [&lua](sol::table input_values, const std::string field_name) {
+			abort_check();
+			return table_min_by_field(lua, input_values, field_name);
+		};
 
-        lua["propose_unique_filename_by_datetime"] = [path = path](const std::string &dir_path, const std::string &prefix, const std::string &suffix) {
-            return propose_unique_filename_by_datetime(get_absolute_file_path(QString::fromStdString(path), dir_path), prefix, suffix);
-        };
-        lua["git_info"] = [&lua, path = path ](std::string dir_path, bool allow_modified) {
-            return git_info(lua, get_absolute_file_path(QString::fromStdString(path), dir_path), allow_modified);
-        };
+		lua["propose_unique_filename_by_datetime"] = [path = path](const std::string &dir_path, const std::string &prefix, const std::string &suffix) {
+			abort_check();
+			return propose_unique_filename_by_datetime(get_absolute_file_path(QString::fromStdString(path), dir_path), prefix, suffix);
+		};
+		lua["git_info"] = [&lua, path = path ](std::string dir_path, bool allow_modified) {
+			abort_check();
+			return git_info(lua, get_absolute_file_path(QString::fromStdString(path), dir_path), allow_modified);
+		};
 		lua["run_external_tool"] = [path = path](const std::string &execute_directory, const std::string &executable, const sol::table &arguments,
 												 uint timeout_s) {
-            return run_external_tool(QString::fromStdString(path),
-                                     QString::fromStdString(get_absolute_file_path(QString::fromStdString(path), execute_directory)),
-                                     QString::fromStdString(executable), arguments, timeout_s)
-                .toStdString();
-        };
+			abort_check();
+			return run_external_tool(QString::fromStdString(path),
+									 QString::fromStdString(get_absolute_file_path(QString::fromStdString(path), execute_directory)),
+									 QString::fromStdString(executable), arguments, timeout_s)
+				.toStdString();
+		};
 
 #endif
 
-        lua["get_framework_git_hash"] = []() { return get_framework_git_hash(); };
-        lua["get_framework_git_date_unix"] = []() { return get_framework_git_date_unix(); };
-        lua["get_framework_git_date_text"] = []() { return get_framework_git_date_text(); };
+		lua["get_framework_git_hash"] = []() {
+			abort_check();
+			return get_framework_git_hash();
+		};
+		lua["get_framework_git_date_unix"] = []() {
+			abort_check();
+			return get_framework_git_date_unix();
+		};
+		lua["get_framework_git_date_text"] = []() {
+			abort_check();
+			return get_framework_git_date_text();
+		};
 
-        lua["get_os_username"] = []() { return get_os_username(); };
+		lua["get_os_username"] = []() {
+			abort_check();
+			return get_os_username();
+		};
     }
-
+	//noise level
     {
-        lua["measure_noise_level_czt"] = [&lua](sol::table rpc_device, const unsigned int dacs_quantity, const unsigned int max_possible_dac_value) {
-            return measure_noise_level_czt(lua, rpc_device, dacs_quantity, max_possible_dac_value);
-        };
+		lua["measure_noise_level_czt"] = [&lua](sol::table rpc_device, const unsigned int dacs_quantity, const unsigned int max_possible_dac_value) {
+			abort_check();
+			return measure_noise_level_czt(lua, rpc_device, dacs_quantity, max_possible_dac_value);
+		};
     }
     //bind DataLogger
     {
         lua.new_usertype<DataLogger>(
-            "DataLogger", //
-			sol::meta_function::construct, sol::factories([ console = script_engine.console.get_plaintext_edit(), path = path ](
-                                               const std::string &file_name, char seperating_character, sol::table field_names, bool over_write_file) {
-                return DataLogger{console, get_absolute_file_path(QString::fromStdString(path), file_name), seperating_character, field_names, over_write_file};
-            }), //
-
+			"DataLogger", sol::meta_function::construct,
+			sol::factories([ console = script_engine.console.get_plaintext_edit(), path = path ](const std::string &file_name, char seperating_character,
+																								 sol::table field_names, bool over_write_file) {
+				abort_check();
+				return DataLogger{console, get_absolute_file_path(QString::fromStdString(path), file_name), seperating_character, field_names, over_write_file};
+			}),
             "append_data",
-            [](DataLogger &handle, const sol::table &data_record) { return handle.append_data(data_record); }, //
-            "save", [](DataLogger &handle) { handle.save(); }                                                  //
-            );
+			[](DataLogger &handle, const sol::table &data_record) {
+				abort_check();
+				return handle.append_data(data_record);
+			},
+			"save",
+			[](DataLogger &handle) {
+				abort_check();
+				handle.save();
+			});
     }
     //bind charge counter
     {
-        lua.new_usertype<ChargeCounter>("ChargeCounter",                                                                 //
-                                        sol::meta_function::construct, sol::factories([]() { return ChargeCounter{}; }), //
+		lua.new_usertype<ChargeCounter>("ChargeCounter", //
+										sol::meta_function::construct, sol::factories([]() {
+											abort_check();
+											return ChargeCounter{};
+										}), //
 
-                                        "add_current", [](ChargeCounter &handle, const double current) { return handle.add_current(current); }, //
+										"add_current",
+										[](ChargeCounter &handle, const double current) {
+											abort_check();
+											return handle.add_current(current);
+										}, //
                                         "reset",
-                                        [](ChargeCounter &handle, const double current) {
-                                            (void)current;
+										[](ChargeCounter &handle, const double current) {
+											abort_check();
+											(void)current;
                                             handle.reset();
                                         }, //
                                         "get_current_hours",
-                                        [](ChargeCounter &handle) { return handle.get_current_hours(); } //
+										[](ChargeCounter &handle) {
+											abort_check();
+											return handle.get_current_hours();
+										} //
                                         );
     }
-
     //bind data engine
     {
         lua.new_usertype<Data_engine_handle>(
             "Data_engine", //
-            sol::meta_function::construct,
-            sol::factories([ path = path, &script_engine ](const std::string &pdf_template_file, const std::string &json_file,
-                                                           const std::string &auto_json_dump_path, const sol::table &dependency_tags) {
-                auto file_path = get_absolute_file_path(QString::fromStdString(path), json_file);
+			sol::meta_function::construct,
+			sol::factories([ path = path, &script_engine ](const std::string &pdf_template_file, const std::string &json_file,
+														   const std::string &auto_json_dump_path, const sol::table &dependency_tags) {
+				abort_check();
+				Data_engine_handle de{std::make_unique<Data_engine>(), script_engine.console};
+				de.data_engine->set_script_path(script_engine.path_m);
+				de.data_engine->enable_logging(script_engine.console, *script_engine.matched_devices);
+				auto file_path = get_absolute_file_path(QString::fromStdString(path), json_file);
                 auto xml_file = get_absolute_file_path(QString::fromStdString(path), pdf_template_file);
                 auto auto_dump_path = get_absolute_file_path(QString::fromStdString(path), auto_json_dump_path);
                 std::ifstream f(file_path);
@@ -511,7 +736,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                     throw std::runtime_error("Failed opening file " + file_path);
                 }
 
-                auto add_value_to_tag_list = [](QList<QVariant> &values, const sol::object &obj, const std::string &tag_name) {
+				auto add_value_to_tag_list = [](QList<QVariant> &values, const sol::object &obj, const std::string &tag_name) {
                     if (obj.get_type() == sol::type::string) {
                         values.append(QString::fromStdString(obj.as<std::string>()));
                     } else if (obj.get_type() == sol::type::number) {
@@ -545,126 +770,187 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 
                     tags.insert(QString::fromStdString(tag_name), values);
                 }
-                script_engine.data_engine->set_dependancy_tags(tags);
-                script_engine.data_engine->set_source(f);
-                script_engine.data_engine->set_source_path(QString::fromStdString(file_path));
-                script_engine.data_engine_pdf_template_path = QString::fromStdString(xml_file);
-                script_engine.data_engine_auto_dump_path = QString::fromStdString(auto_dump_path);
-                //*pdf_filepath = QDir{QSettings{}.value(Globals::form_directory, "").toString()}.absoluteFilePath("test_dump.pdf").toStdString();
-                //*form_filepath = get_absolute_file_path(path, xml_file);
+				de.data_engine->set_dependancy_tags(tags);
+				de.data_engine->set_source(f);
+				de.data_engine->set_source_path(QString::fromStdString(file_path));
+				de.data_engine_pdf_template_path = QString::fromStdString(xml_file);
+				de.data_engine_auto_dump_path = QString::fromStdString(auto_dump_path);
 
-                return Data_engine_handle{script_engine.data_engine};
+				return de;
             }), //
             "set_start_time_seconds_since_epoch",
-            [](Data_engine_handle &handle, const double start_time) { return handle.data_engine->set_start_time_seconds_since_epoch(start_time); },
+			[](Data_engine_handle &handle, const double start_time) {
+				abort_check();
+				return handle.data_engine->set_start_time_seconds_since_epoch(start_time);
+			},
             "use_instance",
-            [](Data_engine_handle &handle, const std::string &section_name, const std::string &instance_caption, const uint instance_index) {
-                handle.data_engine->use_instance(QString::fromStdString(section_name), QString::fromStdString(instance_caption), instance_index);
+			[](Data_engine_handle &handle, const std::string &section_name, const std::string &instance_caption, const uint instance_index) {
+				abort_check();
+				handle.data_engine->use_instance(QString::fromStdString(section_name), QString::fromStdString(instance_caption), instance_index);
             },
             "start_recording_actual_value_statistic",
-            [](Data_engine_handle &handle, const std::string &root_file_path, const std::string &prefix) {
-                return handle.data_engine->start_recording_actual_value_statistic(root_file_path, prefix);
+			[](Data_engine_handle &handle, const std::string &root_file_path, const std::string &prefix) {
+				abort_check();
+				return handle.data_engine->start_recording_actual_value_statistic(root_file_path, prefix);
             },
             "set_dut_identifier",
-            [](Data_engine_handle &handle, const std::string &dut_identifier) {
-                return handle.data_engine->set_dut_identifier(QString::fromStdString(dut_identifier));
+			[](Data_engine_handle &handle, const std::string &dut_identifier) {
+				abort_check();
+				return handle.data_engine->set_dut_identifier(QString::fromStdString(dut_identifier));
             },
 
             "get_instance_count",
-            [](Data_engine_handle &handle, const std::string &section_name) { return handle.data_engine->get_instance_count(section_name); },
+			[](Data_engine_handle &handle, const std::string &section_name) {
+				abort_check();
+				return handle.data_engine->get_instance_count(section_name);
+			},
 
             "get_description",
-            [](Data_engine_handle &handle, const std::string &id) { return handle.data_engine->get_description(QString::fromStdString(id)).toStdString(); },
+			[](Data_engine_handle &handle, const std::string &id) {
+				abort_check();
+				return handle.data_engine->get_description(QString::fromStdString(id)).toStdString();
+			},
             "get_actual_value",
-            [](Data_engine_handle &handle, const std::string &id) { return handle.data_engine->get_actual_value(QString::fromStdString(id)).toStdString(); },
+			[](Data_engine_handle &handle, const std::string &id) {
+				abort_check();
+				return handle.data_engine->get_actual_value(QString::fromStdString(id)).toStdString();
+			},
             "get_actual_number",
-            [](Data_engine_handle &handle, const std::string &id) { return handle.data_engine->get_actual_number(QString::fromStdString(id)); },
+			[](Data_engine_handle &handle, const std::string &id) {
+				abort_check();
+				return handle.data_engine->get_actual_number(QString::fromStdString(id));
+			},
 
             "get_unit",
-            [](Data_engine_handle &handle, const std::string &id) { return handle.data_engine->get_unit(QString::fromStdString(id)).toStdString(); },
+			[](Data_engine_handle &handle, const std::string &id) {
+				abort_check();
+				return handle.data_engine->get_unit(QString::fromStdString(id)).toStdString();
+			},
             "get_desired_value",
-            [](Data_engine_handle &handle, const std::string &id) {
-                return handle.data_engine->get_desired_value_as_string(QString::fromStdString(id)).toStdString();
+			[](Data_engine_handle &handle, const std::string &id) {
+				abort_check();
+				return handle.data_engine->get_desired_value_as_string(QString::fromStdString(id)).toStdString();
             },
-            "get_section_names", [&lua](Data_engine_handle &handle) { return handle.data_engine->get_section_names(&lua); }, //
+			"get_section_names",
+			[&lua](Data_engine_handle &handle) {
+				abort_check();
+				return handle.data_engine->get_section_names(&lua);
+			}, //
             "get_ids_of_section",
-            [&lua](Data_engine_handle &handle, const std::string &section_name) { return handle.data_engine->get_ids_of_section(&lua, section_name); },
+			[&lua](Data_engine_handle &handle, const std::string &section_name) {
+				abort_check();
+				return handle.data_engine->get_ids_of_section(&lua, section_name);
+			},
             "set_instance_count",
-            [](Data_engine_handle &handle, const std::string &instance_count_name, const uint instance_count) {
-                handle.data_engine->set_instance_count(QString::fromStdString(instance_count_name), instance_count);
+			[](Data_engine_handle &handle, const std::string &instance_count_name, const uint instance_count) {
+				abort_check();
+				handle.data_engine->set_instance_count(QString::fromStdString(instance_count_name), instance_count);
             },
             "save_to_json",
             [path = path](Data_engine_handle & handle, const std::string &file_name) {
-                auto fn = get_absolute_file_path(QString::fromStdString(path), file_name);
+				abort_check();
+				auto fn = get_absolute_file_path(QString::fromStdString(path), file_name);
                 handle.data_engine->save_to_json(QString::fromStdString(fn));
             },
-            "add_extra_pdf_path", [ path = path, &script_engine ](Data_engine_handle & handle, const std::string &file_name) {
-                (void)handle;
+			"add_extra_pdf_path",
+			[path = path](Data_engine_handle & handle, const std::string &file_name) {
+				abort_check();
+				(void)handle;
                 // data_engine_auto_dump_path = QString::fromStdString(auto_dump_path);
-                script_engine.additional_pdf_path = QString::fromStdString(get_absolute_file_path(QString::fromStdString(path), file_name));
+				handle.additional_pdf_path = QString::fromStdString(get_absolute_file_path(QString::fromStdString(path), file_name));
                 //  handle.data_engine->save_to_json(QString::fromStdString(fn));
             },
             "set_open_pdf_on_pdf_creation",
             [path = path](Data_engine_handle & handle, bool auto_open_on_pdf_creation) {
-                handle.data_engine->set_enable_auto_open_pdf(auto_open_on_pdf_creation);
+				abort_check();
+				handle.data_engine->set_enable_auto_open_pdf(auto_open_on_pdf_creation);
             },
             "value_in_range",
-            [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->value_in_range(QString::fromStdString(field_id)); },
+			[](Data_engine_handle &handle, const std::string &field_id) {
+				abort_check();
+				return handle.data_engine->value_in_range(QString::fromStdString(field_id));
+			},
             "value_in_range_in_section",
-            [](Data_engine_handle &handle, const std::string &field_id) {
-                return handle.data_engine->value_in_range_in_section(QString::fromStdString(field_id));
+			[](Data_engine_handle &handle, const std::string &field_id) {
+				abort_check();
+				return handle.data_engine->value_in_range_in_section(QString::fromStdString(field_id));
             },
             "value_in_range_in_instance",
-            [](Data_engine_handle &handle, const std::string &field_id) {
-                return handle.data_engine->value_in_range_in_instance(QString::fromStdString(field_id));
+			[](Data_engine_handle &handle, const std::string &field_id) {
+				abort_check();
+				return handle.data_engine->value_in_range_in_instance(QString::fromStdString(field_id));
             },
             "values_in_range",
-            [](Data_engine_handle &handle, const sol::table &field_ids) {
-                QList<FormID> ids;
+			[](Data_engine_handle &handle, const sol::table &field_ids) {
+				abort_check();
+				QList<FormID> ids;
                 for (const auto &field_id : field_ids) {
                     ids.append(QString::fromStdString(field_id.second.as<std::string>()));
                 }
                 return handle.data_engine->values_in_range(ids);
             },
-            "is_bool", [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->is_bool(QString::fromStdString(field_id)); },
-            "is_text", [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->is_text(QString::fromStdString(field_id)); },
+			"is_bool",
+			[](Data_engine_handle &handle, const std::string &field_id) {
+				abort_check();
+				return handle.data_engine->is_bool(QString::fromStdString(field_id));
+			},
+			"is_text",
+			[](Data_engine_handle &handle, const std::string &field_id) {
+				abort_check();
+				return handle.data_engine->is_text(QString::fromStdString(field_id));
+			},
             "is_number",
-            [](Data_engine_handle &handle, const std::string &field_id) { return handle.data_engine->is_number(QString::fromStdString(field_id)); },
+			[](Data_engine_handle &handle, const std::string &field_id) {
+				abort_check();
+				return handle.data_engine->is_number(QString::fromStdString(field_id));
+			},
             "is_exceptionally_approved",
-            [](Data_engine_handle &handle, const std::string &field_id) {
-                return handle.data_engine->is_exceptionally_approved(QString::fromStdString(field_id));
+			[](Data_engine_handle &handle, const std::string &field_id) {
+				abort_check();
+				return handle.data_engine->is_exceptionally_approved(QString::fromStdString(field_id));
             },
-            "set_actual_number", [](Data_engine_handle &handle, const std::string &field_id,
-                                    double value) { handle.data_engine->set_actual_number(QString::fromStdString(field_id), value); },
-            "set_actual_bool", [](Data_engine_handle &handle, const std::string &field_id,
-                                  bool value) { handle.data_engine->set_actual_bool(QString::fromStdString(field_id), value); },
+			"set_actual_number",
+			[](Data_engine_handle &handle, const std::string &field_id, double value) {
+				abort_check();
+				handle.data_engine->set_actual_number(QString::fromStdString(field_id), value);
+			},
+			"set_actual_bool",
+			[](Data_engine_handle &handle, const std::string &field_id, bool value) {
+				abort_check();
+				handle.data_engine->set_actual_bool(QString::fromStdString(field_id), value);
+			},
 #if 1
-            "set_actual_datetime", [](Data_engine_handle &handle, const std::string &field_id,
-                                      double value) { handle.data_engine->set_actual_datetime(QString::fromStdString(field_id), DataEngineDateTime{value}); },
+			"set_actual_datetime",
+			[](Data_engine_handle &handle, const std::string &field_id, double value) {
+				abort_check();
+				handle.data_engine->set_actual_datetime(QString::fromStdString(field_id), DataEngineDateTime{value});
+			},
 #endif
 #if 1
             "set_actual_datetime_from_text",
-            [](Data_engine_handle &handle, const std::string &field_id, const std::string &text) {
-                handle.data_engine->set_actual_datetime(QString::fromStdString(field_id), DataEngineDateTime{QString::fromStdString(text)});
+			[](Data_engine_handle &handle, const std::string &field_id, const std::string &text) {
+				abort_check();
+				handle.data_engine->set_actual_datetime(QString::fromStdString(field_id), DataEngineDateTime{QString::fromStdString(text)});
             },
 #endif
             "set_actual_text",
-            [](Data_engine_handle &handle, const std::string &field_id, const std::string &text) {
-                handle.data_engine->set_actual_text(QString::fromStdString(field_id), QString::fromStdString(text));
+			[](Data_engine_handle &handle, const std::string &field_id, const std::string &text) {
+				abort_check();
+				handle.data_engine->set_actual_text(QString::fromStdString(field_id), QString::fromStdString(text));
             },
-            "all_values_in_range", [](Data_engine_handle &handle) { return handle.data_engine->all_values_in_range(); });
+			"all_values_in_range", [](Data_engine_handle &handle) { return handle.data_engine->all_values_in_range(); });
     }
-
     //bind UI
-    auto ui_table = lua.create_named_table("Ui");
-
+	auto ui_table = lua.create_named_table("Ui");
     //UI functions
     {
-        ui_table["set_column_count"] = [ container = script_engine.parent, &script_engine ](int count) {
-            Utility::thread_call(MainWindow::mw, [container, count] { container->set_column_count(count); }, &script_engine);
-        };
+		ui_table["set_column_count"] = [ container = script_engine.parent, &script_engine ](int count) {
+			abort_check();
+			Utility::thread_call(MainWindow::mw, [container, count] { container->set_column_count(count); }, &script_engine);
+		};
 #if 0
 		ui_table["load_user_entry_cache"] = [ container = parent, &script_engine ](const std::string dut_id) {
+			abort_check();
 			(void)container;
 			(void)&script_engine;
 			(void)dut_id;
@@ -672,17 +958,17 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 		};
 #endif
     }
-
-#if 0
 	//bind charge UserEntryCache
 	{
+#if 0
 		lua.new_usertype<UserEntryCache>("UserEntryCache", //
 										  sol::meta_function::construct,sol::factories(
 										  []() { //
+											  abort_check();
 											  return UserEntryCache{};
 										  }));
-	}
 #endif
+	}
     //bind plot
     {
         ui_table.new_usertype<Lua_UI_Wrapper<Curve>>(
@@ -691,7 +977,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             "append_point", thread_call_wrapper_non_waiting(&script_engine, &Curve::append_point), //
             "add_spectrum",
             [&script_engine](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
-                std::vector<double> data;
+				abort_check();
+				std::vector<double> data;
                 data.reserve(table.size());
                 for (auto &i : table) {
                     data.push_back(i.second.as<double>());
@@ -704,7 +991,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             }, //
             "add_spectrum_at",
             [&script_engine](Lua_UI_Wrapper<Curve> &curve, const unsigned int spectrum_start_channel, const sol::table &table) {
-                std::vector<double> data;
+				abort_check();
+				std::vector<double> data;
                 data.reserve(table.size());
                 for (auto &i : table) {
                     data.push_back(i.second.as<double>());
@@ -730,7 +1018,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 															 thread_call_wrapper(&Curve::pick_x_coord) //
 #else
             [&script_engine](const Lua_UI_Wrapper<Curve> &lua_curve) {
-                QThread *thread = QThread::currentThread();
+				abort_check();
+				QThread *thread = QThread::currentThread();
                 std::promise<double> x_selection_promise;
                 std::future<double> x_selection_future = x_selection_promise.get_future();
                 Utility::thread_call(MainWindow::mw, [&lua_curve, thread, x_selection_promise = &x_selection_promise ]() mutable {
@@ -756,14 +1045,16 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             "Plot", //
 
             sol::meta_function::construct, sol::factories([ parent = script_engine.parent, &script_engine ] {
-                return Lua_UI_Wrapper<Plot>{parent, &script_engine};
+				abort_check();
+				return Lua_UI_Wrapper<Plot>{parent, &script_engine};
             }), //
             "clear",
             thread_call_wrapper(&Plot::clear), //
             "add_curve", [ parent = script_engine.parent, &script_engine ](Lua_UI_Wrapper<Plot> & lua_plot)->Lua_UI_Wrapper<Curve> {
                 return Utility::promised_thread_call(MainWindow::mw,
                                                      [parent, &lua_plot, &script_engine] {
-                                                         auto &plot = MainWindow::mw->get_lua_UI_class<Plot>(lua_plot.id);
+														 abort_check();
+														 auto &plot = MainWindow::mw->get_lua_UI_class<Plot>(lua_plot.id);
                                                          return Lua_UI_Wrapper<Curve>{parent, &script_engine, &script_engine, &plot};
                                                      } //
                                                      );
@@ -776,11 +1067,19 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
     {
         ui_table.new_usertype<Color>("Color", //
                                      sol::meta_function::construct, sol::no_constructor);
-        ui_table["Color"] = overloaded_function([](const std::string &name) { return Color{name}; },
-                                                [](int r, int g, int b) {
-                                                    return Color{r, g, b};
-                                                }, //
-                                                [](int rgb) { return Color{rgb}; });
+		ui_table["Color"] = overloaded_function(
+			[](const std::string &name) {
+				abort_check();
+				return Color{name};
+			},
+			[](int r, int g, int b) {
+				abort_check();
+				return Color{r, g, b};
+			}, //
+			[](int rgb) {
+				abort_check();
+				return Color{rgb};
+			});
     }
     //bind PollDataEngine
     {
@@ -788,11 +1087,12 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             "PollDataEngine", //
             sol::meta_function::construct,
             sol::factories([ parent = script_engine.parent, &script_engine ](Data_engine_handle & handle, const sol::table items) {
-                QStringList sl;
+				abort_check();
+				QStringList sl;
                 for (const auto &item : items) {
                     sl.append(QString::fromStdString(item.second.as<std::string>()));
                 }
-                return Lua_UI_Wrapper<PollDataEngine>{parent, &script_engine, &script_engine, handle.data_engine, sl};
+				return Lua_UI_Wrapper<PollDataEngine>{parent, &script_engine, &script_engine, handle.data_engine.get(), sl};
             }), //
 
             "set_visible",
@@ -809,7 +1109,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             sol::factories([ parent = script_engine.parent, &script_engine ](Data_engine_handle & handle, const std::string &field_id,
                                                                              const std::string &extra_explanation, const std::string &empty_value_placeholder,
                                                                              const std::string &actual_prefix, const std::string &desired_prefix) {
-                return Lua_UI_Wrapper<DataEngineInput>{parent,        &script_engine,    &script_engine,          handle.data_engine,
+				abort_check();
+				return Lua_UI_Wrapper<DataEngineInput>{parent,        &script_engine,    &script_engine,          handle.data_engine.get(),
                                                        field_id,      extra_explanation, empty_value_placeholder, actual_prefix,
                                                        desired_prefix};
             }), //
@@ -829,7 +1130,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
         ui_table.new_usertype<Lua_UI_Wrapper<UserInstructionLabel>>(
             "UserInstructionLabel", //
             sol::meta_function::construct, sol::factories([ parent = script_engine.parent, &script_engine ](const std::string &instruction_text) {
-                return Lua_UI_Wrapper<UserInstructionLabel>{parent, &script_engine, &script_engine, instruction_text};
+				abort_check();
+				return Lua_UI_Wrapper<UserInstructionLabel>{parent, &script_engine, &script_engine, instruction_text};
             }), //
             "await_event",
             non_gui_call_wrapper(&UserInstructionLabel::await_event),                  //
@@ -844,7 +1146,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
         ui_table.new_usertype<Lua_UI_Wrapper<UserWaitLabel>>(
             "UserWaitLabel", //
             sol::meta_function::construct, sol::factories([ parent = script_engine.parent, &script_engine ](const std::string &instruction_text) {
-                return Lua_UI_Wrapper<UserWaitLabel>{parent, &script_engine, &script_engine, instruction_text};
+				abort_check();
+				return Lua_UI_Wrapper<UserWaitLabel>{parent, &script_engine, &script_engine, instruction_text};
             }), //
             "set_enabled",
             thread_call_wrapper(&UserWaitLabel::set_enabled), //
@@ -856,7 +1159,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             "ComboBoxFileSelector", //
             sol::meta_function::construct,
             sol::factories([ parent = script_engine.parent, path = path, &script_engine ](const std::string &directory, const sol::table &filters) {
-                QStringList sl;
+				abort_check();
+				QStringList sl;
                 for (const auto &item : filters) {
                     sl.append(QString::fromStdString(item.second.as<std::string>()));
                 }
@@ -874,7 +1178,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
         ui_table.new_usertype<Lua_UI_Wrapper<IsotopeSourceSelector>>("IsotopeSourceSelector", //
                                                                      sol::meta_function::construct,
                                                                      sol::factories([ parent = script_engine.parent, &script_engine ]() {
-                                                                         return Lua_UI_Wrapper<IsotopeSourceSelector>{parent, &script_engine};
+																		 abort_check();
+																		 return Lua_UI_Wrapper<IsotopeSourceSelector>{parent, &script_engine};
                                                                      }), //
                                                                      "set_visible",
                                                                      thread_call_wrapper(&IsotopeSourceSelector::set_visible),                            //
@@ -892,7 +1197,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
         ui_table.new_usertype<Lua_UI_Wrapper<ComboBox>>("ComboBox", //
                                                         sol::meta_function::construct,
                                                         sol::factories([ parent = script_engine.parent, &script_engine ](const sol::table &items) {
-                                                            return Lua_UI_Wrapper<ComboBox>{parent, &script_engine, items};
+															abort_check();
+															return Lua_UI_Wrapper<ComboBox>{parent, &script_engine, items};
                                                         }), //
                                                         "set_items",
                                                         thread_call_wrapper(&ComboBox::set_items),                   //
@@ -910,7 +1216,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
     {
         ui_table.new_usertype<Lua_UI_Wrapper<SpinBox>>("SpinBox", //
                                                        sol::meta_function::construct, sol::factories([ parent = script_engine.parent, &script_engine ]() {
-                                                           return Lua_UI_Wrapper<SpinBox>{parent, &script_engine}; //
+														   abort_check();
+														   return Lua_UI_Wrapper<SpinBox>{parent, &script_engine}; //
                                                        }),                                                         //
                                                        "get_value",
                                                        thread_call_wrapper(&SpinBox::get_value),                      //
@@ -926,7 +1233,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
     {
         ui_table.new_usertype<Lua_UI_Wrapper<ProgressBar>>("ProgressBar", //
                                                            sol::meta_function::construct, sol::factories([ parent = script_engine.parent, &script_engine ]() {
-                                                               return Lua_UI_Wrapper<ProgressBar>{parent, &script_engine};
+															   abort_check();
+															   return Lua_UI_Wrapper<ProgressBar>{parent, &script_engine};
                                                            }), //
                                                            "set_max_value",
                                                            thread_call_wrapper(&ProgressBar::set_max_value),                      //
@@ -943,7 +1251,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
         ui_table.new_usertype<Lua_UI_Wrapper<Label>>("Label", //
                                                      sol::meta_function::construct,
                                                      sol::factories([ parent = script_engine.parent, &script_engine ](const std::string &text) {
-                                                         return Lua_UI_Wrapper<Label>{parent, &script_engine, text};
+														 abort_check();
+														 return Lua_UI_Wrapper<Label>{parent, &script_engine, text};
                                                      }), //
                                                      "set_text",
                                                      thread_call_wrapper(&Label::set_text),                       //
@@ -956,7 +1265,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
     {
         ui_table.new_usertype<Lua_UI_Wrapper<HLine>>("HLine", //
                                                      sol::meta_function::construct, sol::factories([ parent = script_engine.parent, &script_engine ]() {
-                                                         return Lua_UI_Wrapper<HLine>{parent, &script_engine};
+														 abort_check();
+														 return Lua_UI_Wrapper<HLine>{parent, &script_engine};
                                                      }), //
 
                                                      "set_visible",
@@ -967,7 +1277,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
         ui_table.new_usertype<Lua_UI_Wrapper<CheckBox>>("CheckBox", //
                                                         sol::meta_function::construct,
                                                         sol::factories([ parent = script_engine.parent, &script_engine ](const std::string &text) {
-                                                            return Lua_UI_Wrapper<CheckBox>{parent, &script_engine, text};
+															abort_check();
+															return Lua_UI_Wrapper<CheckBox>{parent, &script_engine, text};
                                                         }), //
                                                         "set_checked",
                                                         thread_call_wrapper(&CheckBox::set_checked),                //
@@ -977,11 +1288,11 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                                                         "get_text", thread_call_wrapper(&CheckBox::get_text));
     }
     //bind Image
-
     {
         ui_table.new_usertype<Lua_UI_Wrapper<Image>>("Image", sol::meta_function::construct,
                                                      sol::factories([ parent = script_engine.parent, path = path, &script_engine ]() {
-                                                         return Lua_UI_Wrapper<Image>{parent, &script_engine, QString::fromStdString(path)}; //
+														 abort_check();
+														 return Lua_UI_Wrapper<Image>{parent, &script_engine, QString::fromStdString(path)}; //
                                                      }),
                                                      "load_image_file", thread_call_wrapper(&Image::load_image_file), //
                                                      "set_visible", thread_call_wrapper(&Image::set_visible)          //
@@ -992,7 +1303,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
         ui_table.new_usertype<Lua_UI_Wrapper<Button>>("Button", //
                                                       sol::meta_function::construct,
                                                       sol::factories([ parent = script_engine.parent, &script_engine ](const std::string &title) {
-                                                          return Lua_UI_Wrapper<Button>{parent, &script_engine, &script_engine, title};
+														  abort_check();
+														  return Lua_UI_Wrapper<Button>{parent, &script_engine, &script_engine, title};
                                                       }), //
                                                       "has_been_clicked",
                                                       thread_call_wrapper(&Button::has_been_clicked),                       //
@@ -1001,7 +1313,6 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                                                       "await_click", non_gui_call_wrapper(&Button::await_click)             //
                                                       );
     }
-
     //bind edit field
     {
         ui_table.new_usertype<Lua_UI_Wrapper<LineEdit>>(
@@ -1029,58 +1340,198 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             "load_from_cache", non_gui_call_wrapper(&LineEdit::load_from_cache) //
             );
     }
+	//bind SPI
     {
-        lua.new_usertype<SCPIDevice>(
-            "SCPIDevice",                                                                                                                               //
-            sol::meta_function::construct, sol::no_constructor,                                                                                         //
-            "get_protocol_name", [](SCPIDevice &protocol) { return protocol.get_protocol_name(); },                                                     //
-            "get_device_descriptor", [](SCPIDevice &protocol) { return protocol.get_device_descriptor(); },                                             //
-            "get_str", [](SCPIDevice &protocol, std::string request) { return protocol.get_str(request); },                                             //
-            "get_str_param", [](SCPIDevice &protocol, std::string request, std::string argument) { return protocol.get_str_param(request, argument); }, //
-            "get_num", [](SCPIDevice &protocol, std::string request) { return protocol.get_num(request); },                                             //
-            "get_num_param", [](SCPIDevice &protocol, std::string request, std::string argument) { return protocol.get_num_param(request, argument); }, //
-            "get_name", [](SCPIDevice &protocol) { return protocol.get_name(); },                                                                       //
-            "get_serial_number", [](SCPIDevice &protocol) { return protocol.get_serial_number(); },                                                     //
-            "get_manufacturer", [](SCPIDevice &protocol) { return protocol.get_manufacturer(); },                                                       //
-            "get_calibration", [](SCPIDevice &protocol) { return protocol.get_calibration(); },                                                         //
-            "is_event_received", [](SCPIDevice &protocol, std::string event_name) { return protocol.is_event_received(event_name); },                   //
-            "clear_event_list", [](SCPIDevice &protocol) { return protocol.clear_event_list(); },                                                       //
-            "get_event_list", [](SCPIDevice &protocol) { return protocol.get_event_list(); },                                                           //
-            "set_validation_max_standard_deviation",
-            [](SCPIDevice &protocoll, double max_std_dev) { return protocoll.set_validation_max_standard_deviation(max_std_dev); },          //
-            "set_validation_retries", [](SCPIDevice &protocoll, unsigned int retries) { return protocoll.set_validation_retries(retries); }, //
-            "send_command", [](SCPIDevice &protocoll, std::string request) { return protocoll.send_command(request); }                       //
+		lua.new_usertype<SCPIDevice>("SCPIDevice",                                       //
+									 sol::meta_function::construct, sol::no_constructor, //
+									 "get_protocol_name",
+									 [](SCPIDevice &protocol) {
+										 abort_check();
+										 return protocol.get_protocol_name();
+									 }, //
+									 "get_device_descriptor",
+									 [](SCPIDevice &protocol) {
+										 abort_check();
+										 return protocol.get_device_descriptor();
+									 }, //
+									 "get_str",
+									 [](SCPIDevice &protocol, std::string request) {
+										 abort_check();
+										 return protocol.get_str(request);
+									 }, //
+									 "get_str_param",
+									 [](SCPIDevice &protocol, std::string request, std::string argument) {
+										 abort_check();
+										 return protocol.get_str_param(request, argument);
+									 }, //
+									 "get_num",
+									 [](SCPIDevice &protocol, std::string request) {
+										 abort_check();
+										 return protocol.get_num(request);
+									 }, //
+									 "get_num_param",
+									 [](SCPIDevice &protocol, std::string request, std::string argument) {
+										 abort_check();
+										 return protocol.get_num_param(request, argument);
+									 }, //
+									 "get_name",
+									 [](SCPIDevice &protocol) {
+										 abort_check();
+										 return protocol.get_name();
+									 }, //
+									 "get_serial_number",
+									 [](SCPIDevice &protocol) {
+										 abort_check();
+										 return protocol.get_serial_number();
+									 }, //
+									 "get_manufacturer",
+									 [](SCPIDevice &protocol) {
+										 abort_check();
+										 return protocol.get_manufacturer();
+									 }, //
+									 "get_calibration",
+									 [](SCPIDevice &protocol) {
+										 abort_check();
+										 return protocol.get_calibration();
+									 }, //
+									 "is_event_received",
+									 [](SCPIDevice &protocol, std::string event_name) {
+										 abort_check();
+										 return protocol.is_event_received(event_name);
+									 }, //
+									 "clear_event_list",
+									 [](SCPIDevice &protocol) {
+										 abort_check();
+										 return protocol.clear_event_list();
+									 }, //
+									 "get_event_list",
+									 [](SCPIDevice &protocol) {
+										 abort_check();
+										 return protocol.get_event_list();
+									 }, //
+									 "set_validation_max_standard_deviation",
+									 [](SCPIDevice &protocoll, double max_std_dev) {
+										 abort_check();
+										 return protocoll.set_validation_max_standard_deviation(max_std_dev);
+									 }, //
+									 "set_validation_retries",
+									 [](SCPIDevice &protocoll, unsigned int retries) {
+										 abort_check();
+										 return protocoll.set_validation_retries(retries);
+									 }, //
+									 "send_command",
+									 [](SCPIDevice &protocoll, std::string request) {
+										 abort_check();
+										 return protocoll.send_command(request);
+									 } //
 
-            );
+									 );
     }
-
+	//bind SG04
     {
-        lua.new_usertype<SG04CountDevice>("SG04CountDevice",                                                                           //
-                                          sol::meta_function::construct, sol::no_constructor,                                          //
-                                          "get_protocol_name", [](SG04CountDevice &protocol) { return protocol.get_protocol_name(); }, //
+		lua.new_usertype<SG04CountDevice>("SG04CountDevice",                                  //
+										  sol::meta_function::construct, sol::no_constructor, //
+										  "get_protocol_name",
+										  [](SG04CountDevice &protocol) {
+											  abort_check();
+											  return protocol.get_protocol_name();
+										  }, //
                                           "get_name",
-                                          [](SG04CountDevice &protocol) {
-                                              (void)protocol;
+										  [](SG04CountDevice &protocol) {
+											  abort_check();
+											  (void)protocol;
                                               return "SG04";
                                           }, //
                                           "get_sg04_counts",
-                                          [](SG04CountDevice &protocol, bool clear_on_read) { return protocol.get_sg04_counts(clear_on_read); },           //
-                                          "accumulate_counts", [](SG04CountDevice &protocol, uint time_ms) { return protocol.accumulate_counts(time_ms); } //
+										  [](SG04CountDevice &protocol, bool clear_on_read) {
+											  abort_check();
+											  return protocol.get_sg04_counts(clear_on_read);
+										  }, //
+										  "accumulate_counts",
+										  [](SG04CountDevice &protocol, uint time_ms) {
+											  abort_check();
+											  return protocol.accumulate_counts(time_ms);
+										  } //
                                           );
     }
+	//bind manual device
     {
-        lua.new_usertype<ManualDevice>("ManualDevice",                                                                           //
-                                       sol::meta_function::construct, sol::no_constructor,                                       //
-                                       "get_protocol_name", [](ManualDevice &protocol) { return protocol.get_protocol_name(); }, //
-                                       "get_name", [](ManualDevice &protocol) { return protocol.get_name(); },                   //
-                                       "get_manufacturer", [](ManualDevice &protocol) { return protocol.get_manufacturer(); },   //
-                                       "get_description", [](ManualDevice &protocol) { return protocol.get_description(); },     //
-                                       "get_serial_number", [](ManualDevice &protocol) { return protocol.get_serial_number(); }, //
-                                       "get_notes", [](ManualDevice &protocol) { return protocol.get_notes(); },                 //
-                                       "get_calibration", [](ManualDevice &protocol) { return protocol.get_calibration(); },     //
+		lua.new_usertype<ManualDevice>("ManualDevice",                                     //
+									   sol::meta_function::construct, sol::no_constructor, //
+									   "get_protocol_name",
+									   [](ManualDevice &protocol) {
+										   abort_check();
+										   return protocol.get_protocol_name();
+									   }, //
+									   "get_name",
+									   [](ManualDevice &protocol) {
+										   abort_check();
+										   return protocol.get_name();
+									   }, //
+									   "get_manufacturer",
+									   [](ManualDevice &protocol) {
+										   abort_check();
+										   return protocol.get_manufacturer();
+									   }, //
+									   "get_description",
+									   [](ManualDevice &protocol) {
+										   abort_check();
+										   return protocol.get_description();
+									   }, //
+									   "get_serial_number",
+									   [](ManualDevice &protocol) {
+										   abort_check();
+										   return protocol.get_serial_number();
+									   }, //
+									   "get_notes",
+									   [](ManualDevice &protocol) {
+										   abort_check();
+										   return protocol.get_notes();
+									   }, //
+									   "get_calibration",
+									   [](ManualDevice &protocol) {
+										   abort_check();
+										   return protocol.get_calibration();
+									   }, //
 
-                                       "get_summary", [](ManualDevice &protocol) { return protocol.get_summary(); } //
+									   "get_summary",
+									   [](ManualDevice &protocol) {
+										   abort_check();
+										   return protocol.get_summary();
+									   } //
 
                                        );
     }
+	//set up import functionality
+	{
+		lua["find_script"] = [&script_engine](const std::string &name) { return script_engine.get_script_import_path(name); };
+		lua.script(R"xx(
+				   assert(_VERSION == "Lua 5.3")
+				   --might also work with 5.2
+				   --definitely does not work with 5.1 and below because _ENV did not exist
+				   --may work with 5.4+, but that does not exist at time of writing
+
+				   function env_copy(obj)
+					   obj = obj or _ENV
+					   local res = {}
+					   for k, v in pairs(obj) do
+						   if string.find("boolean number string function table", type(v)) then --not copying "thread" and "userdata"
+							   --print("Copied " .. k .. " of type " .. type(v))
+							   res[k] = v
+						   else
+							   --print("Skipped " .. k .. " of type " .. type(v))
+						   end
+					   end
+					   return res
+				   end
+
+				   local default_env = env_copy()
+
+				   function import(name)
+					   local env = env_copy(default_env)
+					   assert(loadfile(assert(find_script(name)), "t", env))()
+					   return env
+				   end
+		)xx");
+	}
 }

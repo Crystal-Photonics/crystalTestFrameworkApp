@@ -78,7 +78,7 @@ void DataLogger::append_data(sol::table data_record) {
 }
 
 void DataLogger::save() {
-    dump_data_to_file();
+	dump_data_to_file();
 }
 
 void DataLogger::dump_data_to_file() {

@@ -27,9 +27,6 @@ struct PortDescription {
 	QTreeWidgetItem *ui_entry;
     std::unique_ptr<Protocol> protocol;
     CommunicationDeviceType communication_type; //COM, TMC, Manual, TCP, UDP, IP
-
-    void set_is_in_use(bool in_use);
-    bool get_is_in_use(void);
 };
 
 class CandidateEntry {
@@ -64,8 +61,9 @@ class DeviceMatcher : public QDialog {
 	explicit DeviceMatcher(QWidget *parent = nullptr);
     ~DeviceMatcher();
 
-    void match_devices(DeviceWorker &device_worker, TestRunner &runner, TestDescriptionLoader &test);
-	void match_devices(DeviceWorker &device_worker, TestRunner &runner, const std::vector<DeviceRequirements> &device_requirements, const QString &testname);
+	void match_devices(DeviceWorker &device_worker, TestRunner &runner, TestDescriptionLoader &test, const Sol_table &requirements);
+	void match_devices(DeviceWorker &device_worker, TestRunner &runner, const std::vector<DeviceRequirements> &device_requirements, const QString &testname,
+					   const Sol_table &requirements);
     bool is_match_possible(DeviceWorker &device_worker, TestDescriptionLoader &test);
 
     std::vector<MatchedDevice> get_matched_devices();

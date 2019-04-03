@@ -11,6 +11,7 @@
 #include "data_engine/exceptionalapproval.h"
 #include "datalogger.h"
 #include "lua_functions.h"
+#include "qt_util.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_encoded_function_call.h"
 #include "rpcruntime_function.h"
@@ -31,6 +32,7 @@
 #include <QShortcut>
 #include <QThread>
 #include <QTimer>
+#include <QVariant>
 #include <cmath>
 #include <functional>
 #include <memory>
@@ -214,14 +216,12 @@ struct RPCDevice {
     ScriptEngine *engine = nullptr;
 };
 
-ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, Console &console, Data_engine *data_engine, TestRunner *runner, QString test_name)
+ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, Console &console, TestRunner *runner, QString test_name)
 	: runner{runner}
 	, test_name{std::move(test_name)}
 	, lua{std::make_unique<sol::state>()}
     , parent{parent}
     , console(console)
-    , data_engine(data_engine)
-
     , owner{owner} {}
 
 ScriptEngine::~ScriptEngine() { //
@@ -337,30 +337,13 @@ std::string ScriptEngine::to_string(const sol::object &o) {
         case sol::type::number:
             return to_string(o.as<double>());
         case sol::type::nil:
+			return "nil";
         case sol::type::none:
             return "nil";
         case sol::type::string:
             return "\"" + o.as<std::string>() + "\"";
-        case sol::type::table: {
-            auto table = o.as<sol::table>();
-            std::string retval{"{"};
-            int index = 1;
-            for (auto &object : table) {
-                auto first_object_string = to_string(object.first);
-                if (first_object_string == std::to_string(index++)) {
-                    retval += to_string(object.second);
-                } else {
-                    retval += '[' + std::move(first_object_string) + "]=" + to_string(object.second);
-                }
-                retval += ", ";
-            }
-            if (retval.size() > 1) {
-                retval.pop_back();
-                retval.back() = '}';
-                return retval;
-            }
-            return "{}";
-        }
+		case sol::type::table:
+			return to_string(o.as<sol::table>());
         case sol::type::userdata:
             if (o.is<Color>()) {
                 return "Ui.Color(0x" + QString::number(o.as<Color>().rgb & 0xFFFFFFu, 16).toStdString() + ")";
@@ -372,29 +355,60 @@ std::string ScriptEngine::to_string(const sol::object &o) {
 }
 
 std::string ScriptEngine::to_string(const sol::stack_proxy &object) {
-    return to_string(sol::object{object});
+	return to_string(sol::object{object});
+}
+
+std::string ScriptEngine::to_string(const sol::table &table) {
+	std::string retval{"{"};
+	int index = 1;
+	for (auto &object : table) {
+		auto first_object_string = to_string(object.first);
+		if (first_object_string == std::to_string(index++)) {
+			retval += to_string(object.second);
+		} else {
+			retval += '[' + std::move(first_object_string) + "]=" + to_string(object.second);
+		}
+		retval += ", ";
+	}
+	if (retval.size() > 1) {
+		retval.pop_back();
+		retval.back() = '}';
+		return retval;
+	}
+	return "{}";
 }
 
 QString ScriptEngine::get_absolute_filename(QString file_to_open) {
 	return get_absolute_file_path(path_m, file_to_open);
 }
 
+bool ScriptEngine::adopt_device(const MatchedDevice &device) {
+	return runner->adopt_device(device);
+}
+
+std::string ScriptEngine::get_script_import_path(const std::string &name) {
+	auto script = QString::fromStdString(name);
+	if (not script.endsWith(".lua")) {
+		script += ".lua";
+	}
+
+	QDir current_script_dir{path_m};
+	current_script_dir.cdUp();
+	for (auto &dir : {current_script_dir, QDir{QSettings{}.value(Globals::test_script_path_settings_key).toString()}, QDir{}}) {
+		const auto filepath = dir.filePath(script);
+		if (QFile::exists(filepath)) {
+			return filepath.toStdString();
+		}
+	}
+	return name;
+}
+
 void ScriptEngine::load_script(const std::string &path) {
-    // qDebug() << "load_script " << QString::fromStdString(path);
-    // qDebug() << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") << QThread::currentThread();
-
-    this->path_m = QString::fromStdString(path);
-
-    if (data_engine) {
-        data_engine->set_script_path(path_m);
-    }
+	path_m = QString::fromStdString(path);
 
     try {
         script_setup(*lua, path, *this);
-
         lua->script_file(path);
-
-		//qDebug() << "loaded script"; // << lua->;
     } catch (const sol::error &error) {
         qDebug() << "caught sol::error@load_script";
         set_error_line(error);
@@ -444,7 +458,8 @@ QStringList ScriptEngine::get_string_list(const QString &name) {
     }
     return retval;
 }
-int get_quantity_num(sol::object &obj) {
+
+static int get_quantity_num(sol::object &obj) {
     int result = 0;
     if (obj.get_type() == sol::type::string) {
         std::string str = obj.as<std::string>();
@@ -464,7 +479,6 @@ int get_quantity_num(sol::object &obj) {
 std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const sol::table &device_requirements) {
 	std::vector<DeviceRequirements> result{};
 	try {
-#if 1
 		const sol::table &protocol_entries = device_requirements;
         if (protocol_entries.valid() == false) {
             return result;
@@ -475,12 +489,13 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
             bool device_name_found = false;
             bool protocol_does_not_provide_name = false;
             for (auto &protocol_entry_field : protocol_entry_table) {
-                if (protocol_entry_field.first.as<std::string>() == "protocol") {
+				const std::string key = protocol_entry_field.first.as<std::string>();
+				if (key == "protocol") {
                     item.protocol_name = QString::fromStdString(protocol_entry_field.second.as<std::string>());
                     if (item.protocol_name == "SG04Count") {
                         protocol_does_not_provide_name = true;
                     }
-                } else if (protocol_entry_field.first.as<std::string>() == "device_names") {
+				} else if (key == "device_names") {
                     device_name_found = true;
                     if (protocol_entry_field.second.get_type() == sol::type::table) {
                         sol::table device_names = protocol_entry_field.second.as<sol::table>();
@@ -499,16 +514,25 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
                         }
                         item.device_names.append(QString::fromStdString(str));
                     }
-                } else if (protocol_entry_field.first.as<std::string>() == "quantity") {
+				} else if (key == "quantity") {
                     item.quantity_min = get_quantity_num(protocol_entry_field.second);
                     item.quantity_max = item.quantity_min;
-                } else if (protocol_entry_field.first.as<std::string>() == "quantity_min") {
+				} else if (key == "quantity_min") {
                     item.quantity_min = get_quantity_num(protocol_entry_field.second);
-                } else if (protocol_entry_field.first.as<std::string>() == "quantity_max") {
+				} else if (key == "quantity_max") {
                     item.quantity_max = get_quantity_num(protocol_entry_field.second);
-                } else if (protocol_entry_field.first.as<std::string>() == "alias") {
+				} else if (key == "alias") {
                     item.alias = QString::fromStdString(protocol_entry_field.second.as<std::string>());
-                }
+				} else if (key == "acceptable") {
+					if (not protocol_entry_field.second.is<sol::function>()) {
+						throw std::runtime_error("The \"acceptable\" field in device requirements must be a function or left out.");
+					}
+					item.has_acceptance_function = true;
+				} else {
+					Utility::thread_call(MainWindow::mw, [ key, console = this->console ]() mutable {
+						console.warning() << QObject::tr("Ignored device requirement \"%1\" because it is not a known requirement.").arg(key.c_str());
+					});
+				}
             }
             if (protocol_does_not_provide_name) {
                 device_name_found = false;
@@ -519,7 +543,6 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
             }
             result.push_back(item);
         }
-#endif
     }
 
 	catch (const sol::error &error) {
@@ -529,9 +552,21 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
 	return result;
 }
 
-std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const QString &name) {
+sol::table ScriptEngine::get_device_requirements_table() {
+	auto table = lua->get<sol::optional<sol::table>>("device_requirements");
+	if (table) {
+		return table.value();
+	}
+	return create_table();
+}
+
+std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list() {
 	try {
-		return get_device_requirement_list(lua->get<sol::table>(name.toStdString()));
+		auto requirements_table = lua->get<sol::optional<sol::table>>("device_requirements");
+		if (requirements_table) {
+			return get_device_requirement_list(requirements_table.value());
+		}
+		return {};
 	} catch (const sol::error &error) {
 		set_error_line(error);
 		throw;
@@ -618,64 +653,28 @@ sol::table ScriptEngine::get_devices(const std::vector<MatchedDevice> &devices) 
 void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
     qDebug() << "ScriptEngine::run";
 	assert(not currently_in_gui_thread());
+	matched_devices = &devices;
 
-    auto reset_lua_state = [this] {
-        ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString()};
-        data_engine->do_exceptional_approvals(ea_db, MainWindow::mw);
-        lua = std::make_unique<sol::state>();
-        data_engine->save_actual_value_statistic();
-        if (data_engine_pdf_template_path.count() and data_engine_auto_dump_path.count()) {
-            QFileInfo fi(data_engine_auto_dump_path);
-            QString suffix = fi.completeSuffix();
-            if (suffix == "") {
-                QString path = append_separator_to_path(fi.absoluteFilePath());
-                path += "report.pdf";
-                fi.setFile(path);
-            }
-            //fi.baseName("/home/abc/report.pdf") = "report"
-            //fi.absolutePath("/home/abc/report.pdf") = "/home/abc/"
-
-            std::string target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
-            target_filename.resize(target_filename.size() - 4);
-
-            data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
-			data_engine->set_log_file(target_filename + "_log.txt");
-            if (additional_pdf_path.count()) {
-                QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
-			}
-        }
-        if (data_engine_auto_dump_path.count()) {
-            QFileInfo fi(data_engine_auto_dump_path);
-            QString suffix = fi.completeSuffix();
-            if (suffix == "") {
-                QString path = append_separator_to_path(fi.absoluteFilePath());
-                path += "dump.json";
-                fi.setFile(path);
-            }
-            std::string json_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".json");
-            try {
-                data_engine->save_to_json(QString::fromStdString(json_target_filename));
-            } catch (const DataEngineError &e) {
-                qDebug() << "Failed dumping data to json: " << e.what() << " because of " << static_cast<int>(e.get_error_number());
-            }
-        }
-    };
-    try {
+	auto reset_lua_state = [this] { lua = std::make_unique<sol::state>(); };
+	try {
         {
-            sol::protected_function run = (*lua)["run"];
+			sol::protected_function run = (*lua)["run"];
+			if (not run.valid()) {
+				throw std::runtime_error{"Script does not have a \"run\" function."};
+			}
 			auto result = run(get_devices(devices));
             if (not result.valid()) {
                 sol::error error = result;
                 throw error;
             }
         }
-        reset_lua_state();
-    } catch (const sol::error &e) {
+		reset_lua_state();
+	} catch (const sol::error &e) {
         qDebug() << "caught sol::error@run";
         set_error_line(e);
-        reset_lua_state();
-        throw;
-    }
+		reset_lua_state();
+		throw;
+	}
 }
 
 QString DeviceRequirements::get_description() const {

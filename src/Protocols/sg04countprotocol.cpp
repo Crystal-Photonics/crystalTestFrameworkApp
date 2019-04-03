@@ -47,7 +47,7 @@ SG04CountProtocol::SG04CountProtocol(CommunicationDevice &device, DeviceProtocol
                         received_counts_mutex.lock();
                         received_count_packages.append(counts);
                         int max_count_entries = 1;
-                        if (device.get_is_in_use()) {
+						if (device.is_in_use()) {
                             max_count_entries = 1000;
                         }
                         if (received_count_packages.count() > max_count_entries) {

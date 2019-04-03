@@ -92,13 +92,11 @@ void TestDescriptionLoader::launch_editor() {
 void TestDescriptionLoader::load_description() {
     ui_entry->setText(1, "");
 	Console c{console.get()};
-	ScriptEngine script{nullptr, nullptr, c, nullptr, nullptr, ""};
+	ScriptEngine script{nullptr, nullptr, c, nullptr, ""};
     try {
-        //   qDebug() << "load_description  start";
         script.load_script(file_path.toStdString());
-#if 1
         device_requirements.clear();
-        device_requirements = script.get_device_requirement_list("device_requirements");
+		device_requirements = script.get_device_requirement_list();
 
         QStringList reqs;
         for (auto &device_requirement : device_requirements) {
@@ -107,11 +105,8 @@ void TestDescriptionLoader::load_description() {
 
         ui_entry->setText(1, reqs.join(", "));
         ui_entry->setIcon(3, QIcon{});
-#endif
-        //   qDebug() << "load_description  ende";
     } catch (const std::runtime_error &e) {
         ui_entry->setIcon(3, QIcon{"://src/icons/if_exclamation_16.ico"});
 		Console_handle::error(console.get()) << "Failed loading protocols: " << e.what();
-        //    qDebug() << "load_description  exception";
     }
 }

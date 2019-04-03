@@ -72,9 +72,14 @@ using namespace std::chrono_literals;
 MainWindow *MainWindow::mw = nullptr;
 
 QThread *MainWindow::gui_thread;
+static Utility::Qt_thread *devices_thread_pointer{};
 
 bool currently_in_gui_thread() {
     return QThread::currentThread() == MainWindow::gui_thread;
+}
+
+bool currently_in_devices_thread() {
+	return devices_thread_pointer->is_current();
 }
 
 void MainWindow::load_default_paths_if_needed() {
@@ -298,6 +303,7 @@ MainWindow::MainWindow(QWidget *parent)
     , device_worker(std::make_unique<DeviceWorker>())
     , ui(new Ui::MainWindow) {
     MainWindow::gui_thread = QThread::currentThread();
+	devices_thread_pointer = &devices_thread;
     mw = this;
     ui->setupUi(this);
 
@@ -315,7 +321,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->test_simple_view->setVisible(false);
     add_clear_button_to_console(ui->console_edit);
     devices_thread.start();
-    connect(device_worker.get(), SIGNAL(device_discrovery_done()), this, SLOT(slot_device_discovery_done()));
+	connect(device_worker.get(), &DeviceWorker::device_discovery_done, this, &MainWindow::slot_device_discovery_done);
     refresh_devices(false);
 
     load_scripts();
@@ -621,9 +627,19 @@ std::vector<MatchedDevice> MainWindow::discover_devices(ScriptEngine &se, const 
 	return Utility::promised_thread_call(mw, [&]() -> std::vector<MatchedDevice> {
 		assert(mw);
 		assert(mw->device_worker);
+		assert(currently_in_gui_thread());
+		static bool currently_discovering_devices; //this non-threadsafe "locking" is fine because this lambda will always be run in the GUI thread
+		if (currently_discovering_devices) {
+			return {};
+		}
+		auto discover_lock = Utility::RAII_do([] { currently_discovering_devices = true; }, [] { currently_discovering_devices = false; });
+
 		DeviceMatcher device_matcher(mw);
-		device_matcher.match_devices(*mw->device_worker, *se.runner, dr, se.test_name);
+		device_matcher.match_devices(*mw->device_worker, *se.runner, dr, se.test_name, device_desciption);
 		if (device_matcher.was_successful()) {
+			for (auto &device : device_matcher.get_matched_devices()) {
+				se.adopt_device(device);
+			}
 			return device_matcher.get_matched_devices();
 		}
 		return {};
@@ -778,7 +794,7 @@ void MainWindow::run_test_script(TestDescriptionLoader *test) {
     const auto tab_index = ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name());
     ui->test_tabs->setCurrentIndex(tab_index);
     DeviceMatcher device_matcher(this);
-    device_matcher.match_devices(*device_worker, runner, *test);
+	device_matcher.match_devices(*device_worker, runner, *test, runner.get_device_requirements_table());
     auto devices = device_matcher.get_matched_devices();
     if (device_matcher.was_successful()) {
         if (QSettings{}.value(Globals::collapse_script_explorer_on_scriptstart_key, false).toBool()) {
@@ -1010,15 +1026,15 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
                               QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok) {
         return; //canceled closing the tab
     }
-    abort_script(&runner);
+	abort_script(runner);
     QApplication::processEvents(); //runner may have sent events referencing runner. Need to process all such events before removing runner.
     test_runners.erase(runner_it);
     ui->test_tabs->removeTab(index);
 }
 
-void MainWindow::abort_script(TestRunner *runner) {
-    runner->interrupt();
-    runner->message_queue_join();
+void MainWindow::abort_script(TestRunner &runner) {
+	runner.interrupt();
+	runner.message_queue_join();
 }
 
 void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
@@ -1029,7 +1045,7 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 
         QAction action_abort_script(tr("Abort Script"), nullptr);
         if (runner->is_running()) {
-            connect(&action_abort_script, &QAction::triggered, [runner, this] { abort_script(runner); });
+			connect(&action_abort_script, &QAction::triggered, [runner, this] { abort_script(*runner); });
             menu.addAction(&action_abort_script);
         }
 
@@ -1292,7 +1308,7 @@ void MainWindow::on_actionactionAbort_triggered() {
         if (QMessageBox::question(this, tr(""), tr("Abort running scripts now?"), QMessageBox::Ok | QMessageBox::Cancel) == QMessageBox::Ok) {
             for (auto &tr : test_runners) {
                 if (tr->is_running()) {
-                    abort_script(tr.get());
+					abort_script(*tr.get());
                 }
             }
             enable_abort_button_script();

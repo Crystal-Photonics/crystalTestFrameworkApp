@@ -4,8 +4,9 @@
 #include "export.h"
 
 #include <QMap>
-#include <QVariant>
 #include <QObject>
+#include <QVariant>
+#include <atomic>
 #include <chrono>
 #include <memory>
 
@@ -31,15 +32,13 @@ class EXPORT CommunicationDevice : public QObject {
     virtual void send(const QByteArray &data, const QByteArray &displayed_data = {}) = 0;
     void send(const std::vector<unsigned char> &data, const std::vector<unsigned char> &displayed_data = {});
     virtual void close() = 0;
-    //bool operator==(const QString &target) const;
-    QString get_identifier_display_string() const;
+	QString get_identifier_display_string() const;
     bool is_waiting_for_message() const;
     void set_currently_in_wait_received(bool in_wait_received);
     virtual QString getName() = 0;
-    void set_is_in_use(bool in_use);
-    bool get_is_in_use() const;
+	bool is_in_use() const;
     const QMap<QString, QVariant> &get_port_info();
-    virtual bool connect(const QMap<QString, QVariant> &portinfo_) = 0;
+	virtual bool connect(const QMap<QString, QVariant> &portinfo_) = 0;
     QString proposed_alias{};
     signals:
     void connected(const QByteArray &);
@@ -55,10 +54,11 @@ class EXPORT CommunicationDevice : public QObject {
     bool currently_in_waitReceived;
 
     private:
-    bool in_use = false;
+	std::atomic<bool> in_use{false};
 
     protected:
     QMap<QString, QVariant> portinfo;
+	friend void device_worker_set_in_use(CommunicationDevice *com_device, bool in_use);
 };
 
 #endif // COMMUNICATIONDEVICE_H

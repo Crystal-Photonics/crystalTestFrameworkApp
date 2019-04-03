@@ -16,7 +16,6 @@ struct LuaUI;
 struct Protocol;
 struct Sol_table;
 struct MatchedDevice;
-class Data_engine;
 struct Console;
 
 class TestRunner : QObject {
@@ -30,6 +29,7 @@ class TestRunner : QObject {
     void message_queue_join();
     void blocking_join();
 	Sol_table create_table();
+	Sol_table get_device_requirements_table();
 	template <class Callback>
 	auto call(Callback &&cb) { /* this is a complicated way of saying script.call(lua_function);, but we do it in
 								  order to not have to include sol.hpp here to improve compilation time */
@@ -43,15 +43,17 @@ class TestRunner : QObject {
     void launch_editor() const;
 
     QObject *obj();
+	bool adopt_device(const MatchedDevice &device);
 
     private:
 	std::unique_ptr<Console> console_pointer;
     Utility::Qt_thread thread{};
     UI_container *lua_ui_container{nullptr};
-	std::unique_ptr<Data_engine> data_engine;
 	std::unique_ptr<ScriptEngine> script_pointer;
 	ScriptEngine &script;
     QString name{};
+	std::atomic<DeviceWorker *> device_worker_pointer{nullptr};
+	std::vector<CommunicationDevice *> extra_devices;
 
 	public:
 	Console &console;

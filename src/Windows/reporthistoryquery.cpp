@@ -1251,8 +1251,8 @@ ReportDatabase ReportQueryConfigFile::filter_and_select_reports(const QList<Repo
             }
 
             QMap<QString, QVariant> pre_row;
-            for (auto select_field_name : report_link.query_m.select_field_names_m) {
-                QString field_name = report_link.query_m.get_table_name() + "/" + select_field_name;
+			for (auto select_field_name : report_link.query_m->select_field_names_m) {
+				QString field_name = report_link.query_m->get_table_name() + "/" + select_field_name;
                 QList<QVariant> values = report_file.get_field_values(select_field_name);
                 if (values.count() > 1) {
                     throw std::runtime_error(QObject::tr("Till now it is not possible to scan reports with more than one section-instance.").toStdString());
@@ -1264,7 +1264,7 @@ ReportDatabase ReportQueryConfigFile::filter_and_select_reports(const QList<Repo
                     pre_row.insert(field_name, values.first());
                 }
             }
-            ReportTable *report_table = report_database.get_table(report_link.query_m.get_table_name());
+			ReportTable *report_table = report_database.get_table(report_link.query_m->get_table_name());
             QMap<int, QVariant> table_row = report_database.translate_row_to_int_key(pre_row);
             report_table->append_row(table_row, time_stamp.dt());
         }

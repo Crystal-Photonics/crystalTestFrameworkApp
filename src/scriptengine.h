@@ -49,6 +49,7 @@ class DeviceRequirements {
     int quantity_max = INT_MAX;
     QString get_description() const;
     QString alias;
+	bool has_acceptance_function = false;
 };
 
 namespace Event_id {
@@ -61,7 +62,7 @@ class ScriptEngine {
     friend class TestDescriptionLoader;
     friend class DeviceWorker;
 
-	ScriptEngine(QObject *owner, UI_container *parent, Console &console, Data_engine *data_engine, TestRunner *runner, QString test_name);
+	ScriptEngine(QObject *owner, UI_container *parent, Console &console, TestRunner *runner, QString test_name);
     ScriptEngine(const ScriptEngine &) = delete;
     ScriptEngine(ScriptEngine &&) = delete;
     ~ScriptEngine();
@@ -80,7 +81,10 @@ class ScriptEngine {
     static std::string to_string(double d);
     static std::string to_string(const sol::object &o);
     static std::string to_string(const sol::stack_proxy &object);
+	static std::string to_string(const sol::table &table);
     QString get_absolute_filename(QString file_to_open);
+	bool adopt_device(const MatchedDevice &device);
+	std::string get_script_import_path(const std::string &name);
 
     sol::table create_table();
 	template <class Return_type, class... Args>
@@ -90,10 +94,11 @@ class ScriptEngine {
 	TestRunner *runner;
 	QString test_name;
 	std::vector<DeviceRequirements> get_device_requirement_list(const sol::table &device_requirements);
+	sol::table get_device_requirements_table(); //The returned table must be destroyed before the script. TODO: Fix or diagnose better
 
     private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
     QStringList get_string_list(const QString &name);
-	std::vector<DeviceRequirements> get_device_requirement_list(const QString &name);
+	std::vector<DeviceRequirements> get_device_requirement_list();
 	sol::table get_devices(const std::vector<MatchedDevice> &devices);
     void run(std::vector<MatchedDevice> &devices);
     template <class ReturnType, class... Arguments>
@@ -105,12 +110,8 @@ class ScriptEngine {
     int error_line{0};
     UI_container *parent{nullptr};
 	Console &console;
-    Data_engine *data_engine{nullptr};
-    QString data_engine_auto_dump_path;
-    QString additional_pdf_path;
-    QString data_engine_pdf_template_path;
-
 	QObject *owner;
+	std::vector<MatchedDevice> *matched_devices;
 
     std::mutex await_mutex;
     std::condition_variable await_condition_variable;
