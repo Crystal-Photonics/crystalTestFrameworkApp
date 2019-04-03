@@ -40,20 +40,18 @@ struct Device_data {
 
 class CommunicationDeviceWrapper : public RPCIODevice {
     public:
-
     CommunicationDeviceWrapper(CommunicationDevice &device);
 
     void send(std::vector<unsigned char> data, std::vector<unsigned char> pre_encodec_data) override;
-    bool waitReceived(std::chrono::steady_clock::duration timeout = std::chrono::seconds(1), int bytes = 1, bool isPolling=false) override;
+	bool waitReceived(std::chrono::steady_clock::duration timeout = std::chrono::seconds(1), int bytes = 1, bool isPolling = false) override;
 
-private:
+	private:
     CommunicationDevice &com_device;
-
 };
 
 class RPCProtocol : public Protocol {
     public:
-    RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting);
+	RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting setting);
     ~RPCProtocol();
     RPCProtocol(const RPCProtocol &) = delete;
     RPCProtocol(RPCProtocol &&other) = delete;
@@ -77,8 +75,7 @@ class RPCProtocol : public Protocol {
     private:
     std::unique_ptr<RPCRuntimeProtocol> rpc_runtime_protocol;
 
-
-    void console_message(RPCConsoleLevel level,QString message);
+	void console_message(RPCConsoleLevel level, QString message);
 
     QMetaObject::Connection console_message_connection;
     std::unique_ptr<RPCRuntimeDecodedFunctionCall> descriptor_answer;

@@ -117,10 +117,10 @@ std::vector<Device_data::Description_source> Device_data::get_description_source
             {"Name", name},         {"Version", version}};
 }
 
-RPCProtocol::RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting)
+RPCProtocol::RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting setting)
     : Protocol{"RPC"}
     , communication_wrapper(device)
-    , device_protocol_setting(setting) {
+	, device_protocol_setting(std::move(setting)) {
     rpc_runtime_protocol = std::make_unique<RPCRuntimeProtocol>(communication_wrapper, device_protocol_setting.timeout);
 #if 1
     console_message_connection =

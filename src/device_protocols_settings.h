@@ -19,7 +19,7 @@ class DeviceProtocolSetting {
     DeviceProtocolSetting::Duration timeout;
     DeviceProtocolSetting::Duration pause_after_discovery_flush;
 
-    bool match(QString port_name);
+	bool match(QString port_name) const;
 
     private:
     QStringList *exclusive_ports;

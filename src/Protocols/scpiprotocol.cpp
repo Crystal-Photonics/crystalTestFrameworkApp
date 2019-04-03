@@ -85,10 +85,10 @@ std::vector<SCPI_Device_Data::Description_source> SCPI_Device_Data::get_descript
     };
 }
 
-SCPIProtocol::SCPIProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting)
+SCPIProtocol::SCPIProtocol(CommunicationDevice &device, DeviceProtocolSetting setting)
     : Protocol{"SCPI"}
     , device(&device)
-    , device_protocol_setting(setting) {
+	, device_protocol_setting(std::move(setting)) {
 #if 1
     connection = QObject::connect(&device, &CommunicationDevice::received, [incoming_data = &incoming_data](const QByteArray &data) {
         //qDebug() << "SCPI-Protocol received" << data.size() << "bytes from device";
