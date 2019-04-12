@@ -50,7 +50,7 @@ void DeviceMetaData::reload(QString file_name) {
     parse_meta_data_file(file_name);
 }
 
-DeviceMetaDataGroup DeviceMetaData::query(QString serial_number, QString device_name) {
+DeviceMetaDataGroup DeviceMetaData::query(QString serial_number, QString device_name) const {
     bool look_for_serial;
     DeviceMetaDataGroup result{};
 
