@@ -218,7 +218,7 @@ bool SCPIProtocol::is_correct_protocol() {
 }
 
 void SCPIProtocol::send_string(std::string data) {
-    Utility::promised_thread_call(device, [ device = this->device, data = data ] {
+	Utility::promised_thread_call(device, [ device = this->device, &data ] {
         std::string display_data = QString::fromStdString(data).trimmed().toStdString();
         std::vector<unsigned char> data_vec{data.begin(), data.end()};
         std::vector<unsigned char> disp_vec{display_data.begin(), display_data.end()};

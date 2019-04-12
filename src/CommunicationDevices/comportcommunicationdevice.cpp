@@ -1,4 +1,5 @@
 #include "comportcommunicationdevice.h"
+#include "Windows/mainwindow.h"
 #include "qt_util.h"
 #include "util.h"
 
@@ -22,8 +23,8 @@ bool ComportCommunicationDevice::isConnected() {
 }
 
 bool ComportCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo_) {
-    this->portinfo = portinfo_;
     return Utility::promised_thread_call(this, [this, portinfo_] {
+		this->portinfo = portinfo_;
         assert(portinfo_.contains(HOST_NAME_TAG));
         assert(portinfo_.contains(BAUD_RATE_TAG));
         assert(portinfo_[HOST_NAME_TAG].type() == QVariant::String);
@@ -51,14 +52,16 @@ bool ComportCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo
 }
 
 bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes, bool isPolling) {
-    auto now = std::chrono::high_resolution_clock::now();
+	auto now = std::chrono::high_resolution_clock::now();
     int received_bytes = 0;
     auto try_read = [this, &received_bytes] {
         auto result = Utility::promised_thread_call(this, [this] {
+			assert(currently_in_devices_thread());
             QApplication::processEvents();
             return port.readAll();
         });
-        if (result.isEmpty() == false) {
+		if (not result.isEmpty()) {
+			//qDebug() << "received" << result << "from" << port.portName();
             emit received(result);
             received_bytes += result.size();
         }
@@ -81,23 +84,19 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes, bool 
 bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string escape_characters, std::string leading_pattern_indicating_skip_line) {
     QByteArray inbuffer{};
 
-    auto try_read = [this, &inbuffer] {
-        auto result = Utility::promised_thread_call(this, [this] {
+	auto try_read = [this](QByteArray &inbuffer, QSerialPort &port) {
+		auto result = Utility::promised_thread_call(this, [&port] {
+			assert(currently_in_devices_thread());
             QApplication::processEvents();
-            char byte_buffer = 0;
-            QByteArray inbyte_buffer{};
-            if (port.read(&byte_buffer, 1)) {
-                inbyte_buffer.append(byte_buffer);
-            }
-            return inbyte_buffer;
+			return port.readAll();
         });
-        if (result.isEmpty() == false) {
-            inbuffer.append(result);
-        }
+		if (not result.isEmpty()) {
+			//qDebug() << "received" << result << "from" << port.portName();
+			inbuffer.append(result);
+		}
     };
     currently_in_waitReceived = true;
     bool escape_found = false;
-    bool run = true;
     std::regex word_regex;
     try {
         word_regex = leading_pattern_indicating_skip_line;
@@ -108,10 +107,7 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
     auto now = std::chrono::high_resolution_clock::now();
     do {
 		QThread::currentThread()->usleep(100);
-        if (port.bytesAvailable()) {
-            //     now = std::chrono::high_resolution_clock::now();
-        }
-        try_read();
+		try_read(inbuffer, port);
         if (inbuffer.indexOf(QString::fromStdString(escape_characters)) > -1) {
             emit received(inbuffer);
             escape_found = true;
@@ -126,19 +122,19 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, std::string esca
                 //if ((!leading_pattern_indicating_skip_line.empty()) && in_str.startsWith(QString::fromStdString(leading_pattern_indicating_skip_line))){
                 now = std::chrono::high_resolution_clock::now();
             } else {
-                run = false;
+				break;
             }
             inbuffer.clear();
         }
-    } while (run && std::chrono::high_resolution_clock::now() - now <= timeout);
-    //  try_read();
+	} while (std::chrono::high_resolution_clock::now() - now <= timeout);
     currently_in_waitReceived = false;
 
     return escape_found;
 }
 
 void ComportCommunicationDevice::send(const QByteArray &data, const QByteArray &displayed_data) {
-    return Utility::promised_thread_call(this, [this, data, displayed_data] {
+	//qDebug() << "Sending" << data << "to" << port.portName();
+	return Utility::promised_thread_call(this, [this, &data, &displayed_data] {
         auto size = port.write(data);
         if (size == -1) {
             return;
@@ -159,7 +155,7 @@ void ComportCommunicationDevice::close() {
         QByteArray ar;
         ar.append(portinfo[HOST_NAME_TAG].toString());
         emit disconnected(ar);
-    });
+	});
 }
 
 QString ComportCommunicationDevice::getName() {
