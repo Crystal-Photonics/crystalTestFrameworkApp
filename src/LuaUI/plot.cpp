@@ -8,20 +8,20 @@
 #include "scriptengine.h"
 #include <QAction>
 #include <QDateTime>
+#include <QDebug>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QSettings>
 #include <QSplitter>
 #include <QtGlobal>
+#include <chrono>
 #include <fstream>
 #include <qwt_picker_machine.h>
 #include <qwt_plot.h>
 #include <qwt_plot_curve.h>
 #include <qwt_plot_marker.h>
 #include <qwt_plot_picker.h>
-
-#include <chrono>
 
 using namespace std::chrono;
 
@@ -63,7 +63,10 @@ size_t Curve_data::size() const {
 }
 
 QPointF Curve_data::sample(size_t i) const {
-    return {xvalues[i], use_interpolated_values() ? yvalues_plot[i] : yvalues_orig[i]};
+	assert(i < xvalues.size());
+	assert(i < yvalues_plot.size());
+	assert(i < yvalues_orig.size());
+	return {xvalues[i], use_interpolated_values() ? yvalues_plot[i] : yvalues_orig[i]};
 }
 
 QRectF Curve_data::boundingRect() const {
@@ -209,11 +212,13 @@ Curve::Curve(UI_container *, ScriptEngine *script_engine, Plot *plot)
 }
 
 Curve::~Curve() {
-    if (plot) {
-        auto &curves = plot->curves;
-        curves.erase(std::find(std::begin(curves), std::end(curves), this));
-        detach();
-    }
+	if (plot) {
+		auto &curves = plot->curves;
+		auto pos = std::find(std::begin(curves), std::end(curves), this);
+		assert(pos != std::end(curves)); //if this assert fires, someone has removed a curve from plot->curves who forgot to detach first
+		curves.erase(pos);
+		detach();
+	}
 }
 void Curve::add(const std::vector<double> &data) {
     curve_data().add(data);
@@ -394,6 +399,10 @@ Plot::~Plot() {
 }
 ///\endcond
 void Plot::clear() {
+	for (auto &curve : curves) {
+		curve->detach();
+		curve->plot = nullptr;
+	}
     curves.clear();
     assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
