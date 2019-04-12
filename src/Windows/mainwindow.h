@@ -200,17 +200,20 @@ std::map<int, Lua_UI_class> lua_classes;
 
 template <class Lua_UI_class, class... Args>
 void MainWindow::add_lua_UI_class(int id, UI_container *parent, Args &&... args) {
-    lua_classes<Lua_UI_class>.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(parent, std::forward<Args>(args)...));
+	assert(not lua_classes<Lua_UI_class>.count(id));
+	lua_classes<Lua_UI_class>.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(parent, std::forward<Args>(args)...));
 }
 
 template <class Lua_UI_class>
 void MainWindow::remove_lua_UI_class(int id) {
+	assert(lua_classes<Lua_UI_class>.count(id));
     lua_classes<Lua_UI_class>.erase(id);
 }
 
 template <class Lua_UI_class>
 Lua_UI_class &MainWindow::get_lua_UI_class(int id) {
-    return lua_classes<Lua_UI_class>.at(id);
+	assert(lua_classes<Lua_UI_class>.count(id));
+	return lua_classes<Lua_UI_class>.at(id);
 }
 
 Q_DECLARE_METATYPE(QTreeWidgetItem *);

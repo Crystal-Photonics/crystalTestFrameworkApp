@@ -105,7 +105,7 @@ struct Data_engine_handle {
 template <class T>
 struct Lua_UI_Wrapper {
     template <class... Args>
-    Lua_UI_Wrapper(UI_container *parent, ScriptEngine *script_engine_to_terminate_on_exception, Args &&... args) {
+	Lua_UI_Wrapper(UI_container *parent, ScriptEngine *script_engine_to_terminate_on_exception, Args &&... args) {
         this->script_engine_to_terminate_on_exception = script_engine_to_terminate_on_exception;
 		Utility::promised_thread_call(MainWindow::mw, [ id = id, parent, args... ] { MainWindow::mw->add_lua_UI_class<T>(id, parent, args...); });
     }
@@ -118,12 +118,12 @@ struct Lua_UI_Wrapper {
         std::swap(id, other.id);
     }
     ~Lua_UI_Wrapper() {
-        if (id != -1) {
+		if (id != -1) {
             Utility::thread_call(MainWindow::mw, [id = this->id] { MainWindow::mw->remove_lua_UI_class<T>(id); }, script_engine_to_terminate_on_exception);
         }
     }
 
-    int id = ++id_counter;
+	int id = ++id_counter;
 
     private:
     static int id_counter;
