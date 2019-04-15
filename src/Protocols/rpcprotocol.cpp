@@ -172,7 +172,14 @@ std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const 
 }
 
 std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration) {
-    return rpc_runtime_protocol.get()->call_and_wait(call, duration).decoded_function_call_reply;
+	auto result = rpc_runtime_protocol.get()->call_and_wait(call, duration);
+	switch (result.error) {
+		case RPCError::success:
+			return std::move(result.decoded_function_call_reply);
+		case RPCError::timeout_happened:
+			throw RPCTimeoutException{QObject::tr("Timeout in RPC function %1.").arg(call.get_description()->get_function_name().c_str()).toStdString()};
+	}
+	throw std::runtime_error("Invalid result value");
 }
 
 const RPCRunTimeProtocolDescription &RPCProtocol::get_description() {
