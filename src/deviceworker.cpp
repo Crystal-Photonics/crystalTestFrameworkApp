@@ -75,10 +75,10 @@ static QString remove_spinner(QString in) {
 }
 #endif
 
-static void detect_device(PortDescription &device, const DeviceProtocolsSettings &device_protocol_settings, const QString &device_protocol_settings_file,
-						  const DeviceMetaData &device_meta_data) {
+static void detect_device(QObject *device_worker, PortDescription &device, const DeviceProtocolsSettings &device_protocol_settings,
+						  const QString &device_protocol_settings_file, const DeviceMetaData &device_meta_data) {
 	auto &rpc_devices = device_protocol_settings.protocols_rpc;
-	auto check_rpc_protocols = [&rpc_devices, &device_protocol_settings_file](PortDescription &device) {
+	auto check_rpc_protocols = [device_worker, &rpc_devices, &device_protocol_settings_file](PortDescription &device) {
 		for (auto &rpc_device : rpc_devices) {
 			if (rpc_device.match(device.port_info[HOST_NAME_TAG].toString()) == false) {
 				continue;
@@ -102,7 +102,9 @@ static void detect_device(PortDescription &device, const DeviceProtocolsSettings
 									 });
 				return;
 			}
-			std::unique_ptr<RPCProtocol> protocol = std::make_unique<RPCProtocol>(*device.device, rpc_device);
+			std::unique_ptr<RPCProtocol> protocol =
+				Utility::promised_thread_call(device_worker, [&] { return std::make_unique<RPCProtocol>(*device.device, rpc_device); });
+
 			if (protocol->is_correct_protocol()) {
 				MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
 					if (MainWindow::mw->device_item_exists(ui_entry)) {
@@ -283,7 +285,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
 		threads.push_back(
 			std::async(std::launch::async, [&device_protocol_settings, &device_protocol_settings_file, this, devices = std::move(com_devs.second) ] {
 				for (auto &dev : devices) {
-					::detect_device(*dev, device_protocol_settings, device_protocol_settings_file, device_meta_data);
+					::detect_device(this, *dev, device_protocol_settings, device_protocol_settings_file, device_meta_data);
 				}
 			}));
 	}
