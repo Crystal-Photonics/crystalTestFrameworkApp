@@ -58,7 +58,10 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes, bool 
         auto result = Utility::promised_thread_call(this, [this] {
 			assert(currently_in_devices_thread());
             QApplication::processEvents();
-            return port.readAll();
+			if (port.isOpen()) { //QApplication::processEvents() may process a device discovery and thus close the port which then causes a warning
+				return port.readAll();
+			}
+			return QByteArray{};
         });
 		if (not result.isEmpty()) {
 			//qDebug() << "received" << result << "from" << port.portName();
