@@ -1105,7 +1105,7 @@ void MainWindow::poll_sg04_counts() {
     assert(currently_in_gui_thread());
     QString sg04_prot_string = "SG04Count";
 
-    auto sg04_count_devices = device_worker.get()->get_devices_with_protocol(sg04_prot_string, QStringList{""});
+	auto sg04_count_devices = device_worker->get_devices_with_protocol(sg04_prot_string, QStringList{""});
     for (auto &sg04_count_device : sg04_count_devices) {
         auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(sg04_count_device->protocol.get());
         if (sg04_count_protocol) {

@@ -610,25 +610,20 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
 std::vector<PortDescription *> DeviceWorker::get_devices_with_protocol(const QString &protocol, const QStringList device_names) {
 	try {
 		return Utility::promised_thread_call(this, [this, protocol, device_names]() mutable {
-			assert(currently_in_gui_thread() == false);
+			assert(currently_in_devices_thread());
 			std::vector<PortDescription *> candidates;
 			for (auto &device : communication_devices) { //TODO: do not only loop over comport_devices, but other devices as well
 				if (device.protocol == nullptr) {
 					continue;
 				}
-				auto rpc_protocol = dynamic_cast<RPCProtocol *>(device.protocol.get());
-				auto scpi_protocol = dynamic_cast<SCPIProtocol *>(device.protocol.get());
-				auto manual_protocol = dynamic_cast<ManualProtocol *>(device.protocol.get());
-
 				bool device_name_match = false;
 				QString device_name;
-				if (scpi_protocol) {
-					device_name = QString::fromStdString(scpi_protocol->get_name());
-
-				} else if (rpc_protocol) {
-					device_name = QString::fromStdString(rpc_protocol->get_name());
-				} else if (manual_protocol) {
-					device_name = QString::fromStdString(manual_protocol->get_name());
+				if (auto protocol = dynamic_cast<SCPIProtocol *>(device.protocol.get())) {
+					device_name = QString::fromStdString(protocol->get_name());
+				} else if (auto protocol = dynamic_cast<RPCProtocol *>(device.protocol.get())) {
+					device_name = QString::fromStdString(protocol->get_name());
+				} else if (auto protocol = dynamic_cast<ManualProtocol *>(device.protocol.get())) {
+					device_name = QString::fromStdString(protocol->get_name());
 				}
 				if (device_names.indexOf(device_name) > -1) {
 					device_name_match = true;

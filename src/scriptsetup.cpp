@@ -470,7 +470,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 			}
 			return script_engine.get_devices(devices);
 		};
-		lua.script(R"(
+		lua.safe_script(R"(
 			function discover_device(device)
 				return discover_devices({device})
 			end
@@ -1505,7 +1505,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 	//set up import functionality
 	{
 		lua["find_script"] = [&script_engine](const std::string &name) { return script_engine.get_script_import_path(name); };
-		lua.script(R"xx(
+		lua.safe_script(R"xx(
 				   assert(_VERSION == "Lua 5.3")
 				   --might also work with 5.2
 				   --definitely does not work with 5.1 and below because _ENV did not exist
