@@ -219,7 +219,7 @@ class Plot : public UI_widget {
     public:
     ///\cond HIDDEN_SYMBOLS
     Plot(UI_container *parent);
-    Plot(Plot &&other);
+	Plot(Plot &&other) = delete;
     Plot &operator=(Plot &&other);
     ~Plot();
 ///\endcond

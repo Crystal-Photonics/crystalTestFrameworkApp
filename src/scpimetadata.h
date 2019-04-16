@@ -24,7 +24,7 @@ class DeviceMetaDataDetail {
 
 class DeviceMetaDataCommon {
     public:
-    QString  device_name;
+	QString device_name;
     QString manual_path;
     QString manufacturer;
     QString description;
@@ -40,7 +40,7 @@ class DeviceMetaDataGroup {
 };
 
 class DeviceEntry {
-public:
+	public:
     DeviceMetaDataCommon commondata;
     DeviceMetaDataDetail detail;
 };
@@ -49,7 +49,7 @@ class DeviceMetaData {
     public:
     DeviceMetaData();
     void reload(QString file_name);
-    DeviceMetaDataGroup query(QString serial_number, QString device_name);
+	DeviceMetaDataGroup query(QString serial_number, QString device_name) const;
     QList<DeviceEntry> get_manual_devices() const;
 
     private:

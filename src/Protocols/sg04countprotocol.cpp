@@ -15,10 +15,10 @@ static uint16_t parse_sg04_count_package(uint8_t indata[4], bool &ok) {
     return result;
 }
 
-SG04CountProtocol::SG04CountProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting)
+SG04CountProtocol::SG04CountProtocol(CommunicationDevice &device, DeviceProtocolSetting setting)
     : Protocol{"SG04Count"}
     , device(&device)
-    , device_protocol_setting(setting) {
+	, device_protocol_setting(std::move(setting)) {
 #if 1
     connection = QObject::connect(&device, &CommunicationDevice::received, [&device, this](const QByteArray &data) {
         incoming_data.append(data);

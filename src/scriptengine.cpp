@@ -176,10 +176,6 @@ struct RPCDevice {
     }
 
     sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
-        if (QThread::currentThread()->isInterruptionRequested()) {
-            throw sol::error("Abort Requested");
-        }
-
 		Console_handle::note() << QString("\"%1\" called").arg(name.c_str());
         auto function = protocol->encode_function(name);
         int param_count = 0;
@@ -187,28 +183,26 @@ struct RPCDevice {
             auto &param = function.get_parameter(param_count++);
             set_runtime_parameter(param, arg);
         }
-        if (function.are_all_values_set()) {
-            auto result = protocol->call_and_wait(function);
-
-            if (result) {
-                try {
-                    auto output_params = result->get_decoded_parameters();
-                    if (output_params.empty()) {
-                        return sol::nil;
-                    } else if (output_params.size() == 1) {
-                        return create_lua_object_from_RPC_answer(output_params.front(), *lua);
-                    }
-                    //else: multiple variables, need to make a table
-                    return sol::make_object(lua->lua_state(), "TODO: Not Implemented: Parse multiple return values");
-                } catch (const sol::error &e) {
-					Console_handle::error() << e.what();
-                    throw;
+		if (not function.are_all_values_set()) {
+			throw sol::error("Failed calling function, missing parameters");
+		}
+		auto result = protocol->call_and_wait(function);
+		if (result) {
+			try {
+				auto output_params = result->get_decoded_parameters();
+				if (output_params.empty()) {
+					return sol::nil;
+				} else if (output_params.size() == 1) {
+					return create_lua_object_from_RPC_answer(output_params.front(), *lua);
                 }
-            }
-            throw sol::error("Call to \"" + name + "\" failed due to timeout");
-        }
-        //not all values set, error
-        throw sol::error("Failed calling function, missing parameters");
+				//else: multiple variables, need to make a table
+				return sol::make_object(lua->lua_state(), "TODO: Not Implemented: Parse multiple return values");
+			} catch (const sol::error &e) {
+				Console_handle::error() << e.what();
+				throw;
+			}
+		}
+		throw sol::error("Call to \"" + name + "\" failed");
     }
     sol::state *lua = nullptr;
     RPCProtocol *protocol = nullptr;
@@ -573,6 +567,12 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list() {
 	}
 }
 
+static void abort_check() {
+	if (QThread::currentThread()->isInterruptionRequested()) {
+		throw sol::error("Abort Requested");
+	}
+}
+
 sol::table ScriptEngine::get_devices(const std::vector<MatchedDevice> &devices) {
 	QMultiMap<QString, MatchedDevice> aliased_devices;
 	for (auto &device_protocol : devices) {
@@ -594,12 +594,28 @@ sol::table ScriptEngine::get_devices(const std::vector<MatchedDevice> &devices) 
 				auto type_reg = lua->create_simple_usertype<RPCDevice>();
 				for (auto &function : rpcp->get_description().get_functions()) {
 					const auto &function_name = function.get_function_name();
-					type_reg.set(function_name,
-								 [function_name](RPCDevice &device, const sol::variadic_args &va) { return device.call_rpc_function(function_name, va); });
+					type_reg.set(function_name, [function_name](RPCDevice &device, const sol::variadic_args &va) {
+						abort_check();
+						return device.call_rpc_function(function_name, va);
+					});
+					type_reg.set("try_" + function_name, [function_name](RPCDevice &device, const sol::variadic_args &va) -> sol::object {
+						abort_check();
+						try {
+							return device.call_rpc_function(function_name, va);
+						} catch (const RPCTimeoutException &) {
+							return sol::nil;
+						}
+					});
 					add_enum_types(function, *lua);
 				}
-				type_reg.set("get_protocol_name", [](RPCDevice &device) { return device.get_protocol_name(); });
-				type_reg.set("is_protocol_device_available", [](RPCDevice &device) { return device.is_protocol_device_available(); });
+				type_reg.set("get_protocol_name", [](RPCDevice &device) {
+					abort_check();
+					return device.get_protocol_name();
+				});
+				type_reg.set("is_protocol_device_available", [](RPCDevice &device) {
+					abort_check();
+					return device.is_protocol_device_available();
+				});
 				const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
 				lua->set_usertype(type_name, type_reg);
 				while (device_protocol.device->waitReceived(CommunicationDevice::Duration{0}, 1)) {
@@ -672,6 +688,9 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
 	} catch (const sol::error &e) {
         qDebug() << "caught sol::error@run";
         set_error_line(e);
+		reset_lua_state();
+		throw;
+	} catch (const RPCTimeoutException &e) {
 		reset_lua_state();
 		throw;
 	}

@@ -488,7 +488,7 @@ void MainWindow::set_enabled_states_for_matchable_scripts() {
 }
 
 void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *communication_device) {
-    assert(currently_in_gui_thread() == false);
+	assert(currently_in_gui_thread() == false);
     Utility::promised_thread_call(this, [this, parent, child, tab_name, communication_device] {
         assert(currently_in_gui_thread());
         if (parent) {

@@ -92,7 +92,7 @@ void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &de
         }
 		device_worker_pointer = nullptr;
         for (auto &dev_prot : devices) {
-            device_worker.set_currently_running_test(dev_prot.device, "");
+			device_worker.set_currently_running_test(dev_prot.device, "");
         }
 		for (auto &extra_device : extra_devices) {
 			device_worker.set_currently_running_test(extra_device, "");
@@ -100,7 +100,7 @@ void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &de
         moveToThread(MainWindow::gui_thread);
         thread.quit();
 		MainWindow::mw->execute_in_gui_thread([this] { console.note() << "Script stopped"; });
-    });
+	});
 }
 
 bool TestRunner::is_running() const {

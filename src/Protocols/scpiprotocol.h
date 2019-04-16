@@ -11,8 +11,6 @@
 
 class QTreeWidgetItem;
 
-
-
 struct SCPI_Device_Data {
     QString serial_number;
     QString manufacturer;
@@ -26,13 +24,14 @@ struct SCPI_Device_Data {
     QString calibration_certificate_path;
     QString note;
 
-    QString get_summary() ;
-    void get_lua_data(sol::table &t) ;
+	QString get_summary();
+	void get_lua_data(sol::table &t);
 
     DeviceMetaDataApprovedState get_approved_state();
     QString get_approved_state_str();
 
     void set_approved_state(DeviceMetaDataApprovedState as, QString sr);
+
     private:
     struct Description_source {
         QString name;
@@ -41,14 +40,14 @@ struct SCPI_Device_Data {
     };
     DeviceMetaDataApprovedState approved_state;
     QString approved_str;
-    std::vector<Description_source> get_description_source() ;
+	std::vector<Description_source> get_description_source();
 };
 
 class SCPIProtocol : public Protocol {
     using Duration = std::chrono::steady_clock::duration;
 
     public:
-    SCPIProtocol(CommunicationDevice &device, DeviceProtocolSetting &setting);
+	SCPIProtocol(CommunicationDevice &device, DeviceProtocolSetting setting);
     ~SCPIProtocol();
     SCPIProtocol(const SCPIProtocol &) = delete;
     SCPIProtocol(SCPIProtocol &&other) = delete;
@@ -56,10 +55,10 @@ class SCPIProtocol : public Protocol {
     bool is_correct_protocol();
     void set_ui_description(QTreeWidgetItem *ui_entry);
 
-    void get_lua_device_descriptor(sol::table &t) ;
+	void get_lua_device_descriptor(sol::table &t);
     DeviceMetaDataApprovedState get_approved_state();
-    QString get_approved_state_str() ;
-    QString get_device_summary() ;
+	QString get_approved_state_str();
+	QString get_device_summary();
     void clear();
     void set_scpi_meta_data(DeviceMetaDataGroup scpi_meta_data);
 

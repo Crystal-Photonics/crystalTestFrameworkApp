@@ -121,7 +121,7 @@ void DeviceProtocolSetting::set_exclusive_port(QStringList *exclusive_ports) {
     this->exclusive_ports = exclusive_ports;
 }
 
-bool regex_match(QString regex, QString port_name) {
+static bool regex_match(QString regex, QString port_name) {
     std::regex port_name_regex{regex.toStdString()};
 
     std::string port_name_std = port_name.toStdString();
@@ -131,7 +131,7 @@ bool regex_match(QString regex, QString port_name) {
     return match_count;
 }
 
-bool DeviceProtocolSetting::match(QString port_name) {
+bool DeviceProtocolSetting::match(QString port_name) const {
     bool matches = regex_match(com_port_name_regex, port_name);
     for (auto s : *exclusive_ports) {
         if (s == com_port_name_regex) {
