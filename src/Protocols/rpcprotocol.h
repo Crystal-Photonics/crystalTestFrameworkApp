@@ -49,6 +49,11 @@ class CommunicationDeviceWrapper : public RPCIODevice {
     CommunicationDevice &com_device;
 };
 
+struct RPCTimeoutException : std::runtime_error {
+	RPCTimeoutException(std::string message)
+		: std::runtime_error{std::move(message)} {}
+};
+
 class RPCProtocol : public Protocol {
     public:
 	RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting setting);
