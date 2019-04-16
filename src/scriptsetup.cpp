@@ -81,7 +81,7 @@ struct Data_engine_handle {
 					QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
 				}
 			} catch (const DataEngineError &dee) {
-				console->error() << dee.what();
+				Utility::promised_thread_call(MainWindow::mw, [this, &dee] { console->error() << dee.what(); });
 			}
 		}
 		if (data_engine_auto_dump_path.count()) {
@@ -96,7 +96,7 @@ struct Data_engine_handle {
 			try {
 				data_engine->save_to_json(QString::fromStdString(json_target_filename));
 			} catch (const DataEngineError &e) {
-				console->error() << e.what();
+				Utility::promised_thread_call(MainWindow::mw, [this, &e] { console->error() << e.what(); });
 			}
 		}
 	}
