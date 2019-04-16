@@ -113,20 +113,22 @@ QMAKE_CXXFLAGS_RELEASE += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-
 #-Wno-error=noexcept-type unsupported
 
 unix {
-	#QMAKE_CXXFLAGS_DEBUG += -fno-var-tracking-assignments -fno-merge-debug-strings
-	eval("SANITIZERS = $$(SANITIZER)")
-	message("Using sanitizer $$SANITIZERS")
-	equals(SANITIZERS, "") {
-			QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
-			QMAKE_LFLAGS_DEBUG += -fsanitize=undefined,address
-	} else {
-			QMAKE_CXXFLAGS_DEBUG += -fsanitize=$$SANITIZERS
-			QMAKE_LFLAGS_DEBUG += -fsanitize=$$SANITIZERS
-	}
-	QMAKE_LFLAGS_DEBUG += -fuse-ld=gold -L/usr/local/lib
+    equals(QMAKE_CXX, g++) {
+        QMAKE_CXXFLAGS_DEBUG += -fno-var-tracking-assignments -fno-merge-debug-strings
+    }
+    eval("SANITIZERS = $$(SANITIZER)")
+    message("Using sanitizer $$SANITIZERS")
+    equals(SANITIZERS, "") {
+                    QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
+                    QMAKE_LFLAGS_DEBUG += -fsanitize=undefined,address
+    } else {
+                    QMAKE_CXXFLAGS_DEBUG += -fsanitize=$$SANITIZERS
+                    QMAKE_LFLAGS_DEBUG += -fsanitize=$$SANITIZERS
+    }
+    QMAKE_LFLAGS_DEBUG += -fuse-ld=gold -L/usr/local/lib
 } else {
-	QMAKE_CXXFLAGS_DEBUG += -fsanitize-undefined-trap-on-error
-	QMAKE_CXXFLAGS_DEBUG +=  -Wa,-mbig-obj
+    QMAKE_CXXFLAGS_DEBUG += -fsanitize-undefined-trap-on-error
+    QMAKE_CXXFLAGS_DEBUG +=  -Wa,-mbig-obj
 }
 QMAKE_CXXFLAGS_RELEASE += -Wall -Wunused-function -Wunused-parameter -Wunused-variable -O2
 QMAKE_CXXFLAGS_DEBUG += -ggdb -fno-omit-frame-pointer -Og
