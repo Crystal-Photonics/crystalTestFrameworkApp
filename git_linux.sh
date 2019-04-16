@@ -3,3 +3,5 @@ echo " " >> vc.h
 git log -1 --date=short --format="format:#define GITDATE \"%ad\"" >> vc.h
 echo " " >> vc.h
 git log -1 --date=short --format="format:#define GITUNIX %ct" >> vc.h
+echo " " >> vc.h
+git log -1 --decorate=no --format="format:#define GITBRANCH \"%D\"" >> vc.h

@@ -133,6 +133,13 @@
     </widget>
    </item>
    <item>
+    <widget class="QLabel" name="lbl_build_branch">
+     <property name="text">
+      <string>Git branch:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QLabel" name="lbl_build_date">
      <property name="text">
       <string>Build date:</string>
