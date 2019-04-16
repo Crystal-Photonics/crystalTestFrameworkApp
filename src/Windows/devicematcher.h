@@ -78,8 +78,6 @@ class DeviceMatcher : public QDialog {
     void on_btn_check_all_clicked();
     void on_btn_uncheck_all_clicked();
 
-    void poll_sg04_counts();
-
     private:
     Ui::DeviceMatcher *ui;
     void make_treeview();

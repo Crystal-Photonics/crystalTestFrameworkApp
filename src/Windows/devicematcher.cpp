@@ -16,7 +16,6 @@ DeviceMatcher::DeviceMatcher(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::DeviceMatcher) {
     ui->setupUi(this);
-    QTimer::singleShot(500, this, &DeviceMatcher::poll_sg04_counts);
 }
 
 DeviceMatcher::~DeviceMatcher() {
@@ -41,8 +40,8 @@ static std::vector<std::pair<CommunicationDevice *, Protocol *>> get_acceptable_
             try {
 				if (device_requirement.has_acceptance_function) {
 					bool accepted = Utility::promised_thread_call(runner.obj(), [&] {
-                sol::table table = runner.create_table();
-                rpc_protocol->get_lua_device_descriptor(table);
+						sol::table table = runner.create_table();
+						rpc_protocol->get_lua_device_descriptor(table);
 						bool accepted = false;
 						try {
 							auto function = requirements.table.get<sol::protected_function>("acceptable");
@@ -67,7 +66,7 @@ static std::vector<std::pair<CommunicationDevice *, Protocol *>> get_acceptable_
 
             } catch (const sol::error &e) {
 				message = QObject::tr("Failed to call function RPC_acceptable for device %1 \nError message: %2")
-                                          .arg(QString::fromStdString(rpc_protocol->get_name()))
+							  .arg(QString::fromStdString(rpc_protocol->get_name()))
 							  .arg(e.what())
 							  .toStdString();
 				runner.console.error() << message.value();
@@ -455,26 +454,6 @@ void DeviceMatcher::on_btn_uncheck_all_clicked() {
         auto item_to_uncheck = ui->tree_available->topLevelItem(i);
         item_to_uncheck->setCheckState(0, Qt::Unchecked);
     }
-}
-
-void DeviceMatcher::poll_sg04_counts() {
-	assert(currently_in_gui_thread());
-    const QString sg04_prot_string = "SG04Count";
-    int index = 0;
-    if (selected_requirement) {
-        if (selected_requirement->device_requirement.protocol_name == sg04_prot_string) {
-            for (auto &candidate_entry : selected_requirement->accepted_candidates) {
-                auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(candidate_entry.protocol);
-                if (sg04_count_protocol) {
-                    unsigned int cps = sg04_count_protocol->get_actual_count_rate_cps();
-                    ui->tree_available->topLevelItem(index)->setText(2, "cps: " + QString::number(cps));
-                }
-                index++;
-            }
-        }
-    }
-
-    QTimer::singleShot(500, this, &DeviceMatcher::poll_sg04_counts);
 }
 
 QString ComDeviceTypeToString(CommunicationDeviceType t) {

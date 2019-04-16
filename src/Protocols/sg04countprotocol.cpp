@@ -1,7 +1,9 @@
 #include "sg04countprotocol.h"
 #include "Windows/mainwindow.h"
+
 #include <QDebug>
 #include <assert.h>
+
 const uint SG04_COUNT_INTERVAL_MS = 100;
 
 static uint16_t parse_sg04_count_package(uint8_t indata[4], bool &ok) {
@@ -96,7 +98,6 @@ void SG04CountProtocol::sg04_counts_clear() {
 sol::table SG04CountProtocol::get_sg04_counts(sol::state &lua, bool clear) {
     sol::table result = lua.create_table_with();
     sol::table counts_table = lua.create_table_with();
-    //  counts_table.
     received_counts_mutex.lock();
     for (auto i : received_count_packages) {
         counts_table.add(i);

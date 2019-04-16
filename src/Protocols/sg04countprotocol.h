@@ -4,6 +4,7 @@
 #include "Protocols/protocol.h"
 #include "device_protocols_settings.h"
 #include "scriptengine.h"
+
 #include <QMutex>
 #include <QTime>
 #include <QTreeWidgetItem>

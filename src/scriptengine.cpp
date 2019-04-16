@@ -31,7 +31,6 @@
 #include <QSettings>
 #include <QShortcut>
 #include <QThread>
-#include <QTimer>
 #include <QVariant>
 #include <cmath>
 #include <functional>
