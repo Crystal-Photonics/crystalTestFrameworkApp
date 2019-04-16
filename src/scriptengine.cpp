@@ -592,20 +592,41 @@ sol::table ScriptEngine::get_devices(const std::vector<MatchedDevice> &devices) 
 				device_list.push_back(rpc_device_sol);
 
 				auto type_reg = lua->create_simple_usertype<RPCDevice>();
-				for (auto &function : rpcp->get_description().get_functions()) {
+				const auto &functions = rpcp->get_description().get_functions();
+				for (auto &function : functions) {
 					const auto &function_name = function.get_function_name();
 					type_reg.set(function_name, [function_name](RPCDevice &device, const sol::variadic_args &va) {
 						abort_check();
 						return device.call_rpc_function(function_name, va);
 					});
-					type_reg.set("try_" + function_name, [function_name](RPCDevice &device, const sol::variadic_args &va) -> sol::object {
-						abort_check();
-						try {
-							return device.call_rpc_function(function_name, va);
-						} catch (const RPCTimeoutException &) {
-							return sol::nil;
-						}
-					});
+					auto try_function_name = "try_" + function_name;
+					if (std::find_if(std::begin(functions), std::end(functions), [&try_function_name](const RPCRuntimeFunction &f) {
+							return f.get_function_name() == try_function_name;
+						}) != std::end(functions)) { //if try function is a regular function
+						Utility::thread_call(MainWindow::mw, [function_name, try_function_name] {
+							QMessageBox::warning(
+								MainWindow::mw, "CrystalTestFramework",
+								QString{"For the function named \"%1\" there should be a function \"%2\" generated that does not cause an error on timeout. "
+										"However, a regular function with that name already exists.\n"
+										"The function \"%2\" will be the regular function and a generated function for \"%1\" "
+										"that does not abort on timeout is not available."}
+									.arg(function_name.c_str())
+									.arg(try_function_name.c_str()));
+						});
+					} else {
+						type_reg.set(std::move(try_function_name), [function_name, this](RPCDevice &device, const sol::variadic_args &va) -> sol::object {
+							abort_check();
+							auto result = create_table();
+							try {
+								result["result"] = device.call_rpc_function(function_name, va);
+								result["timeout"] = false;
+								return result;
+							} catch (const RPCTimeoutException &) {
+								result["timeout"] = true;
+								return result;
+							}
+						});
+					}
 					add_enum_types(function, *lua);
 				}
 				type_reg.set("get_protocol_name", [](RPCDevice &device) {
