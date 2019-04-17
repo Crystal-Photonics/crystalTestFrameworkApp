@@ -133,33 +133,6 @@ static void set_runtime_parameter(RPCRuntimeEncodedParam &param, sol::object obj
     }
 }
 
-static void add_enum_type(const RPCRuntimeParameterDescription &param, sol::state &lua) {
-    if (param.get_type() == RPCRuntimeParameterDescription::Type::enumeration) {
-        const auto &enum_description = param.as_enumeration();
-        auto table = lua.create_named_table(enum_description.enum_name);
-        for (auto &value : enum_description.values) {
-            table[value.name] = value.to_int();
-            table["to_string"] = [enum_description](int enum_value_param) -> std::string {
-                for (const auto &enum_value : enum_description.values) {
-                    if (enum_value.to_int() == enum_value_param) {
-                        return enum_value.name;
-                    }
-                }
-                return "";
-            };
-        }
-    }
-}
-
-static void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua) {
-    for (auto &param : function.get_request_parameters()) {
-        add_enum_type(param, lua);
-    }
-    for (auto &param : function.get_reply_parameters()) {
-        add_enum_type(param, lua);
-    }
-}
-
 struct RPCDevice {
     std::string get_protocol_name() {
         return protocol->type.toStdString();
@@ -208,6 +181,36 @@ struct RPCDevice {
     CommunicationDevice *device = nullptr;
     ScriptEngine *engine = nullptr;
 };
+
+template <class..., class Device_type>
+static void add_enum_type(const RPCRuntimeParameterDescription &param, sol::state &lua, sol::simple_usertype<Device_type> &device) {
+	if (param.get_type() == RPCRuntimeParameterDescription::Type::enumeration) {
+		const auto &enum_description = param.as_enumeration();
+		auto table = lua.create_table_with();
+		for (auto &value : enum_description.values) {
+			table[value.name] = value.to_int();
+		}
+		table["to_string"] = [enum_description](int enum_value_param) -> std::string {
+			for (const auto &enum_value : enum_description.values) {
+				if (enum_value.to_int() == enum_value_param) {
+					return enum_value.name;
+				}
+			}
+			return "";
+		};
+		device.set(enum_description.enum_name, std::move(table));
+	}
+}
+
+template <class..., class Device_type>
+static void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua, sol::simple_usertype<Device_type> &device) {
+	for (auto &param : function.get_request_parameters()) {
+		add_enum_type(param, lua, device);
+	}
+	for (auto &param : function.get_reply_parameters()) {
+		add_enum_type(param, lua, device);
+	}
+}
 
 ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, Console &console, TestRunner *runner, QString test_name)
 	: runner{runner}
@@ -612,7 +615,7 @@ sol::table ScriptEngine::get_devices(const std::vector<MatchedDevice> &devices) 
 					}
 				});
 				for (const auto &function : rpcp->get_description().get_functions()) {
-					add_enum_types(function, *lua);
+					add_enum_types(function, *lua, type_reg);
 				}
 				type_reg.set("get_protocol_name", [](RPCDevice &device) {
 					abort_check();
