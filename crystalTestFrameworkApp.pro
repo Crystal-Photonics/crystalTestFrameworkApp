@@ -11,7 +11,11 @@ TEMPLATE = subdirs
 
 SUBDIRS += app
 SUBDIRS += src
-#SUBDIRS += tests
+TRAVIS = $$(TRAVIS)
+equals(TRAVIS, true){
+	SUBDIRS += tests
+}
+
 
 #src.depends = comModules/mocklayer/appPlugin
 app.depends = src
