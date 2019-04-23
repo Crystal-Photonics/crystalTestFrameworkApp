@@ -1,11 +1,3 @@
-device_requirements = 
-{
-	
-}
-
-
-
-
 function run(devices)
 	local device_serial_number = 2
 
