@@ -135,7 +135,7 @@ script:
   - rm .qmake.stash
   - qmake "CONFIG+=debug"
   - make -p | grep test
-  - quietly make -j$(nproc) sub-app-test
+  - quietly make -j$(nproc)
   - cd $TRAVIS_BUILD_DIR/bin/debug/
   - xvfb-run --auto-servernum ./tests
 
@@ -145,7 +145,7 @@ script:
   - make clean
   - rm .qmake.stash
   - qmake "CONFIG+=debug"
-  - quietly make -j$(nproc) sub-app-test
+  - quietly make -j$(nproc)
   - cd $TRAVIS_BUILD_DIR/bin/debug/
   - xvfb-run --auto-servernum ./tests
 
