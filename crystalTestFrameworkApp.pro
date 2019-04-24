@@ -12,8 +12,8 @@ TEMPLATE = subdirs
 SUBDIRS += src
 TRAVIS = $$(TRAVIS)
 equals(TRAVIS, true){
-} else{
 	SUBDIRS += tests
+} else{
 	SUBDIRS += app
 }
 
