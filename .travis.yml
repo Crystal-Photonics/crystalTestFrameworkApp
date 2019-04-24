@@ -7,6 +7,11 @@ cache:
   ccache: true
 
 before_install:
+  # quietly
+  - wget https://github.com/Toeger/quietly/raw/master/quietly
+  - chmod +x quietly
+  - sudo mv quietly /usr/bin
+
   - which git
   - sudo add-apt-repository --yes ppa:beineri/opt-qt58-trusty
   - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
@@ -15,10 +20,10 @@ before_install:
 
 install:
     
-  - sudo apt-get install -qq g++-7 gcc-7 gdb binutils
+  - sudo quietly apt-get install -qq g++-7 gcc-7 gdb binutils
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 90
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 90
-  - sudo aptitude -f install -q -q -y qt58base qt58serialport qt58script qt58svg qt58tools libusb-1.0-0-dev tree xvfb
+  - sudo quietly aptitude -f install -q -q -y qt58base qt58serialport qt58script qt58svg qt58tools libusb-1.0-0-dev tree xvfb
   - g++ --version
   - gcc --version
   
@@ -33,9 +38,9 @@ install:
   - mkdir build/googletest || true
   - cd build/googletest
   - pwd
-  - cmake -DCMAKE_CXX_FLAGS=$CXX_FLAGS ../../../googletest/
-  - make -j$(nproc)      
-  - sudo make install
+  - quietly cmake -DCMAKE_CXX_FLAGS=$CXX_FLAGS ../../../googletest/
+  - quietly make -j$(nproc)
+  - sudo quietly make install
  
   
   
@@ -78,8 +83,8 @@ install:
   - QWT_ROOT_DIR=`pwd`
   - LD_LIBRARY_PATH=$(readlink -f lib):$LD_LIBRARY_PATH
   - qmake
-  - make -j$(nproc)
-  - sudo make install
+  - quietly make -j$(nproc)
+  - sudo quietly make install
   - QWT_INSTALL_PREFIX=/usr/local/qwt-svn
   - #defined in travis_qwtconfig.pri
   - #tree $QWT_INSTALL_PREFIX
@@ -94,14 +99,14 @@ script:
  #build limereport
   - cd $TRAVIS_BUILD_DIR/libs/LimeReport/
   - cp $TRAVIS_BUILD_DIR/libs/travis_limereport.pro limereport.pro || true
-  - qmake "CONFIG+=debug"
-  - make -j$(nproc)
+  - quietly qmake "CONFIG+=debug"
+  - quietly make -j$(nproc)
   
 #build testframework  
   - cd $TRAVIS_BUILD_DIR
   - export SANITIZER=undefined
   - qmake "CONFIG+=debug"
-  - travis_wait make -j$(nproc)
+  - quietly make -j$(nproc)
   #- tree $TRAVIS_BUILD_DIR
   
   - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/bin/debug/:$LD_LIBRARY_PATH
@@ -130,7 +135,7 @@ script:
   - rm .qmake.stash
   - qmake "CONFIG+=debug"
   - make -p | grep test
-  - travis_wait make -j$(nproc) sub-app-test
+  - quietly make -j$(nproc) sub-app-test
   - cd $TRAVIS_BUILD_DIR/bin/debug/
   - xvfb-run --auto-servernum ./tests
 
@@ -140,7 +145,7 @@ script:
   - make clean
   - rm .qmake.stash
   - qmake "CONFIG+=debug"
-  - travis_wait make -j$(nproc) sub-app-test
+  - quietly make -j$(nproc) sub-app-test
   - cd $TRAVIS_BUILD_DIR/bin/debug/
   - xvfb-run --auto-servernum ./tests
 
