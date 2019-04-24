@@ -9,11 +9,12 @@ TARGET = crystalTestFrameworkApp
 TEMPLATE = subdirs
 
 
-SUBDIRS += app
 SUBDIRS += src
 TRAVIS = $$(TRAVIS)
 equals(TRAVIS, true){
+} else{
 	SUBDIRS += tests
+	SUBDIRS += app
 }
 
 
