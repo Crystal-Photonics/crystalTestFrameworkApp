@@ -1,6 +1,7 @@
-CONFIG += c++14
+CONFIG += c++17
 CONFIG += warn_off
-QMAKE_CXXFLAGS += -std=c++14
+CONFIG += strict_c++
+QMAKE_CXXFLAGS += -std=c++17
 
 QT = gui core network serialport xml svg
 QT += script sql printsupport
