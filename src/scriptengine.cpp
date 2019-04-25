@@ -365,12 +365,25 @@ std::string ScriptEngine::to_string(const sol::object &o) {
                 return "Ui.Color(0x" + QString::number(o.as<Color>().rgb & 0xFFFFFFu, 16).toStdString() + ")";
             }
 			if (o.is<RPCDevice>()) {
-				auto &device = o.as<RPCDevice>();
+				const auto &device = o.as<RPCDevice &>();
 				return ::to_string(device);
 			}
 			if (o.is<DataLogger>()) {
-				//auto &dl = o.as<DataLogger>();
+				//const auto &dl = o.as<DataLogger&>();
 				return "DataLogger@" + ::to_string(o.pointer());
+			}
+			if (o.is<SCPIDevice>()) {
+				const auto &device = o.as<SCPIDevice &>();
+				return "SCPIDevice (Port: " + device.device->getName().toStdString() + ", name: " + device.get_name() + ", Serial Number: " +
+					   device.get_serial_number() + ", Manufacturer: " + device.get_manufacturer() + ")";
+			}
+			if (o.is<SG04CountDevice>()) {
+				const auto &device = o.as<SG04CountDevice &>();
+				return "SG04Device (Port: " + device.device->getName().toStdString() + ")";
+			}
+			if (o.is<ManualDevice>()) {
+				const auto &device = o.as<ManualDevice &>();
+				return "ManualDevice (" + device.protocol->get_summary() + ")";
 			}
 			return "unknown custom datatype@" + ::to_string(o.pointer());
         default:
@@ -453,7 +466,7 @@ void ScriptEngine::reset_lua_state() {
 	lua = std::make_unique<sol::state>();
 
 	//register RPC device type
-	auto type_reg = lua->create_simple_usertype<RPCDevice>();
+	auto type_reg = lua->new_usertype<RPCDevice>("RPCDevice");
 	type_reg.set(sol::meta_function::index, [this](RPCDevice &device, std::string name) -> sol::object {
 		abort_check();
 		qDebug() << "Checking custom index" << name.c_str();
@@ -488,7 +501,6 @@ void ScriptEngine::reset_lua_state() {
 		abort_check();
 		return device.is_protocol_device_available();
 	});
-	lua->set_usertype("RPCDevice", type_reg);
 }
 
 void ScriptEngine::launch_editor(QString path, int error_line) {

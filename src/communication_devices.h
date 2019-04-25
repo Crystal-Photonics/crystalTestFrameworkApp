@@ -12,33 +12,33 @@ struct SCPIDevice {
 	void send_command(std::string request) {
 		protocol->send_command(request);
 	}
-	std::string get_protocol_name() {
+	std::string get_protocol_name() const {
 		return protocol->type.toStdString();
 	}
 
-	sol::table get_device_descriptor() {
+	sol::table get_device_descriptor() const {
 		sol::table result = lua->create_table_with();
 		protocol->get_lua_device_descriptor(result);
 		return result;
 	}
 
-	sol::table get_str(std::string request) {
+	sol::table get_str(std::string request) const {
 		return protocol->get_str(*lua, request); //timeout possible
 	}
 
-	sol::table get_str_param(std::string request, std::string argument) {
+	sol::table get_str_param(std::string request, std::string argument) const {
 		return protocol->get_str_param(*lua, request, argument); //timeout possible
 	}
 
-	double get_num(std::string request) {
+	double get_num(std::string request) const {
 		return protocol->get_num(request); //timeout possible
 	}
 
-	double get_num_param(std::string request, std::string argument) {
+	double get_num_param(std::string request, std::string argument) const {
 		return protocol->get_num_param(request, argument); //timeout possible
 	}
 
-	bool is_event_received(std::string event_name) {
+	bool is_event_received(std::string event_name) const {
 		return protocol->is_event_received(event_name);
 	}
 
@@ -50,18 +50,18 @@ struct SCPIDevice {
 		return protocol->get_event_list(*lua);
 	}
 
-	std::string get_name(void) {
+	std::string get_name(void) const {
 		return protocol->get_name();
 	}
 
-	std::string get_serial_number(void) {
+	std::string get_serial_number(void) const {
 		return protocol->get_serial_number();
 	}
 
-	std::string get_manufacturer(void) {
+	std::string get_manufacturer(void) const {
 		return protocol->get_manufacturer();
 	}
-	std::string get_calibration(void) {
+	std::string get_calibration(void) const {
 		return protocol->get_approved_state_str().toStdString();
 	}
 
