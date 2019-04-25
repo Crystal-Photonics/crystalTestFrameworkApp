@@ -794,7 +794,13 @@ void MainWindow::run_test_script(TestDescriptionLoader *test) {
     const auto tab_index = ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name());
     ui->test_tabs->setCurrentIndex(tab_index);
     DeviceMatcher device_matcher(this);
-	device_matcher.match_devices(*device_worker, runner, *test, runner.get_device_requirements_table());
+	try {
+		device_matcher.match_devices(*device_worker, runner, *test, runner.get_device_requirements_table());
+	} catch (const std::exception &e) {
+		runner.console.error() << "Failed matching devices: " << e.what();
+		runner.interrupt();
+		return;
+	}
     auto devices = device_matcher.get_matched_devices();
     if (device_matcher.was_successful()) {
         if (QSettings{}.value(Globals::collapse_script_explorer_on_scriptstart_key, false).toBool()) {
