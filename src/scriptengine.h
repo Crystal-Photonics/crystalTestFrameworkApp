@@ -104,6 +104,7 @@ class ScriptEngine {
     template <class ReturnType, class... Arguments>
     ReturnType call(const char *function_name, Arguments &&... args);
     void set_error_line(const sol::error &error);
+	void reset_lua_state();
 
     std::unique_ptr<sol::state> lua{};
     QString path_m{};

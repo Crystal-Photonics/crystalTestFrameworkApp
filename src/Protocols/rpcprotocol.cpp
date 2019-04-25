@@ -230,23 +230,27 @@ void RPCProtocol::get_lua_device_descriptor(sol::table &t) const {
 }
 
 RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const std::string &name) const {
-    return rpc_runtime_protocol.get()->encode_function(name);
+	return rpc_runtime_protocol->encode_function(name);
+}
+
+bool RPCProtocol::has_function(const std::string &name) const {
+	return rpc_runtime_protocol->function_exists_for_encoding(name);
 }
 
 RPCFunctionCallResult RPCProtocol::call_get_hash_function() const {
-    return rpc_runtime_protocol.get()->call_get_hash_function();
+	return rpc_runtime_protocol->call_get_hash_function();
 }
 
 RPCFunctionCallResult RPCProtocol::call_get_hash_function(int retries) const {
-    return rpc_runtime_protocol.get()->call_get_hash_function(retries);
+	return rpc_runtime_protocol->call_get_hash_function(retries);
 }
 
 RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const int request_id) const {
-    return rpc_runtime_protocol.get()->encode_function(request_id);
+	return rpc_runtime_protocol->encode_function(request_id);
 }
 
 void RPCProtocol::clear() {
-    rpc_runtime_protocol.get()->clear();
+	rpc_runtime_protocol->clear();
 }
 
 std::string RPCProtocol::get_name() {

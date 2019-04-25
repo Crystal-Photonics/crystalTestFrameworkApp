@@ -176,14 +176,18 @@ struct RPCDevice {
 		}
 		throw sol::error("Call to \"" + name + "\" failed");
     }
-    sol::state *lua = nullptr;
+	bool has_function(const std::string &name) const {
+		return protocol->has_function(name);
+	}
+
+	sol::state *lua = nullptr;
     RPCProtocol *protocol = nullptr;
     CommunicationDevice *device = nullptr;
     ScriptEngine *engine = nullptr;
+	sol::table enums;
 };
 
-template <class..., class Device_type>
-static void add_enum_type(const RPCRuntimeParameterDescription &param, sol::state &lua, sol::simple_usertype<Device_type> &device) {
+static void add_enum_type(const RPCRuntimeParameterDescription &param, sol::state &lua, sol::table &device) {
 	if (param.get_type() == RPCRuntimeParameterDescription::Type::enumeration) {
 		const auto &enum_description = param.as_enumeration();
 		auto table = lua.create_table_with();
@@ -198,12 +202,11 @@ static void add_enum_type(const RPCRuntimeParameterDescription &param, sol::stat
 			}
 			return "";
 		};
-		device.set(enum_description.enum_name, std::move(table));
+		device[enum_description.enum_name] = std::move(table);
 	}
 }
 
-template <class..., class Device_type>
-static void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua, sol::simple_usertype<Device_type> &device) {
+static void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua, sol::table &device) {
 	for (auto &param : function.get_request_parameters()) {
 		add_enum_type(param, lua, device);
 	}
@@ -212,13 +215,20 @@ static void add_enum_types(const RPCRuntimeFunction &function, sol::state &lua, 
 	}
 }
 
+static void abort_check() {
+	if (QThread::currentThread()->isInterruptionRequested()) {
+		throw sol::error("Abort Requested");
+	}
+}
+
 ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, Console &console, TestRunner *runner, QString test_name)
 	: runner{runner}
 	, test_name{std::move(test_name)}
-	, lua{std::make_unique<sol::state>()}
-    , parent{parent}
+	, parent{parent}
     , console(console)
-    , owner{owner} {}
+	, owner{owner} {
+	reset_lua_state();
+}
 
 ScriptEngine::~ScriptEngine() { //
     // qDebug() << "script destruktor " << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") <<
@@ -317,6 +327,16 @@ void ScriptEngine::post_interrupt(QString message) {
     await_condition_variable.notify_one();
 }
 
+static std::string to_string(const void *p) {
+	std::ostringstream ss;
+	ss << p;
+	return std::move(ss).str();
+}
+
+static std::string to_string(const RPCDevice &device) {
+	return "RPCDevice(" + device.protocol->get_device_summary().replace('\n', ", ").toStdString() + ')';
+}
+
 std::string ScriptEngine::to_string(double d) {
     if (std::fmod(d, 1.) == 0) {
         return std::to_string(static_cast<int>(d));
@@ -325,7 +345,7 @@ std::string ScriptEngine::to_string(double d) {
 }
 
 std::string ScriptEngine::to_string(const sol::object &o) {
-    switch (o.get_type()) {
+	switch (o.get_type()) {
         case sol::type::boolean:
             return o.as<bool>() ? "true" : "false";
         case sol::type::function:
@@ -344,9 +364,17 @@ std::string ScriptEngine::to_string(const sol::object &o) {
             if (o.is<Color>()) {
                 return "Ui.Color(0x" + QString::number(o.as<Color>().rgb & 0xFFFFFFu, 16).toStdString() + ")";
             }
-            return "unknown custom datatype";
+			if (o.is<RPCDevice>()) {
+				auto &device = o.as<RPCDevice>();
+				return ::to_string(device);
+			}
+			if (o.is<DataLogger>()) {
+				//auto &dl = o.as<DataLogger>();
+				return "DataLogger@" + ::to_string(o.pointer());
+			}
+			return "unknown custom datatype@" + ::to_string(o.pointer());
         default:
-            return "unknown type " + std::to_string(static_cast<int>(o.get_type()));
+			return "unknown type " + std::to_string(static_cast<int>(o.get_type()));
     }
 }
 
@@ -418,7 +446,49 @@ void ScriptEngine::set_error_line(const sol::error &error) {
     std::smatch match;
     if (std::regex_search(string, match, r)) {
         Utility::convert(match[1].str(), error_line);
-    }
+	}
+}
+
+void ScriptEngine::reset_lua_state() {
+	lua = std::make_unique<sol::state>();
+
+	//register RPC device type
+	auto type_reg = lua->create_simple_usertype<RPCDevice>();
+	type_reg.set(sol::meta_function::index, [this](RPCDevice &device, std::string name) -> sol::object {
+		abort_check();
+		qDebug() << "Checking custom index" << name.c_str();
+		if (device.has_function(name)) {
+			return sol::object(*lua, sol::in_place, [function_name = std::move(name)](RPCDevice & device, const sol::variadic_args &va) {
+				abort_check();
+				return device.call_rpc_function(function_name, va);
+			});
+		}
+		if (device.enums[name].valid()) {
+			return device.enums[name];
+		}
+		throw std::runtime_error{"Element \"" + name + "\" does not exist in " + ::to_string(device)};
+	});
+	type_reg.set("try", [this](RPCDevice &device, std::string function_name, const sol::variadic_args &va) {
+		abort_check();
+		auto result = create_table();
+		try {
+			result["result"] = device.call_rpc_function(function_name, va);
+			result["timeout"] = false;
+			return result;
+		} catch (const RPCTimeoutException &) {
+			result["timeout"] = true;
+			return result;
+		}
+	});
+	type_reg.set("get_protocol_name", [](RPCDevice &device) {
+		abort_check();
+		return device.get_protocol_name();
+	});
+	type_reg.set("is_protocol_device_available", [](RPCDevice &device) {
+		abort_check();
+		return device.is_protocol_device_available();
+	});
+	lua->set_usertype("RPCDevice", type_reg);
 }
 
 void ScriptEngine::launch_editor(QString path, int error_line) {
@@ -569,12 +639,6 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list() {
 	}
 }
 
-static void abort_check() {
-	if (QThread::currentThread()->isInterruptionRequested()) {
-		throw sol::error("Abort Requested");
-	}
-}
-
 sol::table ScriptEngine::get_devices(const std::vector<MatchedDevice> &devices) {
 	QMultiMap<QString, MatchedDevice> aliased_devices;
 	for (auto &device_protocol : devices) {
@@ -590,51 +654,19 @@ sol::table ScriptEngine::get_devices(const std::vector<MatchedDevice> &devices) 
 		std::vector<sol::object> device_list;
 		for (const auto &device_protocol : values) {
 			if (auto rpcp = dynamic_cast<RPCProtocol *>(device_protocol.protocol)) {
-				sol::object rpc_device_sol = sol::make_object(*lua, RPCDevice{&*lua, rpcp, device_protocol.device, this});
-				device_list.push_back(rpc_device_sol);
-
-				auto type_reg = lua->create_simple_usertype<RPCDevice>();
-
-				type_reg.set(sol::meta_function::index, [](RPCDevice &, std::string function_name) {
-					abort_check();
-					return [function_name = std::move(function_name)](RPCDevice & device, const sol::variadic_args &va) {
-						abort_check();
-						return device.call_rpc_function(function_name, va);
-					};
-				});
-				type_reg.set("try", [this](RPCDevice &device, std::string function_name, const sol::variadic_args &va) {
-					abort_check();
-					auto result = create_table();
-					try {
-						result["result"] = device.call_rpc_function(function_name, va);
-						result["timeout"] = false;
-						return result;
-					} catch (const RPCTimeoutException &) {
-						result["timeout"] = true;
-						return result;
-					}
-				});
+				auto enums = create_table();
 				for (const auto &function : rpcp->get_description().get_functions()) {
-					add_enum_types(function, *lua, type_reg);
+					add_enum_types(function, *lua, enums);
 				}
-				type_reg.set("get_protocol_name", [](RPCDevice &device) {
-					abort_check();
-					return device.get_protocol_name();
-				});
-				type_reg.set("is_protocol_device_available", [](RPCDevice &device) {
-					abort_check();
-					return device.is_protocol_device_available();
-				});
-				const auto &type_name = "RPCDevice_" + rpcp->get_description().get_hash();
-				lua->set_usertype(type_name, type_reg);
+				sol::object rpc_device_sol(*lua, sol::in_place, RPCDevice{&*lua, rpcp, device_protocol.device, this, std::move(enums)});
 				while (device_protocol.device->waitReceived(CommunicationDevice::Duration{0}, 1)) {
 					//ignore leftover data in the receive buffer
 				}
 				rpcp->clear();
+				device_list.push_back(rpc_device_sol);
 
 			} else if (auto scpip = dynamic_cast<SCPIProtocol *>(device_protocol.protocol)) {
 				sol::object scpip_device_sol = sol::make_object(*lua, SCPIDevice{&*lua, scpip, device_protocol.device, this});
-
 				device_list.push_back(scpip_device_sol);
 				scpip->clear();
 			} else if (auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(device_protocol.protocol)) {
@@ -679,8 +711,6 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
     qDebug() << "ScriptEngine::run";
 	assert(not currently_in_gui_thread());
 	matched_devices = &devices;
-
-	auto reset_lua_state = [this] { lua = std::make_unique<sol::state>(); };
 	try {
         {
 			sol::protected_function run = (*lua)["run"];
