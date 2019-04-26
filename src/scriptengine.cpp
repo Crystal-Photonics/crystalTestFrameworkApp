@@ -324,7 +324,20 @@ void ScriptEngine::post_interrupt(QString message) {
         std::unique_lock<std::mutex> lock{await_mutex};
         await_condition = Event_id::interrupted;
 	}
-    await_condition_variable.notify_one();
+	await_condition_variable.notify_one();
+}
+
+std::vector<std::string> ScriptEngine::get_default_globals() {
+	std::vector<std::string> globals;
+	Console console{nullptr};
+	ScriptEngine se{nullptr, nullptr, console, nullptr, {}};
+	script_setup(*se.lua, "", se);
+	for (auto & [ key, value ] : se.lua->globals()) {
+		if (key.is<std::string>()) {
+			globals.emplace_back(key.as<std::string>());
+		}
+	}
+	return globals;
 }
 
 static std::string to_string(const void *p) {

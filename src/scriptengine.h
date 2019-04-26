@@ -75,6 +75,8 @@ class ScriptEngine {
     void post_ui_event();
     void post_interrupt(QString message = {});
 
+	static std::vector<std::string> get_default_globals();
+
     void load_script(const std::string &path);
     static void launch_editor(QString path, int error_line = 1);
     void launch_editor() const;

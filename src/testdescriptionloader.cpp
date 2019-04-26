@@ -1,10 +1,14 @@
 #include "testdescriptionloader.h"
 #include "Windows/mainwindow.h"
+#include "Windows/plaintextedit.h"
+#include "config.h"
 #include "console.h"
 #include "scriptengine.h"
 
 #include <QDebug>
 #include <QPlainTextEdit>
+#include <QProcess>
+#include <QSettings>
 #include <QStringList>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
@@ -45,17 +49,31 @@ static QTreeWidgetItem *add_entry(QTreeWidget *item, QStringList &&list) {
 }
 
 TestDescriptionLoader::TestDescriptionLoader(QTreeWidget *test_list, const QString &file_path, const QString &display_name)
-    : console(std::make_unique<QPlainTextEdit>())
-    , name(display_name)
+	: name(display_name)
     , file_path(file_path) {
-    console->setReadOnly(true);
-    console->setMaximumBlockCount(1000);
-    if (name.endsWith(".lua")) {
+	auto link_console = std::make_unique<PlainTextEdit>();
+	link_console->setReadOnly(true);
+	link_console->setMaximumBlockCount(1000);
+	link_console->setTextInteractionFlags(Qt::TextBrowserInteraction);
+	QObject::connect(link_console.get(), &PlainTextEdit::linkActivated, [](const QString &target) {
+		auto colon_pos = target.lastIndexOf(':');
+		auto file = target.left(colon_pos).trimmed();
+		auto line = target.mid(colon_pos + 1).trimmed();
+
+		auto editor = QSettings{}.value(Globals::lua_editor_path_settings_key, R"(C:\Qt\Tools\QtCreator\bin\qtcreator.exe)").toString();
+		auto parameters = QSettings{}.value(Globals::lua_editor_parameters_settings_key, R"(%1)").toString().split(" ");
+		for (auto &parameter : parameters) {
+			parameter = parameter.replace("%1", file).replace("%2", line);
+		}
+		QProcess::startDetached(editor, parameters);
+	});
+	if (name.endsWith(".lua")) {
         name.chop(4);
     }
-    ui_entry.reset(add_entry(test_list, display_name.split('/')));
+	console = std::move(link_console);
+	ui_entry.reset(add_entry(test_list, display_name.split('/')));
 	ui_entry->setData(0, Qt::UserRole, QVariant::fromValue(this));
-    reload();
+	reload();
 }
 
 TestDescriptionLoader::TestDescriptionLoader(TestDescriptionLoader &&other)
@@ -91,8 +109,30 @@ void TestDescriptionLoader::launch_editor() {
 
 void TestDescriptionLoader::load_description() {
     ui_entry->setText(1, "");
+	console->clear();
 	Console c{console.get()};
 	ScriptEngine script{nullptr, nullptr, c, nullptr, ""};
+	bool warning_occured = false;
+	bool error_occured = false;
+	for (const auto &message : MainWindow::validate_script(file_path)) {
+		QRegExp regex{R"((.*):(\d+):\d+-\d+:(.*))"};
+		if (not regex.exactMatch(message)) {
+			qDebug() << "Failed parsing message" << message;
+			continue;
+		}
+		auto message_parts = regex.capturedTexts();
+		auto path = std::move(message_parts[1]);
+		auto line = std::move(message_parts[2]);
+		auto diagnostic = std::move(message_parts[3]);
+		if (message.contains("(W")) {
+			c.warning() << Console_Link{path + ':' + line} << std::move(diagnostic);
+			warning_occured = true;
+		} else if (message.contains("(E")) {
+			c.error() << Console_Link{path + ':' + line} << std::move(diagnostic);
+			error_occured = true;
+		}
+	}
+
     try {
         script.load_script(file_path.toStdString());
         device_requirements.clear();
@@ -104,7 +144,13 @@ void TestDescriptionLoader::load_description() {
         }
 
         ui_entry->setText(1, reqs.join(", "));
-        ui_entry->setIcon(3, QIcon{});
+		if (error_occured) {
+			ui_entry->setIcon(3, QIcon{"://src/icons/if_exclamation_16.ico"});
+		} else if (warning_occured) {
+			ui_entry->setIcon(3, QIcon{"://src/icons/warning-96.png"});
+		} else {
+			ui_entry->setIcon(3, QIcon{});
+		}
     } catch (const std::runtime_error &e) {
         ui_entry->setIcon(3, QIcon{"://src/icons/if_exclamation_16.ico"});
 		Console_handle::error(console.get()) << "Failed loading protocols: " << e.what();

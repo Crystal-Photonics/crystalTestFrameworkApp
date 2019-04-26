@@ -42,7 +42,12 @@ Console_handle::ConsoleProxy Console_handle::script(QPlainTextEdit *console) {
             console->setVisible(true);
         }
     }
-    return {console, {}, "Script", Qt::black, true};
+	return {console, {}, "Script", Qt::black, {}, true};
+}
+
+Console_handle::ConsoleProxy &&Console_handle::ConsoleProxy::operator<<(Console_Link plink) {
+	link = std::move(plink.link);
+	return std::move(*this);
 }
 
 Console_handle::ConsoleProxy::~ConsoleProxy() {

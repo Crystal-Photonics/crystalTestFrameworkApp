@@ -79,6 +79,7 @@ class EXPORT MainWindow : public QMainWindow {
 	void set_testrunner_state(TestRunner *testrunner, TestRunner_State state);
     void adopt_testrunner(TestRunner *testrunner, QString title);
     void show_status_bar_massage(QString msg, int timeout_ms);
+	static QStringList validate_script(const QString &path);
 
     public slots:
     void align_columns();
@@ -90,6 +91,8 @@ class EXPORT MainWindow : public QMainWindow {
     private slots:
     void slot_device_discovery_done();
     void load_scripts();
+	void poll_sg04_counts();
+	void closeEvent(QCloseEvent *event) override;
 
     void on_actionSettings_triggered();
     void on_tests_advanced_view_customContextMenuRequested(const QPoint &pos);
@@ -98,10 +101,6 @@ class EXPORT MainWindow : public QMainWindow {
     void on_console_tabs_customContextMenuRequested(const QPoint &pos);
     void on_actionDummy_Data_Creator_for_print_templates_triggered();
     void on_actionInfo_triggered();
-
-    void poll_sg04_counts();
-    void closeEvent(QCloseEvent *event) override;
-
     void on_test_simple_view_itemDoubleClicked(QListWidgetItem *item);
     void on_test_simple_view_customContextMenuRequested(const QPoint &pos);
     void on_test_simple_view_itemChanged(QListWidgetItem *item);
@@ -152,9 +151,7 @@ class EXPORT MainWindow : public QMainWindow {
     QString view_mode_to_string(ViewMode view_mode);
     ViewMode string_to_view_mode(QString view_mode_name);
     void set_view_mode(ViewMode view_mode);
-
     QStringList get_expanded_tree_view_paths();
-
     QStringList get_expanded_tree_view_recursion(QTreeWidgetItem *root_item, QString path);
     void expand_from_stringlist(QStringList sl);
     void expand_from_stringlist_recusion(QTreeWidgetItem *root_item, const QStringList &child_texts, int index);

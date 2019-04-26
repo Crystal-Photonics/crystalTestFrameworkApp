@@ -11,6 +11,10 @@
 class MainWindow;
 class QPlainTextEdit;
 
+struct Console_Link {
+	QString link;
+};
+
 struct Console_handle {
 	private:
 	struct ConsoleProxy;
@@ -28,11 +32,13 @@ struct Console_handle {
 	struct ConsoleProxy {
 		template <class T>
 		ConsoleProxy &&operator<<(const T &t) &&;
+		ConsoleProxy &&operator<<(Console_Link link);
 		~ConsoleProxy();
 		QPlainTextEdit *console;
 		QStringList s;
 		QString prefix;
 		QColor color;
+		QString link;
 		bool fat = false;
 	};
 	static std::false_type qstringlist_appandable(...);
@@ -52,8 +58,15 @@ struct Console_handle {
 
 template <class T>
 Console_handle::ConsoleProxy &&Console_handle::ConsoleProxy::operator<<(const T &t) && {
+	if (not link.isEmpty()) {
+		s << "<a href=\"" << link << "\">";
+	}
 	append_to(s, t);
-	return std::move(*this); //TODO: I'm not sure if this is correct or we return an expired temporary
+	if (not link.isEmpty()) {
+		s << "</a>";
+		link.clear();
+	}
+	return std::move(*this);
 }
 
 struct Console {

@@ -15,6 +15,7 @@ namespace Globals {
     static const auto skip_key_sequence_key = "skip key sequence";
     static const auto cancel_key_sequence_key = "cancel key sequence";
     static const auto path_to_environment_variables_key = "path_to_environment_variables";
+	static const auto path_to_luacheck_key = "path to luacheck";
     static const auto path_to_excpetional_approval_db_key = "path_to_excpetional_approval_db";
     static const auto search_path_key = "search_path";
     static const auto favorite_script_file_key = "favorite_script_file";

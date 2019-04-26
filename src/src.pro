@@ -104,7 +104,8 @@ HEADERS += \
 	ui_container.h \
 	userentrystorage.h \
 	util.h \
-    forward_decls.h
+	Windows/plaintextedit.h \
+	forward_decls.h
 
 SOURCES += \
 	CommunicationDevices/communicationdevice.cpp \
@@ -172,7 +173,8 @@ SOURCES += \
 	ui_container.cpp \
 	userentrystorage.cpp \
 	util.cpp \
-    forward_decls.cpp
+	Windows/plaintextedit.cpp \
+	forward_decls.cpp
 
 win32 {
     system($$system_quote($$SH) $$PWD/../git_win.sh)

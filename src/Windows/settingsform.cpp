@@ -62,8 +62,9 @@ std::vector<std::pair<QLineEdit *, const char *>> SettingsForm::get_config_lines
             {ui->lua_editor_path_text, Globals::lua_editor_path_settings_key},
             {ui->lua_editor_parameters_text, Globals::lua_editor_parameters_settings_key},
             {ui->meta_path_text, Globals::measurement_equipment_meta_data_path_key},
-            {ui->env_var_path, Globals::path_to_environment_variables_key},
-            {ui->edit_exceptional_approval, Globals::path_to_excpetional_approval_db_key},
+			{ui->env_var_path, Globals::path_to_environment_variables_key},
+			{ui->luacheck_path, Globals::path_to_luacheck_key},
+			{ui->edit_exceptional_approval, Globals::path_to_excpetional_approval_db_key},
             {ui->favorite_script_path, Globals::favorite_script_file_key},
             {ui->report_history_query, Globals::report_history_query_path},
             {ui->search_path, Globals::search_path_key}};
@@ -183,4 +184,8 @@ std::vector<SettingsForm::Key_config> SettingsForm::get_key_sequence_config() co
         {ui->skip_keySequenceEdit, Globals::skip_key_sequence_key, "Space"},
         {ui->cancel_keySequenceEdit, Globals::cancel_key_sequence_key, "Esc"},
     };
+}
+
+void SettingsForm::on_luacheck_path_button_clicked() {
+	request_user_file(ui->luacheck_path, tr("Select luacheck executable"), Globals::path_to_luacheck_key, "*.exe");
 }
