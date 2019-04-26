@@ -423,10 +423,18 @@ void MainWindow::load_scripts() {
     test_descriptions.clear();
     const auto dir = QSettings{}.value(Globals::test_script_path_settings_key, "").toString();
 	QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories};
+	std::vector<std::future<TestDescriptionLoader>> threads;
     while (dit.hasNext()) {
-		const auto &file_path = dit.next();
-		//TODO: Parallelize this
-		test_descriptions.push_back(TestDescriptionLoader{ui->tests_advanced_view, file_path, QDir{dir}.relativeFilePath(file_path)});
+		auto file_path = dit.next();
+		threads.push_back(std::async(std::launch::async, [&dir, this, file_path = std::move(file_path) ] {
+			return TestDescriptionLoader{ui->tests_advanced_view, file_path, QDir{dir}.relativeFilePath(file_path)};
+		}));
+	}
+	for (auto &thread : threads) {
+		while (thread.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout) {
+			QApplication::processEvents();
+		}
+		test_descriptions.push_back(thread.get());
 	}
     load_favorites();
     statusBar()->clearMessage();
@@ -585,7 +593,7 @@ QStringList MainWindow::validate_script(const QString &path) {
 	if (luachecker_path.isEmpty()) {
 		return {};
 	}
-	static QStringList args = [] {
+	const static QStringList luacheck_args = [] {
 		QStringList l;
 		l << ""
 		  << "-d"
@@ -617,6 +625,7 @@ QStringList MainWindow::validate_script(const QString &path) {
 		return l;
 	}();
 
+	auto args = luacheck_args;
 	args[0] = path;
 
 	QProcess luachecker;
