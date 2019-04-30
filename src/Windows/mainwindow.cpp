@@ -329,13 +329,15 @@ MainWindow::MainWindow(QWidget *parent)
 	progress_bar.setWindowTitle(QObject::tr("CrystalTestFramework"));
 	progress_bar.setLabelText(tr("Loading scripts ..."));
 	progress_bar.setModal(true);
+	progress_bar.setCancelButton(nullptr);
+	progress_bar.setMaximum(50);
+	progress_bar.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
 	progress_bar.show();
-	progress_bar.setValue(10);
+	progress_bar.setValue(progress_bar.value() + 5);
 
 	load_scripts(&progress_bar);
-	progress_bar.setValue(50);
-	progress_bar.setMaximum(100);
 	ui->test_simple_view->installEventFilter(this);
+	progress_bar.setValue(progress_bar.value() + 5);
 	ViewMode vm = string_to_view_mode(QSettings{}.value(Globals::last_view_mode_key, "").toString());
 	if (ui->test_simple_view->count() == 0) {
 		vm = ViewMode::AllScripts;
@@ -344,7 +346,7 @@ MainWindow::MainWindow(QWidget *parent)
 		vm = ViewMode::AllScripts;
 	}
 	set_view_mode(vm);
-	progress_bar.setValue(60);
+	progress_bar.setValue(progress_bar.value() + 5);
 	set_console_view_collapse_state(QSettings{}.value(Globals::console_is_collapsed_key, true).toBool());
 	progress_bar.setValue(progress_bar.value() + 5);
 	expand_from_stringlist(QSettings{}.value(Globals::expanded_paths_key, QStringList{}).toStringList());
@@ -358,7 +360,7 @@ MainWindow::MainWindow(QWidget *parent)
 	enable_closed_finished_test_button_script_states();
 	progress_bar.setValue(progress_bar.value() + 5);
 	enable_abort_button_script();
-	progress_bar.setValue(95);
+	progress_bar.setValue(progress_bar.value() + 5);
 	QApplication::processEvents();
 }
 
@@ -433,17 +435,33 @@ std::unique_ptr<QTreeWidgetItem> *MainWindow::MainWindow::get_manual_devices_par
 
 void MainWindow::load_scripts(QProgressDialog *dialog) {
     assert(currently_in_gui_thread());
-    bool enabled_a = ui->tbtn_refresh_scripts->isEnabled();
+	std::unique_ptr<QProgressDialog> progress_bar;
+	if (not dialog) {
+		progress_bar = std::make_unique<QProgressDialog>(this);
+		dialog = progress_bar.get();
+		dialog->setWindowTitle(QObject::tr("CrystalTestFramework"));
+		dialog->setLabelText(tr("Loading scripts ..."));
+		dialog->setModal(true);
+		dialog->setCancelButton(nullptr);
+		dialog->setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
+		dialog->show();
+	}
+	QApplication::processEvents();
+	dialog->setValue(dialog->value() + 1);
+	bool enabled_a = ui->tbtn_refresh_scripts->isEnabled();
     bool enabled_b = ui->actionReload_All_Scripts->isEnabled();
     ui->tbtn_refresh_scripts->setEnabled(false);
     ui->actionReload_All_Scripts->setEnabled(false);
     statusBar()->showMessage(tr("Refreshing Scripts.."));
 
-    test_descriptions.clear();
-    const auto dir = QSettings{}.value(Globals::test_script_path_settings_key, "").toString();
+	dialog->setValue(dialog->value() + 1);
+	test_descriptions.clear();
+	dialog->setValue(dialog->value() + 1);
+	const auto dir = QSettings{}.value(Globals::test_script_path_settings_key, "").toString();
 	QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories};
 	std::vector<std::future<TestDescriptionLoader>> threads;
     while (dit.hasNext()) {
+		dialog->setMaximum(dialog->maximum() + 2);
 		auto file_path = dit.next();
 		threads.push_back(std::async(std::launch::async, [&dir, this, file_path = std::move(file_path), dialog] {
 			auto return_value = TestDescriptionLoader{ui->tests_advanced_view, file_path, QDir{dir}.relativeFilePath(file_path)};
@@ -454,9 +472,12 @@ void MainWindow::load_scripts(QProgressDialog *dialog) {
 			});
 			return return_value;
 		}));
+		dialog->setValue(dialog->value() + 1);
 	}
-	if (dialog) {
-		dialog->setMaximum(100 + threads.size());
+	if (dialog == progress_bar.get()) {
+		dialog->setMaximum(6 + 2 * threads.size());
+	} else {
+		dialog->setMaximum(dialog->maximum() + 2 * threads.size());
 	}
 	for (auto &thread : threads) {
 		while (thread.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout) {
@@ -464,10 +485,14 @@ void MainWindow::load_scripts(QProgressDialog *dialog) {
 		}
 		test_descriptions.push_back(thread.get());
 	}
-    load_favorites();
-    statusBar()->clearMessage();
+	dialog->setValue(dialog->value() + 1);
+	load_favorites();
+	dialog->setValue(dialog->value() + 1);
+	statusBar()->clearMessage();
     ui->tbtn_refresh_scripts->setEnabled(enabled_a);
     ui->actionReload_All_Scripts->setEnabled(enabled_b);
+	dialog->setValue(dialog->value() + 1);
+	QApplication::processEvents();
 }
 
 void MainWindow::load_favorites() {
@@ -663,25 +688,20 @@ QStringList MainWindow::validate_script(const QString &path) {
 	luachecker.start(QProcess::OpenMode::enum_type::ReadOnly);
 	luachecker.closeWriteChannel();
 	QStringList messages;
-	if (luachecker.waitForFinished(3000)) {
-		auto output = luachecker.readAllStandardOutput();
-		auto output_list = output.replace("\r\n", "\n").split('\n');
-		for (const auto &line : output_list) {
-			if (line.isEmpty()) {
-				continue;
-			}
-			if (line.contains("unused global variable 'device_requirements'")) {
-				continue;
-			}
-			if (line.contains("unused global variable 'run'")) {
-				continue;
-			}
-			messages << line;
+	luachecker.waitForFinished();
+	auto output = luachecker.readAllStandardOutput();
+	auto output_list = output.replace("\r\n", "\n").split('\n');
+	for (const auto &line : output_list) {
+		if (line.isEmpty()) {
+			continue;
+		}
+		if (line.contains("unused global variable 'device_requirements'")) {
+			continue;
+		}
+		if (line.contains("unused global variable 'run'")) {
+			continue;
         }
-	} else {
-		luachecker.kill();
-		QMessageBox::critical(MainWindow::mw, tr("CrystalTestFramework - Luacheck timeout"),
-							  tr("Failed executing Luacheck. It did not finish within 3 seconds."));
+		messages << line;
 	}
 	return messages;
 }
