@@ -52,23 +52,9 @@ TestDescriptionLoader::TestDescriptionLoader(QTreeWidget *test_list, const QStri
 	: name(display_name)
     , file_path(file_path) {
 	console = Utility::promised_thread_call(MainWindow::mw, [&] {
-
 		auto link_console = std::make_unique<PlainTextEdit>();
 		link_console->setReadOnly(true);
 		link_console->setMaximumBlockCount(1000);
-		link_console->setTextInteractionFlags(Qt::TextBrowserInteraction);
-		QObject::connect(link_console.get(), &PlainTextEdit::linkActivated, [](const QString &target) {
-			auto colon_pos = target.lastIndexOf(':');
-			auto file = target.left(colon_pos).trimmed();
-			auto line = target.mid(colon_pos + 1).trimmed();
-
-			auto editor = QSettings{}.value(Globals::lua_editor_path_settings_key, R"(C:\Qt\Tools\QtCreator\bin\qtcreator.exe)").toString();
-			auto parameters = QSettings{}.value(Globals::lua_editor_parameters_settings_key, R"(%1)").toString().split(" ");
-			for (auto &parameter : parameters) {
-				parameter = parameter.replace("%1", file).replace("%2", line);
-			}
-			QProcess::startDetached(editor, parameters);
-		});
 		if (name.endsWith(".lua")) {
 			name.chop(4);
 		}
@@ -130,15 +116,10 @@ void TestDescriptionLoader::load_description() {
 		auto line = std::move(message_parts[2]);
 		auto diagnostic = std::move(message_parts[3]);
 		if (message.contains("(W")) {
-			//thread_calls are guarded by below promised_thread_calls
-			Utility::thread_call(MainWindow::mw, [&temp_console, path = std::move(path), line = std::move(line), diagnostic = std::move(diagnostic) ] {
-				temp_console.warning() << Console_Link{path + ':' + line} << std::move(diagnostic);
-			});
+			temp_console.warning() << Console_Link{path + ':' + line} << name + ':' + line << ':' << std::move(diagnostic);
 			warning_occured = true;
 		} else if (message.contains("(E")) {
-			Utility::thread_call(MainWindow::mw, [&temp_console, path = std::move(path), line = std::move(line), diagnostic = std::move(diagnostic) ] {
-				temp_console.error() << Console_Link{path + ':' + line} << std::move(diagnostic);
-			});
+			temp_console.error() << Console_Link{path + ':' + line} << name + ':' + line << ':' << std::move(diagnostic);
 			error_occured = true;
 		}
 	}
@@ -165,10 +146,7 @@ void TestDescriptionLoader::load_description() {
 			}
 		});
 	} catch (const std::runtime_error &e) {
-		//promised_thread_call guards above thread_calls. May be empty, but cannot be removed.
-		Utility::promised_thread_call(MainWindow::mw, [&] {
-			ui_entry->setIcon(3, QIcon{"://src/icons/if_exclamation_16.ico"});
-			Console_handle::error(console.get()) << "Failed loading protocols: " << e.what();
-		});
+		Console_handle::error(console.get()) << "Failed loading protocols: " << Sol_error_message{e.what(), file_path, name};
+		Utility::promised_thread_call(MainWindow::mw, [&] { ui_entry->setIcon(3, QIcon{"://src/icons/if_exclamation_16.ico"}); });
 	}
 }

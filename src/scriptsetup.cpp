@@ -96,7 +96,7 @@ struct Data_engine_handle {
 			try {
 				data_engine->save_to_json(QString::fromStdString(json_target_filename));
 			} catch (const DataEngineError &e) {
-				Utility::promised_thread_call(MainWindow::mw, [this, &e] { console->error() << e.what(); });
+				console->error() << e.what();
 			}
 		}
 	}

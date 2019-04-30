@@ -6,6 +6,7 @@
 #include "Protocols/sg04countprotocol.h"
 #include "Windows/dummydatacreator.h"
 #include "Windows/infowindow.h"
+#include "Windows/plaintextedit.h"
 #include "Windows/reporthistoryquery.h"
 #include "Windows/settingsform.h"
 #include "config.h"
@@ -15,7 +16,6 @@
 #include "identicon/identicon.h"
 #include "qt_util.h"
 #include "scriptengine.h"
-#include "testdescriptionloader.h"
 #include "testdescriptionloader.h"
 #include "testrunner.h"
 #include "ui_container.h"
@@ -315,7 +315,6 @@ MainWindow::MainWindow(QWidget *parent)
     devices_thread.adopt(*device_worker);
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
 	Console_handle::console = ui->console_edit;
-	Console_handle::mw = this;
     // connect(&action_run, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
 
     ui->test_simple_view->setVisible(false);
@@ -426,7 +425,7 @@ void MainWindow::load_scripts() {
 	std::vector<std::future<TestDescriptionLoader>> threads;
     while (dit.hasNext()) {
 		auto file_path = dit.next();
-		threads.push_back(std::async(std::launch::async, [&dir, this, file_path = std::move(file_path) ] {
+		threads.push_back(std::async(std::launch::async, [&dir, this, file_path = std::move(file_path)] {
 			return TestDescriptionLoader{ui->tests_advanced_view, file_path, QDir{dir}.relativeFilePath(file_path)};
 		}));
 	}
@@ -514,16 +513,17 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
                 }
             }
 
-            QPlainTextEdit *console = nullptr;
+			PlainTextEdit *console = nullptr;
             if (index == -1) {
-                console = new QPlainTextEdit(ui->console_tabs);
+				console = new PlainTextEdit(ui->console_tabs);
+				QObject::connect(console, &PlainTextEdit::linkActivated, this, &MainWindow::link_activated);
                 console->setLineWrapMode(QPlainTextEdit::LineWrapMode::NoWrap);
                 console->setReadOnly(true);
                 console->setMaximumBlockCount(1000);
                 ui->console_tabs->addTab(console, tab_name);
                 add_clear_button_to_console(console);
             } else {
-                console = dynamic_cast<QPlainTextEdit *>(ui->console_tabs->widget(index));
+				console = dynamic_cast<PlainTextEdit *>(ui->console_tabs->widget(index));
             }
             device_worker->connect_to_device_console(console, communication_device);
         }
@@ -654,6 +654,19 @@ QStringList MainWindow::validate_script(const QString &path) {
 							  tr("Failed executing Luacheck. It did not finish within 3 seconds."));
 	}
 	return messages;
+}
+
+void MainWindow::link_activated(const QString &path) {
+	auto colon_pos = path.lastIndexOf(':');
+	auto file = path.left(colon_pos).trimmed();
+	auto line = path.mid(colon_pos + 1).trimmed();
+
+	auto editor = QSettings{}.value(Globals::lua_editor_path_settings_key, R"(C:\Qt\Tools\QtCreator\bin\qtcreator.exe)").toString();
+	auto parameters = QSettings{}.value(Globals::lua_editor_parameters_settings_key, R"(%1)").toString().split(" ");
+	for (auto &parameter : parameters) {
+		parameter = parameter.replace("%1", file).replace("%2", line);
+	}
+	QProcess::startDetached(editor, parameters);
 }
 
 void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *communication_device) {
@@ -864,7 +877,7 @@ void MainWindow::run_test_script(TestDescriptionLoader *test) {
 	try {
 		test_runners.push_back(std::make_unique<TestRunner>(*test));
 	} catch (const std::runtime_error &e) {
-		Console_handle::error(test->console.get()) << "Failed running test: " << e.what();
+		Console_handle::error(test->console.get()) << "Failed running test: " << Sol_error_message{e.what(), test->get_filepath(), test->get_name()};
 		return;
 	}
 	auto &runner = *test_runners.back();
@@ -1108,9 +1121,8 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 		return;
     }
 	auto &runner = **runner_it;
-	if (runner.is_running() &&
-		QMessageBox::question(this, tr("Abort script?"), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
-							  QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok) {
+	if (runner.is_running() && QMessageBox::question(this, tr("Abort script?"), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
+													 QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok) {
 		return; //canceled closing the tab
     }
 	abort_script(runner);

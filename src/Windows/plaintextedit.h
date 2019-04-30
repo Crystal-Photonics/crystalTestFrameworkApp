@@ -12,20 +12,9 @@ class PlainTextEdit : public QPlainTextEdit {
 	QString clickedAnchor;
 
 	public:
-	explicit PlainTextEdit(QWidget *parent = nullptr)
-		: QPlainTextEdit(parent) {}
-
-	void mousePressEvent(QMouseEvent *e) {
-		clickedAnchor = (e->button() & Qt::LeftButton) ? anchorAt(e->pos()) : QString();
-		QPlainTextEdit::mousePressEvent(e);
-	}
-
-	void mouseReleaseEvent(QMouseEvent *e) {
-		if (e->button() & Qt::LeftButton && !clickedAnchor.isEmpty() && anchorAt(e->pos()) == clickedAnchor) {
-			emit linkActivated(clickedAnchor);
-		}
-		QPlainTextEdit::mouseReleaseEvent(e);
-	}
+	explicit PlainTextEdit(QWidget *parent = nullptr);
+	void mousePressEvent(QMouseEvent *e);
+	void mouseReleaseEvent(QMouseEvent *e);
 
 	signals:
 	void linkActivated(QString);

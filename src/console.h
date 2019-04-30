@@ -15,9 +15,37 @@ struct Console_Link {
 	QString link;
 };
 
+//passing this to a ConsoleProxy causes the path to be replaced and linked
+struct Sol_error_message {
+	QString message;
+	QString script_path; //the path for the editor to find the file
+	QString script_name; //the displayed path
+};
+
 struct Console_handle {
+	struct ConsoleProxyState {
+		QPlainTextEdit *console;
+		QStringList s;
+		QString prefix;
+		QColor color;
+		QString link;
+		bool fat = false;
+	};
+
 	private:
-	struct ConsoleProxy;
+	struct ConsoleProxy {
+		ConsoleProxy(QPlainTextEdit *console, QStringList s, QString prefix, QColor color, bool fat = false);
+		ConsoleProxy(ConsoleProxyState state);
+		template <class T>
+		ConsoleProxy &&operator<<(const T &t) &&;
+		ConsoleProxy &&operator<<(Console_Link link) &&;
+		ConsoleProxy &&operator<<(Sol_error_message sol_message) &&;
+		ConsoleProxy(ConsoleProxy &&other);
+		ConsoleProxy &operator=(ConsoleProxy &&other);
+		~ConsoleProxy();
+
+		ConsoleProxyState state;
+	};
 
 	public:
 	static QPlainTextEdit *console;
@@ -26,45 +54,33 @@ struct Console_handle {
 	static ConsoleProxy error(QPlainTextEdit *console = nullptr);
 	static ConsoleProxy debug(QPlainTextEdit *console = nullptr);
 	static ConsoleProxy script(QPlainTextEdit *console);
-	static MainWindow *mw;
+	static ConsoleProxy from_state(ConsoleProxyState state);
 
 	private:
-	struct ConsoleProxy {
-		template <class T>
-		ConsoleProxy &&operator<<(const T &t) &&;
-		ConsoleProxy &&operator<<(Console_Link link);
-		~ConsoleProxy();
-		QPlainTextEdit *console;
-		QStringList s;
-		QString prefix;
-		QColor color;
-		QString link;
-		bool fat = false;
-	};
 	static std::false_type qstringlist_appandable(...);
 	template <class T>
 	static auto qstringlist_appandable(T &&t) -> decltype((QStringList{} << t, std::true_type()));
 	template <class T>
-    static auto append_to(QStringList &s, T &&t) -> std::enable_if_t<decltype(qstringlist_appandable(t))::value> {
-        s << t;
-	}
-	template <class T>
-	static auto append_to(QStringList &s, T &&t) -> std::enable_if_t<decltype(qstringlist_appandable(t))::value == false> {
-		std::stringstream ss;
-        ss << t;
-        s << ss.str().c_str();
+	static void append_to(QStringList &s, T &&t) {
+		if constexpr (decltype(qstringlist_appandable(t))::value) {
+			s << t;
+		} else {
+			std::stringstream ss;
+			ss << t;
+			s << ss.str().c_str();
+		}
 	}
 };
 
 template <class T>
 Console_handle::ConsoleProxy &&Console_handle::ConsoleProxy::operator<<(const T &t) && {
-	if (not link.isEmpty()) {
-		s << "<a href=\"" << link << "\">";
+	if (not state.link.isEmpty()) {
+		state.s << "<a href=\"" << state.link << "\">";
 	}
-	append_to(s, t);
-	if (not link.isEmpty()) {
-		s << "</a>";
-		link.clear();
+	append_to(state.s, t);
+	if (not state.link.isEmpty()) {
+		state.s << "</a>";
+		state.link.clear();
 	}
 	return std::move(*this);
 }
@@ -83,6 +99,10 @@ struct Console {
 	}
 	auto debug() {
 		return Console_handle::debug(console);
+	}
+
+	static auto from_state(Console_handle::ConsoleProxyState state) {
+		return Console_handle::from_state(std::move(state));
 	}
 
 	QPlainTextEdit *get_plaintext_edit() const;

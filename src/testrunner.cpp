@@ -1,7 +1,8 @@
 #include "testrunner.h"
 #include "Windows/devicematcher.h"
 #include "Windows/mainwindow.h"
-#include "console.h"
+#include "Windows/plaintextedit.h"
+#include "config.h"
 #include "console.h"
 #include "data_engine/data_engine.h"
 #include "deviceworker.h"
@@ -11,12 +12,14 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <QDir>
 #include <QPlainTextEdit>
+#include <QSettings>
 #include <QSplitter>
 
 TestRunner::TestRunner(const TestDescriptionLoader &description)
 	: console_pointer{std::make_unique<Console>([] {
-        auto console = new QPlainTextEdit();
+		auto console = new PlainTextEdit();
         console->setReadOnly(true);
         console->setMaximumBlockCount(1000);
 		console->setVisible(false);
@@ -25,7 +28,8 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
     , lua_ui_container(new UI_container(MainWindow::mw))
 	, script_pointer{std::make_unique<ScriptEngine>(this->obj(), lua_ui_container, *console_pointer, this, description.get_name())}
 	, script{*script_pointer}
-	, name(description.get_name())
+	, name{description.get_name()}
+	, script_path{QDir{QSettings{}.value(Globals::test_script_path_settings_key, "").toString()}.filePath(description.get_filepath())}
 	, console{*console_pointer} {
 	console.note() << "Script started";
 
@@ -46,7 +50,7 @@ TestRunner::~TestRunner() {
 }
 
 void TestRunner::interrupt() {
-	MainWindow::mw->execute_in_gui_thread([this] { console.note() << "Script interrupted"; });
+	console.note() << "Script interrupted";
     script.post_interrupt();
     thread.requestInterruption();
 }
@@ -77,7 +81,7 @@ UI_container *TestRunner::get_lua_ui_container() const {
 
 void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &device_worker) {
 	device_worker_pointer = &device_worker;
-	Utility::thread_call(this, [ this, devices = std::move(devices), &device_worker ]() mutable {
+	Utility::thread_call(this, [this, devices = std::move(devices), &device_worker]() mutable {
         for (auto &dev_prot : devices) {
             device_worker.set_currently_running_test(dev_prot.device, name);
         }
@@ -85,10 +89,10 @@ void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &de
 			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::running); });
 			script.run(devices);
 			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::finished); });
-        } catch (const std::runtime_error &e) {
+		} catch (const std::exception &e) {
 			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::error); });
-            qDebug() << "runtime_error caught @TestRunner::run_script";
-			MainWindow::mw->execute_in_gui_thread([ this, message = std::string{e.what()} ] { console.error() << message; });
+			qDebug() << "runtime_error caught @TestRunner::run_script:" << e.what();
+			console.error() << Sol_error_message{e.what(), script_path, name};
         }
 		device_worker_pointer = nullptr;
         for (auto &dev_prot : devices) {
@@ -99,7 +103,7 @@ void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &de
 		}
         moveToThread(MainWindow::gui_thread);
         thread.quit();
-		MainWindow::mw->execute_in_gui_thread([this] { console.note() << "Script stopped"; });
+		console.note() << "Script stopped";
 	});
 }
 
@@ -108,7 +112,11 @@ bool TestRunner::is_running() const {
 }
 
 const QString &TestRunner::get_name() const {
-    return name;
+	return name;
+}
+
+const QString &TestRunner::get_script_path() const {
+	return script_path;
 }
 
 void TestRunner::launch_editor() const {

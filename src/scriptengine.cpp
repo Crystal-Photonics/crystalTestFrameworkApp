@@ -170,7 +170,7 @@ struct RPCDevice {
 				//else: multiple variables, need to make a table
 				return sol::make_object(lua->lua_state(), "TODO: Not Implemented: Parse multiple return values");
 			} catch (const sol::error &e) {
-				Console_handle::error() << e.what();
+				Console_handle::error() << Sol_error_message{e.what(), engine->runner->get_name(), engine->runner->get_script_path()};
 				throw;
 			}
 		}
@@ -272,7 +272,7 @@ Event_id::Event_id ScriptEngine::await_hotkey_event() {
                                                              &MainWindow::skip_key_sequence_pressed};
         std::array<Event_id::Event_id, 3> event_ids = {Event_id::Hotkey_confirm_pressed, Event_id::Hotkey_cancel_pressed, Event_id::Hotkey_skip_pressed};
         for (std::size_t i = 0; i < 3; i++) {
-			connections[i] = QObject::connect(MainWindow::mw, key_signals[i], [ this, event_id = event_ids[i] ] {
+			connections[i] = QObject::connect(MainWindow::mw, key_signals[i], [this, event_id = event_ids[i]] {
                 {
                     std::unique_lock<std::mutex> lock{await_mutex};
                     await_condition = event_id;
@@ -319,7 +319,7 @@ void ScriptEngine::post_hotkey_event(Event_id::Event_id event) {
 }
 
 void ScriptEngine::post_interrupt(QString message) {
-	Utility::thread_call(MainWindow::mw, [this, message] { console.error() << "Script interrupted" << (message.isEmpty() ? "" : "because of " + message); });
+	console.error() << "Script interrupted" << (message.isEmpty() ? "" : "because of " + message);
     {
         std::unique_lock<std::mutex> lock{await_mutex};
         await_condition = Event_id::interrupted;
@@ -332,7 +332,7 @@ std::vector<std::string> ScriptEngine::get_default_globals() {
 	Console console{nullptr};
 	ScriptEngine se{nullptr, nullptr, console, nullptr, {}};
 	script_setup(*se.lua, "", se);
-	for (auto & [ key, value ] : se.lua->globals()) {
+	for (auto &[key, value] : se.lua->globals()) {
 		if (key.is<std::string>()) {
 			globals.emplace_back(key.as<std::string>());
 		}
@@ -387,8 +387,8 @@ std::string ScriptEngine::to_string(const sol::object &o) {
 			}
 			if (o.is<SCPIDevice>()) {
 				const auto &device = o.as<SCPIDevice &>();
-				return "SCPIDevice (Port: " + device.device->getName().toStdString() + ", name: " + device.get_name() + ", Serial Number: " +
-					   device.get_serial_number() + ", Manufacturer: " + device.get_manufacturer() + ")";
+				return "SCPIDevice (Port: " + device.device->getName().toStdString() + ", name: " + device.get_name() +
+					   ", Serial Number: " + device.get_serial_number() + ", Manufacturer: " + device.get_manufacturer() + ")";
 			}
 			if (o.is<SG04CountDevice>()) {
 				const auto &device = o.as<SG04CountDevice &>();
@@ -484,7 +484,7 @@ void ScriptEngine::reset_lua_state() {
 		abort_check();
 		qDebug() << "Checking custom index" << name.c_str();
 		if (device.has_function(name)) {
-			return sol::object(*lua, sol::in_place, [function_name = std::move(name)](RPCDevice & device, const sol::variadic_args &va) {
+			return sol::object(*lua, sol::in_place, [function_name = std::move(name)](RPCDevice &device, const sol::variadic_args &va) {
 				abort_check();
 				return device.call_rpc_function(function_name, va);
 			});
@@ -620,9 +620,7 @@ std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list(const 
 					}
 					item.has_acceptance_function = true;
 				} else {
-					Utility::thread_call(MainWindow::mw, [ key, console = this->console ]() mutable {
-						console.warning() << QObject::tr("Ignored device requirement \"%1\" because it is not a known requirement.").arg(key.c_str());
-					});
+					console.warning() << QObject::tr("Ignored device requirement \"%1\" because it is not a known requirement.").arg(key.c_str());
 				}
             }
             if (protocol_does_not_provide_name) {

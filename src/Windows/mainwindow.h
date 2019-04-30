@@ -82,6 +82,7 @@ class EXPORT MainWindow : public QMainWindow {
 	static QStringList validate_script(const QString &path);
 
     public slots:
+	void link_activated(const QString &path);
     void align_columns();
     void add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *communication_device);
     void append_html_to_console(QString text, QPlainTextEdit *console);
