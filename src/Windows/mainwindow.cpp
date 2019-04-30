@@ -33,6 +33,7 @@
 #include <QListView>
 #include <QMessageBox>
 #include <QProcess>
+#include <QProgressDialog>
 #include <QSettings>
 #include <QStatusBar>
 #include <QStringList>
@@ -323,23 +324,42 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(device_worker.get(), &DeviceWorker::device_discovery_done, this, &MainWindow::slot_device_discovery_done);
     refresh_devices(false);
 
-    load_scripts();
-    ui->test_simple_view->installEventFilter(this);
-    ViewMode vm = string_to_view_mode(QSettings{}.value(Globals::last_view_mode_key, "").toString());
-    if (ui->test_simple_view->count() == 0) {
-        vm = ViewMode::AllScripts;
-    }
-    if (vm == ViewMode::None) {
-        vm = ViewMode::AllScripts;
-    }
-    set_view_mode(vm);
-    set_console_view_collapse_state(QSettings{}.value(Globals::console_is_collapsed_key, true).toBool());
-    expand_from_stringlist(QSettings{}.value(Globals::expanded_paths_key, QStringList{}).toStringList());
-    set_treeview_selection_from_path(QSettings{}.value(Globals::current_tree_view_selection_key, "").toString());
-    set_list_selection_from_path(QSettings{}.value(Globals::current_list_view_selection_key, "").toString());
-    enable_run_test_button_by_script_selection();
-    enable_closed_finished_test_button_script_states();
-    enable_abort_button_script();
+	showMaximized();
+	QProgressDialog progress_bar{this};
+	progress_bar.setWindowTitle(QObject::tr("CrystalTestFramework"));
+	progress_bar.setLabelText(tr("Loading scripts ..."));
+	progress_bar.setModal(true);
+	progress_bar.show();
+	progress_bar.setValue(10);
+
+	load_scripts(&progress_bar);
+	progress_bar.setValue(50);
+	progress_bar.setMaximum(100);
+	ui->test_simple_view->installEventFilter(this);
+	ViewMode vm = string_to_view_mode(QSettings{}.value(Globals::last_view_mode_key, "").toString());
+	if (ui->test_simple_view->count() == 0) {
+		vm = ViewMode::AllScripts;
+	}
+	if (vm == ViewMode::None) {
+		vm = ViewMode::AllScripts;
+	}
+	set_view_mode(vm);
+	progress_bar.setValue(60);
+	set_console_view_collapse_state(QSettings{}.value(Globals::console_is_collapsed_key, true).toBool());
+	progress_bar.setValue(progress_bar.value() + 5);
+	expand_from_stringlist(QSettings{}.value(Globals::expanded_paths_key, QStringList{}).toStringList());
+	progress_bar.setValue(progress_bar.value() + 5);
+	set_treeview_selection_from_path(QSettings{}.value(Globals::current_tree_view_selection_key, "").toString());
+	progress_bar.setValue(progress_bar.value() + 5);
+	set_list_selection_from_path(QSettings{}.value(Globals::current_list_view_selection_key, "").toString());
+	progress_bar.setValue(progress_bar.value() + 5);
+	enable_run_test_button_by_script_selection();
+	progress_bar.setValue(progress_bar.value() + 5);
+	enable_closed_finished_test_button_script_states();
+	progress_bar.setValue(progress_bar.value() + 5);
+	enable_abort_button_script();
+	progress_bar.setValue(95);
+	QApplication::processEvents();
 }
 
 MainWindow::~MainWindow() {
@@ -411,7 +431,7 @@ std::unique_ptr<QTreeWidgetItem> *MainWindow::MainWindow::get_manual_devices_par
     return &manual_devices_parent_item;
 }
 
-void MainWindow::load_scripts() {
+void MainWindow::load_scripts(QProgressDialog *dialog) {
     assert(currently_in_gui_thread());
     bool enabled_a = ui->tbtn_refresh_scripts->isEnabled();
     bool enabled_b = ui->actionReload_All_Scripts->isEnabled();
@@ -425,9 +445,18 @@ void MainWindow::load_scripts() {
 	std::vector<std::future<TestDescriptionLoader>> threads;
     while (dit.hasNext()) {
 		auto file_path = dit.next();
-		threads.push_back(std::async(std::launch::async, [&dir, this, file_path = std::move(file_path)] {
-			return TestDescriptionLoader{ui->tests_advanced_view, file_path, QDir{dir}.relativeFilePath(file_path)};
+		threads.push_back(std::async(std::launch::async, [&dir, this, file_path = std::move(file_path), dialog] {
+			auto return_value = TestDescriptionLoader{ui->tests_advanced_view, file_path, QDir{dir}.relativeFilePath(file_path)};
+			MainWindow::execute_in_gui_thread([dialog] {
+				if (dialog) {
+					dialog->setValue(dialog->value() + 1);
+				}
+			});
+			return return_value;
 		}));
+	}
+	if (dialog) {
+		dialog->setMaximum(100 + threads.size());
 	}
 	for (auto &thread : threads) {
 		while (thread.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout) {
@@ -632,6 +661,7 @@ QStringList MainWindow::validate_script(const QString &path) {
 	luachecker.setProgram(luachecker_path);
 	luachecker.setArguments(args);
 	luachecker.start(QProcess::OpenMode::enum_type::ReadOnly);
+	luachecker.closeWriteChannel();
 	QStringList messages;
 	if (luachecker.waitForFinished(3000)) {
 		auto output = luachecker.readAllStandardOutput();

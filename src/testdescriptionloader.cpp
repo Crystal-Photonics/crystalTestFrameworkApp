@@ -7,7 +7,6 @@
 
 #include <QDebug>
 #include <QPlainTextEdit>
-#include <QProcess>
 #include <QSettings>
 #include <QStringList>
 #include <QTreeWidget>

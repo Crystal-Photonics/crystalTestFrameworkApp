@@ -13,11 +13,11 @@ static void message_handler(QtMsgType type, const QMessageLogContext &context, c
         case QtCriticalMsg:
         case QtFatalMsg: {
             qDebug() << msg;
-            auto show_message = [ msg, file = QString{context.file}, function = QString{context.function}, line = context.line ] {
-                QMessageBox::critical(MainWindow::mw, "Qt Error", '\"' + msg + '\"' + "\nwas caused by " + function + " in " + file + ":" +
-                                                                      QString::number(line) +
-                                                                      ".\n"
-                                                                      "Press CTRL+C to copy the content of this message box to your clipboard.");
+			auto show_message = [msg, file = QString{context.file}, function = QString{context.function}, line = context.line] {
+				QMessageBox::critical(MainWindow::mw, "Qt Error",
+									  '\"' + msg + '\"' + "\nwas caused by " + function + " in " + file + ":" + QString::number(line) +
+										  ".\n"
+										  "Press CTRL+C to copy the content of this message box to your clipboard.");
             };
             if (MainWindow::mw != nullptr) {
                 MainWindow::mw->execute_in_gui_thread(show_message);
@@ -27,11 +27,11 @@ static void message_handler(QtMsgType type, const QMessageLogContext &context, c
         } break;
         case QtWarningMsg: {
             qDebug() << msg;
-            auto show_message = [ msg, file = QString{context.file}, function = QString{context.function}, line = context.line ] {
-                QMessageBox::warning(MainWindow::mw, "Qt Warning", '\"' + msg + '\"' + "\nwas caused by " + function + " in " + file + ":" +
-                                                                       QString::number(line) +
-                                                                       ".\n"
-                                                                       "Press CTRL+C to copy the content of this message box to your clipboard.");
+			auto show_message = [msg, file = QString{context.file}, function = QString{context.function}, line = context.line] {
+				QMessageBox::warning(MainWindow::mw, "Qt Warning",
+									 '\"' + msg + '\"' + "\nwas caused by " + function + " in " + file + ":" + QString::number(line) +
+										 ".\n"
+										 "Press CTRL+C to copy the content of this message box to your clipboard.");
             };
             if (MainWindow::mw != nullptr) {
                 MainWindow::mw->execute_in_gui_thread(show_message);
@@ -52,7 +52,6 @@ int main(int argc, char *argv[]) {
     //QSettings::setDefaultFormat(QSettings::IniFormat); //this way we would save the settings in an ini file. but better keep it in registry to maintain compatibility
     QApplication a(argc, argv);
     MainWindow w;
-    w.showMaximized();
     //  a.setWindowIcon(QIcon("://src/icons/app_icon_multisize.png"));
     auto retval = a.exec();
     w.shutdown();
