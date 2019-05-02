@@ -30,7 +30,7 @@ struct MatchedDevice;
 class QPlainTextEdit;
 struct Console;
 namespace sol {
-	class state;
+    class state;
 }
 
 using FormID = QString;
@@ -664,16 +664,17 @@ class Data_engine {
     };
 
     public:
-	Data_engine();
+    Data_engine();
     Data_engine(std::istream &source, const QMap<QString, QList<QVariant>> &tags);
     Data_engine(std::istream &source); //for getting dummy data structure
-	~Data_engine();
-	void enable_logging(Console &console, const std::vector<MatchedDevice> &devices);
-	void set_log_file(const std::string &file_path);
+    ~Data_engine();
+    void enable_logging(Console &console, const std::vector<MatchedDevice> &devices);
+    void set_log_file(const std::string &file_path);
     void set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags);
     void set_source(std::istream &source);
     void set_script_path(QString script_path);
-    void set_source_path(QString source_path);
+
+    QString source_path;
     void start_recording_actual_value_statistic(const std::string &root_file_path, const std::string &file_prefix);
     void set_dut_identifier(QString dut_identifier);
     void save_actual_value_statistic();
@@ -716,11 +717,11 @@ class Data_engine {
     bool is_desired_value_set(const FormID &id) const;
 
     QStringList get_section_names() const;
-	Sol_table get_section_names(sol::state *lua);
+    Sol_table get_section_names(sol::state *lua);
     bool section_uses_variants(QString section_name) const;
     QStringList get_instance_captions(const QString &section_name) const;
     uint get_instance_count(const std::string &section_name) const;
-	struct Sol_table get_ids_of_section(sol::state *lua, const std::string &section_name);
+    struct Sol_table get_ids_of_section(sol::state *lua, const std::string &section_name);
     QStringList get_ids_of_section(const QString &section_name) const;
 
     void do_exceptional_approvals(ExceptionalApprovalDB &ea_db, QWidget *parent);
@@ -776,7 +777,6 @@ class Data_engine {
     DataEngineActualValueStatisticFile statistics_file;
     DataEngineSections sections;
     QString script_path;
-    QString source_path;
     quint64 load_time_seconds_since_epoch = 0;
     int generate_image(QXmlStreamWriter &xml, QString image_path, int y_position, QString parent_name) const;
     void generate_table(const DataEngineSection *section) const;
@@ -788,7 +788,7 @@ class Data_engine {
     void do_exceptional_approval_(ExceptionalApprovalDB &ea_db, QList<FailedField> failed_fields, QWidget *parent);
     int generate_static_text_field(QXmlStreamWriter &xml, int y_start, const QString static_text, TextFieldDataBandPlace actual_band_position) const;
     void assert_in_dummy_mode() const;
-	std::unique_ptr<Communication_logger> logger;
+    std::unique_ptr<Communication_logger> logger;
 };
 
 #endif // DATA_ENGINE_H

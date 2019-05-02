@@ -80,7 +80,7 @@ Data_engine::Data_engine() {}
 Data_engine::Data_engine(std::istream &source, const QMap<QString, QList<QVariant>> &tags)
     : sections{} {
     set_dependancy_tags(tags);
-	set_source(source);
+    set_source(source);
 }
 
 Data_engine::Data_engine(std::istream &source)
@@ -96,14 +96,14 @@ Data_engine::Data_engine(std::istream &source)
 Data_engine::~Data_engine() {}
 
 void Data_engine::enable_logging(Console &console, const std::vector<MatchedDevice> &devices) {
-	logger = std::make_unique<Communication_logger>(console);
-	for (auto &device : devices) {
-		logger->add(device);
-	}
+    logger = std::make_unique<Communication_logger>(console);
+    for (auto &device : devices) {
+        logger->add(device);
+    }
 }
 
 void Data_engine::set_log_file(const std::string &file_path) {
-	logger->set_log_file(file_path);
+    logger->set_log_file(file_path);
 }
 
 void Data_engine::set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags) {
@@ -148,10 +148,6 @@ void Data_engine::set_source(std::istream &source) {
 
 void Data_engine::set_script_path(QString script_path) {
     this->script_path = script_path;
-}
-
-void Data_engine::set_source_path(QString source_path) {
-    this->source_path = source_path;
 }
 
 void Data_engine::start_recording_actual_value_statistic(const std::string &root_file_path, const std::string &file_prefix) {
@@ -2012,7 +2008,8 @@ void Data_engine::fill_database(QSqlDatabase &db) const {
             Description text,
             approving_person text
         )
-    )"}.arg(exceptional_approvals_table_name));
+    )"}
+                    .arg(exceptional_approvals_table_name));
     for (const auto &ea : exceptional_approvals) {
         db_exec(db, QString{"INSERT INTO %1 VALUES(%2, '%3', '%4')"}.arg(exceptional_approvals_table_name, QString::number(ea.exceptional_approval.id),
                                                                          ea.exceptional_approval.description, ea.approving_operator_name));
@@ -3128,7 +3125,7 @@ double NumericTolerance::get_absolute_limit_beneath(const double desired) const 
         return std::numeric_limits<double>::lowest();
     }
     switch (tolerance_type) {
-		case ToleranceType::Absolute:
+        case ToleranceType::Absolute:
             return desired - deviation_limit_beneath;
 
         case ToleranceType::Percent: {
@@ -3146,7 +3143,7 @@ double NumericTolerance::get_absolute_limit_above(const double desired) const {
     }
 
     switch (tolerance_type) {
-		case ToleranceType::Absolute:
+        case ToleranceType::Absolute:
             return desired + deviation_limit_above;
 
         case ToleranceType::Percent: {
@@ -3581,23 +3578,23 @@ QString NumericDataEntry::get_desired_value_as_string() const {
     if ((bool)desired_value) {
         QString val = tolerance.to_string(desired_value.value()) + " " + unit;
         return val.trimmed();
-	}
-	return "";
+    }
+    return "";
 }
 
 QString NumericDataEntry::get_actual_values() const {
     if ((bool)actual_value) {
         QString val = QString::number(actual_value.value()) + " " + unit;
         return val.trimmed();
-	}
-	return unavailable_value;
+    }
+    return unavailable_value;
 }
 
 double NumericDataEntry::get_actual_number() const {
     if ((bool)actual_value) {
         return actual_value.value();
-	}
-	throw DataEngineError(DataEngineErrorNumber::actual_value_not_set, QString("Dataengine: Actual value of field %1 not set").arg(field_name));
+    }
+    throw DataEngineError(DataEngineErrorNumber::actual_value_not_set, QString("Dataengine: Actual value of field %1 not set").arg(field_name));
 }
 
 QString NumericDataEntry::get_description() const {
@@ -4449,7 +4446,7 @@ void DataEngineActualValueStatisticFile::close_file() {
         if (!saveFile.open(QIODevice::WriteOnly)) {
             throw DataEngineError(DataEngineErrorNumber::cannot_open_file,
                                   QString{"Dataengine: Can not open file: \"%1\" for saving actual value statistics."}.arg(used_file_name));
-			remove_lock_file(); //TODO: This will never be executed. Do we need to remove the lock file or not?
+            remove_lock_file(); //TODO: This will never be executed. Do we need to remove the lock file or not?
             return;
         }
         QJsonDocument saveDoc(data_entries);
