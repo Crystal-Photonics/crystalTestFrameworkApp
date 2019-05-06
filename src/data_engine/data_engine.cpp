@@ -4090,6 +4090,9 @@ bool ReferenceDataEntry::is_in_range() const {
     if (not_defined_yet_due_to_undefined_instance_count) {
         return false;
     }
+    if (entry == nullptr) {
+        return false;
+    }
     update_desired_value_from_reference();
     if (!entry->is_desired_value_set()) {
         return false;
@@ -4171,6 +4174,10 @@ void ReferenceDataEntry::set_actual_value(bool val) {
 
 QString ReferenceDataEntry::get_actual_values() const {
     assert_that_instance_count_is_defined();
+    if (entry ==
+        nullptr) { //this happens if for any reason the construction of the dataengine fails. (like forgotten tolerance) Then the exceptional approval tries to collect data over dead fields
+        return unavailable_value;
+    }
     return entry->get_actual_values();
 }
 
@@ -4186,6 +4193,10 @@ QString ReferenceDataEntry::get_description() const {
 
 QString ReferenceDataEntry::get_desired_value_as_string() const {
     assert_that_instance_count_is_defined();
+    if (entry ==
+        nullptr) { //this happens if for any reason the construction of the dataengine fails. (like forgotten tolerance) Then the exceptional approval tries to collect data over dead fields
+        return unavailable_value;
+    }
     update_desired_value_from_reference();
     return entry->get_desired_value_as_string();
 }
