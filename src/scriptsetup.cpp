@@ -779,6 +779,11 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                 abort_check();
                 return handle.data_engine->get_desired_value_as_string(QString::fromStdString(id)).toStdString();
             },
+            "get_desired_number",
+            [](Data_engine_handle &handle, const std::string &id) {
+                abort_check();
+                return handle.data_engine->get_desired_number(QString::fromStdString(id));
+            },
             "get_section_names",
             [&lua](Data_engine_handle &handle) {
                 abort_check();

@@ -291,7 +291,7 @@ void Test_Data_engine::check_non_faulty_field_id() {
 
     QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
-
+    QCOMPARE(de.get_desired_number("supply-voltage/voltage_test"), 5000);
     QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage"), DataEngineErrorNumber::faulty_field_id);
 
 #endif
@@ -614,6 +614,7 @@ void Test_Data_engine::test_dummy_data_generation() {
 
     Data_engine de{input};
     de.fill_engine_with_dummy_data();
+
     QVERIFY_EXCEPTION_THROWN_error_number(de.get_actual_value("supply/test_number"), DataEngineErrorNumber::is_in_dummy_mode);
     QCOMPARE(de.get_actual_dummy_value("supply/test_number"), QString("1 mV"));
     QCOMPARE(de.get_actual_dummy_value("supply/test_string"), QString("test 123"));
@@ -895,6 +896,7 @@ void Test_Data_engine::test_bool_entry() {
     Data_engine de{input, tags};
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_number("test/checked"), DataEngineErrorNumber::desired_value_is_not_a_number);
     QVERIFY(!de.value_in_range("test/checked"));
     de.set_actual_bool("test/checked", false);
     QVERIFY(de.is_complete());
@@ -904,7 +906,6 @@ void Test_Data_engine::test_bool_entry() {
     QVERIFY(de.is_complete());
     QVERIFY(de.all_values_in_range());
     QVERIFY(de.value_in_range("test/checked"));
-
 #endif
 }
 
@@ -925,6 +926,8 @@ void Test_Data_engine::test_dateime_entry() {
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
     QVERIFY(!de.value_in_range("test/date_today"));
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_number("test/date_today"), DataEngineErrorNumber::desired_value_is_not_a_number);
+
     QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_datetime("test/date_today", QDateTime());, DataEngineErrorNumber::datetime_is_not_valid);
 
     QDateTime ref_date = QDateTime::fromString("2018:01:01 13:45:50", "yyyy:MM:dd HH:mm:ss");
@@ -1891,6 +1894,11 @@ void Test_Data_engine::test_instances_with_references() {
 
     QVERIFY(!de.is_complete());
     QVERIFY(!de.all_values_in_range());
+
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_number("values/voltage_string"), DataEngineErrorNumber::desired_value_is_not_a_number);
+    QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_number("references/voltage_ref_bool"), DataEngineErrorNumber::desired_value_is_not_a_number);
+
+    QCOMPARE(de.get_desired_number("references/voltage_ref_number"), 500);
 
     de.set_actual_bool("references/voltage_ref_bool", true);
     de.set_actual_text("references/voltage_ref_string", "test123");

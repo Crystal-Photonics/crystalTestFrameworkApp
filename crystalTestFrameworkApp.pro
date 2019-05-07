@@ -10,6 +10,7 @@ TEMPLATE = subdirs
 
 
 SUBDIRS += src
+#SUBDIRS += tests
 TRAVIS = $$(TRAVIS)
 equals(TRAVIS, true){
 	SUBDIRS += tests

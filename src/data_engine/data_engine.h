@@ -128,6 +128,7 @@ enum class DataEngineErrorNumber {
     cannot_open_file,
     actual_value_not_set,
     actual_value_is_not_a_number,
+    desired_value_is_not_a_number,
     pdf_template_file_not_existing,
     inconsistant_types_across_variants,
     inconsistant_types_across_variants_and_reference_targets,
@@ -219,6 +220,7 @@ struct DataEngineDataEntry {
     virtual EntryType get_entry_type() const = 0;
     virtual QJsonObject get_specific_json_dump() const = 0;
     virtual QString get_specific_json_name() const = 0;
+    virtual double get_desired_number() const = 0;
     void set_exceptional_approval(ExceptionalApprovalResult exceptional_approval);
     const ExceptionalApprovalResult &get_exceptional_approval() const;
 
@@ -285,6 +287,7 @@ struct NumericDataEntry : DataEngineDataEntry {
     QString get_unit() const override;
     double get_si_prefix() const override;
     double get_actual_number() const override;
+    double get_desired_number() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
     void set_actual_value(double actual_value);
     EntryType get_entry_type() const override;
@@ -319,6 +322,7 @@ struct TextDataEntry : DataEngineDataEntry {
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
     double get_si_prefix() const override;
+    double get_desired_number() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
     void set_actual_value(QString actual_value);
     EntryType get_entry_type() const override;
@@ -380,6 +384,7 @@ struct DateTimeDataEntry : DataEngineDataEntry {
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
     double get_si_prefix() const override;
+    double get_desired_number() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
     void set_actual_value(DataEngineDateTime actual_value);
     EntryType get_entry_type() const override;
@@ -411,6 +416,7 @@ struct BoolDataEntry : DataEngineDataEntry {
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
     double get_si_prefix() const override;
+    double get_desired_number() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
     void set_actual_value(bool value);
     EntryType get_entry_type() const override;
@@ -451,6 +457,7 @@ struct ReferenceDataEntry : DataEngineDataEntry {
     QString get_desired_value_as_string() const override;
     QString get_unit() const override;
     double get_si_prefix() const override;
+    double get_desired_number() const override;
     EntryType get_entry_type() const override;
     bool compare_unit_desired_siprefix(const DataEngineDataEntry *from) const override;
     void set_actual_value(double number);
@@ -708,6 +715,7 @@ class Data_engine {
     QString get_actual_value(const FormID &id) const;
     QString get_actual_dummy_value(const FormID &id) const;
     double get_actual_number(const FormID &id) const;
+    double get_desired_number(const FormID &id) const;
     QString get_description(const FormID &id) const;
     QString get_desired_value_as_string(const FormID &id) const;
     QString get_unit(const FormID &id) const;

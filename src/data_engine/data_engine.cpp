@@ -1671,6 +1671,14 @@ double Data_engine::get_actual_number(const FormID &id) const {
     return result;
 }
 
+double Data_engine::get_desired_number(const FormID &id) const {
+    assert_not_in_dummy_mode();
+    auto data_entry = sections.get_actual_instance_entry_const(id);
+    assert(data_entry);
+    auto result = data_entry->get_desired_number();
+    return result;
+}
+
 QString Data_engine::get_description(const FormID &id) const {
     assert_not_in_dummy_mode();
     auto data_entry = sections.get_actual_instance_entry_const(id);
@@ -3597,6 +3605,10 @@ double NumericDataEntry::get_actual_number() const {
     throw DataEngineError(DataEngineErrorNumber::actual_value_not_set, QString("Dataengine: Actual value of field %1 not set").arg(field_name));
 }
 
+double NumericDataEntry::get_desired_number() const {
+    return desired_value.value();
+}
+
 QString NumericDataEntry::get_description() const {
     return description;
 }
@@ -3739,6 +3751,11 @@ double TextDataEntry::get_si_prefix() const {
     return 1;
 }
 
+double TextDataEntry::get_desired_number() const {
+    throw DataEngineError(DataEngineErrorNumber::desired_value_is_not_a_number,
+                          QString("Dataengine: Desired value of field %1 not a number, it is text").arg(field_name));
+}
+
 bool TextDataEntry::compare_unit_desired_siprefix(const DataEngineDataEntry *from) const {
     auto const from_text = dynamic_cast<const TextDataEntry *>(from);
     if (from_text == nullptr) {
@@ -3849,6 +3866,11 @@ QString DateTimeDataEntry::get_unit() const {
 
 double DateTimeDataEntry::get_si_prefix() const {
     return 1;
+}
+
+double DateTimeDataEntry::get_desired_number() const {
+    throw DataEngineError(DataEngineErrorNumber::desired_value_is_not_a_number,
+                          QString("Dataengine: Desired value of field %1 not a number, it is datetime").arg(field_name));
 }
 
 bool DateTimeDataEntry::compare_unit_desired_siprefix(const DataEngineDataEntry *from) const {
@@ -3979,6 +4001,11 @@ QString BoolDataEntry::get_unit() const {
 
 double BoolDataEntry::get_si_prefix() const {
     return 1;
+}
+
+double BoolDataEntry::get_desired_number() const {
+    throw DataEngineError(DataEngineErrorNumber::desired_value_is_not_a_number,
+                          QString("Dataengine: Desired value of field %1 not a number, it is bool").arg(field_name));
 }
 
 bool BoolDataEntry::compare_unit_desired_siprefix(const DataEngineDataEntry *from) const {
@@ -4211,6 +4238,12 @@ double ReferenceDataEntry::get_si_prefix() const {
     assert_that_instance_count_is_defined();
     assert(entry_target);
     return entry_target->get_si_prefix();
+}
+
+double ReferenceDataEntry::get_desired_number() const {
+    assert_that_instance_count_is_defined();
+    assert(entry_target);
+    return entry_target->get_desired_number();
 }
 
 EntryType ReferenceDataEntry::get_entry_type() const {
