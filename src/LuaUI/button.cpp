@@ -45,3 +45,8 @@ void Button::set_visible(bool visible) {
     button->setVisible(visible);
     assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
+
+void Button::set_enabled(bool enabled) {
+    button->setEnabled(enabled);
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+}

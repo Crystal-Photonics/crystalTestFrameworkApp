@@ -1,21 +1,21 @@
 #ifndef BUTTON_H
 #define BUTTON_H
 
-#include <QMetaObject>
-#include <functional>
-#include <string>
-#include <QPushButton>
 #include "scriptengine.h"
 #include "ui_container.h"
+#include <QMetaObject>
+#include <QPushButton>
+#include <functional>
+#include <string>
 
 /** \defgroup ui User-intercation
  *  Interface of built-in user interface functions.
  *  \{
  */
 
-struct Button : public UI_widget{
+struct Button : public UI_widget {
     ///\cond HIDDEN_SYMBOLS
-    Button(UI_container *parent, ScriptEngine* script_engine,  const std::string &title);
+    Button(UI_container *parent, ScriptEngine *script_engine, const std::string &title);
     ///\endcond
     ~Button();
 
@@ -31,16 +31,16 @@ struct Button : public UI_widget{
 
     void await_click();
 
-
-public:
+    public:
     void set_visible(bool visible);
+    void set_enabled(bool enabled);
     void reset_click_state();
-private:
+
+    private:
     QPushButton *button = nullptr;
     QMetaObject::Connection pressed_connection;
     bool pressed = false;
-    ScriptEngine* script_engine;
-
+    ScriptEngine *script_engine;
 };
 
 /** \} */ // end of group ui

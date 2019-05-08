@@ -452,6 +452,10 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             abort_check();
             return table_sum(table);
         };
+        lua["table_find_string"] = [](sol::table table, std::string search_text) {
+            abort_check();
+            return table_find_string(table, search_text);
+        };
 
         lua["table_crc16"] = [console = script_engine.console.get_plaintext_edit()](sol::table table) {
             abort_check();
@@ -1268,6 +1272,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                                                       "has_been_clicked",
                                                       thread_call_wrapper(&Button::has_been_clicked),                       //
                                                       "set_visible", thread_call_wrapper(&Button::set_visible),             //
+                                                      "set_enabled", thread_call_wrapper(&Button::set_enabled),             //
                                                       "reset_click_state", thread_call_wrapper(&Button::reset_click_state), //
                                                       "await_click", non_gui_call_wrapper(&Button::await_click)             //
         );
