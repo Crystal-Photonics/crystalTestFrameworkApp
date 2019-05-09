@@ -14,7 +14,7 @@
 #include <QTemporaryFile>
 #include <sstream>
 
-#define DISABLE_ALL 0
+#define DISABLE_ALL 1
 //
 #define QVERIFY_EXCEPTION_THROWN_error_number(expression, error_number)                                                                                        \
     do {                                                                                                                                                       \
@@ -1356,13 +1356,14 @@ void Test_Data_engine::test_instances_with_different_variants_and_references_fai
 }
 
 void Test_Data_engine::test_instances_with_different_variants_and_references_and_different_signatures() {
-#if !DISABLE_ALL || 0
+#if !DISABLE_ALL || 1
 
     std::stringstream input{R"(
 {
     "referenzen":{
         "data":[
-            {	"name": "test_number_ref",          "value": "[supply_variants/voltageB.desired]",    "tolerance": 20,        	"nice_name": "Referenz zum bool AO ist"         }
+            {	"name": "test_number_ref",          "value": "[supply_variants/voltageB.desired]",    "tolerance": 20,        	"nice_name": "Referenz zum bool AO ist"         },
+            {	"name": "test_number_ref_tolerance_inherited",          "value": "[supply_variants/voltageA.desired]",    "tolerance": "[inherited]",        	"nice_name": "Referenz zum bool AO ist"         }
 
         ]
     },
@@ -1402,8 +1403,14 @@ void Test_Data_engine::test_instances_with_different_variants_and_references_and
     de.set_instance_count("probe_count", 2);
 
     de.set_actual_number("referenzen/test_number_ref", 5);
-
     de.set_actual_number("supply_variants/voltageA", 4);
+
+    de.set_actual_number("referenzen/test_number_ref_tolerance_inherited", 4.21);
+    QVERIFY(!de.value_in_range("referenzen/test_number_ref_tolerance_inherited"));
+    de.set_actual_number("referenzen/test_number_ref_tolerance_inherited", 4.0);
+    QVERIFY(de.value_in_range("referenzen/test_number_ref_tolerance_inherited"));
+    de.set_actual_number("referenzen/test_number_ref_tolerance_inherited", 4.199);
+    QVERIFY(de.value_in_range("referenzen/test_number_ref_tolerance_inherited"));
 
     QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("supply_variants/voltageB", 4);, DataEngineErrorNumber::no_field_id_found);
 

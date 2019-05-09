@@ -3256,7 +3256,7 @@ QString NumericTolerance::to_string(const double desired_value) const {
 }
 
 bool NumericTolerance::is_defined() const {
-    return !is_undefined;
+    return !is_undefined || is_inherited_by_reference_targed;
 }
 
 QJsonObject NumericTolerance::get_json(double desirec_value) const {
@@ -3522,11 +3522,15 @@ std::unique_ptr<DataEngineDataEntry> DataEngineDataEntry::from_json(const QJsonO
                         tol = QString::number(object.value(key).toDouble());
                     } else if (object.value(key).isString()) {
                         tol = object.value(key).toString();
+
                     } else {
                         throw DataEngineError(DataEngineErrorNumber::tolerance_parsing_error, "Dataengine: wrong tolerance type");
                     }
-
-                    tolerance.from_string(tol);
+                    if (tol == "[inherited]") {
+                        tolerance.is_inherited_by_reference_targed = true;
+                    } else {
+                        tolerance.from_string(tol);
+                    }
                 } else if (key == "value") {
                     reference_string = object.value(key).toString();
 
@@ -3648,6 +3652,10 @@ EntryType NumericDataEntry::get_entry_type() const {
 
 bool NumericDataEntry::is_desired_value_set() const {
     return (bool)desired_value;
+}
+
+NumericTolerance NumericDataEntry::get_tolerance() const {
+    return tolerance;
 }
 
 QJsonObject NumericDataEntry::get_specific_json_dump() const {
@@ -4324,6 +4332,9 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections, const bool is
                 QString("Dataengine: reference \"%1\" pointing to \"%2\", is a number but has no tolerance defined. A tolerance must be defined on numbers.")
                     .arg(field_name)
                     .arg(reference_links[0].link));
+        }
+        if (tolerance.is_inherited_by_reference_targed) {
+            tolerance = num_entry->get_tolerance();
         }
         entry = std::make_unique<NumericDataEntry>("", temp_desired_value, tolerance, num_entry->unit, num_entry->get_si_prefix(), description);
     } else if (text_entry) {

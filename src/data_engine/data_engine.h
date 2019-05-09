@@ -255,6 +255,7 @@ struct NumericTolerance {
     QString to_string(const double desired_value) const;
     bool is_defined() const;
     QJsonObject get_json(double desirec_value) const;
+    bool is_inherited_by_reference_targed = false;
 
     private:
     bool is_undefined = true;
@@ -292,7 +293,7 @@ struct NumericDataEntry : DataEngineDataEntry {
     void set_actual_value(double actual_value);
     EntryType get_entry_type() const override;
     bool is_desired_value_set() const override;
-
+    NumericTolerance get_tolerance() const;
     QJsonObject get_specific_json_dump() const override;
     QString get_specific_json_name() const override;
 
