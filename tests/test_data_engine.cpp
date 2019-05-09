@@ -1363,7 +1363,7 @@ void Test_Data_engine::test_instances_with_different_variants_and_references_and
     "referenzen":{
         "data":[
             {	"name": "test_number_ref",          "value": "[supply_variants/voltageB.desired]",    "tolerance": 20,        	"nice_name": "Referenz zum bool AO ist"         },
-            {	"name": "test_number_ref_tolerance_inherited",          "value": "[supply_variants/voltageA.desired]",    "tolerance": "[inherited]",        	"nice_name": "Referenz zum bool AO ist"         }
+            {	"name": "test_number_ref_tolerance_inherited",          "value": "[supply_variants/voltageA.desired]",    "tolerance": "[inherited]",        	"nice_name": "[inherited]"         }
 
         ]
     },
@@ -1411,6 +1411,7 @@ void Test_Data_engine::test_instances_with_different_variants_and_references_and
     QVERIFY(de.value_in_range("referenzen/test_number_ref_tolerance_inherited"));
     de.set_actual_number("referenzen/test_number_ref_tolerance_inherited", 4.199);
     QVERIFY(de.value_in_range("referenzen/test_number_ref_tolerance_inherited"));
+    QCOMPARE(de.get_description("referenzen/test_number_ref_tolerance_inherited"), QString("Variable Instances. Two Variants. This variant is chosen"));
 
     QVERIFY_EXCEPTION_THROWN_error_number(de.set_actual_number("supply_variants/voltageB", 4);, DataEngineErrorNumber::no_field_id_found);
 

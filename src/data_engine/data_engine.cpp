@@ -4352,6 +4352,9 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections, const bool is
     } else {
         assert(0); //TODO: throw illegal type
     }
+    if (description == "[inherited]") {
+        description = entry_target->get_description();
+    }
     if (!num_entry) {
         if (tolerance.is_defined()) {
             throw DataEngineError(
