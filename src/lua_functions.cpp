@@ -1211,50 +1211,30 @@ number_table table_add_table_at(number_table input_values_a, number_table input_
 /// @cond HIDDEN_SYMBOLS
 
 sol::table table_add_table_at(sol::state &lua, sol::table input_values_a, sol::table input_values_b, unsigned int at) {
+	//adds a table values input_values_a at a given position at to input_values_b
+	//missing values are assumed to be 0
+	//does not modify original tables but returns a copy with the sum
     if (at < 1) {
-        throw std::runtime_error("table_add_table_at: at index must be > 0 but is " + QString::number(at).toStdString() + ".");
+		throw std::runtime_error("table_add_table_at: at index must be > 0 but is " + std::to_string(at) + ".");
     }
+	if (at > 1000000) { //this was probably an underflow
+		throw std::runtime_error("table_add_table_at: at index must be <= 1000000 but is " + std::to_string(at) + ". Did you accidentally cause an underflow?");
+	}
 
     sol::table retval = lua.create_table_with();
-    for (size_t i = 1; i <= at - 1; i++) {
-        if (i <= input_values_a.size()) {
-            retval.add(input_values_a[i].get<double>());
-        } else {
-            retval.add(0);
-        }
-    }
 
-    int overlap_count = input_values_a.size() - at + 1;
-    if (overlap_count > (int)input_values_b.size()) {
-        overlap_count = input_values_b.size();
-    }
+	auto get_number_or_0 = [](const sol::table &table, std::size_t index) {
+		qDebug() << "Getting index" << index << "from table" << &table;
+		if (1 <= index && index <= table.size()) {
+			return table[index].get<double>();
+		}
+		return 0.;
+	};
 
-    for (int i = 1; i <= overlap_count; i++) {
-        double val_a = 0;
-        size_t index_a = i + (at - 1);
-        if (index_a <= input_values_a.size()) {
-            val_a = input_values_a[index_a].get<double>();
-        }
-
-        double sum_i = val_a + input_values_b[i].get<double>();
-        retval.add(sum_i);
-    }
-
-    for (size_t i = at + input_values_b.size(); i <= input_values_a.size(); i++) {
-        retval.add(input_values_a[i].get<double>());
-    }
-
-    if (at - 1 + input_values_b.size() > input_values_a.size()) {
-        int extra_start_of_b = input_values_a.size() - at + 1;
-
-        for (int i = extra_start_of_b; i < (int)input_values_b.size(); i++) {
-            if (i < 1) {
-                retval.add(0);
-            } else {
-                retval.add(input_values_b[i + 1].get<double>());
-            }
-        }
-    }
+	const std::size_t result_size = std::max(input_values_a.size(), input_values_b.size() + at - 1);
+	for (size_t i = 1; i <= result_size; i++) {
+		retval.add(get_number_or_0(input_values_a, i) + get_number_or_0(input_values_b, i - at + 1));
+	}
     return retval;
 }
 /// @endcond
