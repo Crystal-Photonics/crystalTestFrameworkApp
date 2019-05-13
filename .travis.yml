@@ -39,7 +39,7 @@ install:
   - cd build/googletest
   - pwd
   - quietly cmake -DCMAKE_CXX_FLAGS=$CXX_FLAGS ../../../googletest/
-  - quietly make -j$(nproc)
+  - quietly make
   - sudo quietly make install
  
   
@@ -106,7 +106,7 @@ script:
   - cd $TRAVIS_BUILD_DIR
   - export SANITIZER=undefined
   - qmake "CONFIG+=debug"
-  - quietly make -j
+  - quietly make
   #- tree $TRAVIS_BUILD_DIR
   
   - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/bin/debug/:$LD_LIBRARY_PATH
@@ -135,7 +135,7 @@ script:
   - rm .qmake.stash
   - qmake "CONFIG+=debug"
   - make -p | grep test
-  - quietly make -j
+  - quietly make
   - cd $TRAVIS_BUILD_DIR/bin/debug/
   - xvfb-run --auto-servernum ./tests
 
@@ -145,7 +145,7 @@ script:
   - make clean
   - rm .qmake.stash
   - qmake "CONFIG+=debug"
-  - quietly make -j
+  - quietly make
   - cd $TRAVIS_BUILD_DIR/bin/debug/
   - xvfb-run --auto-servernum ./tests
 
