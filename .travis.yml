@@ -1,6 +1,6 @@
 language: cpp
 sudo: required
-dist: trusty
+dist: xenial
 git:
   submodules: true
 cache:
@@ -13,7 +13,7 @@ before_install:
   - sudo mv quietly /usr/bin
 
   - which git
-  - sudo add-apt-repository --yes ppa:beineri/opt-qt58-trusty
+  - sudo add-apt-repository --yes ppa:beineri/opt-qt-5.12.3-xenial
   - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
   - sudo add-apt-repository --yes ppa:jonathonf/binutils
   - sudo apt-get update -qq
@@ -23,14 +23,14 @@ install:
   - sudo quietly apt-get install -qq g++-7 gcc-7 gdb binutils
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 90
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 90
-  - sudo quietly aptitude -f install -q -q -y qt58base qt58serialport qt58script qt58svg qt58tools libusb-1.0-0-dev tree xvfb
+  - sudo quietly aptitude -f install -q -q -y qt512base qt512serialport qt512script qt512svg qt512tools libusb-1.0-0-dev tree xvfb
   - g++ --version
   - gcc --version
   
   
   
   
-  - source /opt/qt58/bin/qt58-env.sh
+  - source /opt/qt512/bin/qt512-env.sh
 
   - #install gtest and gmock
   - cd $TRAVIS_BUILD_DIR/libs/googletest/
@@ -95,7 +95,7 @@ install:
 
 
 script:
- # - source /opt/qt58/bin/qt58-env.sh
+ # - source /opt/qt512/bin/qt512-env.sh
  #build limereport
   - cd $TRAVIS_BUILD_DIR/libs/LimeReport/
   - cp $TRAVIS_BUILD_DIR/libs/travis_limereport.pro limereport.pro || true
