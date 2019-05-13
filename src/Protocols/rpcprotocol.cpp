@@ -10,6 +10,7 @@
 #include "rpcruntime_encoded_function_call.h"
 #include "rpcruntime_encoder.h"
 #include "rpcruntime_protocol_description.h"
+
 #include <QByteArray>
 #include <QDateTime>
 #include <QDebug>
@@ -21,6 +22,7 @@
 #include <QTreeWidgetItem>
 #include <cassert>
 #include <fstream>
+#include <sol.hpp>
 
 using namespace std::chrono_literals;
 

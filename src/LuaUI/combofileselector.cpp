@@ -1,7 +1,7 @@
 #include "combofileselector.h"
+#include "Windows/mainwindow.h"
 #include "ui_container.h"
 
-#include "Windows/mainwindow.h"
 #include <QDir>
 #include <QHBoxLayout>
 #include <QMessageBox>
@@ -10,10 +10,11 @@
 #include <QStandardPaths>
 #include <QStringList>
 #include <QWidget>
+#include <sol.hpp>
 
 #if 1
 //from http://stackoverflow.com/questions/3490336/how-to-reveal-in-finder-or-show-in-explorer-with-qt
-void showInGraphicalShell(QWidget *parent, const QString &pathIn) {
+static void showInGraphicalShell(QWidget *parent, const QString &pathIn) {
 // Mac, Windows support folder or file.
 #if defined(Q_OS_WIN)
     const QString explorer = QStandardPaths::findExecutable(QLatin1String("explorer.exe"));

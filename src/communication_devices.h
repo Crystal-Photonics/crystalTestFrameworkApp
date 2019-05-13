@@ -5,7 +5,7 @@
 #include "Protocols/scpiprotocol.h"
 #include "Protocols/sg04countprotocol.h"
 
-#include <sol.hpp>
+#include <sol_forward.hpp>
 #include <string>
 
 struct SCPIDevice {

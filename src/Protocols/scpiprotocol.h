@@ -7,7 +7,7 @@
 #include "scpimetadata.h"
 #include <chrono>
 #include <memory>
-#include <sol.hpp>
+#include <sol_forward.hpp>
 
 class QTreeWidgetItem;
 
