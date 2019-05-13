@@ -23,7 +23,7 @@ install:
   - sudo quietly apt-get install -qq g++-7 gcc-7 gdb binutils
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 90
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 90
-  - sudo quietly aptitude -f install -q -q -y qt512base qt512serialport qt512script qt512svg qt512tools libusb-1.0-0-dev tree xvfb mesa-common-dev
+  - sudo quietly aptitude -f install -q -q -y qt512base qt512serialport qt512script qt512svg qt512tools libusb-1.0-0-dev tree xvfb mesa-common-dev libglu1-mesa-dev freeglut3-dev
   - g++ --version
   - gcc --version
   
