@@ -1509,45 +1509,46 @@ Data_engine_handle::~Data_engine_handle() {
         return;
     }
     ExceptionalApprovalDB ea_db{QSettings{}.value(Globals::path_to_excpetional_approval_db_key, "").toString()};
-    data_engine->do_exceptional_approvals(ea_db, MainWindow::mw);
-    data_engine->save_actual_value_statistic();
-    if (data_engine_pdf_template_path.count() and data_engine_auto_dump_path.count()) {
-        QFileInfo fi(data_engine_auto_dump_path);
-        QString suffix = fi.completeSuffix();
-        if (suffix == "") {
-            QString path = append_separator_to_path(fi.absoluteFilePath());
-            path += "report.pdf";
-            fi.setFile(path);
-        }
-        //fi.baseName("/home/abc/report.pdf") = "report"
-        //fi.absolutePath("/home/abc/report.pdf") = "/home/abc/"
-
-        std::string target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
-        target_filename.resize(target_filename.size() - 4);
-
-        try {
-            data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
-            data_engine->set_log_file(target_filename + "_log.txt");
-            if (additional_pdf_path.count()) {
-                QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
+    try {
+        data_engine->do_exceptional_approvals(ea_db, MainWindow::mw);
+        data_engine->save_actual_value_statistic();
+        if (data_engine_pdf_template_path.count() and data_engine_auto_dump_path.count()) {
+            QFileInfo fi(data_engine_auto_dump_path);
+            QString suffix = fi.completeSuffix();
+            if (suffix == "") {
+                QString path = append_separator_to_path(fi.absoluteFilePath());
+                path += "report.pdf";
+                fi.setFile(path);
             }
-        } catch (const DataEngineError &dee) {
-            Utility::promised_thread_call(MainWindow::mw, [this, &dee] { console->error() << dee.what(); });
+            //fi.baseName("/home/abc/report.pdf") = "report"
+            //fi.absolutePath("/home/abc/report.pdf") = "/home/abc/"
+
+            std::string target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".pdf");
+            target_filename.resize(target_filename.size() - 4);
+
+            try {
+                data_engine->generate_pdf(data_engine_pdf_template_path.toStdString(), target_filename + ".pdf");
+                data_engine->set_log_file(target_filename + "_log.txt");
+                if (additional_pdf_path.count()) {
+                    QFile::copy(QString::fromStdString(target_filename), additional_pdf_path);
+                }
+            } catch (const DataEngineError &dee) {
+                Utility::promised_thread_call(MainWindow::mw, [this, &dee] { console->error() << dee.what(); });
+            }
         }
-    }
-    if (data_engine_auto_dump_path.count()) {
-        QFileInfo fi(data_engine_auto_dump_path);
-        QString suffix = fi.completeSuffix();
-        if (suffix == "") {
-            QString path = append_separator_to_path(fi.absoluteFilePath());
-            path += "dump.json";
-            fi.setFile(path);
-        }
-        std::string json_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".json");
-        try {
+        if (data_engine_auto_dump_path.count()) {
+            QFileInfo fi(data_engine_auto_dump_path);
+            QString suffix = fi.completeSuffix();
+            if (suffix == "") {
+                QString path = append_separator_to_path(fi.absoluteFilePath());
+                path += "dump.json";
+                fi.setFile(path);
+            }
+            std::string json_target_filename = propose_unique_filename_by_datetime(fi.absolutePath().toStdString(), fi.baseName().toStdString(), ".json");
+
             data_engine->save_to_json(QString::fromStdString(json_target_filename));
-        } catch (const DataEngineError &e) {
-            console->error() << e.what();
         }
+    } catch (const DataEngineError &e) {
+        console->error() << e.what();
     }
 }
