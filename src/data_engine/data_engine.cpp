@@ -4307,8 +4307,12 @@ void ReferenceDataEntry::dereference(DataEngineSections *sections, const bool is
     if (have_entries_equal_desired_values(targets)) {
         entry_target = const_cast<DataEngineDataEntry *>(targets[0]);
     } else {
-        throw DataEngineError(DataEngineErrorNumber::reference_pointing_to_multiinstance_with_different_values,
-                              QString("Dataengine: Reference \"%1\" points to multiinstance with different values. This is not allowed.").arg(field_name));
+        if (is_dummy_mode) {
+            entry_target = const_cast<DataEngineDataEntry *>(targets[0]);
+        } else {
+            throw DataEngineError(DataEngineErrorNumber::reference_pointing_to_multiinstance_with_different_values,
+                                  QString("Dataengine: Reference \"%1\" points to multiinstance with different values. This is not allowed.").arg(field_name));
+        }
     }
 
     if (reference_links[0].value == ReferenceLink::ReferenceValue::DesiredValue) {
