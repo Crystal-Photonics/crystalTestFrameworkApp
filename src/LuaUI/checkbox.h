@@ -5,7 +5,7 @@
 
 #include "ui_container.h"
 
-class CheckBox : public UI_widget{
+class CheckBox : public UI_widget {
     public:
     ///\cond HIDDEN_SYMBOLS
     CheckBox(UI_container *parent, const std::string text);
@@ -17,7 +17,9 @@ class CheckBox : public UI_widget{
     std::string get_text() const;
 
     void set_visible(bool visible);
-private:
+    void set_enabled(bool enable);
+
+    private:
     QCheckBox *checkbox = nullptr;
 };
 

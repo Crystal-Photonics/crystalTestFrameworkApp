@@ -54,3 +54,8 @@ void CheckBox::set_visible(bool visible) {
     assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     checkbox->setVisible(visible);
 }
+
+void CheckBox::set_enabled(bool enable) {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+    checkbox->setEnabled(enable);
+}

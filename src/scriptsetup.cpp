@@ -1248,6 +1248,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                                                         "get_checked", thread_call_wrapper(&CheckBox::get_checked), //
                                                         "set_visible", thread_call_wrapper(&CheckBox::set_visible), //
                                                         "set_text", thread_call_wrapper(&CheckBox::set_text),       //
+                                                        "set_enabled", thread_call_wrapper(&CheckBox::set_enabled), //
                                                         "get_text", thread_call_wrapper(&CheckBox::get_text));
     }
     //bind Image
