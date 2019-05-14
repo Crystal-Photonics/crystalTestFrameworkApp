@@ -252,7 +252,7 @@ DataEngineSection *DataEngineSections::get_section(const FormID &id) const {
     DecodecFieldID field_id = decode_field_id(id);
     DataEngineSection *result_section = get_section_raw(field_id.section_name, &error_num);
     if (result_section == nullptr)
-        throw DataEngineError(DataEngineErrorNumber::no_section_id_found, "Dataengine: Section not found");
+        throw DataEngineError(DataEngineErrorNumber::no_section_id_found, "Dataengine: Section not found (" + field_id.section_name + ")");
     return result_section;
 }
 
