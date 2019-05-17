@@ -150,6 +150,7 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
     const unsigned int INTEGRATION_TIME_HIGH_DEF_SEC = 10;
     double noise_level_result = 100000000;
     //TODO: test if dacs_quantity > 1
+
     std::vector<unsigned int> dac_thresholds = measure_noise_level_distribute_tresholds(dacs_quantity, 0, max_possible_dac_value);
 
     for (unsigned int i = 0; i < max_possible_dac_value; i++) {
@@ -157,13 +158,27 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
         for (auto j : dac_thresholds) {
             dac_thresholds_lua_table.add(j);
         }
-        sol::table counts =
-            lua["callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts"](rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_SEC, 0);
+        sol::table counts = sol_call<sol::table>(lua, "callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts", rpc_device,
+                                                 dac_thresholds_lua_table, INTEGRATION_TIME_SEC, 0);
+
+#if 0
+        sol::protected_function callback = lua["callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts"];
+        sol::protected_function_result result = callback(rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_SEC, 0);
+
+        if (result.valid() == false) {
+            qDebug() << "result.get_type:" << (int)result.get_type();
+            qDebug() << "result.status:" << (int)result.status();
+            throw std::runtime_error(
+                "callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts() returned an invalid value. (e.g nil) Most likely this function has "
+                "crashed.");
+        }
+        sol::table counts = result;
+#endif
         //print counts here
-        //for (auto &j : counts) {
-        //    double val = std::abs(j.second.as<double>());
-        //    qDebug() << val;
-        // }
+        for (auto &j : counts) {
+            double val = std::abs(j.second.as<double>());
+            qDebug() << val;
+        }
         double window_start = 0;
         double window_end = 0;
 
@@ -171,14 +186,14 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
             if (counts[j + 1].get<double>() > THRESHOLD_NOISE_LEVEL_CPS) {
                 window_start = dac_thresholds[j];
                 window_end = window_start + (dac_thresholds[1] - dac_thresholds[0]);
-                //print("window_start",window_start)
-                //print("window_end",window_end)
+                qDebug() << "window_start" << window_start;
+                qDebug() << "window_end" << window_end;
                 break;
             }
         }
         dac_thresholds = measure_noise_level_distribute_tresholds(dacs_quantity, window_start, window_end);
 
-        //print("new threshold:", DAC_THRESHOLDS)
+        qDebug() << "new threshold:"; // << dac_thresholds;
 
         if (dac_thresholds[0] == dac_thresholds[dacs_quantity - 1]) {
             noise_level_result = dac_thresholds[0];
@@ -186,16 +201,32 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
         }
     }
 
-    //feinabstung und und Plausibilitätsprüfung
+    //feinabstung und Plausibilitätsprüfung
     for (unsigned int i = 0; i < max_possible_dac_value; i++) {
         sol::table dac_thresholds_lua_table = lua.create_table_with();
-        ;
         for (unsigned int i = 0; i < dacs_quantity; i++) {
-            dac_thresholds_lua_table.add(noise_level_result);
+            dac_thresholds_lua_table.add(uint(round(noise_level_result)));
         }
         //print("DAC:",rauschkante)
-        sol::table counts = lua["callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts"](
-            rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_HIGH_DEF_SEC, INTEGRATION_TIME_HIGH_DEF_SEC * THRESHOLD_NOISE_LEVEL_CPS);
+        sol::table counts =
+            sol_call<sol::table>(lua, "callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts", rpc_device, dac_thresholds_lua_table,
+                                 INTEGRATION_TIME_HIGH_DEF_SEC, INTEGRATION_TIME_HIGH_DEF_SEC * THRESHOLD_NOISE_LEVEL_CPS);
+#if 0
+         sol::protected_function callback = lua["callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts"];
+        sol::protected_function_result result =
+            callback(rpc_device, dac_thresholds_lua_table, INTEGRATION_TIME_HIGH_DEF_SEC, INTEGRATION_TIME_HIGH_DEF_SEC * THRESHOLD_NOISE_LEVEL_CPS);
+
+
+        if (result.valid() == false) {
+            qDebug() << "result.get_type:" << (int)result.get_type();
+            qDebug() << "result.status:" << (int)result.status();
+            throw std::runtime_error(
+                "callback_measure_noise_level_set_dac_thresholds_and_get_raw_counts() returned an invalid value. (e.g nil) Most likely this function has "
+                "crashed.");
+        }
+
+        sol::table counts = result;
+#endif
         bool found = true;
         for (auto &j : counts) {
             double val = j.second.as<double>() / INTEGRATION_TIME_HIGH_DEF_SEC;
@@ -210,7 +241,21 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
             break;
         }
     }
-    lua["callback_measure_noise_level_restore_dac_thresholds_to_normal_mode"](rpc_device);
+    sol_call(lua, "callback_measure_noise_level_restore_dac_thresholds_to_normal_mode", rpc_device);
+
+#if 0
+    sol::protected_function callback = lua["callback_measure_noise_level_restore_dac_thresholds_to_normal_mode"];
+    sol::protected_function_result result = callback(rpc_device);
+    if (result.valid() == false) {
+        qDebug() << "result.get_type:" << (int)result.get_type();
+        qDebug() << "result.status:" << (int)result.status();
+        throw std::runtime_error(
+            "callback_measure_noise_level_restore_dac_thresholds_to_normal_mode() returned an invalid value.Most likely this function has "
+            "crashed.");
+    }
+#endif
+
+    //lua["callback_measure_noise_level_restore_dac_thresholds_to_normal_mode"](rpc_device);
     return noise_level_result;
 }
 /// @endcond
@@ -1211,30 +1256,30 @@ number_table table_add_table_at(number_table input_values_a, number_table input_
 /// @cond HIDDEN_SYMBOLS
 
 sol::table table_add_table_at(sol::state &lua, sol::table input_values_a, sol::table input_values_b, unsigned int at) {
-	//adds a table values input_values_a at a given position at to input_values_b
-	//missing values are assumed to be 0
-	//does not modify original tables but returns a copy with the sum
+    //adds a table values input_values_a at a given position at to input_values_b
+    //missing values are assumed to be 0
+    //does not modify original tables but returns a copy with the sum
     if (at < 1) {
-		throw std::runtime_error("table_add_table_at: at index must be > 0 but is " + std::to_string(at) + ".");
+        throw std::runtime_error("table_add_table_at: at index must be > 0 but is " + std::to_string(at) + ".");
     }
-	if (at > 1000000) { //this was probably an underflow
-		throw std::runtime_error("table_add_table_at: at index must be <= 1000000 but is " + std::to_string(at) + ". Did you accidentally cause an underflow?");
-	}
+    if (at > 1000000) { //this was probably an underflow
+        throw std::runtime_error("table_add_table_at: at index must be <= 1000000 but is " + std::to_string(at) + ". Did you accidentally cause an underflow?");
+    }
 
     sol::table retval = lua.create_table_with();
 
-	auto get_number_or_0 = [](const sol::table &table, std::size_t index) {
-		qDebug() << "Getting index" << index << "from table" << &table;
-		if (1 <= index && index <= table.size()) {
-			return table[index].get<double>();
-		}
-		return 0.;
-	};
+    auto get_number_or_0 = [](const sol::table &table, std::size_t index) {
+        qDebug() << "Getting index" << index << "from table" << &table;
+        if (1 <= index && index <= table.size()) {
+            return table[index].get<double>();
+        }
+        return 0.;
+    };
 
-	const std::size_t result_size = std::max(input_values_a.size(), input_values_b.size() + at - 1);
-	for (size_t i = 1; i <= result_size; i++) {
-		retval.add(get_number_or_0(input_values_a, i) + get_number_or_0(input_values_b, i - at + 1));
-	}
+    const std::size_t result_size = std::max(input_values_a.size(), input_values_b.size() + at - 1);
+    for (size_t i = 1; i <= result_size; i++) {
+        retval.add(get_number_or_0(input_values_a, i) + get_number_or_0(input_values_b, i - at + 1));
+    }
     return retval;
 }
 /// @endcond
