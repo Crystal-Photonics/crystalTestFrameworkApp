@@ -10,7 +10,7 @@
 #include "rpcruntime_protcol.h"
 #include "rpcruntime_protocol_description.h"
 #include <memory>
-#include <sol.hpp>
+#include <sol_forward.hpp>
 
 class QTreeWidgetItem;
 class RPCRuntimeEncodedFunctionCall;

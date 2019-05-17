@@ -74,26 +74,26 @@ template <class T>
 int Lua_UI_Wrapper<T>::id_counter;
 
 namespace detail {
-    //this might be replacable by std::invoke once C++17 is available
-    template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs, std::size_t... I>
-    static ReturnType call_helper(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<ParamArgs...> const &params, std::index_sequence<I...>) {
-        return (ui.*func)(std::get<I>(params)...);
-    }
-    template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs, std::size_t... I>
-    static ReturnType call_helper(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<ParamArgs...> const &params, std::index_sequence<I...>) {
-        return (ui.*func)(std::get<I>(params)...);
-    }
+	//this might be replacable by std::invoke once C++17 is available
+	template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs, std::size_t... I>
+	static ReturnType call_helper(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<ParamArgs...> const &params, std::index_sequence<I...>) {
+		return (ui.*func)(std::get<I>(params)...);
+	}
+	template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs, std::size_t... I>
+	static ReturnType call_helper(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<ParamArgs...> const &params, std::index_sequence<I...>) {
+		return (ui.*func)(std::get<I>(params)...);
+	}
 
-    template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs>
-    static ReturnType call(ReturnType (UI_class::*func)(Args...), UI_class &ui, Params<ParamArgs...> const &params) {
-        return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
-    }
-    template <class ReturnType, class UI_class, class... Args, template <class...> class Params, class... ParamArgs>
-    static ReturnType call(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, Params<ParamArgs...> const &params) {
-        return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
-    }
+	template <class ReturnType, class UI_class, class... Args, class... ParamArgs>
+	static ReturnType call(ReturnType (UI_class::*func)(Args...), UI_class &ui, std::tuple<ParamArgs...> const &params) {
+		return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
+	}
+	template <class ReturnType, class UI_class, class... Args, class... ParamArgs>
+	static ReturnType call(ReturnType (UI_class::*func)(Args...) const, UI_class &ui, std::tuple<ParamArgs...> const &params) {
+		return call_helper(func, ui, params, std::index_sequence_for<Args...>{});
+	}
 
-    //list of types useful for returning a variadic template parameter pack or inspecting some of the parameters
+	//list of types useful for returning a variadic template parameter pack or inspecting some of the parameters
     template <class... Args>
     struct Type_list;
     template <class Head_, class... Tail>
@@ -119,10 +119,10 @@ namespace detail {
     };
 
     //call a function with a list of sol::objects as the arguments
-    template <class Function, std::size_t... indexes>
-    static auto call(std::vector<sol::object> &objects, Function &&function, std::index_sequence<indexes...>) {
-        return function(Converter(objects[indexes])...);
-    }
+	template <class Function, std::size_t... indexes>
+	static auto call(std::vector<sol::object> &objects, Function &&function, std::index_sequence<indexes...>) {
+		return function(Converter(objects[indexes])...);
+	}
 
     //check if a list of sol::objects is convertible to a given variadic template parameter pack
     template <int index>
@@ -138,6 +138,7 @@ namespace detail {
     }
     template <class... Args>
     static bool is_convertible(Type_list<Args...>, std::vector<sol::object> &objects) {
+		assert(sizeof...(Args) == objects.size());
         return is_convertible<0, Args...>(objects);
     }
 
@@ -180,41 +181,22 @@ namespace detail {
 
     //call a function if it is callable with the given sol::objects
     template <class ReturnType>
-    static ReturnType try_call(std::false_type /*return void*/, std::vector<sol::object> &) {
-        throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
-    }
-    template <class ReturnType>
-    static void try_call(std::true_type /*return void*/, std::vector<sol::object> &) {
+	static ReturnType try_call(std::vector<sol::object> &) {
         throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
     }
     template <class ReturnType, class FunctionHead, class... FunctionsTail>
-    static ReturnType try_call(std::false_type /*return void*/, std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
+	static ReturnType try_call(std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
         constexpr auto arity = detail::number_of_parameters<FunctionHead>;
         //skip function if it has the wrong number of parameters
         if (arity != objects.size()) {
-            return try_call<ReturnType>(std::false_type{}, objects, std::forward<FunctionsTail>(functions)...);
+			return try_call<ReturnType>(objects, std::forward<FunctionsTail>(functions)...);
         }
         //skip function if the argument types don't match
         if (is_convertible(parameter_list_t<FunctionHead>{}, objects)) {
-            return call(objects, std::forward<FunctionHead>(function), std::make_index_sequence<arity>());
+			return static_cast<ReturnType>(call(objects, std::forward<FunctionHead>(function), std::make_index_sequence<arity>()));
         }
         //give up and try the next overload
-        return try_call<ReturnType>(std::false_type{}, objects, functions...);
-    }
-    template <class ReturnType, class FunctionHead, class... FunctionsTail>
-    static void try_call(std::true_type /*return void*/, std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
-        constexpr auto arity = detail::number_of_parameters<FunctionHead>;
-        //skip function if it has the wrong number of parameters
-        if (arity != objects.size()) {
-            return try_call<ReturnType>(std::true_type{}, objects, std::forward<FunctionsTail>(functions)...);
-        }
-        //skip function if the argument types don't match
-        if (is_convertible(parameter_list_t<FunctionHead>{}, objects)) {
-            call(objects, std::forward<FunctionHead>(function), std::make_index_sequence<arity>());
-            return;
-        }
-        //give up and try the next overload
-        return try_call<ReturnType>(std::true_type{}, objects, functions...);
+		return try_call<ReturnType>(objects, functions...);
     }
 
     template <class ReturnType, class... Functions>
@@ -224,15 +206,15 @@ namespace detail {
             for (auto object : args) {
                 objects.push_back(std::move(object));
             }
-            return try_call<ReturnType>(std::is_same<ReturnType, void>(), objects, functions...);
+			return try_call<ReturnType>(objects, functions...);
         };
     }
 
     template <class ReturnType, class Functions_head, class... Functions_tail>
     static auto overloaded_function_helper(std::true_type /*should_returntype_be_deduced*/, Functions_head &&functions_head,
                                            Functions_tail &&... functions_tail) {
-        return overloaded_function_helper<return_type_t<Functions_head>>(std::false_type{}, std::forward<Functions_head>(functions_head),
-                                                                         std::forward<Functions_tail>(functions_tail)...);
+		return overloaded_function_helper<detail::return_type_t<Functions_head>>(std::false_type{}, std::forward<Functions_head>(functions_head),
+																				 std::forward<Functions_tail>(functions_tail)...);
     }
 } // namespace detail
 
@@ -246,29 +228,29 @@ static void abort_check() {
 template <class ReturnType, class UI_class, class... Args>
 static auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
-        abort_check();
-        //TODO: Decide if we should use promised_thread_call or thread_call
-        //promised_thread_call lets us get return values while thread_call does not
-        //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
-        //using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
-        return Utility::promised_thread_call(MainWindow::mw, [function, id = lui.id, args = std::forward_as_tuple(std::forward<Args>(args)...)]() mutable {
-            UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
-            return detail::call(function, ui, std::move(args));
-        });
+		abort_check();
+		//TODO: Decide if we should use promised_thread_call or thread_call
+		//promised_thread_call lets us get return values while thread_call does not
+		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
+		//using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
+		return Utility::promised_thread_call(MainWindow::mw, [function, id = lui.id, args = std::forward_as_tuple(std::forward<Args>(args)...)]() mutable {
+			UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
+			return detail::call(function, ui, std::move(args));
+		});
     };
 }
 template <class ReturnType, class UI_class, class... Args>
 static auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
         abort_check();
-        //TODO: Decide if we should use promised_thread_call or thread_call
-        //promised_thread_call lets us get return values while thread_call does not
-        //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
-        //using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
-        return Utility::promised_thread_call(MainWindow::mw, [function, id = lui.id, args = std::forward_as_tuple(std::forward<Args>(args)...)]() mutable {
-            UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
-            return detail::call(function, ui, std::move(args));
-        });
+		//TODO: Decide if we should use promised_thread_call or thread_call
+		//promised_thread_call lets us get return values while thread_call does not
+		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
+		//using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
+		return Utility::promised_thread_call(MainWindow::mw, [function, id = lui.id, args = std::forward_as_tuple(std::forward<Args>(args)...)]() mutable {
+			UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
+			return detail::call(function, ui, std::move(args));
+		});
     };
 }
 
@@ -277,11 +259,11 @@ template <class ReturnType, class UI_class, class... Args>
 static auto non_gui_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
         abort_check();
-        //TODO: Decide if we should use promised_thread_call or thread_call
-        //promised_thread_call lets us get return values while thread_call does not
-        //however, promised_thread_call hangs if the gui thread hangs while thread_call does not
-        //using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
-        UI_class &ui = Utility::promised_thread_call(MainWindow::mw, [id = lui.id]() -> UI_class & { return MainWindow::mw->get_lua_UI_class<UI_class>(id); });
+		//TODO: Decide if we should use promised_thread_call or thread_call
+		//promised_thread_call lets us get return values while thread_call does not
+		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
+		//using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
+		UI_class &ui = Utility::promised_thread_call(MainWindow::mw, [id = lui.id]() -> UI_class & { return MainWindow::mw->get_lua_UI_class<UI_class>(id); });
         return (ui.*function)(args...);
     };
 }
@@ -290,12 +272,12 @@ static auto non_gui_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
 template <class ReturnType, class UI_class, class... Args>
 static auto thread_call_wrapper_non_waiting(ScriptEngine *script_engine_to_terminate_on_exception, ReturnType (UI_class::*function)(Args...)) {
     return [function, script_engine_to_terminate_on_exception](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
-        abort_check();
+		abort_check();
         Utility::thread_call(
-            MainWindow::mw,
-            [function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...)]() mutable {
-                UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
-                return detail::call(function, ui, std::move(args));
+			MainWindow::mw,
+			[function, id = lui.id, args = std::make_tuple(std::forward<Args>(args)...)]() mutable {
+				UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
+				return detail::call(function, ui, std::move(args));
             },
             script_engine_to_terminate_on_exception);
     };
@@ -344,7 +326,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             abort_check();
             sleep_ms(&script_engine, timeout_ms);
         };
-        lua["pc_speaker_beep"] = +[]() {
+		lua["pc_speaker_beep"] = +[] {
             abort_check();
             pc_speaker_beep();
         };
@@ -448,11 +430,11 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             abort_check();
             return table_load_from_file(console, lua, get_absolute_file_path(QString::fromStdString(path), file_name));
         };
-        lua["table_sum"] = [](sol::table table) {
+		lua["table_sum"] = +[](sol::table table) {
             abort_check();
             return table_sum(table);
         };
-        lua["table_find_string"] = [](sol::table table, std::string search_text) {
+		lua["table_find_string"] = +[](sol::table table, std::string search_text) {
             abort_check();
             return table_find_string(table, search_text);
         };
@@ -462,17 +444,17 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             return table_crc16(console, table);
         };
 
-        lua["table_mean"] = [](sol::table table) {
+		lua["table_mean"] = +[](sol::table table) {
             abort_check();
             return table_mean(table);
         };
 
-        lua["table_variance"] = [](sol::table table) {
+		lua["table_variance"] = +[](sol::table table) {
             abort_check();
             return table_variance(table);
         };
 
-        lua["table_standard_deviation"] = [](sol::table table) {
+		lua["table_standard_deviation"] = +[](sol::table table) {
             abort_check();
             return table_standard_deviation(table);
         };
@@ -537,32 +519,32 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             return table_mid(lua, input_values, start, length);
         };
 
-        lua["table_equal_constant"] = [](sol::table input_values_a, double input_const_val) {
+		lua["table_equal_constant"] = +[](sol::table input_values_a, double input_const_val) {
             abort_check();
             return table_equal_constant(input_values_a, input_const_val);
         };
 
-        lua["table_equal_table"] = [](sol::table input_values_a, sol::table input_values_b) {
+		lua["table_equal_table"] = +[](sol::table input_values_a, sol::table input_values_b) {
             abort_check();
             return table_equal_table(input_values_a, input_values_b);
         };
 
-        lua["table_max"] = [](sol::table input_values) {
+		lua["table_max"] = +[](sol::table input_values) {
             abort_check();
             return table_max(input_values);
         };
 
-        lua["table_min"] = [](sol::table input_values) {
+		lua["table_min"] = +[](sol::table input_values) {
             abort_check();
             return table_min(input_values);
         };
 
-        lua["table_max_abs"] = [](sol::table input_values) {
+		lua["table_max_abs"] = +[](sol::table input_values) {
             abort_check();
             return table_max_abs(input_values);
         };
 
-        lua["table_min_abs"] = [](sol::table input_values) {
+		lua["table_min_abs"] = +[](sol::table input_values) {
             abort_check();
             return table_min_abs(input_values);
         };
@@ -597,20 +579,20 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 
 #endif
 
-        lua["get_framework_git_hash"] = []() {
+		lua["get_framework_git_hash"] = +[] {
             abort_check();
             return get_framework_git_hash();
         };
-        lua["get_framework_git_date_unix"] = []() {
+		lua["get_framework_git_date_unix"] = +[] {
             abort_check();
             return get_framework_git_date_unix();
         };
-        lua["get_framework_git_date_text"] = []() {
+		lua["get_framework_git_date_text"] = +[] {
             abort_check();
             return get_framework_git_date_text();
         };
 
-        lua["get_os_username"] = []() {
+		lua["get_os_username"] = +[] {
             abort_check();
             return get_os_username();
         };
@@ -632,12 +614,12 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                 return DataLogger{console, get_absolute_file_path(QString::fromStdString(path), file_name), seperating_character, field_names, over_write_file};
             }),
             "append_data",
-            [](DataLogger &handle, const sol::table &data_record) {
+			+[](DataLogger &handle, const sol::table &data_record) {
                 abort_check();
                 return handle.append_data(data_record);
             },
             "save",
-            [](DataLogger &handle) {
+			+[](DataLogger &handle) {
                 abort_check();
                 handle.save();
             });
@@ -646,24 +628,24 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
     {
         lua.new_usertype<ChargeCounter>(
             "ChargeCounter", //
-            sol::meta_function::construct, sol::factories([]() {
+			sol::meta_function::construct, sol::factories(+[] {
                 abort_check();
                 return ChargeCounter{};
             }), //
 
             "add_current",
-            [](ChargeCounter &handle, const double current) {
+			+[](ChargeCounter &handle, const double current) {
                 abort_check();
                 return handle.add_current(current);
             }, //
             "reset",
-            [](ChargeCounter &handle, const double current) {
+			+[](ChargeCounter &handle, const double current) {
                 abort_check();
                 (void)current;
                 handle.reset();
             }, //
             "get_current_hours",
-            [](ChargeCounter &handle) {
+			+[](ChargeCounter &handle) {
                 abort_check();
                 return handle.get_current_hours();
             } //
@@ -688,7 +670,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                     throw std::runtime_error("Failed opening file " + file_path);
                 }
 
-                auto add_value_to_tag_list = [](QList<QVariant> &values, const sol::object &obj, const std::string &tag_name) {
+				auto add_value_to_tag_list = +[](QList<QVariant> &values, const sol::object &obj, const std::string &tag_name) {
                     if (obj.get_type() == sol::type::string) {
                         values.append(QString::fromStdString(obj.as<std::string>()));
                     } else if (obj.get_type() == sol::type::number) {
@@ -731,60 +713,60 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                 return de;
             }), //
             "set_start_time_seconds_since_epoch",
-            [](Data_engine_handle &handle, const double start_time) {
+			+[](Data_engine_handle &handle, const double start_time) {
                 abort_check();
                 return handle.data_engine->set_start_time_seconds_since_epoch(start_time);
             },
             "use_instance",
-            [](Data_engine_handle &handle, const std::string &section_name, const std::string &instance_caption, const uint instance_index) {
+			+[](Data_engine_handle &handle, const std::string &section_name, const std::string &instance_caption, const uint instance_index) {
                 abort_check();
                 handle.data_engine->use_instance(QString::fromStdString(section_name), QString::fromStdString(instance_caption), instance_index);
             },
             "start_recording_actual_value_statistic",
-            [](Data_engine_handle &handle, const std::string &root_file_path, const std::string &prefix) {
+			+[](Data_engine_handle &handle, const std::string &root_file_path, const std::string &prefix) {
                 abort_check();
                 return handle.data_engine->start_recording_actual_value_statistic(root_file_path, prefix);
             },
             "set_dut_identifier",
-            [](Data_engine_handle &handle, const std::string &dut_identifier) {
+			+[](Data_engine_handle &handle, const std::string &dut_identifier) {
                 abort_check();
                 return handle.data_engine->set_dut_identifier(QString::fromStdString(dut_identifier));
             },
 
             "get_instance_count",
-            [](Data_engine_handle &handle, const std::string &section_name) {
+			+[](Data_engine_handle &handle, const std::string &section_name) {
                 abort_check();
                 return handle.data_engine->get_instance_count(section_name);
             },
 
             "get_description",
-            [](Data_engine_handle &handle, const std::string &id) {
+			+[](Data_engine_handle &handle, const std::string &id) {
                 abort_check();
                 return handle.data_engine->get_description(QString::fromStdString(id)).toStdString();
             },
             "get_actual_value",
-            [](Data_engine_handle &handle, const std::string &id) {
+			+[](Data_engine_handle &handle, const std::string &id) {
                 abort_check();
                 return handle.data_engine->get_actual_value(QString::fromStdString(id)).toStdString();
             },
             "get_actual_number",
-            [](Data_engine_handle &handle, const std::string &id) {
+			+[](Data_engine_handle &handle, const std::string &id) {
                 abort_check();
                 return handle.data_engine->get_actual_number(QString::fromStdString(id));
             },
 
             "get_unit",
-            [](Data_engine_handle &handle, const std::string &id) {
+			+[](Data_engine_handle &handle, const std::string &id) {
                 abort_check();
                 return handle.data_engine->get_unit(QString::fromStdString(id)).toStdString();
             },
             "get_desired_value",
-            [](Data_engine_handle &handle, const std::string &id) {
+			+[](Data_engine_handle &handle, const std::string &id) {
                 abort_check();
                 return handle.data_engine->get_desired_value_as_string(QString::fromStdString(id)).toStdString();
             },
             "get_desired_number",
-            [](Data_engine_handle &handle, const std::string &id) {
+			+[](Data_engine_handle &handle, const std::string &id) {
                 abort_check();
                 return handle.data_engine->get_desired_number(QString::fromStdString(id));
             },
@@ -799,7 +781,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                 return handle.data_engine->get_ids_of_section(&lua, section_name).table;
             },
             "set_instance_count",
-            [](Data_engine_handle &handle, const std::string &instance_count_name, const uint instance_count) {
+			+[](Data_engine_handle &handle, const std::string &instance_count_name, const uint instance_count) {
                 abort_check();
                 handle.data_engine->set_instance_count(QString::fromStdString(instance_count_name), instance_count);
             },
@@ -823,22 +805,22 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                 handle.data_engine->set_enable_auto_open_pdf(auto_open_on_pdf_creation);
             },
             "value_in_range",
-            [](Data_engine_handle &handle, const std::string &field_id) {
+			+[](Data_engine_handle &handle, const std::string &field_id) {
                 abort_check();
                 return handle.data_engine->value_in_range(QString::fromStdString(field_id));
             },
             "value_in_range_in_section",
-            [](Data_engine_handle &handle, const std::string &field_id) {
+			+[](Data_engine_handle &handle, const std::string &field_id) {
                 abort_check();
                 return handle.data_engine->value_in_range_in_section(QString::fromStdString(field_id));
             },
             "value_in_range_in_instance",
-            [](Data_engine_handle &handle, const std::string &field_id) {
+			+[](Data_engine_handle &handle, const std::string &field_id) {
                 abort_check();
                 return handle.data_engine->value_in_range_in_instance(QString::fromStdString(field_id));
             },
             "values_in_range",
-            [](Data_engine_handle &handle, const sol::table &field_ids) {
+			+[](Data_engine_handle &handle, const sol::table &field_ids) {
                 abort_check();
                 QList<FormID> ids;
                 for (const auto &field_id : field_ids) {
@@ -847,55 +829,55 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                 return handle.data_engine->values_in_range(ids);
             },
             "is_bool",
-            [](Data_engine_handle &handle, const std::string &field_id) {
+			+[](Data_engine_handle &handle, const std::string &field_id) {
                 abort_check();
                 return handle.data_engine->is_bool(QString::fromStdString(field_id));
             },
             "is_text",
-            [](Data_engine_handle &handle, const std::string &field_id) {
+			+[](Data_engine_handle &handle, const std::string &field_id) {
                 abort_check();
                 return handle.data_engine->is_text(QString::fromStdString(field_id));
             },
             "is_number",
-            [](Data_engine_handle &handle, const std::string &field_id) {
+			+[](Data_engine_handle &handle, const std::string &field_id) {
                 abort_check();
                 return handle.data_engine->is_number(QString::fromStdString(field_id));
             },
             "is_exceptionally_approved",
-            [](Data_engine_handle &handle, const std::string &field_id) {
+			+[](Data_engine_handle &handle, const std::string &field_id) {
                 abort_check();
                 return handle.data_engine->is_exceptionally_approved(QString::fromStdString(field_id));
             },
             "set_actual_number",
-            [](Data_engine_handle &handle, const std::string &field_id, double value) {
+			+[](Data_engine_handle &handle, const std::string &field_id, double value) {
                 abort_check();
                 handle.data_engine->set_actual_number(QString::fromStdString(field_id), value);
             },
             "set_actual_bool",
-            [](Data_engine_handle &handle, const std::string &field_id, bool value) {
+			+[](Data_engine_handle &handle, const std::string &field_id, bool value) {
                 abort_check();
                 handle.data_engine->set_actual_bool(QString::fromStdString(field_id), value);
             },
 #if 1
             "set_actual_datetime",
-            [](Data_engine_handle &handle, const std::string &field_id, double value) {
+			+[](Data_engine_handle &handle, const std::string &field_id, double value) {
                 abort_check();
                 handle.data_engine->set_actual_datetime(QString::fromStdString(field_id), DataEngineDateTime{value});
             },
 #endif
 #if 1
             "set_actual_datetime_from_text",
-            [](Data_engine_handle &handle, const std::string &field_id, const std::string &text) {
+			+[](Data_engine_handle &handle, const std::string &field_id, const std::string &text) {
                 abort_check();
                 handle.data_engine->set_actual_datetime(QString::fromStdString(field_id), DataEngineDateTime{QString::fromStdString(text)});
             },
 #endif
             "set_actual_text",
-            [](Data_engine_handle &handle, const std::string &field_id, const std::string &text) {
+			+[](Data_engine_handle &handle, const std::string &field_id, const std::string &text) {
                 abort_check();
                 handle.data_engine->set_actual_text(QString::fromStdString(field_id), QString::fromStdString(text));
             },
-            "all_values_in_range", [](Data_engine_handle &handle) { return handle.data_engine->all_values_in_range(); });
+			"all_values_in_range", +[](Data_engine_handle &handle) { return handle.data_engine->all_values_in_range(); });
     }
     //bind UI
     auto ui_table = lua.create_named_table("Ui");
@@ -921,7 +903,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 #if 0
 		lua.new_usertype<UserEntryCache>("UserEntryCache", //
 										  sol::meta_function::construct,sol::factories(
-										  []() { //
+										  +[] { //
 											  abort_check();
 											  return UserEntryCache{};
 										  }));
@@ -1032,19 +1014,20 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
     {
         ui_table.new_usertype<Color>("Color", //
                                      sol::meta_function::construct, sol::no_constructor);
-        ui_table["Color"] = overloaded_function(
-            [](const std::string &name) {
-                abort_check();
-                return Color{name};
-            },
-            [](int r, int g, int b) {
-                abort_check();
-                return Color{r, g, b};
-            }, //
-            [](int rgb) {
-                abort_check();
-                return Color{rgb};
-            });
+
+		ui_table["Color"] = overloaded_function(
+			+[](const std::string &name) {
+				abort_check();
+				return Color{name};
+			},
+			+[](int r, int g, int b) {
+				abort_check();
+				return Color{r, g, b};
+			}, //
+			+[](int rgb) {
+				abort_check();
+				return Color{rgb};
+			});
     }
     //bind PollDataEngine
     {
@@ -1311,82 +1294,82 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             "SCPIDevice",                                       //
             sol::meta_function::construct, sol::no_constructor, //
             "get_protocol_name",
-            [](SCPIDevice &protocol) {
+			+[](SCPIDevice &protocol) {
                 abort_check();
                 return protocol.get_protocol_name();
             }, //
             "get_device_descriptor",
-            [](SCPIDevice &protocol) {
+			+[](SCPIDevice &protocol) {
                 abort_check();
                 return protocol.get_device_descriptor();
             }, //
             "get_str",
-            [](SCPIDevice &protocol, std::string request) {
+			+[](SCPIDevice &protocol, std::string request) {
                 abort_check();
                 return protocol.get_str(request);
             }, //
             "get_str_param",
-            [](SCPIDevice &protocol, std::string request, std::string argument) {
+			+[](SCPIDevice &protocol, std::string request, std::string argument) {
                 abort_check();
                 return protocol.get_str_param(request, argument);
             }, //
             "get_num",
-            [](SCPIDevice &protocol, std::string request) {
+			+[](SCPIDevice &protocol, std::string request) {
                 abort_check();
                 return protocol.get_num(request);
             }, //
             "get_num_param",
-            [](SCPIDevice &protocol, std::string request, std::string argument) {
+			+[](SCPIDevice &protocol, std::string request, std::string argument) {
                 abort_check();
                 return protocol.get_num_param(request, argument);
             }, //
             "get_name",
-            [](SCPIDevice &protocol) {
+			+[](SCPIDevice &protocol) {
                 abort_check();
                 return protocol.get_name();
             }, //
             "get_serial_number",
-            [](SCPIDevice &protocol) {
+			+[](SCPIDevice &protocol) {
                 abort_check();
                 return protocol.get_serial_number();
             }, //
             "get_manufacturer",
-            [](SCPIDevice &protocol) {
+			+[](SCPIDevice &protocol) {
                 abort_check();
                 return protocol.get_manufacturer();
             }, //
             "get_calibration",
-            [](SCPIDevice &protocol) {
+			+[](SCPIDevice &protocol) {
                 abort_check();
                 return protocol.get_calibration();
             }, //
             "is_event_received",
-            [](SCPIDevice &protocol, std::string event_name) {
+			+[](SCPIDevice &protocol, std::string event_name) {
                 abort_check();
                 return protocol.is_event_received(event_name);
             }, //
             "clear_event_list",
-            [](SCPIDevice &protocol) {
+			+[](SCPIDevice &protocol) {
                 abort_check();
                 return protocol.clear_event_list();
             }, //
             "get_event_list",
-            [](SCPIDevice &protocol) {
+			+[](SCPIDevice &protocol) {
                 abort_check();
                 return protocol.get_event_list();
             }, //
             "set_validation_max_standard_deviation",
-            [](SCPIDevice &protocoll, double max_std_dev) {
+			+[](SCPIDevice &protocoll, double max_std_dev) {
                 abort_check();
                 return protocoll.set_validation_max_standard_deviation(max_std_dev);
             }, //
             "set_validation_retries",
-            [](SCPIDevice &protocoll, unsigned int retries) {
+			+[](SCPIDevice &protocoll, unsigned int retries) {
                 abort_check();
                 return protocoll.set_validation_retries(retries);
             }, //
             "send_command",
-            [](SCPIDevice &protocoll, std::string request) {
+			+[](SCPIDevice &protocoll, std::string request) {
                 abort_check();
                 return protocoll.send_command(request);
             } //
@@ -1399,23 +1382,23 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             "SG04CountDevice",                                  //
             sol::meta_function::construct, sol::no_constructor, //
             "get_protocol_name",
-            [](SG04CountDevice &protocol) {
+			+[](SG04CountDevice &protocol) {
                 abort_check();
                 return protocol.get_protocol_name();
             }, //
             "get_name",
-            [](SG04CountDevice &protocol) {
+			+[](SG04CountDevice &protocol) {
                 abort_check();
                 (void)protocol;
                 return "SG04";
             }, //
             "get_sg04_counts",
-            [](SG04CountDevice &protocol, bool clear_on_read) {
+			+[](SG04CountDevice &protocol, bool clear_on_read) {
                 abort_check();
                 return protocol.get_sg04_counts(clear_on_read);
             }, //
             "accumulate_counts",
-            [](SG04CountDevice &protocol, uint time_ms) {
+			+[](SG04CountDevice &protocol, uint time_ms) {
                 abort_check();
                 return protocol.accumulate_counts(time_ms);
             } //
@@ -1427,43 +1410,43 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             "ManualDevice",                                     //
             sol::meta_function::construct, sol::no_constructor, //
             "get_protocol_name",
-            [](ManualDevice &protocol) {
+			+[](ManualDevice &protocol) {
                 abort_check();
                 return protocol.get_protocol_name();
             }, //
             "get_name",
-            [](ManualDevice &protocol) {
+			+[](ManualDevice &protocol) {
                 abort_check();
                 return protocol.get_name();
             }, //
             "get_manufacturer",
-            [](ManualDevice &protocol) {
+			+[](ManualDevice &protocol) {
                 abort_check();
                 return protocol.get_manufacturer();
             }, //
             "get_description",
-            [](ManualDevice &protocol) {
+			+[](ManualDevice &protocol) {
                 abort_check();
                 return protocol.get_description();
             }, //
             "get_serial_number",
-            [](ManualDevice &protocol) {
+			+[](ManualDevice &protocol) {
                 abort_check();
                 return protocol.get_serial_number();
             }, //
             "get_notes",
-            [](ManualDevice &protocol) {
+			+[](ManualDevice &protocol) {
                 abort_check();
                 return protocol.get_notes();
             }, //
             "get_calibration",
-            [](ManualDevice &protocol) {
+			+[](ManualDevice &protocol) {
                 abort_check();
                 return protocol.get_calibration();
             }, //
 
             "get_summary",
-            [](ManualDevice &protocol) {
+			+[](ManualDevice &protocol) {
                 abort_check();
                 return protocol.get_summary();
             } //

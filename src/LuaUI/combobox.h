@@ -3,7 +3,7 @@
 
 #include <QComboBox>
 #include <QLabel>
-#include <sol.hpp>
+#include <sol_forward.hpp>
 
 #include "ui_container.h"
 

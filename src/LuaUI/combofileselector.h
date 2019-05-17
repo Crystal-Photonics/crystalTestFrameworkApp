@@ -6,7 +6,7 @@
 #include <QMetaObject>
 #include <QPushButton>
 #include <functional>
-#include <sol.hpp>
+#include <sol_forward.hpp>
 #include <string>
 
 #include "ui_container.h"
@@ -18,7 +18,7 @@ class FileEntry {
     QDateTime date;
 };
 
-class ComboBoxFileSelector : public UI_widget{
+class ComboBoxFileSelector : public UI_widget {
     public:
     ComboBoxFileSelector(UI_container *parent, const std::string &directory, const QStringList &filter);
     ~ComboBoxFileSelector();

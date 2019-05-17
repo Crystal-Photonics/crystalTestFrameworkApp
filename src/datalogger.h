@@ -4,7 +4,7 @@
 #include <QPlainTextEdit>
 #include <QString>
 #include <QStringList>
-#include <sol.hpp>
+#include <sol_forward.hpp>
 
 enum class LoggerSaveFormat { none, csv };
 enum class LoggerFieldFormat { string, num };

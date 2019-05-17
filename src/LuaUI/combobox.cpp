@@ -1,12 +1,14 @@
 #include "combobox.h"
 #include "Windows/mainwindow.h"
 #include "ui_container.h"
+
 #include <QComboBox>
 #include <QInputDialog>
 #include <QSplitter>
 #include <QString>
 #include <QVBoxLayout>
 #include <QWidget>
+#include <sol.hpp>
 
 ///\cond HIDDEN_SYMBOLS
 ComboBox::ComboBox(UI_container *parent, const sol::table &items)

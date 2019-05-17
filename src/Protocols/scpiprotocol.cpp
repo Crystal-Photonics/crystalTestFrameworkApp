@@ -1,13 +1,12 @@
 #include "scpiprotocol.h"
+#include "CommunicationDevices/usbtmccommunicationdevice.h"
 #include "Windows/mainwindow.h"
 #include "Windows/scpimetadatadeviceselector.h"
 #include "config.h"
 #include "console.h"
 #include "qt_util.h"
 
-#include "CommunicationDevices/usbtmccommunicationdevice.h"
 #include <QByteArray>
-#include <QDateTime>
 #include <QDateTime>
 #include <QDebug>
 #include <QDir>
@@ -20,6 +19,7 @@
 #include <cassert>
 #include <cmath>
 #include <fstream>
+#include <sol.hpp>
 
 using namespace std::chrono_literals;
 
@@ -162,17 +162,16 @@ void SCPIProtocol::set_scpi_meta_data(DeviceMetaDataGroup scpi_meta_data) {
         scpi_device_detail = scpi_meta_data.devices[0];
 
     } else if (scpi_meta_data.devices.count() == 0) {
-        Utility::thread_call(MainWindow::mw, [ comportname = device->getName(), serial_number = device_data.serial_number, device_name = device_data.name ] {
+		Utility::thread_call(MainWindow::mw, [comportname = device->getName(), serial_number = device_data.serial_number, device_name = device_data.name] {
             QMessageBox::warning(MainWindow::mw, "Unknown SCPI device",
                                  QString("Could not find SCPI-Device in meta data table. Serialnumber: \"%1\" name: \"%2\" @%3 .")
                                      .arg(serial_number)
                                      .arg(device_name)
                                      .arg(comportname));
-
         });
 
     } else {
-        Utility::promised_thread_call(MainWindow::mw, [ comportname = device->getName(), &scpi_meta_data ]() mutable {
+		Utility::promised_thread_call(MainWindow::mw, [comportname = device->getName(), &scpi_meta_data]() mutable {
             SCPIMetaDataDeviceSelector meta_data_selector(MainWindow::mw);
             meta_data_selector.load_devices(comportname, scpi_meta_data);
             meta_data_selector.exec();
@@ -218,7 +217,7 @@ bool SCPIProtocol::is_correct_protocol() {
 }
 
 void SCPIProtocol::send_string(std::string data) {
-	Utility::promised_thread_call(device, [ device = this->device, &data ] {
+	Utility::promised_thread_call(device, [device = this->device, &data] {
         std::string display_data = QString::fromStdString(data).trimmed().toStdString();
         std::vector<unsigned char> data_vec{data.begin(), data.end()};
         std::vector<unsigned char> disp_vec{display_data.begin(), display_data.end()};

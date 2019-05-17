@@ -8,7 +8,7 @@
 #include <QMutex>
 #include <QTime>
 #include <QTreeWidgetItem>
-#include <sol.hpp>
+#include <sol_forward.hpp>
 
 class SG04CountProtocol : public Protocol {
     public:
