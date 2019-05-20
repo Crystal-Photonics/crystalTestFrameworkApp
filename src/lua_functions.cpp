@@ -23,7 +23,7 @@
 #include <cmath>
 
 #if defined(Q_OS_WIN)
-#include <Lmcons.h>
+#include <lmcons.h>
 #include <windows.h>
 #endif
 
@@ -737,7 +737,7 @@ uint table_find_string(sol::table input_table, std::string search_text) {
     return 0;
 }
 /// @endcond
-void lua_object_to_string(QPlainTextEdit *console, sol::object &obj, QString &v, QString &t) {
+static void lua_object_to_string(QPlainTextEdit *console, sol::object &obj, QString &v, QString &t) {
     v = "";
     t = "";
     if (obj.get_type() == sol::type::number) {
@@ -765,7 +765,7 @@ void lua_object_to_string(QPlainTextEdit *console, sol::object &obj, QString &v,
     }
 }
 
-void table_to_json_object(QPlainTextEdit *console, QJsonArray &jarray, const sol::table &input_table) {
+static void table_to_json_object(QPlainTextEdit *console, QJsonArray &jarray, const sol::table &input_table) {
     for (auto &i : input_table) {
         QJsonObject jobj;
         QString f;
@@ -822,7 +822,7 @@ void table_save_to_file(QPlainTextEdit *console, const std::string file_name, so
     saveFile.write(saveDoc.toJson());
 }
 
-sol::object sol_object_from_type_string(QPlainTextEdit *console, sol::state &lua, const QString &value_type, const QString &v) {
+static sol::object sol_object_from_type_string(QPlainTextEdit *console, sol::state &lua, const QString &value_type, const QString &v) {
     if (value_type == "s") {
         return sol::make_object(lua, v.toStdString());
     } else if (value_type == "b") {
@@ -847,7 +847,7 @@ sol::object sol_object_from_type_string(QPlainTextEdit *console, sol::state &lua
     }
 }
 
-sol::table jsonarray_to_table(QPlainTextEdit *console, sol::state &lua, const QJsonArray &jarray) {
+static sol::table jsonarray_to_table(QPlainTextEdit *console, sol::state &lua, const QJsonArray &jarray) {
     sol::table result = lua.create_table_with();
 
     for (auto jv : jarray) {
