@@ -133,6 +133,7 @@ unix {
 }
 QMAKE_CXXFLAGS_RELEASE += -Wall -Wunused-function -Wunused-parameter -Wunused-variable -O2
 QMAKE_CXXFLAGS_DEBUG += -ggdb -fno-omit-frame-pointer -Og
+QMAKE_CXXFLAGS += -fdiagnostics-color=always
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
 #QMAKE_CXXFLAGS_DEBUG += -static-libasan -static-libubsan #some day windows will support a reasonable development environment ...
 
