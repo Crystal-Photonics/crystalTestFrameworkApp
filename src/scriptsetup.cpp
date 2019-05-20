@@ -104,13 +104,13 @@ namespace detail {
     };
     template <>
     struct Type_list<> {
-        static constexpr auto size = 0;
+		static constexpr std::size_t size = 0;
     };
 
     //allows conversion from sol::object into int, std::string, ...
     struct Converter {
         Converter(sol::object object)
-            : object{object} {}
+			: object{std::move(object)} {}
         sol::object object;
         template <class T>
         operator T() {
@@ -121,25 +121,18 @@ namespace detail {
     //call a function with a list of sol::objects as the arguments
 	template <class Function, std::size_t... indexes>
 	static auto call(std::vector<sol::object> &objects, Function &&function, std::index_sequence<indexes...>) {
-		return function(Converter(objects[indexes])...);
+		return function(Converter{std::move(objects[indexes])}...);
 	}
 
     //check if a list of sol::objects is convertible to a given variadic template parameter pack
-    template <int index>
-    static bool is_convertible(std::vector<sol::object> &) {
-        return true;
-    }
-    template <int index, class Head, class... Tail>
-    static bool is_convertible(std::vector<sol::object> &objects) {
-        if (objects[index].is<Head>()) {
-            return is_convertible<index + 1, Tail...>(objects);
-        }
-        return false;
+	template <class... Args, std::size_t... indexes>
+	static bool is_convertible(std::vector<sol::object> &objects, std::index_sequence<indexes...>) {
+		return (... && objects[indexes].is<Args>());
     }
     template <class... Args>
     static bool is_convertible(Type_list<Args...>, std::vector<sol::object> &objects) {
 		assert(sizeof...(Args) == objects.size());
-        return is_convertible<0, Args...>(objects);
+		return is_convertible<Args...>(objects, std::index_sequence_for<Args...>());
     }
 
     //information for callable objects, such as number of parameters, parameter types and return type.
@@ -180,41 +173,19 @@ namespace detail {
     constexpr auto number_of_parameters{decltype(get_parameter_list(*Pointer_to_callable_t<Function>{}))::size};
 
     //call a function if it is callable with the given sol::objects
-    template <class ReturnType>
-	static ReturnType try_call(std::vector<sol::object> &) {
-        throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
-    }
     template <class ReturnType, class FunctionHead, class... FunctionsTail>
 	static ReturnType try_call(std::vector<sol::object> &objects, FunctionHead &&function, FunctionsTail &&... functions) {
         constexpr auto arity = detail::number_of_parameters<FunctionHead>;
-        //skip function if it has the wrong number of parameters
-        if (arity != objects.size()) {
-			return try_call<ReturnType>(objects, std::forward<FunctionsTail>(functions)...);
-        }
-        //skip function if the argument types don't match
-        if (is_convertible(parameter_list_t<FunctionHead>{}, objects)) {
+		if (arity == objects.size() && is_convertible(parameter_list_t<FunctionHead>{}, objects)) {
+			//right number of arguments and can convert between the argumens and parameters
 			return static_cast<ReturnType>(call(objects, std::forward<FunctionHead>(function), std::make_index_sequence<arity>()));
         }
-        //give up and try the next overload
-		return try_call<ReturnType>(objects, functions...);
-    }
-
-    template <class ReturnType, class... Functions>
-    static auto overloaded_function_helper(std::false_type /*should_returntype_be_deduced*/, Functions &&... functions) {
-        return [functions...](sol::variadic_args args) {
-            std::vector<sol::object> objects;
-            for (auto object : args) {
-                objects.push_back(std::move(object));
-            }
-			return try_call<ReturnType>(objects, functions...);
-        };
-    }
-
-    template <class ReturnType, class Functions_head, class... Functions_tail>
-    static auto overloaded_function_helper(std::true_type /*should_returntype_be_deduced*/, Functions_head &&functions_head,
-                                           Functions_tail &&... functions_tail) {
-		return overloaded_function_helper<detail::return_type_t<Functions_head>>(std::false_type{}, std::forward<Functions_head>(functions_head),
-																				 std::forward<Functions_tail>(functions_tail)...);
+		//cannot call function, try with other functions
+		if constexpr (sizeof...(FunctionsTail) == 0) {
+			throw std::runtime_error("Invalid arguments for overloaded function call, none of the functions could handle the given arguments");
+		} else {
+			return try_call<ReturnType>(objects, std::forward<FunctionsTail>(functions)...);
+		}
     }
 } // namespace detail
 
@@ -229,10 +200,6 @@ template <class ReturnType, class UI_class, class... Args>
 static auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
 		abort_check();
-		//TODO: Decide if we should use promised_thread_call or thread_call
-		//promised_thread_call lets us get return values while thread_call does not
-		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
-		//using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
 		return Utility::promised_thread_call(MainWindow::mw, [function, id = lui.id, args = std::forward_as_tuple(std::forward<Args>(args)...)]() mutable {
 			UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
 			return detail::call(function, ui, std::move(args));
@@ -243,10 +210,6 @@ template <class ReturnType, class UI_class, class... Args>
 static auto thread_call_wrapper(ReturnType (UI_class::*function)(Args...) const) {
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
         abort_check();
-		//TODO: Decide if we should use promised_thread_call or thread_call
-		//promised_thread_call lets us get return values while thread_call does not
-		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
-		//using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
 		return Utility::promised_thread_call(MainWindow::mw, [function, id = lui.id, args = std::forward_as_tuple(std::forward<Args>(args)...)]() mutable {
 			UI_class &ui = MainWindow::mw->get_lua_UI_class<UI_class>(id);
 			return detail::call(function, ui, std::move(args));
@@ -259,12 +222,8 @@ template <class ReturnType, class UI_class, class... Args>
 static auto non_gui_call_wrapper(ReturnType (UI_class::*function)(Args...)) {
     return [function](Lua_UI_Wrapper<UI_class> &lui, Args &&... args) {
         abort_check();
-		//TODO: Decide if we should use promised_thread_call or thread_call
-		//promised_thread_call lets us get return values while thread_call does not
-		//however, promised_thread_call hangs if the gui thread hangs while thread_call does not
-		//using thread_call iff ReturnType is void and promised_thread_call otherwise requires some more template magic
 		UI_class &ui = Utility::promised_thread_call(MainWindow::mw, [id = lui.id]() -> UI_class & { return MainWindow::mw->get_lua_UI_class<UI_class>(id); });
-        return (ui.*function)(args...);
+		return (ui.*function)(std::forward<Args>(args)...);
     };
 }
 
@@ -284,9 +243,22 @@ static auto thread_call_wrapper_non_waiting(ScriptEngine *script_engine_to_termi
 }
 
 //create an overloaded function from a list of functions. When called the overloaded function will pick one of the given functions based on arguments.
-template <class ReturnType = std::false_type, class... Functions>
-static auto overloaded_function(Functions &&... functions) {
-    return detail::overloaded_function_helper<ReturnType>(typename std::is_same<ReturnType, std::false_type>::type{}, std::forward<Functions>(functions)...);
+template <class ReturnType = std::false_type, class Functions_head, class... Functions_tail>
+static auto overloaded_function(Functions_head &&functions_head, Functions_tail &&... functions_tail) {
+	return [functions =
+				std::make_tuple(std::forward<Functions_head>(functions_head), std::forward<Functions_tail>(functions_tail)...)](sol::variadic_args args) {
+		std::vector<sol::object> objects;
+		for (auto object : args) {
+			objects.push_back(std::move(object));
+		}
+#define OVERLOAD_SET(function) ([](auto &&... x) { return function(std::forward<decltype(x)>(x)...); })
+		if constexpr (std::is_same_v<ReturnType, std::false_type>) {
+			return std::apply(OVERLOAD_SET(detail::try_call<detail::return_type_t<Functions_head>>), std::tuple_cat(std::forward_as_tuple(objects), functions));
+		} else {
+			return std::apply(OVERLOAD_SET(detail::try_call<ReturnType>), std::tuple_cat(std::forward_as_tuple(objects), functions));
+		}
+#undef OVERLOAD_SET
+	};
 }
 
 void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script_engine) {
