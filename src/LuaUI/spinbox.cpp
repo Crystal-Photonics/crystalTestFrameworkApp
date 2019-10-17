@@ -56,6 +56,14 @@ void SpinBox::set_min_value(const int value) {
 
 void SpinBox::set_value(const int value) {
     assert(MainWindow::gui_thread == QThread::currentThread());
+    if (value > spinbox->maximum()) {
+        throw std::runtime_error(
+            QObject::tr("spinbox: trying to set value to %1 but its maximum value is %2").arg(value).arg(spinbox->maximum()).toStdString());
+    }
+    if (value < spinbox->minimum()) {
+        throw std::runtime_error(
+            QObject::tr("spinbox: trying to set value to %1 but its minimum value is %2").arg(value).arg(spinbox->minimum()).toStdString());
+    }
     spinbox->setValue(value);
 }
 
