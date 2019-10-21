@@ -14,7 +14,7 @@
 #include <QTemporaryFile>
 #include <sstream>
 
-#define DISABLE_ALL 1
+#define DISABLE_ALL 0
 //
 #define QVERIFY_EXCEPTION_THROWN_error_number(expression, error_number)                                                                                        \
     do {                                                                                                                                                       \
