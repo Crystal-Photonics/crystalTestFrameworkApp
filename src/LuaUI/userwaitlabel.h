@@ -16,42 +16,43 @@ class QWidget;
 class QLineEdit;
 class QPushButton;
 class QPushButton;
-
+/** \ingroup ui
+ *  \{
+ */
 class UserWaitLabel : public UI_widget {
-    public:
-    UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, std::string instruction_text);
-    ~UserWaitLabel();
-    void set_text(const std::string &instruction_text);
-    void set_visible(bool visible);
+public:
+  UserWaitLabel(UI_container *parent, ScriptEngine *script_engine,
+                std::string instruction_text);
+  ~UserWaitLabel();
+  void set_text(const std::string &instruction_text);
+  void set_visible(bool visible);
 
-    void set_enabled(bool enabled);
+  void set_enabled(bool enabled);
 
-    void scale_columns();
+  void scale_columns();
 
-    private:
-    QLabel *label_user_instruction = nullptr;
-    QLabel *spinner_label = nullptr;
-    QTimer *timer = nullptr;
+private:
+  QLabel *label_user_instruction = nullptr;
+  QLabel *spinner_label = nullptr;
+  QTimer *timer = nullptr;
 
+  QHBoxLayout *hlayout = nullptr;
+  QString instruction_text;
+  uint blink_state = 0;
+  bool run_hotkey_loop();
 
+  ///\cond HIDDEN_SYMBOLS
+  void start_timer();
+  ///\endcond
 
-    QHBoxLayout *hlayout = nullptr;
-    QString instruction_text;
-    uint blink_state = 0;
-    bool run_hotkey_loop();
+  bool is_question_mode = false;
 
-    ///\cond HIDDEN_SYMBOLS
-    void start_timer();
-    ///\endcond
+  QMetaObject::Connection callback_timer = {};
 
-    bool is_question_mode = false;
-
-    QMetaObject::Connection callback_timer = {};
-
-    ScriptEngine *script_engine;
-    int total_width = 10;
-    void resizeMe(QResizeEvent *event) override;
-    bool is_init = false;
+  ScriptEngine *script_engine;
+  int total_width = 10;
+  void resizeMe(QResizeEvent *event) override;
+  bool is_init = false;
 };
-
-#endif // USERINSTRUCTIONLABEL_H
+/** \} */ // end of group ui
+#endif    // USERINSTRUCTIONLABEL_H

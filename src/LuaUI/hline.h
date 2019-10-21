@@ -5,17 +5,20 @@
 
 class QFrame;
 class QWidget;
+/** \ingroup ui
+ *  \{
+ */
+class HLine : public UI_widget {
+public:
+  ///\cond HIDDEN_SYMBOLS
+  HLine(UI_container *parent);
+  ~HLine();
+  ///\endcond
 
-class HLine : public UI_widget{
-    public:
-    ///\cond HIDDEN_SYMBOLS
-    HLine(UI_container *parent);
-    ~HLine();
-    ///\endcond
+  void set_visible(bool visible);
 
-    void set_visible(bool visible);
 private:
-    QFrame *line = nullptr;
+  QFrame *line = nullptr;
 };
-
-#endif // HLINE_H
+/** \} */ // end of group ui
+#endif    // HLINE_H
