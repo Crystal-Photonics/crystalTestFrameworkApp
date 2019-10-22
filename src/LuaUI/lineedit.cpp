@@ -1,3 +1,4 @@
+///\cond HIDDEN_SYMBOLS
 #include "lineedit.h"
 #include "Windows/mainwindow.h"
 #include "ui_container.h"
@@ -11,7 +12,6 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-///\cond HIDDEN_SYMBOLS
 LineEdit::LineEdit(UI_container *parent, ScriptEngine *script_engine)
     : UI_widget{parent}
     , label{new QLabel(parent)}
@@ -69,7 +69,6 @@ void LineEdit::set_text_mode() {
     date_edit->setVisible(false);
 }
 
-///\endcond
 void LineEdit::set_placeholder_text(const std::string &text) {
     assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     if (entermode == LineEdit_Entermode::DateMode) {
@@ -286,6 +285,5 @@ double LineEdit::get_number() const {
     }
     return INT_MAX;
 }
-///\cond HIDDEN_SYMBOLS
 
 ///\endcond

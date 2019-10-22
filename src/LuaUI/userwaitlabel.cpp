@@ -1,3 +1,5 @@
+///\cond HIDDEN_SYMBOLS
+
 #include "userwaitlabel.h"
 
 #include "Windows/mainwindow.h"
@@ -23,7 +25,6 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-///\cond HIDDEN_SYMBOLS
 UserWaitLabel::UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, std::string extra_explanation)
     : UI_widget{parent}
     , label_user_instruction{new QLabel(parent)}
@@ -72,7 +73,6 @@ UserWaitLabel::~UserWaitLabel() {
     set_enabled(false);
     // });
 }
-///\endcond
 
 void UserWaitLabel::scale_columns() {
     int col_size = 6;
@@ -118,7 +118,6 @@ void UserWaitLabel::resizeMe(QResizeEvent *event) {
     }
 }
 
-///\cond HIDDEN_SYMBOLS
 void UserWaitLabel::start_timer() {
     callback_timer = QObject::connect(timer, &QTimer::timeout, [this]() {
         if (blink_state == Globals::ui_blink_ratio) {

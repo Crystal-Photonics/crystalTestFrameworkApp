@@ -1,4 +1,4 @@
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 #include "lua_functions.h"
 #include "Windows/mainwindow.h"
@@ -27,7 +27,7 @@
 #include <windows.h>
 #endif
 
-/// @endcond
+/// \endcond
 
 /** \defgroup convenience Convenience functions
  *  A Collection of built in convenience functions
@@ -42,7 +42,7 @@
  *  Describes the custom functions available to the LUA scripts.
  */
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigned int length, const double min_val, const double max_val) {
     std::vector<unsigned int> retval;
@@ -53,7 +53,7 @@ std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigne
     }
     return retval;
 }
-/// @endcond
+/// \endcond
 /*! \fn double measure_noise_level_czt(device rpc_device, int dacs_quantity, int max_possible_dac_value)
     \brief Calculates the noise level of an CZT-Detector system with thresholded radioactivity counters.
     \param rpc_device                   The communication instance of the CZT-Detector.
@@ -143,7 +143,7 @@ std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigne
 double measure_noise_level_czt(device rpc_device, int dacs_quantity, int max_possible_dac_value);
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const unsigned int dacs_quantity, const unsigned int max_possible_dac_value) {
     const unsigned int THRESHOLD_NOISE_LEVEL_CPS = 5;
     const unsigned int INTEGRATION_TIME_SEC = 1;
@@ -258,7 +258,7 @@ double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const uns
     //lua["callback_measure_noise_level_restore_dac_thresholds_to_normal_mode"](rpc_device);
     return noise_level_result;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn string show_file_save_dialog(string title, string path, string_table filter);
 \brief Shows a filesave dialog
@@ -286,7 +286,7 @@ The call is blocking, meaning the script pauses until the user clicks ok.
 string show_file_save_dialog(string title, string path, string_table filter);
 #endif
 #if 1
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 std::string show_file_save_dialog(const std::string &title, const std::string &path, sol::table filters) {
     QStringList sl;
     for (auto &i : filters) {
@@ -301,7 +301,7 @@ std::string show_file_save_dialog(const std::string &title, const std::string &p
     return result.toStdString();
 }
 #endif
-/// @endcond
+/// \endcond
 
 /*! \fn string show_question(string title, string message, string_table button_table);
 \brief Shows a dialog window with different buttons to click.
@@ -347,7 +347,7 @@ Following button strings are allowed:
 string show_question(string title, string message, string_table button_table);
 #endif
 #if 1
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 std::string show_question(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table) {
     QMessageBox::StandardButtons buttons{};
 #if 1
@@ -441,7 +441,7 @@ std::string show_question(const QString &path, const sol::optional<std::string> 
     return "";
 }
 #endif
-/// @endcond
+/// \endcond
 
 /*! \fn show_info(string title, string message);
 \brief Shows a message window with an info icon.
@@ -465,14 +465,14 @@ The call is blocking, meaning the script pauses until the user clicks ok.
 show_info(string title, string message);
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 void show_info(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
     Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message]() {
         QMessageBox::information(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path,
                                  QString::fromStdString(message.value_or("nil")));
     });
 }
-/// @endcond
+/// \endcond
 
 /*! \fn show_warning(string title, string message);
 \brief Shows a message window with a warning icon.
@@ -496,13 +496,13 @@ The call is blocking, meaning the script pauses until the user clicks ok.
 show_warning(string title, string message);
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message) {
     Utility::promised_thread_call(MainWindow::mw, [&path, &title, &message]() {
         QMessageBox::warning(MainWindow::mw, QString::fromStdString(title.value_or("nil")) + " from " + path, QString::fromStdString(message.value_or("nil")));
     });
 }
-/// @endcond
+/// \endcond
 
 /*! \fn print(argument);
 \brief Prints the string value of \c argument to the console.
@@ -510,7 +510,8 @@ void show_warning(const QString &path, const sol::optional<std::string> &title, 
                             scriptengine. eg. rpc_devices or Ui elements.
 
 
-\details   \par Differences to the standard Lua world:
+\details
+\par Differences to the standard Lua world:
   - Besides the normal way you can concatenate arguments using a "," comma. Using multiple arguments.
 
 \par example:
@@ -536,7 +537,7 @@ void show_warning(const QString &path, const sol::optional<std::string> &title, 
 print(argument);
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 void print(QPlainTextEdit *console, const sol::variadic_args &args) {
     std::string text;
     for (auto &object : args) {
@@ -547,7 +548,7 @@ void print(QPlainTextEdit *console, const sol::variadic_args &args) {
         Console_handle::script(console) << text;
     });
 }
-/// @endcond
+/// \endcond
 
 /*! \fn sleep_ms(int timeout_ms);
 \brief Pauses the script for \c timeout_ms milliseconds.
@@ -567,7 +568,7 @@ void print(QPlainTextEdit *console, const sol::variadic_args &args) {
 sleep_ms(int timeout_ms);
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms) {
     scriptengine->await_timeout(std::chrono::milliseconds{timeout_ms});
 #if 0
@@ -580,7 +581,7 @@ void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms) {
     }
 #endif
 }
-/// @endcond
+/// \endcond
 
 /*! \fn double current_date_time_ms();
 \brief Returns the current Milliseconds since epoch (1970-01-01T00:00:00.000).
@@ -597,11 +598,11 @@ void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms) {
 double current_date_time_ms();
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 double current_date_time_ms() {
     return QDateTime::currentMSecsSinceEpoch();
 }
-/// @endcond
+/// \endcond
 
 /*! \fn double round(double value, int precision);
 \brief Returns the rounded value of \c value
@@ -625,7 +626,7 @@ double round(double value, int precision);
 #endif
 
 ///
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 double round_double(const double value, const unsigned int precision) {
     double faktor = pow(10, precision);
     double retval = value;
@@ -633,7 +634,7 @@ double round_double(const double value, const unsigned int precision) {
     retval = std::round(retval);
     return retval / faktor;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn double table_crc16(number_table input_values);
 \brief Calculated the CRC16 checksum of \c input_values assuming these values are an array of uint8_t
@@ -653,7 +654,7 @@ double round_double(const double value, const unsigned int precision) {
 //this block is just for ducumentation purpose
 int table_crc16(number_table input_values);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 uint16_t table_crc16(QPlainTextEdit *console, sol::table input_values) {
     uint8_t x = 0;
@@ -673,7 +674,7 @@ uint16_t table_crc16(QPlainTextEdit *console, sol::table input_values) {
 
     return crc;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn double table_sum(number_table input_values);
 \brief Returns the sum of the table \c input_values
@@ -693,7 +694,7 @@ uint16_t table_crc16(QPlainTextEdit *console, sol::table input_values) {
 //this block is just for ducumentation purpose
 double table_sum(number_table input_values);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 double table_sum(sol::table input_values) {
     double retval = 0;
@@ -702,7 +703,7 @@ double table_sum(sol::table input_values) {
     }
     return retval;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn uint table_find_string(string_table input_values, string search_text);
 \brief Returns the index of \c search_text in table \c input_values
@@ -724,8 +725,8 @@ double table_sum(sol::table input_values) {
 //this block is just for ducumentation purpose
 uint table_find_string(string_table input_values, string search_text);
 #endif
-/// @cond HIDDEN_SYMBOLS
 
+/// \cond HIDDEN_SYMBOLS
 uint table_find_string(sol::table input_table, std::string search_text) {
     uint retval = 0;
     for (auto &i : input_table) {
@@ -736,7 +737,7 @@ uint table_find_string(sol::table input_table, std::string search_text) {
     }
     return 0;
 }
-/// @endcond
+
 static void lua_object_to_string(QPlainTextEdit *console, sol::object &obj, QString &v, QString &t) {
     v = "";
     t = "";
@@ -787,6 +788,67 @@ static void table_to_json_object(QPlainTextEdit *console, QJsonArray &jarray, co
         jarray.append(jobj);
     }
 }
+/// \endcond
+
+/*! \fn table_save_to_file(string file_name, table input_table, bool over_write_file);
+\brief Writes an arbitrary lua table to file.
+\param file_name            The filename to write the file to.
+\param input_table          The table to be saved.
+\param over_write_file      whether overwrite a potentially existing file(true) or not(false)
+
+\sa propose_unique_filename_by_datetime(text dir_path, text prefix, text suffix)
+\sa table_load_from_file()
+
+
+\details
+The function writes the lua table into a JSON file which is a normal text file. The table is written into
+the json array "table" where its elements contain the text elements:
+\li \c i: The index of the Lua table element.
+\li \c ti: The index type of Lua table.
+\li \c v: The value of Lua table element.
+\li \c tv: The value type of Lua table element.
+
+The type of the index an the value is coded as follows:
+\li \c n: Number
+\li \c b: Boolean
+\li \c l: Nil
+\li \c s: String
+
+\par example:
+\code{.json}
+{
+    "table": [
+        {
+            "i": "1",
+            "ti": "n",
+            "tv": "n",
+            "v": "0"
+        },
+        {
+            "i": "2",
+            "ti": "n",
+            "tv": "n",
+            "v": "9"
+        }
+    ]
+}
+\endcode
+This example is the result of the following code snippet:
+
+\code{.lua}
+    local table_example = {}
+    table_example[1] = 0
+    table_example[2] = 9
+    table_save_to_file("testfile.json",table_example,false)
+\endcode
+
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table_save_to_file(string file_name, table input_table, bool over_write_file);
+#endif
+/// \cond HIDDEN_SYMBOLS
 
 void table_save_to_file(QPlainTextEdit *console, const std::string file_name, sol::table input_table, bool over_write_file) {
     QString fn = QString::fromStdString(file_name);
@@ -889,7 +951,33 @@ static sol::table jsonarray_to_table(QPlainTextEdit *console, sol::state &lua, c
     }
     return result;
 }
+/// \endcond
 
+/*! \fn table table_load_from_file(string file_name)
+\brief Loads a lua table from file which where written using table_save_to_file()
+\param file_name            The filename to load the table from.
+\returns the lua table from file.
+
+\sa table_save_to_file()
+
+\par example:
+
+\code{.lua}
+    local table_example = {}
+    table_example[1] = 0
+    table_example[2] = 9
+    table_save_to_file("testfile.json",table_example,false)
+    local loaded_table = table_load_from_file("testfile.json")
+    print(loaded_table)
+\endcode
+
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_load_from_file(string file_name);
+#endif
+/// \cond HIDDEN_SYMBOLS
 sol::table table_load_from_file(QPlainTextEdit *console, sol::state &lua, const std::string file_name) {
     QString fn = QString::fromStdString(file_name);
 
@@ -909,28 +997,6 @@ sol::table table_load_from_file(QPlainTextEdit *console, sol::state &lua, const 
     QJsonArray jarray = obj["table"].toArray();
     return jsonarray_to_table(console, lua, jarray);
 }
-/*! \fn variant table_max_by_field(table input_values, string field_name);
-\brief Returns the max value of the table \c input_values with the field \c field_name.
-\param input_values                 Input table of int, double, string or bool values. If it is a string value the greater than / smaller than decision is based on alphabetical order.
-\param input_values                 The name of the field which will be compared.
-
-\return                     The mean value of \c input_values.
-
-\details    \par example:
-\code{.lua}
-    local tabelle_num = {{a=5, b = 3, c = 1},{a=3, b = 8, c = 1}}
-    local tabelle_str = {{a="foo", b = 3, c = 1},{a="bar", b = 8, c = 1},{a="xylophon", b = 8, c = 1}}
-
-    print(table_min_by_field(tabelle_num,"a")) --prints 3
-    print(table_max_by_field(tabelle_str,"a")) --prints xylophon
-\endcode
-*/
-
-#ifdef DOXYGEN_ONLY
-//this block is just for ducumentation purpose
-variant table_max_by_field(table input_values, string field_name);
-#endif
-/// @cond HIDDEN_SYMBOLS
 
 static sol::object table_minmax_by_field(sol::state &lua, sol::table input_values, const std::string field_name, bool max) {
     QString result_string;
@@ -1016,15 +1082,10 @@ static sol::object table_minmax_by_field(sol::state &lua, sol::table input_value
         return sol::nil;
     }
 }
+/// \endcond
 
-sol::object table_max_by_field(sol::state &lua, sol::table input_values, const std::string field_name) {
-    return table_minmax_by_field(lua, input_values, field_name, true);
-}
-
-/// @endcond
-///
-/*! \fn variant table_min_by_field(table input_values, string field_name);
-\brief Returns the min value of the table \c input_values with the field \c field_name.
+/*! \fn variant table_max_by_field(table input_values, string field_name);
+\brief Returns the max value of the table \c input_values with the field \c field_name.
 \param input_values                 Input table of int, double, string or bool values. If it is a string value the greater than / smaller than decision is based on alphabetical order.
 \param input_values                 The name of the field which will be compared.
 
@@ -1042,15 +1103,46 @@ sol::object table_max_by_field(sol::state &lua, sol::table input_values, const s
 
 #ifdef DOXYGEN_ONLY
 //this block is just for ducumentation purpose
+variant table_max_by_field(table input_values, string field_name);
+#endif
+/// \cond HIDDEN_SYMBOLS
+
+sol::object table_max_by_field(sol::state &lua, sol::table input_values, const std::string field_name) {
+    return table_minmax_by_field(lua, input_values, field_name, true);
+}
+
+/// \endcond
+
+/*! \fn variant table_min_by_field(table input_values, string field_name);
+\brief Returns the min value of the table \c input_values with the field \c field_name.
+\param input_values                 Input table of int, double, string or bool values. If it is a string
+                                    value the greater than / smaller
+                                    than decision is based on alphabetical order.
+\param field_name                   The name of the field which will be compared.
+
+\return                     The mean value of \c input_values.
+
+\par example:
+\code{.lua}
+    local tabelle_num = {{a=5, b = 3, c = 1},{a=3, b = 8, c = 1}}
+    local tabelle_str = {{a="foo", b = 3, c = 1},{a="bar", b = 8, c = 1},{a="xylophon", b = 8, c = 1}}
+
+    print(table_min_by_field(tabelle_num,"a")) --prints 3
+    print(table_max_by_field(tabelle_str,"a")) --prints xylophon
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
 variant table_min_by_field(table input_values, string field_name);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 sol::object table_min_by_field(sol::state &lua, sol::table input_values, const std::string field_name) {
     return table_minmax_by_field(lua, input_values, field_name, false);
 }
 
-/// @endcond
+/// \endcond
 ///
 /*! \fn double table_mean(number_table input_values);
 \brief Returns the mean value of the table \c input_values
@@ -1070,7 +1162,7 @@ sol::object table_min_by_field(sol::state &lua, sol::table input_values, const s
 //this block is just for ducumentation purpose
 double table_mean(number_table input_values);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 double table_mean(sol::table input_values) {
     double retval = 0;
@@ -1085,7 +1177,7 @@ double table_mean(sol::table input_values) {
     return retval;
 }
 
-/// @endcond
+/// \endcond
 
 ///
 /*! \fn double table_variance(table input_values);
@@ -1106,7 +1198,7 @@ double table_mean(sol::table input_values) {
 //this block is just for ducumentation purpose
 double table_variance(table input_values);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 double table_variance(sol::table input_values) {
     double retval = 0;
@@ -1123,7 +1215,7 @@ double table_variance(sol::table input_values) {
     return retval;
 }
 
-/// @endcond
+/// \endcond
 
 ///
 /*! \fn double table_standard_deviation(table input_values);
@@ -1144,7 +1236,7 @@ double table_variance(sol::table input_values) {
 //this block is just for ducumentation purpose
 double table_standard_deviation(table input_values);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 double table_standard_deviation(sol::table input_values) {
     const double variance = table_variance(input_values);
@@ -1152,7 +1244,7 @@ double table_standard_deviation(sol::table input_values) {
     return retval;
 }
 
-/// @endcond
+/// \endcond
 
 /*! \fn number_table table_set_constant(number_table input_values, double constant);
 \brief Returns a table with the length of \c input_values initialized with \c constant.
@@ -1175,7 +1267,7 @@ double table_standard_deviation(sol::table input_values) {
 //this block is just for ducumentation purpose
 number_table table_set_constant(number_table input_values, double constant);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 sol::table table_set_constant(sol::state &lua, sol::table input_values, double constant) {
     sol::table retval = lua.create_table_with();
@@ -1184,7 +1276,7 @@ sol::table table_set_constant(sol::state &lua, sol::table input_values, double c
     }
     return retval;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn number_table table_create_constant(int size, double constant);
     \brief Creates a table with \c size elements initialized with \c constant.
@@ -1207,7 +1299,7 @@ sol::table table_set_constant(sol::state &lua, sol::table input_values, double c
 //this block is just for ducumentation purpose
 number_table table_create_constant(int size, double constant);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 sol::table table_create_constant(sol::state &lua, const unsigned int size, double constant) {
     sol::table retval = lua.create_table_with();
     for (size_t i = 1; i <= size; i++) {
@@ -1215,7 +1307,7 @@ sol::table table_create_constant(sol::state &lua, const unsigned int size, doubl
     }
     return retval;
 }
-/// @endcond
+/// \endcond
 ///
 
 /*! \fn number_table table_add_table_at(number_table input_values_a, number_table input_values_b, int at);
@@ -1253,7 +1345,7 @@ sol::table table_create_constant(sol::state &lua, const unsigned int size, doubl
 //this block is just for ducumentation purpose
 number_table table_add_table_at(number_table input_values_a, number_table input_values_b, int at);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 sol::table table_add_table_at(sol::state &lua, sol::table input_values_a, sol::table input_values_b, unsigned int at) {
     //adds a table values input_values_a at a given position at to input_values_b
@@ -1282,7 +1374,7 @@ sol::table table_add_table_at(sol::state &lua, sol::table input_values_a, sol::t
     }
     return retval;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn number_table table_add_table(number_table input_values_a, number_table input_values_b);
     \brief Performs a vector addition of \c input_values_a[i] + \c input_values_b[i] for each i.
@@ -1306,7 +1398,7 @@ sol::table table_add_table_at(sol::state &lua, sol::table input_values_a, sol::t
 //this block is just for ducumentation purpose
 number_table table_add_table(number_table input_values_a, number_table input_values_b);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 sol::table table_add_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b) {
     sol::table retval = lua.create_table_with();
@@ -1316,7 +1408,7 @@ sol::table table_add_table(sol::state &lua, sol::table input_values_a, sol::tabl
     }
     return retval;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn number_table table_add_constant(number_table input_values,  double constant);
     \brief Performs a vector addition of  \c input_values[i] + \c constant for each i.
@@ -1339,7 +1431,7 @@ sol::table table_add_table(sol::state &lua, sol::table input_values_a, sol::tabl
 //this block is just for ducumentation purpose
 number_table table_add_constant(number_table input_values, double constant);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 sol::table table_add_constant(sol::state &lua, sol::table input_values, double constant) {
     sol::table retval = lua.create_table_with();
@@ -1349,7 +1441,7 @@ sol::table table_add_constant(sol::state &lua, sol::table input_values, double c
     }
     return retval;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn number_table table_sub_table(number_table input_values_a, number_table input_values_b);
     \brief Performs a vector subtraction of  \c input_values_a[i] - \c input_values_b[i] for each i.
@@ -1372,7 +1464,7 @@ sol::table table_add_constant(sol::state &lua, sol::table input_values, double c
 //this block is just for ducumentation purpose
 number_table table_sub_table(number_table input_values_a, number_table input_values_b);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 sol::table table_sub_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b) {
     sol::table retval = lua.create_table_with();
@@ -1382,7 +1474,7 @@ sol::table table_sub_table(sol::state &lua, sol::table input_values_a, sol::tabl
     }
     return retval;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn number_table table_mul_table(number_table input_values_a, number_table input_values_b);
     \brief Performs a vector multiplication of  \c input_values_a[i] * \c input_values_b[i] for each i.
@@ -1405,7 +1497,7 @@ sol::table table_sub_table(sol::state &lua, sol::table input_values_a, sol::tabl
 //this block is just for ducumentation purpose
 number_table table_mul_table(number_table input_values_a, number_table input_values_b);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 sol::table table_mul_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b) {
     sol::table retval = lua.create_table_with();
@@ -1415,7 +1507,7 @@ sol::table table_mul_table(sol::state &lua, sol::table input_values_a, sol::tabl
     }
     return retval;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn number_table table_mul_constant(number_table input_values_a, double constant);
     \brief Performs a vector multiplication of  \c input_values_a[i] * \c constant for each i.
@@ -1438,7 +1530,7 @@ sol::table table_mul_table(sol::state &lua, sol::table input_values_a, sol::tabl
 //this block is just for ducumentation purpose
 number_table table_mul_constant(number_table input_values_a, double constant);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 sol::table table_mul_constant(sol::state &lua, sol::table input_values_a, double constant) {
     sol::table retval = lua.create_table_with();
@@ -1448,7 +1540,7 @@ sol::table table_mul_constant(sol::state &lua, sol::table input_values_a, double
     }
     return retval;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn number_table table_div_table(number_table input_values_a, number_table input_values_b);
     \brief Performs a vector division of  \c input_values_a[i] / \c input_values_b[i] for each i.
@@ -1472,7 +1564,7 @@ sol::table table_mul_constant(sol::state &lua, sol::table input_values_a, double
 //this block is just for ducumentation purpose
 number_table table_div_table(number_table input_values_a, number_table input_values_b);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 sol::table table_div_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b) {
     sol::table retval = lua.create_table_with();
@@ -1489,7 +1581,7 @@ sol::table table_div_table(sol::state &lua, sol::table input_values_a, sol::tabl
     }
     return retval;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn number_table table_round(number_table input_values, int precision);
     \brief Returns a table with rounded values of \c input_values
@@ -1512,7 +1604,7 @@ sol::table table_div_table(sol::state &lua, sol::table input_values_a, sol::tabl
 //this block is just for ducumentation purpose
 number_table table_round(number_table input_values, int precision);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 sol::table table_round(sol::state &lua, sol::table input_values, const unsigned int precision) {
     sol::table retval = lua.create_table_with();
@@ -1522,7 +1614,7 @@ sol::table table_round(sol::state &lua, sol::table input_values, const unsigned 
     }
     return retval;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn number_table table_abs(number_table input_values);
     \brief Returns absolute values of \c input_values.
@@ -1542,7 +1634,7 @@ sol::table table_round(sol::state &lua, sol::table input_values, const unsigned 
 //this block is just for ducumentation purpose
 number_table table_abs(number_table input_values);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 sol::table table_abs(sol::state &lua, sol::table input_values) {
     sol::table retval = lua.create_table_with();
@@ -1552,7 +1644,7 @@ sol::table table_abs(sol::state &lua, sol::table input_values) {
     }
     return retval;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn number_table table_mid(number_table input_values, int start, int length);
     \brief Returns a fragment of the table \c input_values
@@ -1574,7 +1666,7 @@ sol::table table_abs(sol::state &lua, sol::table input_values) {
 //this block is just for ducumentation purpose
 number_table table_mid(number_table input_values, int start, int length);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 sol::table table_mid(sol::state &lua, sol::table input_values, const unsigned int start, const unsigned int length) {
     sol::table retval = lua.create_table_with();
     for (size_t i = start; i <= start + length - 1; i++) {
@@ -1584,7 +1676,7 @@ sol::table table_mid(sol::state &lua, sol::table input_values, const unsigned in
     return retval;
 }
 
-/// @endcond
+/// \endcond
 
 /*! \fn bool table_equal_constant(number_table input_values_a, double input_const_val);
     \brief Returns true if \c input_values_a[i] == input_const_val for all \c i.
@@ -1608,7 +1700,7 @@ sol::table table_mid(sol::state &lua, sol::table input_values, const unsigned in
 //this block is just for ducumentation purpose
 bool table_equal_constant(number_table input_values_a, double input_const_val);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 bool table_equal_constant(sol::table input_values_a, double input_const_val) {
     for (size_t i = 1; i <= input_values_a.size(); i++) {
         if (input_values_a[i].get<double>() != input_const_val) { //TODO: fix double comparison
@@ -1617,7 +1709,7 @@ bool table_equal_constant(sol::table input_values_a, double input_const_val) {
     }
     return true;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn bool table_equal_table(number_table input_values_a, number_table input_values_b);
     \brief Returns true if \c input_values_a[i] == input_values_b[i] for all \c i.
@@ -1641,7 +1733,7 @@ bool table_equal_constant(sol::table input_values_a, double input_const_val) {
 //this block is just for ducumentation purpose
 bool table_equal_table(number_table input_values_a, number_table input_values_b);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 bool table_equal_table(sol::table input_values_a, sol::table input_values_b) {
     for (size_t i = 1; i <= input_values_a.size(); i++) {
         if (input_values_a[i].get<double>() != input_values_b[i].get<double>()) { //TODO: fix double comparison
@@ -1650,7 +1742,7 @@ bool table_equal_table(sol::table input_values_a, sol::table input_values_b) {
     }
     return true;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn double table_max(number_table input_values);
     \brief Returns the maximum value of \c input_values.
@@ -1670,7 +1762,7 @@ bool table_equal_table(sol::table input_values_a, sol::table input_values_b) {
 //this block is just for ducumentation purpose
 double table_max(number_table input_values);
 #endif
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 double table_max(sol::table input_values) {
     double max = 0;
     bool first = true;
@@ -1683,7 +1775,7 @@ double table_max(sol::table input_values) {
     }
     return max;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn double table_min(number_table input_values);
     \brief Returns the minimum value of \c input_values.
@@ -1704,7 +1796,7 @@ double table_max(sol::table input_values) {
 double table_min(number_table input_values);
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 double table_min(sol::table input_values) {
     double min = 0;
     bool first = true;
@@ -1717,7 +1809,7 @@ double table_min(sol::table input_values) {
     }
     return min;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn double table_max_abs(number_table input_values);
     \brief Returns the maximum absolute value of \c input_values.
@@ -1738,7 +1830,7 @@ double table_min(sol::table input_values) {
 double table_max_abs(number_table input_values);
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 double table_max_abs(sol::table input_values) {
     double max = 0;
     bool first = true;
@@ -1751,7 +1843,7 @@ double table_max_abs(sol::table input_values) {
     }
     return max;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn text propose_unique_filename_by_datetime(text dir_path, text prefix, text suffix)
     \brief Returns a filename which does not exist in the directory.
@@ -1777,7 +1869,7 @@ double table_max_abs(sol::table input_values) {
 text propose_unique_filename_by_datetime(text dir_path, text prefix, text suffix);
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 static QString get_unique_file_name_date_time_format() {
     return "-yyyy_MM_dd-HH_mm_ss-";
@@ -1814,7 +1906,7 @@ std::string propose_unique_filename_by_datetime(const std::string &dir_path, con
     } while (QFile::exists(result));
     return result.toStdString();
 }
-/// @endcond
+/// \endcond
 
 /*! \fn double table_min_abs(number_table input_values);
     \brief Returns the minimum absolute value of \c input_values.
@@ -1835,7 +1927,7 @@ std::string propose_unique_filename_by_datetime(const std::string &dir_path, con
 double table_min_abs(number_table input_values);
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 double table_min_abs(sol::table input_values) {
     double min = 0;
     bool first = true;
@@ -1848,7 +1940,7 @@ double table_min_abs(sol::table input_values) {
     }
     return min;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn pc_speaker_beep();
     \brief Sounds the bell, using the default volume and sound.
@@ -1864,18 +1956,18 @@ double table_min_abs(sol::table input_values) {
 pc_speaker_beep();
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 void pc_speaker_beep() {
     QApplication::beep();
 }
-/// @endcond
+/// \endcond
 
 /*! \fn run_external_tool(string execute_directory, string executable, string_table arguments, number timout_s)
     \brief runs an external tool and returns its output as string.
     \param execute_directory   The directory where the external tool is executed from
     \param executable          The path to the external tool. Can be a *.bat(windows), an *.exe or a *.sh(linux) file
     \param arguments           A table of argument strings.
-    \param timeout           Timeout in seconds
+    \param timout_s           Timeout in seconds
 
     \return                    The output of the external tool
     \details    \par example:
@@ -1890,7 +1982,7 @@ void pc_speaker_beep() {
 string run_external_tool(string execute_directory, string executable, string_table arguments, number timout_s);
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 QString run_external_tool(const QString &script_path, const QString &execute_directory, const QString &executable, const sol::table &arguments, uint timeout) {
     QString program = search_in_search_path(script_path, executable);
@@ -1936,7 +2028,7 @@ QString run_external_tool(const QString &script_path, const QString &execute_dir
     }
     return result;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn git_info(string path, bool allow_modified)
     \brief returns the git revision hash of a given repository
@@ -1956,7 +2048,7 @@ QString run_external_tool(const QString &script_path, const QString &execute_dir
 string git_info(string path, bool allow_modified);
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 
 QMap<QString, QVariant> git_info(QString path, bool allow_modified, bool allow_exceptions) {
     QMap<QString, QVariant> result;
@@ -2038,7 +2130,7 @@ sol::table git_info(sol::state &lua, std::string path, bool allow_modified) {
     result["date"] = map["date"].toString().toStdString();
     return result;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn string get_framework_git_hash();
     \brief Returns the git hash of the last git commit of this test framework as string.
@@ -2054,11 +2146,11 @@ sol::table git_info(sol::state &lua, std::string path, bool allow_modified) {
 string get_framework_git_hash();
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 std::string get_framework_git_hash() {
     return "0x" + QString::number(GITHASH, 16).toUpper().toStdString();
 }
-/// @endcond
+/// \endcond
 
 /*! \fn double get_framework_git_date_unix();
     \brief Returns the unix time of the last commit of this test framework as string.
@@ -2075,11 +2167,11 @@ std::string get_framework_git_hash() {
 double get_framework_git_date_unix();
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 double get_framework_git_date_unix() {
     return GITUNIX;
 }
-/// @endcond
+/// \endcond
 /*! \fn string get_framework_git_date_text();
     \brief Returns the date of the last commit of this test framework as string.
 
@@ -2094,11 +2186,11 @@ double get_framework_git_date_unix() {
 string get_framework_git_date_text();
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 std::string get_framework_git_date_text() {
     return GITDATE;
 }
-/// @endcond
+/// \endcond
 
 /*! \fn string get_os_username();
     \brief Returns the operational system's username of the current account beeing logged in. Works on Linux and Windows
@@ -2116,7 +2208,7 @@ std::string get_framework_git_date_text() {
 string get_os_username();
 #endif
 
-/// @cond HIDDEN_SYMBOLS
+/// \cond HIDDEN_SYMBOLS
 #if defined(Q_OS_WIN)
 static QString handle_lower_upper_case_username(QString origun) {
     if (origun.size() == 2) {
@@ -2152,10 +2244,11 @@ std::string get_os_username() {
     throw std::runtime_error("Can't get username on this OS.");
 #endif
 }
-/// @endcond
+/// \endcond
 ///
 /** \} */ // end of group convenience
 
+/// \cond HIDDEN_SYMBOLS
 QString append_separator_to_path(QString path) {
     path = QDir::toNativeSeparators(path);
     if (!path.endsWith(QDir::separator())) {
@@ -2186,7 +2279,7 @@ QString create_path(QString filename) {
     return filename;
 }
 
-QChar get_search_path_delimiter() {
+static QChar get_search_path_delimiter() {
 #if defined(Q_OS_WIN)
     return ';';
 #elif defined(Q_OS_UNIX)
@@ -2241,3 +2334,4 @@ QString search_in_search_path(const QString &script_path, const QString &file_to
     }
     return "";
 }
+/// \endcond

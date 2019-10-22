@@ -10,24 +10,20 @@
 // clang-format off
 /*!
   \class   Color
-  \author Tobias Rieger (tr@crystal-photonics.com),<br> Arne Krüger
-  (ak@crystal-photonics.com)
-  \brief Type holding a color value
-  \par
-    This type is used mainly for defining the color of a plot curve.
+  \brief Type holding a color value.  This type is used mainly for defining the color of a plot curve.
+
   */
 // clang-format on
 
 struct Color {
-
 #ifdef DOXYGEN_ONLY
-  // this block is just for ducumentation purpose
-  Color(string name);
+    // this block is just for ducumentation purpose
+    Color(string name);
 #endif
-  /// @cond HIDDEN_SYMBOLS
-  Color(const std::string &name);
-  /// @endcond
-  // clang-format off
+    /// \cond HIDDEN_SYMBOLS
+    Color(const std::string &name);
+    /// \endcond
+    // clang-format off
 /*! \fn Color(string name)
     \brief Creates a color by name.
     \param name Name as string of the color.
@@ -45,15 +41,15 @@ struct Color {
     \endcode
 */
 
-  // clang-format on
+    // clang-format on
 #ifdef DOXYGEN_ONLY
-  // this block is just for ducumentation purpose
-  Color(int r, int g, int b);
+    // this block is just for ducumentation purpose
+    Color(int r, int g, int b);
 #endif
-  /// \cond HIDDEN_SYMBOLS
-  Color(int r, int g, int b);
-  /// \endcond
-  // clang-format off
+    /// \cond HIDDEN_SYMBOLS
+    Color(int r, int g, int b);
+    /// \endcond
+    // clang-format off
 /*! \fn Color(int r, int g, int b)
     \brief Creates a color by rgb values.
     \param r Red integer value(0-255).
@@ -72,15 +68,15 @@ struct Color {
         curve:set_color(color)
     \endcode
 */
-  // clang-format on
+    // clang-format on
 #ifdef DOXYGEN_ONLY
-  // this block is just for ducumentation purpose
-  Color(int rgb);
+    // this block is just for ducumentation purpose
+    Color(int rgb);
 #endif
-  /// \cond HIDDEN_SYMBOLS
-  Color(int rgb);
-  /// \endcond
-  // clang-format off
+    /// \cond HIDDEN_SYMBOLS
+    Color(int rgb);
+    /// \endcond
+    // clang-format off
 /*! \fn Color(int rgb)
     \brief Creates a color by rgb values.
     \param rgb Integer value of the usual rgb color bitmask.

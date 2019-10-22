@@ -19,4 +19,6 @@ For using this framework it is essential to write scripts which define the test 
 
 * \ref convenience "Built-in convenience functions"
 
+* \ref configuration "Configuration files"
+
 * Data- and report engine 
