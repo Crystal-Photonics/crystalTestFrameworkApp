@@ -1,3 +1,4 @@
+///\cond HIDDEN_SYMBOLS
 #include "hline.h"
 
 #include "label.h"
@@ -9,7 +10,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-///\cond HIDDEN_SYMBOLS
+
 HLine::HLine(UI_container *parent)
     : UI_widget{parent}
     , line{new QFrame(parent)} {
@@ -35,3 +36,4 @@ void HLine::set_visible(bool visible) {
     assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     line->setVisible(visible);
 }
+///\endcond

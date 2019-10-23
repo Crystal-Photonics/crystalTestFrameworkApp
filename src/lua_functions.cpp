@@ -1087,7 +1087,7 @@ static sol::object table_minmax_by_field(sol::state &lua, sol::table input_value
 /*! \fn variant table_max_by_field(table input_values, string field_name);
 \brief Returns the max value of the table \c input_values with the field \c field_name.
 \param input_values                 Input table of int, double, string or bool values. If it is a string value the greater than / smaller than decision is based on alphabetical order.
-\param input_values                 The name of the field which will be compared.
+\param field_name                 The name of the field which will be compared.
 
 \return                     The mean value of \c input_values.
 

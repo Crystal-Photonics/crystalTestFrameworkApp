@@ -8,7 +8,7 @@
 #include <functional>
 #include <string>
 
-/** \defgroup ui User-intercation
+/** \defgroup ui User-interaction
  *  Interface of built-in user interface functions.
  *  \{
  */
