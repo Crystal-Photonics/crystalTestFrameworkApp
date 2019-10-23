@@ -35,7 +35,6 @@
  */
 
 /**
- * \file   lua_functions.cpp
  * \author Tobias Rieger (tr@crystal-photonics.com),<br> Arne Krüger (ak@crystal-photonics.com)
  * \brief  Lua interface
  * \par
@@ -554,9 +553,7 @@ void print(QPlainTextEdit *console, const sol::variadic_args &args) {
 \brief Pauses the script for \c timeout_ms milliseconds.
 \param timeout_ms          Positive integer input value.
 
-\return                    nil
-
-\details    \par example:
+,\details    \par example:
 \code{.lua}
     local timeout_ms = 100
     sleep_ms(timeout_ms)  -- waits for 100 milliseconds
