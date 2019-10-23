@@ -525,6 +525,9 @@ void MainWindow::set_enabled_states_for_matchable_scripts() {
     assert(currently_in_gui_thread());
     DeviceMatcher device_matcher(this);
     for (TestDescriptionLoader &test : test_descriptions) {
+		if (not test.ui_entry) {
+			continue;
+		}
         bool is_matchable = device_matcher.is_match_possible(*device_worker.get(), test);
         if (is_matchable) {
             test.ui_entry->setForeground(0, palette().color(QPalette::Active, QPalette::Text));
