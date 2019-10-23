@@ -16,6 +16,74 @@
 #include <cmath>
 #include <sol.hpp>
 
+/** \defgroup configuration Configuration files
+  Description of the configuration files.
+  \{
+  \defgroup radioactive_source_database Isotope Source Database
+    \{
+    # Introduction
+    The radioactive source database is used to list all sources with all necessary data for calculating their current activity.
+    You can access the database using the class \c IsotopeSourceSelector.
+
+    # The Database Structure
+    The database is organized as a simple .json file. If you need assistance to understand the .json file format click here:
+    <a href=" https://en.wikipedia.org/wiki/JSON"> https://en.wikipedia.org/wiki/JSON</a>
+    It is recommended to check the syntax of the file via online tools like <a href="https://jsonlint.com/">
+    https://jsonlint.com/</a> to be sure that it does not contain errors.
+    \par
+    The file contains the object "isotopes" which is an array. In that array each radioactive source is listed as an element with the fields:
+    \li \c serial_number: string, the serialnumber of the radioactive source. e.g.: AF4458
+    \li \c isotope: string, the isotope name. The isotope name is used to calculate the half-time.
+        see also: \ref IsotopeSourceSelector::get_selected_activity_Bq())<br>
+        Currently supported isotopes:
+        - co57
+        - i129
+        - na22
+    \li \c start_date: string, the calibration date of the source. Format: "YYYY.MM.DD".
+    \li \c start_activity_kBq: number, the activity of the source at \c start_date
+    \li \c removed: string, if the value is "yes" the radioactive source will be hidden to the user.
+        - yes
+        - no
+
+
+
+    # The Database Location
+    The location of the file must be configured via the menu:
+
+    Tools / Settings / Path settings / "Path to isotope source database file"
+
+    \par example:
+    \code{.json}
+        {
+            "isotopes":[
+            {
+                "serial_number": "AF4458",
+                "isotope": "co57",
+                "start_activity_kBq": 191,
+                "start_date":"2015.03.15",
+                "removed":"no"
+            },{
+                "serial_number": "464-83",
+                "isotope": "i129",
+                "start_activity_kBq": 37,
+                "start_date":"1994.6.30",
+                "removed":"no"
+            },{
+                "serial_number": "RG319",
+                "isotope": "na22",
+                "start_activity_kBq": 370,
+                "start_date":"2008.7.9",
+                "removed":"no"
+            }
+            ]
+        }
+    \endcode
+
+
+    \} //end of group radioactive_source_database
+\} */ // end of group ui
+
+/// \cond HIDDEN_SYMBOLS
 IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     : UI_widget{parent}
     , combobox{new QComboBox(parent)} {
@@ -179,7 +247,6 @@ void IsotopeSourceSelector::disconnect_isotope_selecteted() {
     }
 }
 
-///\cond HIDDEN_SYMBOLS
 void IsotopeSourceSelector::set_single_shot_return_pressed_callback(std::function<void()> callback) {
 #if 0
     callback_connection =
@@ -192,8 +259,6 @@ void IsotopeSourceSelector::set_single_shot_return_pressed_callback(std::functio
 #endif
 }
 
-///\endcond
-
 double IsotopeSource::get_activtiy_becquerel(QDate date_for_activity) {
     const double ln2 = 0.693147180559945;
     double days = start_date.daysTo(date_for_activity);
@@ -202,3 +267,4 @@ double IsotopeSource::get_activtiy_becquerel(QDate date_for_activity) {
 
     return current_activity;
 }
+/// \endcond

@@ -14,11 +14,8 @@
 // clang-format off
 /*!
   \class   ComboBox
-  \author Tobias Rieger (tr@crystal-photonics.com),<br> Arne Krüger
-  (ak@crystal-photonics.com)
-  \brief ComboBox Ui-Element
-  \par
-    Interface to a ComboBox which the lua-script author can use to display a ComboBox to the script-user.
+  \brief
+    Interface to a ComboBox Ui-Element which the lua-script author can use to display a ComboBox to the script-user.
   */
 
 class ComboBox : public UI_widget {
@@ -189,8 +186,8 @@ public:
       \par examples:
       \code
           local combobox = Ui.ComboBox.new({"blue", "red","black"})
-          combobox:set_editable(false)   -- combobox's textfield can only contain the strings "blue", "red" and "black"
-          combobox:set_editable(true)   -- combobox's textfield can be edited freely by the user
+          combobox:set_editable(false)   -- combobox's text field can only contain the strings "blue", "red" and "black"
+          combobox:set_editable(true)   -- combobox's text field can be edited freely by the user
       \endcode
   */
 

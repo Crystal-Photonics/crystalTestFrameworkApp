@@ -1,3 +1,4 @@
+///\cond HIDDEN_SYMBOLS
 #include "image.h"
 #include "scriptengine.h"
 #include "ui_container.h"
@@ -10,7 +11,6 @@
 #include <QWidget>
 #include <cmath>
 #include <sol.hpp>
-///\cond HIDDEN_SYMBOLS
 
 class Aspect_ratio_label : public QLabel {
     public:
@@ -66,3 +66,4 @@ void Image::load_image(const std::string &path_to_image_) {
         throw sol::error(msg.toStdString());
     }
 }
+/// \endcond

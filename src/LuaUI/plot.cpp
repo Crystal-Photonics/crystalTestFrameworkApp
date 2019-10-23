@@ -1,3 +1,4 @@
+///\cond HIDDEN_SYMBOLS
 #include "plot.h"
 #include "config.h"
 #include "qt_util.h"
@@ -24,8 +25,6 @@
 #include <qwt_plot_picker.h>
 
 using namespace std::chrono;
-
-///\cond HIDDEN_SYMBOLS
 
 struct Curve_data : QwtSeriesData<QPointF> {
     size_t size() const override;
@@ -63,10 +62,10 @@ size_t Curve_data::size() const {
 }
 
 QPointF Curve_data::sample(size_t i) const {
-	assert(i < xvalues.size());
-	assert(i < yvalues_plot.size());
-	assert(i < yvalues_orig.size());
-	return {xvalues[i], use_interpolated_values() ? yvalues_plot[i] : yvalues_orig[i]};
+    assert(i < xvalues.size());
+    assert(i < yvalues_plot.size());
+    assert(i < yvalues_orig.size());
+    return {xvalues[i], use_interpolated_values() ? yvalues_plot[i] : yvalues_orig[i]};
 }
 
 QRectF Curve_data::boundingRect() const {
@@ -212,19 +211,19 @@ Curve::Curve(UI_container *, ScriptEngine *script_engine, Plot *plot)
 }
 
 Curve::~Curve() {
-	if (plot) {
-		auto &curves = plot->curves;
-		auto pos = std::find(std::begin(curves), std::end(curves), this);
-		assert(pos != std::end(curves)); //if this assert fires, someone has removed a curve from plot->curves who forgot to detach first
-		curves.erase(pos);
-		detach();
-	}
+    if (plot) {
+        auto &curves = plot->curves;
+        auto pos = std::find(std::begin(curves), std::end(curves), this);
+        assert(pos != std::end(curves)); //if this assert fires, someone has removed a curve from plot->curves who forgot to detach first
+        curves.erase(pos);
+        detach();
+    }
 }
 void Curve::add(const std::vector<double> &data) {
     curve_data().add(data);
     update();
 }
-///\endcond
+
 void Curve::append_point(double x, double y) {
     curve_data().append(x, y);
     update();
@@ -338,9 +337,8 @@ double Curve::pick_x_coord() {
     return 0;
 }
 
-///\cond HIDDEN_SYMBOLS
 void Curve::set_onetime_click_callback(std::function<void(double, double)> click_callback) {
-	event_filter->add_callback([callback = std::move(click_callback), this](QEvent *event) {
+    event_filter->add_callback([callback = std::move(click_callback), this](QEvent *event) {
         if (event->type() == QEvent::MouseButtonPress) {
             auto mouse_event = static_cast<QMouseEvent *>(event);
             const auto &pixel_pos = mouse_event->pos();
@@ -396,12 +394,12 @@ Plot::~Plot() {
     //this is to make the plot own the data
     assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
-///\endcond
+
 void Plot::clear() {
-	for (auto &curve : curves) {
-		curve->detach();
-		curve->plot = nullptr;
-	}
+    for (auto &curve : curves) {
+        curve->detach();
+        curve->plot = nullptr;
+    }
     curves.clear();
     assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
@@ -462,7 +460,7 @@ void Plot::set_rightclick_action() {
         std::vector<QwtPlotCurve *> raw_curves;
         raw_curves.resize(curves.size());
         std::transform(std::begin(curves), std::end(curves), std::begin(raw_curves), [](const Curve *curve) { return curve->curve; });
-		QObject::connect(save_as_csv_action, &QAction::triggered, [plot = this->plot, curves = std::move(raw_curves)] {
+        QObject::connect(save_as_csv_action, &QAction::triggered, [plot = this->plot, curves = std::move(raw_curves)] {
             QString last_dir = QSettings{}.value(Globals::last_csv_saved_directory_key, QDir::currentPath()).toString();
             auto dir = QFileDialog::getExistingDirectory(plot, QObject::tr("Select folder to save data in"), last_dir);
             if (dir.isEmpty() == false) {
@@ -488,3 +486,4 @@ void Plot::set_rightclick_action() {
     }
     plot->addAction(save_as_csv_action);
 }
+///\endcond

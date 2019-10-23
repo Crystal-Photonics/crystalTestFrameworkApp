@@ -1,3 +1,4 @@
+///\cond HIDDEN_SYMBOLS
 #include "userinstructionlabel.h"
 
 #include "Windows/mainwindow.h"
@@ -22,7 +23,6 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-///\cond HIDDEN_SYMBOLS
 UserInstructionLabel::UserInstructionLabel(UI_container *parent, ScriptEngine *script_engine, std::string extra_explanation)
     : UI_widget{parent}
     , label_user_instruction{new QLabel(parent)}
@@ -103,7 +103,6 @@ UserInstructionLabel::~UserInstructionLabel() {
     set_enabled(false);
     // });
 }
-///\endcond
 
 void UserInstructionLabel::scale_columns() {
     assert(MainWindow::gui_thread == QThread::currentThread());
@@ -187,7 +186,6 @@ void UserInstructionLabel::resizeMe(QResizeEvent *event) {
     }
 }
 
-///\cond HIDDEN_SYMBOLS
 void UserInstructionLabel::start_timer() {
     callback_timer = QObject::connect(timer, &QTimer::timeout, [this]() {
         assert(MainWindow::gui_thread == QThread::currentThread());

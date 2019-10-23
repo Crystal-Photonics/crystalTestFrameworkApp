@@ -1,3 +1,4 @@
+/// \cond HIDDEN_SYMBOLS
 #include "combofileselector.h"
 #include "Windows/mainwindow.h"
 #include "ui_container.h"
@@ -160,3 +161,4 @@ void ComboBoxFileSelector::fill_combobox() {
         combobox->addItem(fe.filename);
     }
 }
+/// \endcond

@@ -12,10 +12,10 @@
 #include "ui_container.h"
 /// \cond HIDDEN_SYMBOLS
 class FileEntry {
-public:
-  QString filename;
-  QString filenpath;
-  QDateTime date;
+    public:
+    QString filename;
+    QString filenpath;
+    QDateTime date;
 };
 /// \endcond
 
@@ -25,11 +25,8 @@ public:
 // clang-format off
 /*!
   \class   ComboBoxFileSelector
-  \author Tobias Rieger (tr@crystal-photonics.com),<br> Arne Krüger
-  (ak@crystal-photonics.com)
-  \brief ComboBoxFileSelector Ui-Element
-  \par
-    Interface to a ComboBoxFileSelector object which the lua-script author can use
+  \brief
+    Interface to a ComboBoxFileSelector Ui-Element which the lua-script author can use
     to display a ComboBoxFileSelector to the script-user. It lists all files of a
     predefined directory which match the specified filter entries. The script-user
     can select a file which can be queried by the script using the function get_selected_file().
@@ -52,7 +49,7 @@ public:
   /*! \fn  ComboBoxFileSelector(string directory, string_table filter);
       \brief Creates a ComboBoxFileSelector object.
         \param directory specifies the directory in which the files are searched. If you use a relative path,
-            the current directory is the directoy in which the lua script is located
+            the current directory is the directory in which the lua script is located
         \param filter is a table of strings defining filter. e.g {"*.lua"} lists only lua files.
 
 
@@ -61,7 +58,7 @@ public:
             local combobox_fileselector = Ui.ComboBoxFileSelector.new(".",{"*.lua","*.xml"})
             local done_button = Ui.Button.new("Select File")
             done_button:await_click()
-            print("You slected: " ..file_selector:get_selected_file())
+            print("You selected: " ..file_selector:get_selected_file())
       \endcode
   */
 
@@ -88,7 +85,7 @@ public:
             local done_button = Ui.Button.new("Select File")
             file_selector:set_order_by("name",true) -- alphabetical, ascending order
             done_button:await_click()
-            print("You slected: " ..file_selector:get_selected_file())
+            print("You selected: " ..file_selector:get_selected_file())
       \endcode
   */
 
@@ -110,7 +107,7 @@ public:
             local combobox_fileselector = Ui.ComboBoxFileSelector.new(".",{"*.lua","*.xml"})
             local done_button = Ui.Button.new("Select File")
             done_button:await_click()
-            print("You slected: " ..file_selector:get_selected_file())
+            print("You selected: " ..file_selector:get_selected_file())
       \endcode
   */
 

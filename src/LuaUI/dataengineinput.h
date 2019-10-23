@@ -24,11 +24,8 @@ class QPushButton;
 // clang-format off
 /*!
   \class   DataEngineInput
-  \author Tobias Rieger (tr@crystal-photonics.com),<br> Arne Krüger
-  (ak@crystal-photonics.com)
-  \brief DataEngineInput Ui-Element
-  \par
-    Interface to a DataEngineInput object which the lua-script author can use
+  \brief
+    Interface to a DataEngineInput Ui-Element object which the lua-script author can use
     to display a DataEngineInput object to the script-user. It is used to interact
     with a specified field of the DataEngine. It can be used to let the user manually
     enter actual values and to display whether the actual value is within the tolerances
@@ -296,8 +293,8 @@ public:
 
   /*! \fn    set_editable();
       \brief Sets the DataEngineInput object into edit mode. In this mode the user has access
-            to the actual value of the Data_engine field. If it is an Number or Textfield etc
-            a text input field is displayed. If it is an boolean value the buttons "yes" and "no" are
+            to the actual value of the Data_engine field. If it is a number or text field etc
+            a text input field is displayed. If it is a boolean value the buttons "yes" and "no" are
             displayed.
 
 
@@ -422,67 +419,67 @@ public:
       \endcode
   */
   ///\cond HIDDEN_SYMBOLS
-  // clang-format on
-private:
-  QLabel *label_extra_explanation = nullptr;
-  QLabel *label_de_description = nullptr;
-  QLabel *label_de_desired_value = nullptr;
-  QLabel *label_de_actual_value = nullptr;
-  QLabel *label_ok = nullptr;
+    // clang-format on
+    private:
+    QLabel *label_extra_explanation = nullptr;
+    QLabel *label_de_description = nullptr;
+    QLabel *label_de_desired_value = nullptr;
+    QLabel *label_de_actual_value = nullptr;
+    QLabel *label_ok = nullptr;
 
-  QPushButton *button_yes = nullptr;
-  QLabel *label_yes = nullptr;
+    QPushButton *button_yes = nullptr;
+    QLabel *label_yes = nullptr;
 
-  QPushButton *button_no = nullptr;
-  QLabel *label_no = nullptr;
+    QPushButton *button_no = nullptr;
+    QLabel *label_no = nullptr;
 
-  QPushButton *button_next = nullptr;
-  QLabel *label_next = nullptr;
+    QPushButton *button_next = nullptr;
+    QLabel *label_next = nullptr;
 
-  QPushButton *button_exceptional_approval = nullptr;
-  QLabel *label_exceptional_approval = nullptr;
+    QPushButton *button_exceptional_approval = nullptr;
+    QLabel *label_exceptional_approval = nullptr;
 
-  QLineEdit *lineedit = nullptr;
-  QTimer *timer = nullptr;
+    QLineEdit *lineedit = nullptr;
+    QTimer *timer = nullptr;
 
-  Data_engine *data_engine = nullptr;
-  QHBoxLayout *hlayout = nullptr;
-  QString field_id;
+    Data_engine *data_engine = nullptr;
+    QHBoxLayout *hlayout = nullptr;
+    QString field_id;
 
-  QString empty_value_placeholder;
-  QString extra_explanation;
-  QString desired_prefix;
-  QString actual_prefix;
-  uint blink_state = 0;
-  bool is_editable = false;
+    QString empty_value_placeholder;
+    QString extra_explanation;
+    QString desired_prefix;
+    QString actual_prefix;
+    uint blink_state = 0;
+    bool is_editable = false;
 
-  bool is_enabled = true;
-  bool is_visible = true;
-  bool is_waiting = false;
+    bool is_enabled = true;
+    bool is_visible = true;
+    bool is_waiting = false;
 
-  void start_timer();
+    void start_timer();
 
-  ScriptEngine *script_engine;
-  void resizeMe(QResizeEvent *event) override;
-  std::experimental::optional<bool> bool_result;
+    ScriptEngine *script_engine;
+    void resizeMe(QResizeEvent *event) override;
+    std::experimental::optional<bool> bool_result;
 
-  QMetaObject::Connection callback_timer = {};
-  QMetaObject::Connection callback_bool_yes = {};
-  QMetaObject::Connection callback_bool_no = {};
-  QMetaObject::Connection callback_next = {};
-  QMetaObject::Connection callback_exceptional_approval = {};
-  void set_ui_visibility();
-  void set_button_visibility(bool next, bool yes_no);
-  FieldType field_type;
-  void set_labels_enabled();
-  void set_total_visibilty();
-  const int BLINK_INTERVAL_MS = 500;
-  uint total_width = 0;
-  bool init_ok = false;
+    QMetaObject::Connection callback_timer = {};
+    QMetaObject::Connection callback_bool_yes = {};
+    QMetaObject::Connection callback_bool_no = {};
+    QMetaObject::Connection callback_next = {};
+    QMetaObject::Connection callback_exceptional_approval = {};
+    void set_ui_visibility();
+    void set_button_visibility(bool next, bool yes_no);
+    FieldType field_type;
+    void set_labels_enabled();
+    void set_total_visibilty();
+    const int BLINK_INTERVAL_MS = 500;
+    uint total_width = 0;
+    bool init_ok = false;
 
-  bool dont_save_result_to_de = false;
-  void scale_columns();
-  ///\endcond
+    bool dont_save_result_to_de = false;
+    void scale_columns();
+    ///\endcond
 };
 /** \} */ // end of group ui
 #endif    // DATAENGINEINPUT_H
