@@ -340,7 +340,7 @@ double Curve::pick_x_coord() {
 
 ///\cond HIDDEN_SYMBOLS
 void Curve::set_onetime_click_callback(std::function<void(double, double)> click_callback) {
-    event_filter->add_callback([ callback = std::move(click_callback), this ](QEvent * event) {
+	event_filter->add_callback([callback = std::move(click_callback), this](QEvent *event) {
         if (event->type() == QEvent::MouseButtonPress) {
             auto mouse_event = static_cast<QMouseEvent *>(event);
             const auto &pixel_pos = mouse_event->pos();
@@ -377,7 +377,6 @@ Plot::Plot(UI_container *parent)
     , tracker(new QwtPickerTrackerMachine) {
     clicker->setState(clicker->PointSelection);
     parent->add(plot, this);
-    plot->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
     plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
     set_rightclick_action();
     picker->setStateMachine(clicker);
@@ -463,7 +462,7 @@ void Plot::set_rightclick_action() {
         std::vector<QwtPlotCurve *> raw_curves;
         raw_curves.resize(curves.size());
         std::transform(std::begin(curves), std::end(curves), std::begin(raw_curves), [](const Curve *curve) { return curve->curve; });
-        QObject::connect(save_as_csv_action, &QAction::triggered, [ plot = this->plot, curves = std::move(raw_curves) ] {
+		QObject::connect(save_as_csv_action, &QAction::triggered, [plot = this->plot, curves = std::move(raw_curves)] {
             QString last_dir = QSettings{}.value(Globals::last_csv_saved_directory_key, QDir::currentPath()).toString();
             auto dir = QFileDialog::getExistingDirectory(plot, QObject::tr("Select folder to save data in"), last_dir);
             if (dir.isEmpty() == false) {

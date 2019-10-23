@@ -19,7 +19,6 @@ HLine::HLine(UI_container *parent)
     line->setFrameShadow(QFrame::Sunken);
 
     layout->addWidget(line, 0, Qt::AlignBottom);
-    layout->addStretch(1);
     parent->add(layout, this);
 
     parent->scroll_to_bottom();

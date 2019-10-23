@@ -17,11 +17,8 @@ SpinBox::SpinBox(UI_container *parent)
     QVBoxLayout *layout = new QVBoxLayout;
     label->setText(" ");
     layout->addWidget(label);
-    layout->addWidget(spinbox, 0, Qt::AlignBottom);
-    layout->addStretch(1);
+	layout->addWidget(spinbox);
     parent->add(layout, this);
-    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
-    spinbox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     spinbox->setMaximum(100);
     parent->scroll_to_bottom();
     assert(MainWindow::gui_thread == QThread::currentThread());

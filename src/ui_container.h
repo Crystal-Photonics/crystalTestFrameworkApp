@@ -17,9 +17,9 @@ class UI_widget {
     UI_widget(UI_container *parent_);
     ~UI_widget();
 
-    virtual void resizeMe(QResizeEvent *event);
+	virtual void resizeMe(QResizeEvent *event);
 
-    UI_container *parent;
+	UI_container *parent;
 };
 
 class UI_container : public QScrollArea {
@@ -34,9 +34,7 @@ class UI_container : public QScrollArea {
     // UserEntryCache user_entry_cache;
 
     private:
-    void resizeEvent(QResizeEvent *event) override;
-    int compute_size(int width);
-    void trigger_resize();
+	void resizeEvent(QResizeEvent *event) override;
 
     QVBoxLayout *layout{nullptr};
     std::vector<Widget_paragraph> paragraphs;
