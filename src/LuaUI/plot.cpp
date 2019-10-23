@@ -375,7 +375,6 @@ Plot::Plot(UI_container *parent)
     , tracker(new QwtPickerTrackerMachine) {
     clicker->setState(clicker->PointSelection);
     parent->add(plot, this);
-    plot->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
     plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
     set_rightclick_action();
     picker->setStateMachine(clicker);

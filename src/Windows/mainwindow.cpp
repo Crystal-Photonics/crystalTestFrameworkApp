@@ -18,6 +18,7 @@
 #include "scriptengine.h"
 #include "testdescriptionloader.h"
 #include "testrunner.h"
+#include "thread_pool.h"
 #include "ui_container.h"
 #include "ui_mainwindow.h"
 #include "util.h"
@@ -459,31 +460,28 @@ void MainWindow::load_scripts(QProgressDialog *dialog) {
 	dialog->setValue(dialog->value() + 1);
 	const auto dir = QSettings{}.value(Globals::test_script_path_settings_key, "").toString();
 	QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories};
-	std::vector<std::future<TestDescriptionLoader>> threads;
+	std::optional<Thread_pool> othread_pool{std::in_place};
+	auto &thread_pool = othread_pool.value();
+	std::mutex test_descriptions_mutex;
+	int tasks = 0;
+	std::atomic<int> tasks_done = 0;
     while (dit.hasNext()) {
-		dialog->setMaximum(dialog->maximum() + 2);
 		auto file_path = dit.next();
-		threads.push_back(std::async(std::launch::async, [&dir, this, file_path = std::move(file_path), dialog] {
+		thread_pool.push([&tasks_done, &test_descriptions_mutex, &dir, this, file_path = std::move(file_path)] {
 			auto return_value = TestDescriptionLoader{ui->tests_advanced_view, file_path, QDir{dir}.relativeFilePath(file_path)};
-			MainWindow::execute_in_gui_thread([dialog] {
-				if (dialog) {
-					dialog->setValue(dialog->value() + 1);
-				}
-			});
-			return return_value;
-		}));
-		dialog->setValue(dialog->value() + 1);
+			tasks_done++;
+			std::unique_lock l{test_descriptions_mutex};
+			test_descriptions.push_back(std::move(return_value));
+		});
+		tasks++;
 	}
-	if (dialog == progress_bar.get()) {
-		dialog->setMaximum(6 + 2 * threads.size());
-	} else {
-		dialog->setMaximum(dialog->maximum() + 2 * threads.size());
-	}
-	for (auto &thread : threads) {
-		while (thread.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout) {
+	dialog->setMaximum(6 + tasks);
+	{
+		auto close_threads = std::async(std::launch::async, [&othread_pool] { othread_pool = std::nullopt; });
+		while (close_threads.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout) {
+			dialog->setValue(3 + tasks_done);
 			QApplication::processEvents();
 		}
-		test_descriptions.push_back(thread.get());
 	}
 	dialog->setValue(dialog->value() + 1);
 	load_favorites();
@@ -527,6 +525,9 @@ void MainWindow::set_enabled_states_for_matchable_scripts() {
     assert(currently_in_gui_thread());
     DeviceMatcher device_matcher(this);
     for (TestDescriptionLoader &test : test_descriptions) {
+		if (not test.ui_entry) {
+			continue;
+		}
         bool is_matchable = device_matcher.is_match_possible(*device_worker.get(), test);
         if (is_matchable) {
             test.ui_entry->setForeground(0, palette().color(QPalette::Active, QPalette::Text));

@@ -24,9 +24,6 @@ ComboBox::ComboBox(UI_container *parent, const sol::table &items)
 
     layout->addWidget(label);
     layout->addWidget(combobox);
-    layout->addStretch(1);
-    combobox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
-    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     parent->add(layout, this);
     //set_items(items);
     combobox->addItems(sl);

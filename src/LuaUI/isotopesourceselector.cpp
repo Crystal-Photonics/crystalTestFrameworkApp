@@ -92,8 +92,7 @@ IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     QLabel *label = new QLabel(parent);
     label->setText(" ");
     layout->addWidget(label);
-    layout->addWidget(combobox, 0, Qt::AlignBottom);
-    layout->addStretch(1);
+	layout->addWidget(combobox);
     parent->add(layout, this);
     load_isotope_database();
     fill_combobox_with_isotopes("*");

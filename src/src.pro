@@ -101,6 +101,7 @@ HEADERS += \
 	scriptsetup.h \
 	testdescriptionloader.h \
 	testrunner.h \
+	thread_pool.h \
 	ui_container.h \
 	userentrystorage.h \
 	util.h \
@@ -170,6 +171,7 @@ SOURCES += \
 	scriptsetup.cpp \
 	testdescriptionloader.cpp \
 	testrunner.cpp \
+	thread_pool.cpp \
 	ui_container.cpp \
 	userentrystorage.cpp \
 	util.cpp \

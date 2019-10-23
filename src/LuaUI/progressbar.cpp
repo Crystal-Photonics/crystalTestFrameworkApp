@@ -17,11 +17,8 @@ ProgressBar::ProgressBar(UI_container *parent)
     QVBoxLayout *layout = new QVBoxLayout;
     label->setText(" ");
     layout->addWidget(label);
-    layout->addWidget(progressbar, 0, Qt::AlignBottom);
-    layout->addStretch(1);
+	layout->addWidget(progressbar);
     parent->add(layout, this);
-    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
-    progressbar->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     progressbar->setMaximum(100);
     parent->scroll_to_bottom();
     assert(MainWindow::gui_thread == QThread::currentThread());

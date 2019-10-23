@@ -21,13 +21,9 @@ LineEdit::LineEdit(UI_container *parent, ScriptEngine *script_engine)
     , pattern_check_m(PatternCheck::None) {
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(label);
-    layout->addWidget(text_edit, 0, Qt::AlignBottom);
-    layout->addWidget(date_edit, 0, Qt::AlignBottom);
-    layout->addStretch(1);
+	layout->addWidget(text_edit);
+	layout->addWidget(date_edit);
     parent->add(layout, this);
-    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
-    text_edit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
-    date_edit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
     set_text_mode();
     parent->scroll_to_bottom();
 

@@ -15,12 +15,8 @@ CheckBox::CheckBox(UI_container *parent, const std::string text)
     layout->addWidget(label);
     assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 
-    layout->addWidget(checkbox, 0, Qt::AlignBottom);
-    layout->addStretch(1);
+	layout->addWidget(checkbox);
     parent->add(layout, this);
-
-    checkbox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::MinimumExpanding);
-
     set_text(text);
     parent->scroll_to_bottom();
 }

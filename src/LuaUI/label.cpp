@@ -10,12 +10,8 @@
 Label::Label(UI_container *parent, const std::string text)
     : UI_widget{parent}
     , label{new QLabel(parent)} {
-    QVBoxLayout *layout = new QVBoxLayout;
-    layout->addWidget(label, 0, Qt::AlignBottom);
-    layout->addStretch(1);
-    parent->add(layout, this);
+	parent->add(label, this);
 
-    label->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::MinimumExpanding);
     set_text(text);
     normal_font_size = label->font().pointSize();
     label->setWordWrap(true);
