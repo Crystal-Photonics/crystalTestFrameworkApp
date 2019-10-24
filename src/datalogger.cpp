@@ -7,20 +7,20 @@
 #include <QTextStream>
 #include <sol.hpp>
 
-DataLogger::DataLogger(QPlainTextEdit *console, std::string filename, char seperating_character, sol::table field_names, bool over_write_file) {
+DataLogger::DataLogger(QPlainTextEdit *console, std::string filename, char separating_character, sol::table field_names, bool over_write_file) {
     this->filename = QString::fromStdString(filename);
     this->format = LoggerSaveFormat::csv;
     this->console = console;
     if ((this->filename == "")) {
         const auto &message = QObject::tr("Filename is empty.");
-		Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console_handle::error(console) << message; });
+        Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console_handle::error(console) << message; });
         throw sol::error("Filename is empty");
     }
 
     if (!over_write_file) {
         if (QFile::exists(this->filename)) {
             const auto &message = QObject::tr("File for saving csv already exists and must not be overwritten: %1").arg(this->filename);
-			Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console_handle::error(console) << message; });
+            Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console_handle::error(console) << message; });
             throw sol::error("File already exists");
         }
     }
@@ -29,12 +29,12 @@ DataLogger::DataLogger(QPlainTextEdit *console, std::string filename, char seper
 
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         const auto &message = QObject::tr("File for saving csv can not be opened: %1").arg(this->filename);
-		Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console_handle::error(console) << message; });
+        Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console_handle::error(console) << message; });
         throw sol::error("Cannot open file");
     }
     file.close();
 
-    this->seperating_character = seperating_character;
+    this->separating_character = separating_character;
     QStringList fns;
     field_formats.clear();
     for (auto &field_name : field_names) {
@@ -55,8 +55,8 @@ void DataLogger::append_data(sol::table data_record) {
     for (auto &field : data_record) {
         if (field.second.get_type() == sol::type::string) {
             QString field_entry = QString::fromStdString(field.second.as<std::string>());
-            QString s = QString(seperating_character) + QString(seperating_character);
-            field_entry = field_entry.replace(seperating_character, s);
+            QString s = QString(separating_character) + QString(separating_character);
+            field_entry = field_entry.replace(separating_character, s);
             field_entry = "\"" + field_entry + "\"";
             record.append(field_entry);
         } else if (field.second.get_type() == sol::type::number) {
@@ -80,7 +80,7 @@ void DataLogger::append_data(sol::table data_record) {
 }
 
 void DataLogger::save() {
-	dump_data_to_file();
+    dump_data_to_file();
 }
 
 void DataLogger::dump_data_to_file() {
@@ -88,12 +88,12 @@ void DataLogger::dump_data_to_file() {
         QFile file(filename);
         if (!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
             const auto &message = QObject::tr("File for saving csv can not be opened: for appending %1").arg(this->filename);
-			Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console_handle::error(console) << message; });
+            Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console_handle::error(console) << message; });
             throw sol::error("Cannot open file");
         }
         QTextStream out(&file);
         for (auto &record : data_to_save) {
-            QString record_s = record.join(seperating_character);
+            QString record_s = record.join(separating_character);
             out << record_s << "\n";
         }
         data_to_save.clear();

@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 
+/// \cond HIDDEN_SYMBOLS
 class QJsonObject;
 class QWidget;
 class QVariant;
@@ -661,6 +662,19 @@ struct DataEngineSections {
     QMap<QString, QList<QVariant>> dependency_tags;
     EntryType get_entry_type_dummy_mode_recursion(const FormID &id) const;
 };
+/// \endcond
+
+/** \defgroup data_engine Data- and report engine
+ *  Interface of built-in user interface functions.
+ *  \{
+ */
+
+// clang-format off
+/*!
+  \class   Data_engine
+  \brief  Interface to the DataEngine
+  */
+// clang-format on
 
 class Data_engine {
     struct Statistics {
@@ -672,10 +686,42 @@ class Data_engine {
     };
 
     public:
+#ifdef DOXYGEN_ONLY
+    // this block is just for ducumentation purpose
+    Data_engine(string pdf_report_template_path, string desired_values_path, string auto_dump_path, table dependency_tags);
+#endif
+    /// \cond HIDDEN_SYMBOLS
     Data_engine();
     Data_engine(std::istream &source, const QMap<QString, QList<QVariant>> &tags);
     Data_engine(std::istream &source); //for getting dummy data structure
     ~Data_engine();
+    /// \endcond
+    // clang-format off
+/*! \fn Data_engine(string pdf_report_template_path, string desired_values_path, string auto_dump_path, table dependency_tags);
+    \brief Creates a Data_engine object based on the \ref desired_value_database desired_values database.
+    \param pdf_report_template_path the path the the report template which will be used to generate a pdf report.
+    \param desired_values_path the path the desired_value \glos{json} database.
+    \param auto_dump_path the directory in which the machine-readable \glos{json} version of the pdf is stored.
+    \param dependency_tags the tags used the choose the right variant of the desired value section.
+
+    \sa desired_value_database
+
+     \par examples:
+     \code
+    charge_counter = ChargeCounter.new()
+    local done_button = Ui.Button.new("Stop")
+    local start_ms=current_date_time_ms()
+    while not done_button:has_been_clicked() do
+        charge_counter:add_current(3600);
+        print("charge [mAh]: "..charge_counter:get_current_hours())
+        sleep_ms(1000)          --wait a second
+        print("run_time_ms: "..current_date_time_ms()-start_ms)
+    end
+    \endcode
+*/
+
+
+
     void enable_logging(Console &console, const std::vector<MatchedDevice> &devices);
     void set_log_file(const std::string &file_path);
     void set_dependancy_tags(const QMap<QString, QList<QVariant>> &tags);
@@ -798,6 +844,7 @@ class Data_engine {
     int generate_static_text_field(QXmlStreamWriter &xml, int y_start, const QString static_text, TextFieldDataBandPlace actual_band_position) const;
     void assert_in_dummy_mode() const;
     std::unique_ptr<Communication_logger> logger;
+    /// \endcond
 };
-
-#endif // DATA_ENGINE_H
+/** \} */ // end of group data_engine
+#endif    // DATA_ENGINE_H

@@ -798,8 +798,8 @@ static void table_to_json_object(QPlainTextEdit *console, QJsonArray &jarray, co
 
 
 \details
-The function writes the lua table into a JSON file which is a normal text file. The table is written into
-the json array "table" where its elements contain the text elements:
+The function writes the lua table into a \glos{json} file which is a normal text file. The table is written into
+the \glos{json} array "table" where its elements contain the text elements:
 \li \c i: The index of the Lua table element.
 \li \c ti: The index type of Lua table.
 \li \c v: The value of Lua table element.

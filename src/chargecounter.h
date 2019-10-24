@@ -72,8 +72,60 @@ class ChargeCounter {
 
 
 
+
+
+#ifdef DOXYGEN_ONLY
+    // this block is just for ducumentation purpose
     double get_current_hours();
+#endif
+    /// \cond HIDDEN_SYMBOLS
+    double get_current_hours();
+    /// \endcond
+    // clang-format off
+/*! \fn double get_current_hours();
+    \brief Returns the integrated charge as [mAh / Ah / etc]
+
+     \par examples:
+     \code
+    charge_counter = ChargeCounter.new()
+    local done_button = Ui.Button.new("Stop")
+    local start_ms=current_date_time_ms()
+    while not done_button:has_been_clicked() do
+        charge_counter:add_current(3600);
+        print("charge [mAh]: "..charge_counter:get_current_hours())
+        sleep_ms(1000)          --wait a second
+        print("run_time_ms: "..current_date_time_ms()-start_ms)
+    end
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+    // this block is just for ducumentation purpose
+    reset();
+#endif
+    /// \cond HIDDEN_SYMBOLS
     void reset();
+    /// \endcond
+    // clang-format off
+/*! \fn reset();
+    \brief Resets the charge counter object to zero.
+
+     \par examples:
+     \code
+    charge_counter = ChargeCounter.new()
+    local done_button = Ui.Button.new("Stop")
+    local start_ms=current_date_time_ms()
+    while not done_button:has_been_clicked() do
+        charge_counter:add_current(3600);
+        print("charge [mAh]: "..charge_counter:get_current_hours())
+        sleep_ms(1000)          --wait a second
+        print("run_time_ms: "..current_date_time_ms()-start_ms)
+    end
+    charge_counter:reset()
+    print("charge [mAh] after reset: "..charge_counter:get_current_hours())
+    \endcode
+*/
+
 
     private:
     /// \cond HIDDEN_SYMBOLS

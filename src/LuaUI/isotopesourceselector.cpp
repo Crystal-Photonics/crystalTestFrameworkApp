@@ -26,10 +26,7 @@
     You can access the database using the class \c IsotopeSourceSelector.
 
     # The Database Structure
-    The database is organized as a simple .json file. If you need assistance to understand the .json file format click here:
-    <a href=" https://en.wikipedia.org/wiki/JSON"> https://en.wikipedia.org/wiki/JSON</a>
-    It is recommended to check the syntax of the file via online tools like <a href="https://jsonlint.com/">
-    https://jsonlint.com/</a> to be sure that it does not contain errors.
+    The database is organized as a simple \glos{json} file.
     \par
     The file contains the object "isotopes" which is an array. In that array each radioactive source is listed as an element with the fields:
     \li \c serial_number: string, the serialnumber of the radioactive source. e.g.: AF4458
@@ -81,7 +78,7 @@
 
 
     \} //end of group radioactive_source_database
-\} */ // end of group ui
+\} */ // end of group configuration
 
 /// \cond HIDDEN_SYMBOLS
 IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
@@ -92,7 +89,7 @@ IsotopeSourceSelector::IsotopeSourceSelector(UI_container *parent)
     QLabel *label = new QLabel(parent);
     label->setText(" ");
     layout->addWidget(label);
-	layout->addWidget(combobox);
+    layout->addWidget(combobox);
     parent->add(layout, this);
     load_isotope_database();
     fill_combobox_with_isotopes("*");
