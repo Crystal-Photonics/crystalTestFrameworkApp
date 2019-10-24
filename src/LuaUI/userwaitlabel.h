@@ -135,7 +135,7 @@ class UserWaitLabel : public UI_widget {
 
     ScriptEngine *script_engine;
     int total_width = 10;
-    void resizeMe(QResizeEvent *event) override;
+	void resizeMe(QResizeEvent *event) override;
     bool is_init = false;
     ///\endcond
 };

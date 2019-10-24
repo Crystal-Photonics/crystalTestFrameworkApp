@@ -184,7 +184,7 @@ class UserInstructionLabel : public UI_widget {
     QMetaObject::Connection callback_button_next = {};
     ScriptEngine *script_engine;
     int total_width = 10;
-    void resizeMe(QResizeEvent *event) override;
+	void resizeMe(QResizeEvent *event) override;
     bool is_init = false;
     ///\endcond
 };

@@ -18,13 +18,17 @@ struct Widget_paragraph {
 
     void add(QWidget *widget, UI_widget *lua_ui_widget) {
 		layout->addWidget(widget);
-        this->lua_ui_widgets.push_back(lua_ui_widget);
+		if (lua_ui_widget) {
+			lua_ui_widgets.push_back(lua_ui_widget);
+		}
     }
 
     void add(QLayout *layout, UI_widget *lua_ui_widget) {
         this->layout->addLayout(layout);
-        this->lua_ui_widgets.push_back(lua_ui_widget);
-    }
+		if (lua_ui_widget) {
+			lua_ui_widgets.push_back(lua_ui_widget);
+		}
+	}
 
 	void resizeEvent(QResizeEvent *event) {
 		for (auto w : lua_ui_widgets) {
@@ -56,6 +60,7 @@ UI_container::UI_container(QWidget *parent)
     auto widget = std::make_unique<QWidget>();
     widget->setMinimumSize({100, 100});
     widget->setLayout(layout);
+	layout->setAlignment(Qt::AlignmentFlag::AlignTop);
     setWidget(widget.release());
 	setWidgetResizable(true);
 }
@@ -76,6 +81,8 @@ void UI_container::add(QLayout *layout, UI_widget *lua_ui_widget) {
         paragraphs.emplace_back(this->layout);
     }
     paragraphs.back().add(layout, lua_ui_widget);
+	QResizeEvent resize_event{size(), {0, 0}};
+	resizeEvent(&resize_event);
 }
 
 void UI_container::set_column_count(int columns) {
@@ -96,6 +103,9 @@ void UI_container::remove_me_from_resize_list(UI_widget *me) {
 
 void UI_container::resizeEvent(QResizeEvent *event) {
 	QScrollArea::resizeEvent(event);
+	for (auto &p : paragraphs) {
+		p.resizeEvent(event);
+	}
 }
 
 UI_widget::UI_widget(UI_container *parent_)

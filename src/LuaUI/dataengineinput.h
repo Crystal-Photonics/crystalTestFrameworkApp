@@ -460,7 +460,7 @@ public:
     void start_timer();
 
     ScriptEngine *script_engine;
-    void resizeMe(QResizeEvent *event) override;
+	void resizeMe(QResizeEvent *event) override;
     std::experimental::optional<bool> bool_result;
 
     QMetaObject::Connection callback_timer = {};

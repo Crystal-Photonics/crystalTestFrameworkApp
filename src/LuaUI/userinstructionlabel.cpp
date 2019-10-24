@@ -33,7 +33,7 @@ UserInstructionLabel::UserInstructionLabel(UI_container *parent, ScriptEngine *s
 {
     hlayout = new QHBoxLayout;
 
-    hlayout->addWidget(label_user_instruction, 0, Qt::AlignTop);
+	hlayout->addWidget(label_user_instruction);
 
     parent->add(hlayout, this);
 
@@ -54,15 +54,12 @@ UserInstructionLabel::UserInstructionLabel(UI_container *parent, ScriptEngine *s
 
     vlayout_next->addWidget(button_next);
     vlayout_next->addWidget(label_next);
-    vlayout_next->addStretch();
 
     vlayout_yes->addWidget(button_yes);
     vlayout_yes->addWidget(label_yes);
-    vlayout_yes->addStretch();
 
     vlayout_no->addWidget(button_no);
     vlayout_no->addWidget(label_no);
-    vlayout_no->addStretch();
 
     hlayout->addLayout(vlayout_next);
     hlayout->addLayout(vlayout_yes);
@@ -77,12 +74,12 @@ UserInstructionLabel::UserInstructionLabel(UI_container *parent, ScriptEngine *s
 
     start_timer();
     timer->start(500);
-    auto sp_w = QSizePolicy::Maximum;
-    auto sp_h = QSizePolicy::MinimumExpanding;
-    button_next->setSizePolicy(sp_w, sp_h);
-    button_yes->setSizePolicy(sp_w, sp_h);
-    button_no->setSizePolicy(sp_w, sp_h);
-    label_user_instruction->setSizePolicy(sp_w, sp_h);
+	//auto sp_w = QSizePolicy::Maximum;
+	//auto sp_h = QSizePolicy::MinimumExpanding;
+	//button_next->setSizePolicy(sp_w, sp_h);
+	//button_yes->setSizePolicy(sp_w, sp_h);
+	//button_no->setSizePolicy(sp_w, sp_h);
+	//label_user_instruction->setSizePolicy(sp_w, sp_h);
 
     set_enabled(true);
     parent->scroll_to_bottom();
@@ -180,6 +177,7 @@ void UserInstructionLabel::set_enabled(bool enabled) {
 
 void UserInstructionLabel::resizeMe(QResizeEvent *event) {
     assert(MainWindow::gui_thread == QThread::currentThread());
+	qDebug() << __PRETTY_FUNCTION__ << event->size();
     total_width = event->size().width();
     if (is_init) {
         scale_columns();
