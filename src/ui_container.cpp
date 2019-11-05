@@ -58,11 +58,13 @@ UI_container::UI_container(QWidget *parent)
     : QScrollArea{parent}
     , layout{new QVBoxLayout} {
     auto widget = std::make_unique<QWidget>();
-    widget->setMinimumSize({100, 100});
+	widget->setMinimumSize({100, 100});
     widget->setLayout(layout);
 	layout->setAlignment(Qt::AlignmentFlag::AlignTop);
     setWidget(widget.release());
 	setWidgetResizable(true);
+	const auto vscrollbar = verticalScrollBar();
+	connect(vscrollbar, &QAbstractSlider::rangeChanged, [vscrollbar](int, int) { vscrollbar->setSliderPosition(vscrollbar->maximum()); });
 }
 
 UI_container::~UI_container() {
@@ -74,6 +76,8 @@ void UI_container::add(QWidget *widget, UI_widget *lua_ui_widget) {
         paragraphs.emplace_back(this->layout);
     }
     paragraphs.back().add(widget, lua_ui_widget);
+	QResizeEvent resize_event{size(), {0, 0}};
+	resizeEvent(&resize_event);
 }
 
 void UI_container::add(QLayout *layout, UI_widget *lua_ui_widget) {
@@ -106,6 +110,7 @@ void UI_container::resizeEvent(QResizeEvent *event) {
 	for (auto &p : paragraphs) {
 		p.resizeEvent(event);
 	}
+	scroll_to_bottom();
 }
 
 UI_widget::UI_widget(UI_container *parent_)
@@ -113,8 +118,4 @@ UI_widget::UI_widget(UI_container *parent_)
 
 UI_widget::~UI_widget() {
     parent->remove_me_from_resize_list(this);
-}
-
-void UI_widget::resizeMe(QResizeEvent *event) {
-	parent->resize(event->size());
 }
