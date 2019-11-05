@@ -13,36 +13,47 @@
 #include <sol.hpp>
 
 class Aspect_ratio_label : public QLabel {
+	static constexpr auto max_scaling_factor = 2; //how much a picture can be scaled up.
     public:
     Aspect_ratio_label(QWidget *widget)
         : QLabel(widget) {
-        assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+		assert(MainWindow::gui_thread == QThread::currentThread());
     }
     bool hasHeightForWidth() const override {
-        return aspect_ratio != 0.;
+		return pixmap();
     }
     int heightForWidth(int width) const override {
-        return static_cast<int>(std::round(width * aspect_ratio));
+		if (not pixmap()) {
+			return 0;
+		}
+		const auto size = pixmap()->size();
+		return width * size.height() / size.width();
     }
+	QSize sizeHint() const override {
+		if (pixmap()) {
+			return pixmap()->size();
+		}
+		return {0, 0};
+	}
+	QSize minimumSizeHint() const override {
+		return {heightForWidth(100), 100};
+	}
     void setPixmap(const QPixmap &pixmap) {
+		assert(MainWindow::gui_thread == QThread::currentThread());
         QLabel::setPixmap(pixmap);
-        aspect_ratio = static_cast<double>(pixmap.height()) / pixmap.width();
-        assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+		setMinimumSize({0, 0});
+		setMaximumSize(pixmap.size() * max_scaling_factor);
     }
-
-    private:
-    double aspect_ratio{};
 };
 
 Image::Image(UI_container *parent, QString script_path)
     : UI_widget{parent}
     , label{new Aspect_ratio_label(parent)} {
+	assert(MainWindow::gui_thread == QThread::currentThread());
     this->script_path = script_path;
-    parent->add(label, this);
-    label->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-    label->setScaledContents(true);
-    parent->scroll_to_bottom();
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+	label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+	label->setScaledContents(true);
+	parent->add(label, this);
 }
 
 Image::~Image() {}
@@ -56,13 +67,14 @@ void Image::set_visible(bool visible) {
 }
 
 void Image::load_image(const std::string &path_to_image_) {
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+	assert(MainWindow::gui_thread == QThread::currentThread());
     auto path_to_image = get_absolute_file_path(script_path, path_to_image_);
     if (QFile::exists(QString::fromStdString(path_to_image))) {
         image.load(QString::fromStdString(path_to_image));
         label->setPixmap(QPixmap::fromImage(image));
     } else {
-        QString msg = QString{"cant open Image file \"%1\""}.arg(QString::fromStdString(path_to_image));
+		label->setPixmap({});
+		QString msg = QString{"can't open Image file \"%1\""}.arg(QString::fromStdString(path_to_image));
         throw sol::error(msg.toStdString());
     }
 }
