@@ -695,13 +695,13 @@ QStringList MainWindow::validate_script(const QString &path) {
 	for (const auto &line : output_list) {
 		if (line.isEmpty()) {
 			continue;
-		}
+        }
 		if (line.contains("unused global variable 'device_requirements'")) {
 			continue;
 		}
 		if (line.contains("unused global variable 'run'")) {
 			continue;
-        }
+		}
 		messages << line;
 	}
 	return messages;
@@ -1020,7 +1020,13 @@ void MainWindow::on_tests_advanced_view_itemDoubleClicked(QTreeWidgetItem *item,
 }
 
 void MainWindow::show_in_graphical_shell(const QString &pathIn) {
+#ifdef WIN32
+	QStringList args;
+	args << "/select," << QDir::toNativeSeparators(pathIn);
+	QProcess::startDetached("explorer.exe", args);
+#else
 	QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(pathIn).absolutePath()));
+#endif
 }
 
 void MainWindow::on_tests_advanced_view_customContextMenuRequested(const QPoint &pos) {
