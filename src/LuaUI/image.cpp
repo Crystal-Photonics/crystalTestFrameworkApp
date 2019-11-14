@@ -36,7 +36,11 @@ class Aspect_ratio_label : public QLabel {
 		return {0, 0};
 	}
 	QSize minimumSizeHint() const override {
-		return {heightForWidth(100), 100};
+		if (not pixmap()) {
+			return {0, 0};
+		}
+		const auto min_width = std::min(100, pixmap()->size().width());
+		return {heightForWidth(min_width), min_width};
 	}
     void setPixmap(const QPixmap &pixmap) {
 		assert(MainWindow::gui_thread == QThread::currentThread());
