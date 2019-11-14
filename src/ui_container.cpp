@@ -132,7 +132,7 @@ void UI_container::set_actions() {
 		auto &action = shortcut_actions[index];
 		action = std::make_unique<QAction>(this);
 		action->setShortcut(QKeySequence::fromString(QSettings{}.value(action_data.settings_key, action_data.default_settings_key).toString()));
-		connect(action.get(), &QAction::triggered, [signal = action_data.signal, this] { (this->*signal)(); });
+		connect(action.get(), &QAction::triggered, this, signal);
 		addAction(action.get());
 	}
 }
