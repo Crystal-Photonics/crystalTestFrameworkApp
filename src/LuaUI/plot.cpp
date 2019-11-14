@@ -168,24 +168,24 @@ void Curve_data::update() {
 }
 
 void Curve_data::update_bounding_rect_height() {
-    qDebug() << "old top:" << bounding_rect.top() << "old bot: " << bounding_rect.bottom();
+	//qDebug() << "old top:" << bounding_rect.top() << "old bot: " << bounding_rect.bottom();
     auto max_iter = std::max_element(std::begin(yvalues_orig), std::end(yvalues_orig));
     double max_value = *max_iter;
     auto min_iter = std::min_element(std::begin(yvalues_orig), std::end(yvalues_orig));
     double min_value = *min_iter;
     bounding_rect.setBottom(max_value); //top and bottom are swapped in QRect for some reason
     bounding_rect.setTop(min_value);
-    qDebug() << "top:" << bounding_rect.top() << "bot: " << bounding_rect.bottom();
+	//qDebug() << "top:" << bounding_rect.top() << "bot: " << bounding_rect.bottom();
 }
 
 void Curve_data::update_bounding_rect_height(double new_yvalue) {
-    qDebug() << "old nv top:" << bounding_rect.top() << "old nv bot: " << bounding_rect.bottom();
+	//qDebug() << "old nv top:" << bounding_rect.top() << "old nv bot: " << bounding_rect.bottom();
     if (bounding_rect.top() > new_yvalue) { //top and bottom are swapped in QRect for some reason
         bounding_rect.setTop(new_yvalue);
     } else if (bounding_rect.bottom() < new_yvalue) {
         bounding_rect.setBottom(new_yvalue);
     }
-    qDebug() << "nv top:" << bounding_rect.top() << "nv bot: " << bounding_rect.bottom();
+	//qDebug() << "nv top:" << bounding_rect.top() << "nv bot: " << bounding_rect.bottom();
 }
 
 const std::vector<double> &Curve_data::get_plot_data() {
@@ -201,20 +201,21 @@ Curve::Curve(UI_container *, ScriptEngine *script_engine, Plot *plot)
     , curve(new QwtPlotCurve)
     , event_filter(new Utility::Event_filter(plot->plot->canvas()))
     , script_engine_{script_engine} {
+	assert(currently_in_gui_thread());
     curve->attach(plot->plot);
     curve->setTitle("curve" + QString::number(plot->curve_id_counter++));
     plot->curves.push_back(this);
     plot->plot->canvas()->installEventFilter(event_filter);
+	plot->set_rightclick_action();
     curve->setRenderHint(QwtPlotItem::RenderHint::RenderAntialiased, false);
     curve->setData(new Curve_data);
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
 Curve::~Curve() {
     if (plot) {
         auto &curves = plot->curves;
         auto pos = std::find(std::begin(curves), std::end(curves), this);
-        assert(pos != std::end(curves)); //if this assert fires, someone has removed a curve from plot->curves who forgot to detach first
+		assert(pos != std::end(curves)); //if this assert fires, someone has removed a curve from plot->curves who forgot to detach first
         curves.erase(pos);
         detach();
     }
@@ -353,9 +354,9 @@ void Curve::set_onetime_click_callback(std::function<void(double, double)> click
 }
 
 void Curve::update() {
+	assert(currently_in_gui_thread());
     curve_data().update();
     plot->update();
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
 void Curve::detach() {
@@ -373,6 +374,7 @@ Plot::Plot(UI_container *parent)
     , track_picker(new QwtPlotPicker(plot->canvas()))
     , clicker(new QwtPickerClickPointMachine)
     , tracker(new QwtPickerTrackerMachine) {
+	assert(currently_in_gui_thread());
     clicker->setState(clicker->PointSelection);
     parent->add(plot, this);
     plot->setContextMenuPolicy(Qt::ContextMenuPolicy::ActionsContextMenu);
@@ -382,30 +384,28 @@ Plot::Plot(UI_container *parent)
     track_picker->setStateMachine(tracker);
     track_picker->setTrackerMode(QwtPicker::AlwaysOn);
     parent->scroll_to_bottom();
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
 Plot::~Plot() {
+	assert(currently_in_gui_thread());
     for (auto &curve : curves) {
         curve->detach();
         curve->plot = nullptr;
     }
     //the plot was using xvalues and yvalues directly, but now they are gone
     //this is to make the plot own the data
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
 void Plot::clear() {
+	assert(currently_in_gui_thread());
     for (auto &curve : curves) {
         curve->detach();
         curve->plot = nullptr;
     }
     curves.clear();
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
 void Plot::set_x_marker(const std::string &title, double xpos, const Color &color) {
-    //
     auto marker = new QwtPlotMarker{title.c_str()};
     if (title.empty() == false) {
         marker->setLabel(QString::fromStdString(title));
@@ -415,7 +415,7 @@ void Plot::set_x_marker(const std::string &title, double xpos, const Color &colo
     marker->setLineStyle(QwtPlotMarker::LineStyle::VLine);
     marker->setLabelOrientation(Qt::Orientation::Vertical);
     marker->attach(plot);
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+	assert(currently_in_gui_thread());
 #if 0
     const int Y_AXIS_STEP = 10;
     int i = 0;
@@ -442,30 +442,30 @@ void Plot::set_x_marker(const std::string &title, double xpos, const Color &colo
 }
 
 void Plot::set_visible(bool visible) {
+	assert(currently_in_gui_thread());
     plot->setVisible(visible);
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
 void Plot::update() {
+	assert(currently_in_gui_thread());
     plot->replot();
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 
 void Plot::set_rightclick_action() {
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-    delete save_as_csv_action;
-    save_as_csv_action = new QAction(plot);
+	assert(currently_in_gui_thread());
+	save_as_csv_action = std::make_unique<QAction>(plot);
     save_as_csv_action->setText(QObject::tr("save_as_csv"));
-    if (curves.size()) {
+	if (curves.size()) {
+		save_as_csv_action->setEnabled(true);
         std::vector<QwtPlotCurve *> raw_curves;
         raw_curves.resize(curves.size());
-        std::transform(std::begin(curves), std::end(curves), std::begin(raw_curves), [](const Curve *curve) { return curve->curve; });
-        QObject::connect(save_as_csv_action, &QAction::triggered, [plot = this->plot, curves = std::move(raw_curves)] {
+		std::transform(std::begin(curves), std::end(curves), std::begin(raw_curves), [](const Curve *curve) { return curve->curve; });
+		QObject::connect(save_as_csv_action.get(), &QAction::triggered, [plot = this->plot, curves = std::move(raw_curves)] {
             QString last_dir = QSettings{}.value(Globals::last_csv_saved_directory_key, QDir::currentPath()).toString();
             auto dir = QFileDialog::getExistingDirectory(plot, QObject::tr("Select folder to save data in"), last_dir);
             if (dir.isEmpty() == false) {
                 QSettings{}.setValue(Globals::last_csv_saved_directory_key, dir);
-                for (auto &curve : curves) {
+				for (auto &curve : curves) {
                     auto filename = QDir(dir).filePath(curve->title().text() + ".csv");
                     std::ofstream f{filename.toStdString()};
                     auto data = curve->data();
@@ -482,8 +482,8 @@ void Plot::set_rightclick_action() {
             }
         });
     } else {
-        save_as_csv_action->setEnabled(false);
+		save_as_csv_action->setEnabled(false);
     }
-    plot->addAction(save_as_csv_action);
+	plot->addAction(save_as_csv_action.get());
 }
 ///\endcond

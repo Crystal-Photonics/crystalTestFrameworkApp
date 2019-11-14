@@ -479,7 +479,7 @@ class Plot : public UI_widget {
     void set_rightclick_action();
 
     QwtPlot *plot{nullptr};
-    QAction *save_as_csv_action{nullptr};
+	std::unique_ptr<QAction> save_as_csv_action;
     QwtPlotPicker *picker{nullptr};
     QwtPlotPicker *track_picker{nullptr};
     QwtPickerClickPointMachine *clicker{nullptr};
