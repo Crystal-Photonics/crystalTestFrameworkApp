@@ -180,9 +180,9 @@ void SettingsForm::on_cancel_keySequenceEdit_clear_button_clicked() {
 
 std::vector<SettingsForm::Key_config> SettingsForm::get_key_sequence_config() const {
     return {
-        {ui->confirm_keySequenceEdit, Globals::confirm_key_sequence_key, "Enter"},
-        {ui->skip_keySequenceEdit, Globals::skip_key_sequence_key, "Space"},
-        {ui->cancel_keySequenceEdit, Globals::cancel_key_sequence_key, "Esc"},
+		{ui->confirm_keySequenceEdit, Globals::confirm_key_sequence_key, Globals::default_confirm_key_sequence_key},
+		{ui->skip_keySequenceEdit, Globals::skip_key_sequence_key, Globals::default_skip_key_sequence_key},
+		{ui->cancel_keySequenceEdit, Globals::cancel_key_sequence_key, Globals::default_cancel_key_sequence_key},
     };
 }
 

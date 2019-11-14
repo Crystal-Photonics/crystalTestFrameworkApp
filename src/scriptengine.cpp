@@ -268,11 +268,10 @@ Event_id::Event_id ScriptEngine::await_hotkey_event() {
     // qDebug() << "eventloop Interruption";
     auto connections = Utility::promised_thread_call(MainWindow::mw, [this] {
         std::array<QMetaObject::Connection, 3> connections;
-        std::array<void (MainWindow::*)(), 3> key_signals = {&MainWindow::confirm_key_sequence_pressed, &MainWindow::cancel_key_sequence_key_pressed,
-                                                             &MainWindow::skip_key_sequence_pressed};
+		std::array<void (UI_container::*)(), 3> key_signals = {&UI_container::confirm_pressed, &UI_container::cancel_pressed, &UI_container::skip_pressed};
         std::array<Event_id::Event_id, 3> event_ids = {Event_id::Hotkey_confirm_pressed, Event_id::Hotkey_cancel_pressed, Event_id::Hotkey_skip_pressed};
         for (std::size_t i = 0; i < 3; i++) {
-            connections[i] = QObject::connect(MainWindow::mw, key_signals[i], [this, event_id = event_ids[i]] {
+			connections[i] = QObject::connect(parent, key_signals[i], [this, event_id = event_ids[i]] {
                 {
                     std::unique_lock<std::mutex> lock{await_mutex};
                     await_condition = event_id;

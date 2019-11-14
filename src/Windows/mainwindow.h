@@ -45,12 +45,6 @@ class EXPORT MainWindow : public QMainWindow {
     enum class ViewMode { None, AllScripts, FavoriteScripts };
 
     public:
-    signals:
-    void confirm_key_sequence_pressed();
-    void skip_key_sequence_pressed();
-    void cancel_key_sequence_key_pressed();
-
-    public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
     void shutdown();

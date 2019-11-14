@@ -934,6 +934,7 @@ void MainWindow::run_test_script(TestDescriptionLoader *test) {
 	auto &runner = *test_runners.back();
 	const auto tab_index = ui->test_tabs->addTab(runner.get_lua_ui_container(), test->get_name());
 	ui->test_tabs->setCurrentIndex(tab_index);
+	ui->test_tabs->widget(tab_index)->setFocus();
 	DeviceMatcher device_matcher(this);
 	try {
 		device_matcher.match_devices(*device_worker, runner, *test, runner.get_device_requirements_table());
