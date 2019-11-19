@@ -221,12 +221,11 @@ static void abort_check() {
     }
 }
 
-ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, Console &console, TestRunner *runner, QString test_name)
+ScriptEngine::ScriptEngine(UI_container *parent, Console &console, TestRunner *runner, QString test_name)
     : runner{runner}
     , test_name{std::move(test_name)}
     , parent{parent}
-    , console(console)
-    , owner{owner} {
+    , console(console) {
     reset_lua_state();
 }
 
@@ -236,6 +235,9 @@ ScriptEngine::~ScriptEngine() { //
 }
 
 Event_id::Event_id ScriptEngine::await_timeout(std::chrono::milliseconds timeout) {
+	auto now = std::chrono::system_clock::now();
+	operation_with_time_estimate_started(now, now + timeout);
+
     std::unique_lock<std::mutex> lock{await_mutex};
     if (await_condition == Event_id::interrupted) {
         throw std::runtime_error("Interrupted");
@@ -318,6 +320,7 @@ void ScriptEngine::post_hotkey_event(Event_id::Event_id event) {
 }
 
 void ScriptEngine::post_interrupt(QString message) {
+	interrupted();
     console.error() << "Script interrupted" << (message.isEmpty() ? "" : "because of " + message);
     {
         std::unique_lock<std::mutex> lock{await_mutex};
@@ -329,7 +332,7 @@ void ScriptEngine::post_interrupt(QString message) {
 std::vector<std::string> ScriptEngine::get_default_globals() {
     std::vector<std::string> globals;
     Console console{nullptr};
-    ScriptEngine se{nullptr, nullptr, console, nullptr, {}};
+	ScriptEngine se{nullptr, console, nullptr, {}};
     script_setup(*se.lua, "", se);
     for (auto &[key, value] : se.lua->globals()) {
         if (key.is<std::string>()) {

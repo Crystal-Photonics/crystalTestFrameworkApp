@@ -205,7 +205,7 @@ class PollDataEngine : public UI_widget {
 
     void start_timer();
 
-    void resizeMe(QResizeEvent *event) override;
+	void resizeMe(QResizeEvent *event) override;
 
     QMetaObject::Connection callback_timer = {};
     void set_ui_visibility();

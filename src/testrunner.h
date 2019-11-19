@@ -39,11 +39,11 @@ class TestRunner : QObject {
     UI_container *get_lua_ui_container() const;
     void run_script(std::vector<MatchedDevice> devices, DeviceWorker &device_worker);
     bool is_running() const;
-    const QString &get_name() const;
+	const QString &get_name() const;
 	const QString &get_script_path() const;
     void launch_editor() const;
 
-    QObject *obj();
+	QObject *obj();
 	bool adopt_device(const MatchedDevice &device);
 
     private:

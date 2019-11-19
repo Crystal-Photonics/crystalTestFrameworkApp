@@ -101,7 +101,7 @@ void TestDescriptionLoader::load_description() {
 		console->clear();
 	});
 	Console temp_console{console.get()};
-	ScriptEngine script{nullptr, nullptr, temp_console, nullptr, ""};
+	ScriptEngine script{nullptr, temp_console, nullptr, ""};
 	bool warning_occured = false;
 	bool error_occured = false;
 	for (const auto &message : MainWindow::validate_script(file_path)) {

@@ -1,7 +1,9 @@
 #ifndef USERWAITLABEL_H
 #define USERWAITLABEL_H
+
 #include "scriptengine.h"
 #include "ui_container.h"
+
 #include <QMetaObject>
 #include <QString>
 #include <functional>
@@ -16,6 +18,7 @@ class QWidget;
 class QLineEdit;
 class QPushButton;
 class QPushButton;
+
 /** \ingroup ui
    \{
 
@@ -113,9 +116,6 @@ class UserWaitLabel : public UI_widget {
             uwl:set_enabled(true)   --  UserWaitLabel object is enabled
       \endcode
   */
-    ///\cond HIDDEN_SYMBOLS
-    void scale_columns();
-    ///\endcond
     private:
     ///\cond HIDDEN_SYMBOLS
     QLabel *label_user_instruction = nullptr;
@@ -134,9 +134,6 @@ class UserWaitLabel : public UI_widget {
     QMetaObject::Connection callback_timer = {};
 
     ScriptEngine *script_engine;
-    int total_width = 10;
-	void resizeMe(QResizeEvent *event) override;
-    bool is_init = false;
     ///\endcond
 };
 /** \} */ // end of group ui

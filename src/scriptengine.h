@@ -8,6 +8,7 @@
 #include <QList>
 #include <QObject>
 #include <QString>
+#include <chrono>
 #include <condition_variable>
 #include <functional>
 #include <memory>
@@ -56,13 +57,19 @@ namespace Event_id {
     enum Event_id { Hotkey_confirm_pressed, Hotkey_skip_pressed, Hotkey_cancel_pressed, Timer_expired, UI_activated, interrupted = -1, invalid = -2 };
 }
 
-class ScriptEngine {
+class ScriptEngine : public QObject {
+	Q_OBJECT
+
+	signals:
+	void operation_with_time_estimate_started(std::chrono::system_clock::time_point start, std::chrono::system_clock::time_point end);
+	void interrupted();
+
     public:
     friend class TestRunner;
     friend class TestDescriptionLoader;
     friend class DeviceWorker;
 
-    ScriptEngine(QObject *owner, UI_container *parent, Console &console, TestRunner *runner, QString test_name);
+	ScriptEngine(UI_container *parent, Console &console, TestRunner *runner, QString test_name);
     ScriptEngine(const ScriptEngine &) = delete;
     ScriptEngine(ScriptEngine &&) = delete;
     ~ScriptEngine();
@@ -91,14 +98,14 @@ class ScriptEngine {
     sol::table create_table();
     template <class Return_type, class... Args>
     Return_type call_lua_function(const char *lua_function, Args &&... args) {
-        return Utility::promised_thread_call(owner, [this, lua_function, &args...] { return call<Return_type>(lua_function, std::forward<Args>(args)...); });
+		return Utility::promised_thread_call(this, [this, lua_function, &args...] { return call<Return_type>(lua_function, std::forward<Args>(args)...); });
     }
     TestRunner *runner;
     QString test_name;
     std::vector<DeviceRequirements> get_device_requirement_list(const sol::table &device_requirements);
     sol::table get_device_requirements_table(); //The returned table must be destroyed before the script. TODO: Fix or diagnose better
 
-    private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
+	private: //note: most of these things are private so that the GUI thread does not access anything belonging to the script thread. Do not make things public.
     QStringList get_string_list(const QString &name);
     std::vector<DeviceRequirements> get_device_requirement_list();
     sol::table get_devices(const std::vector<MatchedDevice> &devices);

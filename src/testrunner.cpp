@@ -26,7 +26,7 @@ TestRunner::TestRunner(const TestDescriptionLoader &description)
 		return console;
 	}())}
     , lua_ui_container(new UI_container(MainWindow::mw))
-	, script_pointer{std::make_unique<ScriptEngine>(this->obj(), lua_ui_container, *console_pointer, this, description.get_name())}
+	, script_pointer{std::make_unique<ScriptEngine>(lua_ui_container, *console_pointer, this, description.get_name())}
 	, script{*script_pointer}
 	, name{description.get_name()}
 	, script_path{QDir{QSettings{}.value(Globals::test_script_path_settings_key, "").toString()}.filePath(description.get_filepath())}
@@ -91,7 +91,7 @@ void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &de
 			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::finished); });
 		} catch (const std::exception &e) {
 			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::error); });
-			qDebug() << "runtime_error caught @TestRunner::run_script:" << e.what();
+			qDebug() << "runtime_error caught @TestRunner::run_script:" << e.what() << '\n';
 			console.error() << Sol_error_message{e.what(), script_path, name};
         }
 		device_worker_pointer = nullptr;

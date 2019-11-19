@@ -1,7 +1,6 @@
 ///\cond HIDDEN_SYMBOLS
 
 #include "userwaitlabel.h"
-
 #include "Windows/mainwindow.h"
 #include "config.h"
 #include "ui_container.h"
@@ -15,6 +14,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMovie>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QResizeEvent>
 #include <QSettings>
@@ -25,6 +25,10 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+static QString ms_to_display_string(int time_ms) {
+	return QString{"%1.%2"}.arg(time_ms / 1000).arg(time_ms / 100 % 10);
+}
+
 UserWaitLabel::UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, std::string extra_explanation)
     : UI_widget{parent}
     , label_user_instruction{new QLabel(parent)}
@@ -33,16 +37,17 @@ UserWaitLabel::UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, 
     , script_engine(script_engine)
 
 {
+	assert(currently_in_gui_thread());
     hlayout = new QHBoxLayout;
 
-    hlayout->addWidget(label_user_instruction, 0, Qt::AlignTop);
+	hlayout->addWidget(label_user_instruction);
 
     spinner_label = new QLabel(parent);
     QMovie *movie = new QMovie("://src/LuaUI/ajax-loader.gif");
     spinner_label->setMovie(movie); //":/MyPreciousRes/MyResources.pro"
     movie->start();
 
-    hlayout->addWidget(spinner_label, 0, Qt::AlignTop);
+	hlayout->addWidget(spinner_label);
 
     parent->add(hlayout, this);
 
@@ -51,52 +56,62 @@ UserWaitLabel::UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, 
 
     start_timer();
     timer->start(500);
-    auto sp_w = QSizePolicy::Maximum;
-    auto sp_h = QSizePolicy::MinimumExpanding;
-
-    label_user_instruction->setSizePolicy(sp_w, sp_h);
 
     set_enabled(true);
     parent->scroll_to_bottom();
-    is_init = true;
-    scale_columns();
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+
+	auto progress_bar = new QProgressBar{parent};
+	progress_bar->setVisible(false);
+	hlayout->addWidget(progress_bar);
+
+	auto time_estimate_operation_callback = [progress_bar](std::chrono::system_clock::time_point start, std::chrono::system_clock::time_point end) {
+		Utility::thread_call(MainWindow::mw, [progress_bar, max_value_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), end] {
+			progress_bar->setMaximum(max_value_ms);
+			progress_bar->setVisible(true);
+			//hack to enable recursive lambda
+			auto updater = [end, max_value_ms, progress_bar](auto self) -> void {
+				const auto time_passed_ms =
+					max_value_ms - std::chrono::duration_cast<std::chrono::milliseconds>(end - std::chrono::system_clock::now()).count();
+				progress_bar->setValue(time_passed_ms);
+				progress_bar->setFormat(QString{"%1/%2s"}.arg(ms_to_display_string(time_passed_ms)).arg(ms_to_display_string(max_value_ms)));
+				if (time_passed_ms < max_value_ms) {
+					QTimer::singleShot(16, [self] { self(self); });
+				} else {
+					progress_bar->setVisible(false);
+				}
+			};
+			updater(updater);
+		});
+	};
+	QObject::connect(script_engine, &ScriptEngine::operation_with_time_estimate_started, time_estimate_operation_callback);
+	QObject::connect(script_engine, &ScriptEngine::interrupted, [progress_bar] { progress_bar->setVisible(false); });
 }
 
 UserWaitLabel::~UserWaitLabel() {
-    assert(MainWindow::gui_thread == QThread::currentThread());
-    //Utility::promised_thread_call(MainWindow::mw, [this] {
-    //MainWindow::mw->execute_in_gui_thread(script_engine, [this] {   //
-    timer->stop();
+	assert(currently_in_gui_thread());
+	timer->stop();
     QObject::disconnect(callback_timer);
 
     set_enabled(false);
-    // });
-}
-
-void UserWaitLabel::scale_columns() {
-    int col_size = 6;
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-    label_user_instruction->setFixedWidth(5 * total_width / col_size);
 }
 
 bool UserWaitLabel::run_hotkey_loop() {
-    assert(MainWindow::gui_thread != QThread::currentThread());     //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-    Utility::promised_thread_call(MainWindow::mw, [this] {          //
-        assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+	assert(not currently_in_gui_thread());
+	Utility::promised_thread_call(MainWindow::mw, [this] {
+		assert(currently_in_gui_thread());
         set_enabled(true);
     });
-    return (script_engine->await_hotkey_event() == Event_id::Hotkey_confirm_pressed);
+	return script_engine->await_hotkey_event() == Event_id::Hotkey_confirm_pressed;
 }
 
 void UserWaitLabel::set_text(const std::string &instruction_text) {
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+	assert(currently_in_gui_thread());
     this->instruction_text = QString::fromStdString(instruction_text);
     label_user_instruction->setText(this->instruction_text);
 }
 
 void UserWaitLabel::set_enabled(bool enabled) {
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
+	assert(currently_in_gui_thread());
 
     label_user_instruction->setEnabled(enabled);
     label_user_instruction->setText(instruction_text);
@@ -110,27 +125,19 @@ void UserWaitLabel::set_enabled(bool enabled) {
     }
 }
 
-void UserWaitLabel::resizeMe(QResizeEvent *event) {
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-    total_width = event->size().width();
-    if (is_init) {
-        scale_columns();
-    }
-}
-
 void UserWaitLabel::start_timer() {
     callback_timer = QObject::connect(timer, &QTimer::timeout, [this]() {
+		assert(currently_in_gui_thread());
         if (blink_state == Globals::ui_blink_ratio) {
-            assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
-            label_user_instruction->setText(" ");
+			const auto old_width = label_user_instruction->width();
+			label_user_instruction->setMinimumWidth(old_width);
+			label_user_instruction->setText("");
             blink_state = 0;
         } else {
-            label_user_instruction->setMinimumHeight(0);
-            label_user_instruction->setMaximumHeight(16777215);
+			label_user_instruction->setMinimumWidth(0);
             label_user_instruction->setText(instruction_text);
-            label_user_instruction->setFixedHeight(label_user_instruction->height());
         }
         blink_state++;
-    });
+	});
 }
 ///\endcond
