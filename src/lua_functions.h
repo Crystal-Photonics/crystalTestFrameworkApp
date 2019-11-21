@@ -3,6 +3,7 @@
 
 #include "scriptengine.h"
 #include "sol.hpp"
+
 #include <QString>
 #include <vector>
 
@@ -21,7 +22,7 @@ std::string show_file_save_dialog(const std::string &title, const std::string &p
 std::string show_question(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table);
 void show_info(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
 void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
-void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms);
+void sleep_ms(ScriptEngine *scriptengine, const unsigned int duration_ms, const unsigned int starttime_ms);
 void pc_speaker_beep();
 QString run_external_tool(const QString &script_path, const QString &execute_directory, const QString &executable, const sol::table &arguments, uint timeout);
 double current_date_time_ms(void);

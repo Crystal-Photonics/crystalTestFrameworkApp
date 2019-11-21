@@ -294,9 +294,20 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             print(console, args);
         };
 
-        lua["sleep_ms"] = [&script_engine](const unsigned int timeout_ms) {
+		lua["sleep_ms"] = [&script_engine](const unsigned int p1, std::optional<unsigned int> p2) {
+			//either sleep_ms(duration) or sleep_ms(start, duration), so can't name parameters properly
             abort_check();
-            sleep_ms(&script_engine, timeout_ms);
+			if (p2.has_value()) { //start, duration
+				const auto &duration_ms = p2.value();
+				const auto &start_ms = p1;
+				if (duration_ms < start_ms) { //no need to sleep
+					return;
+				}
+				sleep_ms(&script_engine, duration_ms, start_ms);
+			} else { //duration only
+				const auto &duration_ms = p1;
+				sleep_ms(&script_engine, duration_ms, 0);
+			}
         };
 		lua["pc_speaker_beep"] = +[] {
             abort_check();

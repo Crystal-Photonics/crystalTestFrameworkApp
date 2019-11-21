@@ -74,7 +74,7 @@ class ScriptEngine : public QObject {
     ScriptEngine(ScriptEngine &&) = delete;
     ~ScriptEngine();
 
-    Event_id::Event_id await_timeout(std::chrono::milliseconds timeout);
+	Event_id::Event_id await_timeout(std::chrono::milliseconds duration, std::chrono::milliseconds start = {});
     Event_id::Event_id await_ui_event();
     Event_id::Event_id await_hotkey_event();
 

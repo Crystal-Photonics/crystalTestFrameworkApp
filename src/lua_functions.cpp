@@ -566,8 +566,8 @@ sleep_ms(int timeout_ms);
 #endif
 
 /// \cond HIDDEN_SYMBOLS
-void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms) {
-    scriptengine->await_timeout(std::chrono::milliseconds{timeout_ms});
+void sleep_ms(ScriptEngine *scriptengine, const unsigned int duration_ms, const unsigned int starttime_ms) {
+	scriptengine->await_timeout(std::chrono::milliseconds{duration_ms}, std::chrono::milliseconds{starttime_ms});
 #if 0
     QEventLoop event_loop;
     static const auto secret_exit_code = -0xF42F;

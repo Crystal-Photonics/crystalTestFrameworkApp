@@ -234,15 +234,15 @@ ScriptEngine::~ScriptEngine() { //
     // QThread::currentThread();
 }
 
-Event_id::Event_id ScriptEngine::await_timeout(std::chrono::milliseconds timeout) {
+Event_id::Event_id ScriptEngine::await_timeout(std::chrono::milliseconds duration, std::chrono::milliseconds start) {
 	auto now = std::chrono::system_clock::now();
-	operation_with_time_estimate_started(now, now + timeout);
+	operation_with_time_estimate_started(now - start, now - start + duration);
 
     std::unique_lock<std::mutex> lock{await_mutex};
     if (await_condition == Event_id::interrupted) {
         throw std::runtime_error("Interrupted");
     }
-    await_condition_variable.wait_for(lock, timeout, [this] { return await_condition == Event_id::interrupted; });
+	await_condition_variable.wait_for(lock, duration - start, [this] { return await_condition == Event_id::interrupted; });
     if (await_condition == Event_id::interrupted) {
         throw std::runtime_error("Interrupted");
     }

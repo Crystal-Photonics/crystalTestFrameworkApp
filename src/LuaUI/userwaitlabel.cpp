@@ -67,15 +67,15 @@ UserWaitLabel::UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, 
 	auto time_estimate_operation_callback = [progress_bar](std::chrono::system_clock::time_point start, std::chrono::system_clock::time_point end) {
 		Utility::thread_call(MainWindow::mw, [progress_bar, max_value_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(), end] {
 			progress_bar->setMaximum(max_value_ms);
-			progress_bar->setVisible(true);
 			//hack to enable recursive lambda
 			auto updater = [end, max_value_ms, progress_bar](auto self) -> void {
 				const auto time_passed_ms =
 					max_value_ms - std::chrono::duration_cast<std::chrono::milliseconds>(end - std::chrono::system_clock::now()).count();
-				progress_bar->setValue(time_passed_ms);
-				progress_bar->setFormat(QString{"%1/%2s"}.arg(ms_to_display_string(time_passed_ms)).arg(ms_to_display_string(max_value_ms)));
 				if (time_passed_ms < max_value_ms) {
-					QTimer::singleShot(16, [self] { self(self); });
+					progress_bar->setValue(time_passed_ms);
+					progress_bar->setFormat(QString{"%1/%2s"}.arg(ms_to_display_string(time_passed_ms)).arg(ms_to_display_string(max_value_ms)));
+					progress_bar->setVisible(true);
+					QTimer::singleShot(std::min(16ll, max_value_ms - time_passed_ms - 1), [self] { self(self); });
 				} else {
 					progress_bar->setVisible(false);
 				}
