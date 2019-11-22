@@ -140,7 +140,7 @@ class EXPORT MainWindow : public QMainWindow {
     void run_test_script(TestDescriptionLoader *test);
     TestDescriptionLoader *get_test_from_listViewItem(QListWidgetItem *item);
     TestDescriptionLoader *get_test_from_tree_widget(const QTreeWidgetItem *item = nullptr);
-    void load_favorites();
+	void load_favorites(QProgressDialog *dialog = nullptr);
     void enable_favorite_view();
     void enable_all_script_view();
     ViewMode view_mode_m;
@@ -166,7 +166,7 @@ class EXPORT MainWindow : public QMainWindow {
     bool eventFilter(QObject *target, QEvent *event) override;
 
     void remove_favorite_based_on_simple_view_selection();
-    void set_enabled_states_for_matchable_scripts();
+	void set_enabled_states_for_matchable_scripts(QProgressDialog *dialog = nullptr);
     QTreeWidgetItem *get_treewidgetitem_from_listViewItem(QListWidgetItem *item);
     void add_clear_button_to_console(QPlainTextEdit *console);
     void show_in_graphical_shell(const QString &pathIn);

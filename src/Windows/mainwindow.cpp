@@ -434,6 +434,14 @@ std::unique_ptr<QTreeWidgetItem> *MainWindow::MainWindow::get_manual_devices_par
     return &manual_devices_parent_item;
 }
 
+namespace Script_loading_progress_factors {
+	//Some operations like script loading and checking the enabled state take more time than loading favorites.
+	//These factors represent the relative time required for the operations and should be adjusted to make the progress bar progress somewhat smooth.
+	const int script_loading = 20;
+	const int favorite_loading = 1;
+	const int set_enable_state = 10;
+} // namespace Script_loading_progress_factors
+
 void MainWindow::load_scripts(QProgressDialog *dialog) {
     assert(currently_in_gui_thread());
 	std::unique_ptr<QProgressDialog> progress_bar;
@@ -475,17 +483,16 @@ void MainWindow::load_scripts(QProgressDialog *dialog) {
 		});
 		tasks++;
 	}
-	dialog->setMaximum(6 + tasks);
+	dialog->setMaximum(4 + tasks * (Script_loading_progress_factors::script_loading + Script_loading_progress_factors::favorite_loading +
+									Script_loading_progress_factors::set_enable_state));
 	{
 		auto close_threads = std::async(std::launch::async, [&othread_pool] { othread_pool = std::nullopt; });
 		while (close_threads.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout) {
-			dialog->setValue(3 + tasks_done);
+			dialog->setValue(3 + tasks_done * Script_loading_progress_factors::script_loading);
 			QApplication::processEvents();
 		}
 	}
-	dialog->setValue(dialog->value() + 1);
-	load_favorites();
-	dialog->setValue(dialog->value() + 1);
+	load_favorites(dialog);
 	statusBar()->clearMessage();
     ui->tbtn_refresh_scripts->setEnabled(enabled_a);
     ui->actionReload_All_Scripts->setEnabled(enabled_b);
@@ -493,12 +500,15 @@ void MainWindow::load_scripts(QProgressDialog *dialog) {
 	QApplication::processEvents();
 }
 
-void MainWindow::load_favorites() {
+void MainWindow::load_favorites(QProgressDialog *dialog) {
     assert(currently_in_gui_thread());
     ui->test_simple_view->clear();
     QIcon icon_star = QIcon{"://src/icons/star_16.ico"};
     QIcon icon_empty_star = QIcon{"://src/icons/if_star_empty_16.png"};
     for (TestDescriptionLoader &test : test_descriptions) {
+		if (dialog) {
+			dialog->setValue(dialog->value() + Script_loading_progress_factors::favorite_loading);
+		}
         const ScriptEntry favorite_entry = favorite_scripts.get_entry(test.get_name());
         if (favorite_entry.valid) {
             QListWidgetItem *item = new QListWidgetItem{favorite_entry.script_path};
@@ -518,13 +528,16 @@ void MainWindow::load_favorites() {
             test.ui_entry->setIcon(4, icon_empty_star);
         }
     }
-    set_enabled_states_for_matchable_scripts();
+	set_enabled_states_for_matchable_scripts(dialog);
 }
 
-void MainWindow::set_enabled_states_for_matchable_scripts() {
+void MainWindow::set_enabled_states_for_matchable_scripts(QProgressDialog *dialog) {
     assert(currently_in_gui_thread());
     DeviceMatcher device_matcher(this);
     for (TestDescriptionLoader &test : test_descriptions) {
+		if (dialog) {
+			dialog->setValue(dialog->value() + Script_loading_progress_factors::set_enable_state);
+		}
 		if (not test.ui_entry) {
 			continue;
 		}
