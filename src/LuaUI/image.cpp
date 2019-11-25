@@ -63,7 +63,7 @@ Image::Image(UI_container *parent, QString script_path)
 Image::~Image() {}
 
 void Image::load_image_file(const std::string &path_to_image) {
-    load_image(path_to_image);
+	load_image(path_to_image);
 }
 
 void Image::set_visible(bool visible) {
@@ -77,7 +77,6 @@ void Image::load_image(const std::string &path_to_image_) {
         image.load(QString::fromStdString(path_to_image));
         label->setPixmap(QPixmap::fromImage(image));
     } else {
-		label->setPixmap({});
 		QString msg = QString{"can't open Image file \"%1\""}.arg(QString::fromStdString(path_to_image));
         throw sol::error(msg.toStdString());
     }
