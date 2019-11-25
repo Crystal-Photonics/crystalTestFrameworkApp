@@ -66,6 +66,22 @@ void Image::load_image_file(const std::string &path_to_image) {
 	load_image(path_to_image);
 }
 
+void Image::set_maximum_height(int height) {
+	if (auto pixmap = label->pixmap()) {
+		const auto size = pixmap->size();
+		const auto width = height * size.width() / size.height();
+		label->setMaximumSize(width, height);
+	}
+	qDebug() << "Warning: Setting maximum size for image before loading an image has no effect";
+}
+
+void Image::set_maximum_width(int width) {
+	if (auto pixmap = label->pixmap()) {
+		label->setMaximumSize(width, label->heightForWidth(width));
+	}
+	qDebug() << "Warning: Setting maximum size for image before loading an image has no effect";
+}
+
 void Image::set_visible(bool visible) {
     label->setVisible(visible);
 }
