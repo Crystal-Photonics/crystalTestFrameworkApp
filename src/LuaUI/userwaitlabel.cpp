@@ -75,7 +75,7 @@ UserWaitLabel::UserWaitLabel(UI_container *parent, ScriptEngine *script_engine, 
 					progress_bar->setValue(time_passed_ms);
 					progress_bar->setFormat(QString{"%1/%2s"}.arg(ms_to_display_string(time_passed_ms)).arg(ms_to_display_string(max_value_ms)));
 					progress_bar->setVisible(true);
-					QTimer::singleShot(std::min(16ll, max_value_ms - time_passed_ms - 1), [self] { self(self); });
+					QTimer::singleShot(std::min(16, static_cast<int>(max_value_ms - time_passed_ms) - 1), [self] { self(self); });
 				} else {
 					progress_bar->setVisible(false);
 				}
