@@ -19,9 +19,6 @@ enum class CommunicationDeviceType { COM, TMC, Manual, TCP, UDP, IP };
 QString ComDeviceTypeToString(CommunicationDeviceType t);
 
 struct PortDescription {
-    PortDescription(PortDescription &&other) = default;
-    PortDescription &operator=(PortDescription &&other) = default;
-
     std::unique_ptr<CommunicationDevice> device;
     QMap<QString, QVariant> port_info;
 	QTreeWidgetItem *ui_entry;

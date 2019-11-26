@@ -34,6 +34,7 @@ class DeviceWorker : public QObject {
     bool is_dut_device(QTreeWidgetItem *item);
     bool is_device_in_use(QTreeWidgetItem *item);
     bool is_connected_to_device(QTreeWidgetItem *item);
+	void close_device(QTreeWidgetItem *item);
 
     private:
     void forget_device(QTreeWidgetItem *item);
@@ -48,7 +49,6 @@ class DeviceWorker : public QObject {
 	QSemaphore refresh_semaphore{1};
     bool is_dut_device_(QTreeWidgetItem *item);
     bool is_device_in_use_(QTreeWidgetItem *item);
-    void forget_device_(QTreeWidgetItem *item);
 
     bool is_connected_to_device_(QTreeWidgetItem *item);
 	signals:

@@ -106,7 +106,7 @@ static void detect_device(QObject *device_worker, PortDescription &device, const
 				Utility::promised_thread_call(device_worker, [&] { return std::make_unique<RPCProtocol>(*device.device, rpc_device); });
 
 			if (protocol->is_correct_protocol()) {
-				MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
+				MainWindow::mw->execute_in_gui_thread([protocol = protocol.get(), ui_entry = device.ui_entry] { //
 					if (MainWindow::mw->device_item_exists(ui_entry)) {
 						protocol->set_ui_description(ui_entry);
 					}
@@ -118,7 +118,7 @@ static void detect_device(QObject *device_worker, PortDescription &device, const
 		}
 	};
 	auto &scpi_devices = device_protocol_settings.protocols_scpi;
-	auto check_scpi_protocols = [&scpi_devices, &device_protocol_settings_file, &device_meta_data = device_meta_data ](PortDescription & device) {
+	auto check_scpi_protocols = [&scpi_devices, &device_protocol_settings_file, &device_meta_data = device_meta_data](PortDescription &device) {
 		for (auto &scpi_device : scpi_devices) {
 			if (scpi_device.match(device.port_info[HOST_NAME_TAG].toString()) == false) {
 				continue;
@@ -148,8 +148,7 @@ static void detect_device(QObject *device_worker, PortDescription &device, const
 				if (protocol->is_correct_protocol()) {
 					protocol->set_scpi_meta_data(
 						device_meta_data.query(QString::fromStdString(protocol->get_serial_number()), QString::fromStdString(protocol->get_name())));
-					MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
-
+					MainWindow::mw->execute_in_gui_thread([protocol = protocol.get(), ui_entry = device.ui_entry] { //
 						if (MainWindow::mw->device_item_exists(ui_entry)) {
 							protocol->set_ui_description(ui_entry);
 						}
@@ -192,7 +191,7 @@ static void detect_device(QObject *device_worker, PortDescription &device, const
 			auto protocol = std::make_unique<SG04CountProtocol>(*device.device, sg04_count_device);
 			if (protocol) {
 				if (protocol->is_correct_protocol()) {
-					MainWindow::mw->execute_in_gui_thread([ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
+					MainWindow::mw->execute_in_gui_thread([protocol = protocol.get(), ui_entry = device.ui_entry] { //
 						if (MainWindow::mw->device_item_exists(ui_entry)) {
 							protocol->set_ui_description(ui_entry);
 						}
@@ -205,7 +204,7 @@ static void detect_device(QObject *device_worker, PortDescription &device, const
 			}
 		}
 	};
-	auto check_manual_protocols = [&device_meta_data = device_meta_data](PortDescription & device) {
+	auto check_manual_protocols = [&device_meta_data = device_meta_data](PortDescription &device) {
 		if (device.communication_type != CommunicationDeviceType::Manual) {
 			return;
 		}
@@ -222,7 +221,7 @@ static void detect_device(QObject *device_worker, PortDescription &device, const
 			if (protocol->is_correct_protocol()) {
 				protocol->set_meta_data(
 					device_meta_data.query(device.port_info[DEVICE_MANUAL_SN_TAG].toString(), device.port_info[DEVICE_MANUAL_NAME_TAG].toString()));
-				Utility::thread_call(MainWindow::mw, [ protocol = protocol.get(), ui_entry = device.ui_entry ] { //
+				Utility::thread_call(MainWindow::mw, [protocol = protocol.get(), ui_entry = device.ui_entry] { //
 					if (MainWindow::mw->device_item_exists(ui_entry)) {
 						protocol->set_ui_description(ui_entry);
 					} //
@@ -263,8 +262,9 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
 	assert(currently_in_devices_thread());
 	const auto device_protocol_settings_file = QSettings{}.value(Globals::device_protocols_file_settings_key, "").toString();
 	if (device_protocol_settings_file.isEmpty()) {
-		MainWindow::mw->show_message_box(tr("Missing File"), tr("Auto-Detecting devices requires a file that defines which protocols can use which device "
-																"types. Make such a file and add it via Settings->Paths"),
+		MainWindow::mw->show_message_box(tr("Missing File"),
+										 tr("Auto-Detecting devices requires a file that defines which protocols can use which device "
+											"types. Make such a file and add it via Settings->Paths"),
 										 QMessageBox::Critical);
 		return;
 	}
@@ -283,7 +283,7 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
 	std::vector<std::future<void>> threads;
 	for (auto &com_devs : devices_map) {
 		threads.push_back(
-			std::async(std::launch::async, [&device_protocol_settings, &device_protocol_settings_file, this, devices = std::move(com_devs.second) ] {
+			std::async(std::launch::async, [&device_protocol_settings, &device_protocol_settings_file, this, devices = std::move(com_devs.second)] {
 				for (auto &dev : devices) {
 					::detect_device(this, *dev, device_protocol_settings, device_protocol_settings_file, device_meta_data);
 				}
@@ -335,7 +335,7 @@ void DeviceWorker::refresh_devices(QTreeWidgetItem *root, bool dut_only) {
 
 	Utility::thread_call(this, [this, device_items] {
 		for (auto &item : device_items) {
-			forget_device_(item);
+			forget_device(item);
 		}
 		device_meta_data.reload(QSettings{}.value(Globals::measurement_equipment_meta_data_path_key, "").toString());
 		update_devices();
@@ -399,6 +399,15 @@ bool DeviceWorker::is_connected_to_device(QTreeWidgetItem *item) {
 	});
 }
 
+void DeviceWorker::close_device(QTreeWidgetItem *item) {
+	assert(currently_in_devices_thread());
+	for (auto &device : communication_devices) {
+		if (device.ui_entry == item) {
+			device.device->close();
+		}
+	}
+}
+
 bool DeviceWorker::is_device_in_use(QTreeWidgetItem *item) {
 	return Utility::promised_thread_call(this, [this, item] {
 		assert(currently_in_gui_thread() == false);
@@ -406,7 +415,7 @@ bool DeviceWorker::is_device_in_use(QTreeWidgetItem *item) {
 	});
 }
 
-void DeviceWorker::forget_device_(QTreeWidgetItem *item) {
+void DeviceWorker::forget_device(QTreeWidgetItem *item) {
 	assert(currently_in_devices_thread());
 	for (auto device_it = std::begin(communication_devices); device_it != std::end(communication_devices); ++device_it) {
 		if (device_it->ui_entry == item) {
@@ -546,7 +555,7 @@ void DeviceWorker::connect_to_device_console(QPlainTextEdit *console, Communicat
 		static const QString fat_html = R"(<font color="#%1"><b><plaintext>%2</plaintext></b></font>)";
 
 		for (auto &d : data_byte_arguement) {
-			connect(comport, d.signal, [ signal = d.signal, console = console, color = d.color, fat = d.fat ](const QByteArray &data) {
+			connect(comport, d.signal, [signal = d.signal, console = console, color = d.color, fat = d.fat](const QByteArray &data) {
 				QString display_text = data;
 				bool is_human_readable = QSettings{}.value(Globals::console_human_readable_view_key, false).toBool();
 				bool is_connect_signal = signal == &CommunicationDevice::connected;
@@ -662,7 +671,7 @@ void DeviceWorker::set_currently_running_test(CommunicationDevice *com_device, c
 		for (auto &device : communication_devices) {
 			if (device.device.get() == com_device) {
 				device_worker_set_in_use(device.device.get(), not test_name.isEmpty());
-				MainWindow::mw->execute_in_gui_thread([ item = device.ui_entry, test_name ] { item->setText(3, test_name); });
+				MainWindow::mw->execute_in_gui_thread([item = device.ui_entry, test_name] { item->setText(3, test_name); });
 				break;
 			}
 		}

@@ -594,8 +594,16 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
 				console = dynamic_cast<PlainTextEdit *>(ui->console_tabs->widget(index));
             }
             device_worker->connect_to_device_console(console, communication_device);
-        }
-    });
+			connect(communication_device, &CommunicationDevice::connected, [child](const QByteArray &data) {
+				qDebug() << data;
+				Utility::thread_call(MainWindow::mw, [child] { child->setForeground(0, Qt::black); });
+			});
+			connect(communication_device, &CommunicationDevice::disconnected, [child](const QByteArray &data) {
+				qDebug() << data;
+				Utility::thread_call(MainWindow::mw, [child] { child->setForeground(0, Qt::gray); });
+			});
+		}
+	});
 }
 
 void MainWindow::add_clear_button_to_console(QPlainTextEdit *console) {
@@ -1019,14 +1027,14 @@ void MainWindow::on_tests_advanced_view_itemSelectionChanged() {
 			auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
 			if (test == nullptr) {
 				return;
-            }
+			}
 			if (dynamic_cast<UI_container *>(ui->test_tabs->widget(0))) {
 				//There is a script running, don't hide it
 				ui->test_tabs->insertTab(0, test->console.get(), test->get_name());
 			} else {
 				//There is no script running, replace widget
 				Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
-			}
+            }
 			ui->test_tabs->setCurrentIndex(0);
 		}
 	}
@@ -1495,4 +1503,32 @@ void MainWindow::on_actionactionAbort_triggered() {
 void MainWindow::on_actionQuery_Report_history_triggered() {
 	auto *testresultquery_window = new ReportHistoryQuery{this};
 	testresultquery_window->show();
+}
+
+void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
+	auto item = ui->devices_list->itemAt(pos);
+	if (not item) {
+		//rightclicked on not an item
+		return;
+	}
+	if (not device_worker->is_connected_to_device(item)) {
+		//menu for something that is not a device
+		return;
+	}
+
+	QMenu menu(this);
+
+	QAction action_close_device(tr("Close Device"));
+	connect(&action_close_device, &QAction::triggered, [this, item] {
+		if (device_worker->is_device_in_use(item)) {
+			if (QMessageBox::warning(this, tr("Crystal Test Framework - Closing Device"),
+									 tr("The selected device is in use. Closing it will likely cause errors. Close anyways?"),
+									 QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok) {
+				return;
+			}
+		}
+		Utility::thread_call(device_worker.get(), [this, item] { device_worker->close_device(item); });
+	});
+	menu.addAction(&action_close_device);
+	menu.exec(ui->devices_list->mapToGlobal(pos));
 }

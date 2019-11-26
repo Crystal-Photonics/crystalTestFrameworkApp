@@ -115,8 +115,9 @@ class EXPORT MainWindow : public QMainWindow {
     void on_tbtn_collapse_console_clicked();
     void on_actionQuery_Report_history_triggered();
     void on_actionactionAbort_triggered();
+	void on_devices_list_customContextMenuRequested(const QPoint &pos);
 
-    private:
+	private:
     FavoriteScripts favorite_scripts;
     void refresh_devices(bool only_duts);
     std::vector<TestDescriptionLoader> test_descriptions;
