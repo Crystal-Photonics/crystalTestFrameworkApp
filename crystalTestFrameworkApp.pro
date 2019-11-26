@@ -25,6 +25,7 @@ tests.depends = src
 
 message($$QMAKESPEC)
 
+OTHER_FILES += .clang-format
 OTHER_FILES += .travis.yml
 OTHER_FILES += lsan.supp
 OTHER_FILES += examples/settings/communication_settings.json

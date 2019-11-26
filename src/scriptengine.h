@@ -2,7 +2,6 @@
 #define SCRIPTENGINE_H
 
 #include "qt_util.h"
-#include "sol.hpp"
 
 #include <QEventLoop>
 #include <QList>
@@ -13,6 +12,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <sol.hpp>
 #include <vector>
 
 class CommunicationDevice;

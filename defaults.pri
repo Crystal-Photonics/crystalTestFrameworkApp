@@ -1,5 +1,4 @@
 CONFIG += c++17
-CONFIG += warn_off
 CONFIG += strict_c++
 QMAKE_CXXFLAGS += -std=c++17
 
@@ -12,12 +11,12 @@ GCC_MACHINE = $$system("g++ -dumpmachine")
 message($$GCC_MACHINE)
 
 INCLUDEPATH += $$PWD/src
-INCLUDEPATH += ../libs/luasol/include
+QMAKE_CXXFLAGS += -isystem $$PWD/libs/luasol/include
 
 
 win32 {
 	QWT_DIR = $$PWD/libs/qwt/
-	INCLUDEPATH += $$QWT_DIR/include
+	QMAKE_CXXFLAGS += -isystem $$QWT_DIR/include
 	LIBS += -L$$QWT_DIR/lib/$${QT_VERSION}
 
 	CONFIG(debug, debug|release) {
@@ -65,8 +64,7 @@ win32 {
 }
 
 win32 {
-	INCLUDEPATH += $$PWD/libs/libusb-1.0.21/include/
-	#message($$INCLUDEPATH)
+	QMAKE_CXXFLAGS += -isystem $$PWD/libs/libusb-1.0.21/include/
 	equals(GCC_MACHINE,  x86_64-w64-mingw32){
 		LIBS += -L$$PWD/libs/libusb-1.0.21/MinGW64/static/
 	  #  message(Win32 64bit)
@@ -78,14 +76,14 @@ win32 {
 
 	LIBS += -llibusb-1.0
 }else{
-	INCLUDEPATH += $$PWD/libs/libusb-1.0.21/include/
+	QMAKE_CXXFLAGS += -isystem $$PWD/libs/libusb-1.0.21/include/
 	LIBS +=  -lusb-1.0
 }
 
 
 
 
-INCLUDEPATH += $$PWD/libs/LimeReport/include
+QMAKE_CXXFLAGS += -isystem $$PWD/libs/LimeReport/include
 
 CONFIG(debug, debug|release) {
 	LIBS += -llimereportd
