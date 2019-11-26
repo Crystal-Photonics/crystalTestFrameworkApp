@@ -708,13 +708,13 @@ QStringList MainWindow::validate_script(const QString &path) {
 	for (const auto &line : output_list) {
 		if (line.isEmpty()) {
 			continue;
-        }
+		}
 		if (line.contains("unused global variable 'device_requirements'")) {
 			continue;
 		}
 		if (line.contains("unused global variable 'run'")) {
 			continue;
-		}
+        }
 		messages << line;
 	}
 	return messages;
@@ -1020,7 +1020,13 @@ void MainWindow::on_tests_advanced_view_itemSelectionChanged() {
 			if (test == nullptr) {
 				return;
             }
-			Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
+			if (dynamic_cast<UI_container *>(ui->test_tabs->widget(0))) {
+				//There is a script running, don't hide it
+				ui->test_tabs->insertTab(0, test->console.get(), test->get_name());
+			} else {
+				//There is no script running, replace widget
+				Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
+			}
 			ui->test_tabs->setCurrentIndex(0);
 		}
 	}
