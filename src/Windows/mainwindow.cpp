@@ -541,7 +541,7 @@ void MainWindow::set_enabled_states_for_matchable_scripts(QProgressDialog *dialo
 		if (not test.ui_entry) {
 			continue;
 		}
-        bool is_matchable = device_matcher.is_match_possible(*device_worker.get(), test);
+		bool is_matchable = device_matcher.is_match_possible(*device_worker, test);
         if (is_matchable) {
             test.ui_entry->setForeground(0, palette().color(QPalette::Active, QPalette::Text));
             test.ui_entry->setForeground(1, palette().color(QPalette::Active, QPalette::Text));
@@ -594,14 +594,10 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
 				console = dynamic_cast<PlainTextEdit *>(ui->console_tabs->widget(index));
             }
             device_worker->connect_to_device_console(console, communication_device);
-			connect(communication_device, &CommunicationDevice::connected, [child](const QByteArray &data) {
-				qDebug() << data;
-				Utility::thread_call(MainWindow::mw, [child] { child->setForeground(0, Qt::black); });
-			});
-			connect(communication_device, &CommunicationDevice::disconnected, [child](const QByteArray &data) {
-				qDebug() << data;
-				Utility::thread_call(MainWindow::mw, [child] { child->setForeground(0, Qt::gray); });
-			});
+			connect(communication_device, &CommunicationDevice::connected,
+					[child] { Utility::thread_call(MainWindow::mw, [child] { child->setForeground(0, Qt::black); }); });
+			connect(communication_device, &CommunicationDevice::disconnected,
+					[child] { Utility::thread_call(MainWindow::mw, [child] { child->setForeground(0, Qt::gray); }); });
 		}
 	});
 }
@@ -1027,14 +1023,14 @@ void MainWindow::on_tests_advanced_view_itemSelectionChanged() {
 			auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
 			if (test == nullptr) {
 				return;
-			}
+            }
 			if (dynamic_cast<UI_container *>(ui->test_tabs->widget(0))) {
 				//There is a script running, don't hide it
 				ui->test_tabs->insertTab(0, test->console.get(), test->get_name());
 			} else {
 				//There is no script running, replace widget
 				Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
-            }
+			}
 			ui->test_tabs->setCurrentIndex(0);
 		}
 	}
@@ -1521,14 +1517,28 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 	QAction action_close_device(tr("Close Device"));
 	connect(&action_close_device, &QAction::triggered, [this, item] {
 		if (device_worker->is_device_in_use(item)) {
-			if (QMessageBox::warning(this, tr("Crystal Test Framework - Closing Device"),
-									 tr("The selected device is in use. Closing it will likely cause errors. Close anyways?"),
-									 QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok) {
-				return;
-			}
+			QMessageBox::critical(this, tr("Crystal Test Framework - Closing Device"),
+								  tr("The selected device is in use and cannot be closed. Please abort the test that uses this device first."));
+			return;
 		}
 		Utility::thread_call(device_worker.get(), [this, item] { device_worker->close_device(item); });
+		item->setText(GUI::Devices::protocol, "");
+		item->setText(GUI::Devices::name, "");
+		item->setText(GUI::Devices::current_test, "");
+		set_enabled_states_for_matchable_scripts();
 	});
-	menu.addAction(&action_close_device);
+
+	QAction action_open_device(tr("Open Device"));
+	connect(&action_open_device, &QAction::triggered, [this, item] {
+		Utility::thread_call(device_worker.get(), [this, item] { device_worker->open_device(item); });
+		set_enabled_states_for_matchable_scripts();
+	});
+
+	if (Utility::promised_thread_call(device_worker.get(), [this, item] { return device_worker->is_device_open(item); })) {
+		menu.addAction(&action_close_device);
+	} else {
+		menu.addAction(&action_open_device);
+	}
+
 	menu.exec(ui->devices_list->mapToGlobal(pos));
 }

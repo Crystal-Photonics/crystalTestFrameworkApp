@@ -372,9 +372,9 @@ bool DeviceWorker::is_dut_device(QTreeWidgetItem *item) {
 
 bool DeviceWorker::is_device_in_use_(QTreeWidgetItem *item) {
 	assert(currently_in_devices_thread());
-	for (auto &device_it : communication_devices) {
-		if (device_it.ui_entry == item) {
-			return device_it.device->is_in_use();
+	for (auto &device : communication_devices) {
+		if (device.ui_entry == item) {
+			return device.device->is_in_use();
 		}
 	}
 	// qDebug() << "is_device_in_use_:"
@@ -384,8 +384,8 @@ bool DeviceWorker::is_device_in_use_(QTreeWidgetItem *item) {
 
 bool DeviceWorker::is_connected_to_device_(QTreeWidgetItem *item) {
 	assert(currently_in_devices_thread());
-	for (auto &device_it : communication_devices) {
-		if (device_it.ui_entry == item) {
+	for (auto &device : communication_devices) {
+		if (device.ui_entry == item) {
 			return true;
 		}
 	}
@@ -399,13 +399,33 @@ bool DeviceWorker::is_connected_to_device(QTreeWidgetItem *item) {
 	});
 }
 
+bool DeviceWorker::is_device_open(QTreeWidgetItem *item) {
+	assert(currently_in_devices_thread());
+	for (auto &device : communication_devices) {
+		if (device.ui_entry == item) {
+			return device.device->isConnected();
+		}
+	}
+	qDebug() << "Warning: Asking if a device is open that was not found";
+	return false;
+}
+
+void device_worker_set_in_use(CommunicationDevice *com_device, bool in_use) {
+	com_device->in_use = in_use;
+}
+
 void DeviceWorker::close_device(QTreeWidgetItem *item) {
 	assert(currently_in_devices_thread());
 	for (auto &device : communication_devices) {
 		if (device.ui_entry == item) {
 			device.device->close();
+			device_worker_set_in_use(device.device.get(), false);
 		}
 	}
+}
+
+void DeviceWorker::open_device(QTreeWidgetItem *item) {
+	detect_device(item);
 }
 
 bool DeviceWorker::is_device_in_use(QTreeWidgetItem *item) {
@@ -622,7 +642,13 @@ std::vector<PortDescription *> DeviceWorker::get_devices_with_protocol(const QSt
 			assert(currently_in_devices_thread());
 			std::vector<PortDescription *> candidates;
 			for (auto &device : communication_devices) { //TODO: do not only loop over comport_devices, but other devices as well
-				if (device.protocol == nullptr) {
+				if (not device.protocol) {
+					continue;
+				}
+				if (not device.device) {
+					continue;
+				}
+				if (not device.device->isConnected()) {
 					continue;
 				}
 				bool device_name_match = false;
@@ -660,10 +686,6 @@ std::vector<PortDescription *> DeviceWorker::get_devices_with_protocol(const QSt
 		qDebug() << e.what();
 	}
 	return {};
-}
-
-void device_worker_set_in_use(CommunicationDevice *com_device, bool in_use) {
-	com_device->in_use = in_use;
 }
 
 void DeviceWorker::set_currently_running_test(CommunicationDevice *com_device, const QString &test_name) {

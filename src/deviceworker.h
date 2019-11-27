@@ -34,7 +34,9 @@ class DeviceWorker : public QObject {
     bool is_dut_device(QTreeWidgetItem *item);
     bool is_device_in_use(QTreeWidgetItem *item);
     bool is_connected_to_device(QTreeWidgetItem *item);
+	bool is_device_open(QTreeWidgetItem *item);
 	void close_device(QTreeWidgetItem *item);
+	void open_device(QTreeWidgetItem *item);
 
     private:
     void forget_device(QTreeWidgetItem *item);
