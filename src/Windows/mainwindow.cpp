@@ -56,7 +56,6 @@ namespace GUI {
             description,
             protocol,
             name,
-            current_test,
         };
     }
     namespace Tests {
@@ -109,7 +108,7 @@ void MainWindow::load_default_paths_if_needed() {
             for (auto s : folders_for_copy) {
                 if (found_file.startsWith(source_base_dir + s)) {
                     accept_file = true;
-                    break;
+					break;
                 }
             }
 
@@ -406,17 +405,10 @@ void MainWindow::shutdown() {
 }
 
 void MainWindow::align_columns() {
-    assert(currently_in_gui_thread());
-    int dev_min_size = 0;
-    for (int i = 0; i < 4; i++) {
+	assert(currently_in_gui_thread());
+	for (int i = 0; i < ui->devices_list->columnCount(); i++) {
         ui->devices_list->resizeColumnToContents(i);
-        dev_min_size += ui->devices_list->columnWidth(i);
     }
-    dev_min_size -= dev_min_size % 50;
-    dev_min_size += 50;
-    ui->splitter_devices->setStretchFactor(0, 3);
-    ui->splitter_devices->setStretchFactor(1, 1);
-    ui->devices_list->setMinimumWidth(dev_min_size);
     for (int i = 0; i < ui->tests_advanced_view->columnCount(); i++) {
         ui->tests_advanced_view->resizeColumnToContents(i);
     }
@@ -543,7 +535,7 @@ void MainWindow::set_enabled_states_for_matchable_scripts(QProgressDialog *dialo
 		}
 		bool is_matchable = device_matcher.is_match_possible(*device_worker, test);
         if (is_matchable) {
-            test.ui_entry->setForeground(0, palette().color(QPalette::Active, QPalette::Text));
+			test.ui_entry->setForeground(0, palette().color(QPalette::Active, QPalette::Text));
             test.ui_entry->setForeground(1, palette().color(QPalette::Active, QPalette::Text));
             test.ui_entry->setForeground(3, palette().color(QPalette::Active, QPalette::Text));
         } else {
@@ -572,7 +564,7 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
         } else {
             ui->devices_list->addTopLevelItem(child);
         }
-        align_columns();
+		align_columns();
         if (communication_device) {
             int index = -1;
             for (int i = 0; i < ui->console_tabs->count(); i++) {
@@ -712,13 +704,13 @@ QStringList MainWindow::validate_script(const QString &path) {
 	for (const auto &line : output_list) {
 		if (line.isEmpty()) {
 			continue;
-		}
+        }
 		if (line.contains("unused global variable 'device_requirements'")) {
 			continue;
 		}
 		if (line.contains("unused global variable 'run'")) {
 			continue;
-        }
+		}
 		messages << line;
 	}
 	return messages;
@@ -1524,7 +1516,6 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 		Utility::thread_call(device_worker.get(), [this, item] { device_worker->close_device(item); });
 		item->setText(GUI::Devices::protocol, "");
 		item->setText(GUI::Devices::name, "");
-		item->setText(GUI::Devices::current_test, "");
 		set_enabled_states_for_matchable_scripts();
 	});
 
