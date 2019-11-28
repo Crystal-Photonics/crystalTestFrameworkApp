@@ -126,6 +126,7 @@ void UserWaitLabel::set_enabled(bool enabled) {
         timer->start(500);
     } else {
         timer->stop();
+		disable_progress_bar_and_updater(progress_bar);
     }
 }
 
