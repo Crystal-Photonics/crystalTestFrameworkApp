@@ -294,20 +294,10 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             print(console, args);
         };
 
-		lua["sleep_ms"] = [&script_engine](const unsigned int p1, std::optional<unsigned int> p2) {
+		lua["sleep_ms"] = [&script_engine](const unsigned int duration_ms) {
 			//either sleep_ms(duration) or sleep_ms(start, duration), so can't name parameters properly
             abort_check();
-			if (p2.has_value()) { //start, duration
-				const auto &duration_ms = p2.value();
-				const auto &start_ms = p1;
-				if (duration_ms < start_ms) { //no need to sleep
-					return;
-				}
-				sleep_ms(&script_engine, duration_ms, start_ms);
-			} else { //duration only
-				const auto &duration_ms = p1;
-				sleep_ms(&script_engine, duration_ms, 0);
-			}
+			sleep_ms(&script_engine, duration_ms, 0);
         };
 		lua["pc_speaker_beep"] = +[] {
             abort_check();
@@ -1066,9 +1056,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             "await_event",
             non_gui_call_wrapper(&UserInstructionLabel::await_event),                  //
             "await_yes_no", non_gui_call_wrapper(&UserInstructionLabel::await_yes_no), //
-
-            "set_visible", thread_call_wrapper(&UserInstructionLabel::set_visible), //
-            "set_enabled", thread_call_wrapper(&UserInstructionLabel::set_enabled), //
+			"set_visible", thread_call_wrapper(&UserInstructionLabel::set_visible),    //
+			"set_enabled", thread_call_wrapper(&UserInstructionLabel::set_enabled),    //
             "set_instruction_text", thread_call_wrapper(&UserInstructionLabel::set_instruction_text));
     }
     //bind UserWaitLabel
@@ -1078,10 +1067,13 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             sol::meta_function::construct, sol::factories([parent = script_engine.parent, &script_engine](const std::string &instruction_text) {
                 abort_check();
                 return Lua_UI_Wrapper<UserWaitLabel>{parent, &script_engine, &script_engine, instruction_text};
-            }), //
-            "set_enabled",
-            thread_call_wrapper(&UserWaitLabel::set_enabled), //
-            "set_text", thread_call_wrapper(&UserWaitLabel::set_text));
+			}),                                                                                      //
+			"set_enabled", thread_call_wrapper(&UserWaitLabel::set_enabled),                         //
+			"sleep_ms", non_gui_call_wrapper(&UserWaitLabel::sleep_ms),                              //
+			"show_progress_timer_ms", thread_call_wrapper(&UserWaitLabel::show_progress_timer_ms),   //
+			"set_current_progress_ms", thread_call_wrapper(&UserWaitLabel::set_current_progress_ms), //
+			"set_text", thread_call_wrapper(&UserWaitLabel::set_text)                                //
+		);
     }
     //bind ComboBoxFileSelector
     {

@@ -235,10 +235,7 @@ ScriptEngine::~ScriptEngine() { //
 }
 
 Event_id::Event_id ScriptEngine::await_timeout(std::chrono::milliseconds duration, std::chrono::milliseconds start) {
-	auto now = std::chrono::system_clock::now();
-	operation_with_time_estimate_started(now - start, now - start + duration);
-
-    std::unique_lock<std::mutex> lock{await_mutex};
+	std::unique_lock<std::mutex> lock{await_mutex};
     if (await_condition == Event_id::interrupted) {
         throw std::runtime_error("Interrupted");
     }
@@ -320,7 +317,7 @@ void ScriptEngine::post_hotkey_event(Event_id::Event_id event) {
 }
 
 void ScriptEngine::post_interrupt(QString message) {
-	interrupted();
+	script_interrupted();
     console.error() << "Script interrupted" << (message.isEmpty() ? "" : "because of " + message);
     {
         std::unique_lock<std::mutex> lock{await_mutex};
@@ -757,6 +754,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
                 throw error;
             }
         }
+		script_finished();
         reset_lua_state();
     } catch (const sol::error &e) {
         qDebug() << "caught sol::error@run";

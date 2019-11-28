@@ -61,8 +61,8 @@ class ScriptEngine : public QObject {
 	Q_OBJECT
 
 	signals:
-	void operation_with_time_estimate_started(std::chrono::system_clock::time_point start, std::chrono::system_clock::time_point end);
-	void interrupted();
+	void script_interrupted();
+	void script_finished();
 
     public:
     friend class TestRunner;
