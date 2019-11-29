@@ -16,19 +16,11 @@ struct SCPIDevice {
 		return protocol->type.toStdString();
 	}
 
-	sol::table get_device_descriptor() const {
-		sol::table result = lua->create_table_with();
-		protocol->get_lua_device_descriptor(result);
-		return result;
-	}
+	sol::table get_device_descriptor() const;
 
-	sol::table get_str(std::string request) const {
-		return protocol->get_str(*lua, request); //timeout possible
-	}
+	sol::table get_str(std::string request) const;
 
-	sol::table get_str_param(std::string request, std::string argument) const {
-		return protocol->get_str_param(*lua, request, argument); //timeout possible
-	}
+	sol::table get_str_param(std::string request, std::string argument) const;
 
 	double get_num(std::string request) const {
 		return protocol->get_num(request); //timeout possible
@@ -46,9 +38,7 @@ struct SCPIDevice {
 		return protocol->clear_event_list();
 	}
 
-	sol::table get_event_list() {
-		return protocol->get_event_list(*lua);
-	}
+	sol::table get_event_list();
 
 	std::string get_name(void) const {
 		return protocol->get_name();
@@ -84,9 +74,7 @@ struct SG04CountDevice {
 		return protocol->type.toStdString();
 	}
 
-	sol::table get_sg04_counts(bool clear) {
-		return protocol->get_sg04_counts(*lua, clear);
-	}
+	sol::table get_sg04_counts(bool clear);
 
 	uint accumulate_counts(uint time_ms) {
 		return protocol->accumulate_counts(engine, time_ms);

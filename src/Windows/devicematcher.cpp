@@ -116,23 +116,23 @@ static std::vector<std::pair<CommunicationDevice *, Protocol *>> get_acceptable_
 			devices.emplace_back(device->device.get(), device->protocol.get());
 
         } else if (sg04_count_protocol) {
-            {
-                //acceptable device found
-                devices.emplace_back(device->device.get(), device->protocol.get());
-            }
+			if (not sg04_count_protocol->is_currently_receiving_counts()) {
+				//if there are no counts coming from the SG04 it's useless, so skip
+				continue;
+			}
+			//acceptable device found
+			devices.emplace_back(device->device.get(), device->protocol.get());
         } else if (manual_protocol) {
-            {
-                if (manual_protocol->get_approved_state() != DeviceMetaDataApprovedState::Approved) {
-                    const auto &message = QObject::tr("Manual device %1 with serial number =\"%2\" is lacking approval.\nIts approval state: %3")
-                                              .arg(QString::fromStdString(manual_protocol->get_name()))
-                                              .arg(QString::fromStdString(manual_protocol->get_serial_number()))
-                                              .arg(manual_protocol->get_approved_state_str());
-                    runner.console.note() << message;
-                    continue;
-                }
-                //acceptable device found
-                devices.emplace_back(device->device.get(), device->protocol.get());
-            }
+			if (manual_protocol->get_approved_state() != DeviceMetaDataApprovedState::Approved) {
+				const auto &message = QObject::tr("Manual device %1 with serial number =\"%2\" is lacking approval.\nIts approval state: %3")
+										  .arg(QString::fromStdString(manual_protocol->get_name()))
+										  .arg(QString::fromStdString(manual_protocol->get_serial_number()))
+										  .arg(manual_protocol->get_approved_state_str());
+				runner.console.note() << message;
+				continue;
+			}
+			//acceptable device found
+			devices.emplace_back(device->device.get(), device->protocol.get());
 
         } else {
             assert(!"TODO: handle non-RPC/SCPI/SG04 protocol");

@@ -4,7 +4,8 @@
 #include "Protocols/protocol.h"
 #include "device_protocols_settings.h"
 
-#include <QMutex>
+#include <chrono>
+#include <mutex>
 #include <sol_forward.hpp>
 
 class QTreeWidgetItem;
@@ -28,17 +29,18 @@ class SG04CountProtocol : public Protocol {
     uint16_t get_actual_count_rate();
     unsigned int get_actual_count_rate_cps();
 
+	bool is_currently_receiving_counts() const;
+
     private:
     QMetaObject::Connection connection;
     CommunicationDevice *device;
     DeviceProtocolSetting device_protocol_setting;
     QByteArray incoming_data;
     uint16_t actual_count_rate;
-
     uint32_t received_counts = 0;
-
     QList<uint16_t> received_count_packages;
-    QMutex received_counts_mutex;
+	mutable std::mutex received_counts_mutex;
+	std::chrono::system_clock::time_point last_package;
     void sg04_counts_clear_raw();
 };
 

@@ -1015,14 +1015,14 @@ void MainWindow::on_tests_advanced_view_itemSelectionChanged() {
 			auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
 			if (test == nullptr) {
 				return;
-            }
+			}
 			if (dynamic_cast<UI_container *>(ui->test_tabs->widget(0))) {
 				//There is a script running, don't hide it
 				ui->test_tabs->insertTab(0, test->console.get(), test->get_name());
 			} else {
 				//There is no script running, replace widget
 				Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
-			}
+            }
 			ui->test_tabs->setCurrentIndex(0);
 		}
 	}
@@ -1281,8 +1281,14 @@ void MainWindow::poll_sg04_counts() {
 	for (auto &sg04_count_device : sg04_count_devices) {
 		auto sg04_count_protocol = dynamic_cast<SG04CountProtocol *>(sg04_count_device->protocol.get());
 		if (sg04_count_protocol) {
-			unsigned int cps = sg04_count_protocol->get_actual_count_rate_cps();
-			sg04_count_device->ui_entry->setText(2, "cps: " + QString::number(cps));
+			if (sg04_count_protocol->is_currently_receiving_counts()) {
+				unsigned int cps = sg04_count_protocol->get_actual_count_rate_cps();
+				sg04_count_device->ui_entry->setText(2, "cps: " + QString::number(cps));
+				sg04_count_device->ui_entry->setForeground(2, Qt::black);
+			} else {
+				sg04_count_device->ui_entry->setText(2, tr("no data"));
+				sg04_count_device->ui_entry->setForeground(2, Qt::red);
+			}
         }
 	}
 

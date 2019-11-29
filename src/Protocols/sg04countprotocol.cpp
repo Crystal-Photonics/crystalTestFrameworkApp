@@ -45,16 +45,18 @@ SG04CountProtocol::SG04CountProtocol(CommunicationDevice &device, DeviceProtocol
                         actual_count_rate = counts;
 
                         received_counts += counts;
-                        received_counts_mutex.lock();
-                        received_count_packages.append(counts);
-                        int max_count_entries = 1;
-						if (device.is_in_use()) {
-                            max_count_entries = 1000;
+						{
+							std::unique_lock received_lock{received_counts_mutex};
+							received_count_packages.append(counts);
+							last_package = std::chrono::system_clock::now();
+							int max_count_entries = 1;
+							if (device.is_in_use()) {
+								max_count_entries = 1000;
+							}
+							if (received_count_packages.count() > max_count_entries) {
+								received_count_packages.removeFirst();
+							}
                         }
-                        if (received_count_packages.count() > max_count_entries) {
-                            received_count_packages.removeFirst();
-                        }
-                        received_counts_mutex.unlock();
                         right_offset_found = true;
                         //qDebug() << "SG04-Count received" << counts;
                         incoming_data.remove(0, offset + 4);
@@ -89,20 +91,20 @@ void SG04CountProtocol::sg04_counts_clear_raw() {
 }
 
 void SG04CountProtocol::sg04_counts_clear() {
-    received_counts_mutex.lock();
-    sg04_counts_clear_raw();
-    received_counts_mutex.unlock();
+	std::unique_lock received_lock{received_counts_mutex};
+	sg04_counts_clear_raw();
 }
 
 sol::table SG04CountProtocol::get_sg04_counts(sol::state &lua, bool clear) {
     sol::table result = lua.create_table_with();
     sol::table counts_table = lua.create_table_with();
-    received_counts_mutex.lock();
-    for (auto i : received_count_packages) {
-        counts_table.add(i);
+	{
+		std::unique_lock received_lock{received_counts_mutex};
+		for (auto i : received_count_packages) {
+			counts_table.add(i);
+		}
     }
-    received_counts_mutex.unlock();
-    result["total"] = received_counts;
+	result["total"] = received_counts;
     result["counts"] = counts_table;
     if (clear) {
         sg04_counts_clear();
@@ -124,18 +126,17 @@ uint SG04CountProtocol::accumulate_counts(ScriptEngine *script_engine, uint time
 
     while (timeout_interval > 0) {
         script_engine->await_timeout(std::chrono::milliseconds{SG04_COUNT_INTERVAL_MS} * 2);
-        received_counts_mutex.lock();
-        for (auto i : received_count_packages) {
-            result += i;
-            timeout_interval--;
-            if (timeout_interval == 0) {
-                break;
+		std::unique_lock received_lock{received_counts_mutex};
+		for (auto i : received_count_packages) {
+			result += i;
+			timeout_interval--;
+			if (timeout_interval == 0) {
+				break;
             }
-        }
-        sg04_counts_clear_raw();
-        received_counts_mutex.unlock();
-    }
-    //qDebug() << "elapsed time: " << QDateTime::currentMSecsSinceEpoch() - starttime;
+		}
+		sg04_counts_clear_raw();
+	}
+	//qDebug() << "elapsed time: " << QDateTime::currentMSecsSinceEpoch() - starttime;
     return result;
 }
 
@@ -144,21 +145,24 @@ uint16_t SG04CountProtocol::get_actual_count_rate() {
 }
 
 unsigned int SG04CountProtocol::get_actual_count_rate_cps() {
-    return actual_count_rate * (1000 / SG04_COUNT_INTERVAL_MS);
+	return actual_count_rate * (1000 / SG04_COUNT_INTERVAL_MS);
+}
+
+bool SG04CountProtocol::is_currently_receiving_counts() const {
+	std::unique_lock received_lock{received_counts_mutex};
+	const auto time = std::chrono::system_clock::now() - last_package;
+	return std::chrono::duration_cast<std::chrono::milliseconds>(time) < std::chrono::milliseconds{SG04_COUNT_INTERVAL_MS * 2};
 }
 
 bool SG04CountProtocol::is_correct_protocol() {
-    incoming_data.clear();
-    received_counts_mutex.lock();
-    received_count_packages.clear();
-    received_counts_mutex.unlock();
+	{
+		std::unique_lock received_lock{received_counts_mutex};
+		incoming_data.clear();
+		received_count_packages.clear();
+	}
     if (device->waitReceived(device_protocol_setting.timeout, 4, false)) {
-        received_counts_mutex.lock();
-        auto count = received_count_packages.count();
-        received_counts_mutex.unlock();
-        if (count) {
-            return true;
-        }
+		std::unique_lock received_lock{received_counts_mutex};
+		return received_count_packages.count();
     }
     return false;
 }
