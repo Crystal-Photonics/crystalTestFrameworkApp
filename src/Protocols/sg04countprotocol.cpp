@@ -1,8 +1,10 @@
 #include "sg04countprotocol.h"
+#include "CommunicationDevices/communicationdevice.h"
 #include "Windows/mainwindow.h"
+#include "scriptengine.h"
 
 #include <QDebug>
-#include <assert.h>
+#include <cassert>
 
 const uint SG04_COUNT_INTERVAL_MS = 100;
 
@@ -25,9 +27,6 @@ SG04CountProtocol::SG04CountProtocol(CommunicationDevice &device, DeviceProtocol
     connection = QObject::connect(&device, &CommunicationDevice::received, [&device, this](const QByteArray &data) {
         incoming_data.append(data);
         if (incoming_data.count() > 3) {
-            //  qDebug() << "bytes: "<<incoming_data.count() << "  elapsed[ms]: "<< performance_measurement_timer.elapsed();
-
-            //  performance_measurement_timer.start();
             for (int searching_offset = 0; searching_offset < 4; searching_offset++) {
                 int offset = searching_offset;
                 uint8_t package[4];

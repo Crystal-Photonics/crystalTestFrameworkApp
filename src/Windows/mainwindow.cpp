@@ -952,11 +952,11 @@ void MainWindow::run_test_script(TestDescriptionLoader *test) {
 		runner.interrupt();
 		return;
 	}
-	auto devices = device_matcher.get_matched_devices();
 	if (device_matcher.was_successful()) {
 		if (QSettings{}.value(Globals::collapse_script_explorer_on_scriptstart_key, false).toBool()) {
 			set_script_view_collapse_state(true);
         }
+		auto devices = device_matcher.get_matched_devices();
 		runner.run_script(devices, *device_worker);
 	} else {
 		runner.interrupt();
