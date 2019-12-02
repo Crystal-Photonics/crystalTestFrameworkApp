@@ -1284,9 +1284,11 @@ void MainWindow::poll_sg04_counts() {
 			if (sg04_count_protocol->is_currently_receiving_counts()) {
 				unsigned int cps = sg04_count_protocol->get_actual_count_rate_cps();
 				sg04_count_device->ui_entry->setText(2, "cps: " + QString::number(cps));
+				sg04_count_device->ui_entry->setForeground(0, Qt::black);
 				sg04_count_device->ui_entry->setForeground(2, Qt::black);
 			} else {
 				sg04_count_device->ui_entry->setText(2, tr("no data"));
+				sg04_count_device->ui_entry->setForeground(0, Qt::red);
 				sg04_count_device->ui_entry->setForeground(2, Qt::red);
 			}
         }
