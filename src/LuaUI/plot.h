@@ -54,6 +54,7 @@ class Curve {
     \brief Appends a point to a curve
     \param x Double value of the x  position.
     \param y Double value of the y position.
+	\sa append()
     \sa add_spectrum()
     \sa add_spectrum_at()
     \details \par examples:
@@ -66,7 +67,32 @@ class Curve {
   */
     // clang-format on
 
-    ///\cond HIDDEN_SYMBOLS
+	///\cond HIDDEN_SYMBOLS
+	void append(double y);
+	///\endcond
+#ifdef DOXYGEN_ONLY
+	// this block is just for ducumentation purpose
+	append(double y);
+#endif
+	// clang-format off
+  /*! \fn  append(double y);
+	\brief Appends a point to a curve. The y coordinate of the point is given via parameter. The x coordinate of the point is 1 more than the previous point or 0 if the curve is empty.
+	\param y Double value of the y position.
+	\sa append_point()
+	\sa add_spectrum()
+	\sa add_spectrum_at()
+	\details \par examples:
+	\code
+		local plot = Ui.Plot.new()
+		local curve = plot:add_curve()
+		curve:append(1)
+		curve:append(1)
+		-- plots a horizontal line with points (0,1) and (1,1)
+	\endcode
+  */
+	// clang-format on
+
+	///\cond HIDDEN_SYMBOLS
     void add_spectrum_at(const unsigned int spectrum_start_channel, const std::vector<double> &data);
     ///\endcond
 #ifdef DOXYGEN_ONLY

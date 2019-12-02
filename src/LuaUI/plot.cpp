@@ -32,6 +32,7 @@ struct Curve_data : QwtSeriesData<QPointF> {
     QRectF boundingRect() const override;
 
     void append(double x, double y);
+	void append(double y);
     void resize(std::size_t size);
     void add(const std::vector<double> &data);
     void add_spectrum(int spectrum_start_channel, const std::vector<double> &data);
@@ -83,7 +84,15 @@ void Curve_data::append(double x, double y) {
     //bounding_rect.setHeight(std::max(y - bounding_rect.y(), bounding_rect.height()));
     xvalues.push_back(x);
     yvalues_orig.push_back(y);
-    update_bounding_rect_height(y);
+	update_bounding_rect_height(y);
+}
+
+void Curve_data::append(double y) {
+	if (xvalues.empty()) {
+		append(0, y);
+	} else {
+		append(xvalues.back() + 1, y);
+	}
 }
 
 void Curve_data::resize(std::size_t size) {
@@ -227,7 +236,12 @@ void Curve::add(const std::vector<double> &data) {
 
 void Curve::append_point(double x, double y) {
     curve_data().append(x, y);
-    update();
+	update();
+}
+
+void Curve::append(double y) {
+	curve_data().append(y);
+	update();
 }
 
 void Curve::add_spectrum_at(const unsigned int spectrum_start_channel, const std::vector<double> &data) {
