@@ -1,4 +1,5 @@
 #include "scpiprotocol.h"
+#include "CommunicationDevices/comportcommunicationdevice.h"
 #include "CommunicationDevices/usbtmccommunicationdevice.h"
 #include "Windows/mainwindow.h"
 #include "Windows/scpimetadatadeviceselector.h"
@@ -20,6 +21,7 @@
 #include <cmath>
 #include <fstream>
 #include <sol.hpp>
+#include <stdexcept>
 
 using namespace std::chrono_literals;
 
@@ -126,7 +128,22 @@ QString SCPIProtocol::parse_last_scpi_answer() {
             }
         }
     }
-    return answers.last();
+	return answers.last();
+}
+
+void SCPIProtocol::throw_connection_error(const std::string &request) {
+	QString port_description;
+	if (auto comport = dynamic_cast<ComportCommunicationDevice *>(device)) {
+		port_description = QSerialPortInfo{comport->port}.description();
+	}
+	const auto error_message =
+		QObject::tr("SCPI device error for device %1 %2:%3 for request %4. You may need to restart the device and click on the Refresh Devices button.")
+			.arg(device->get_identifier_display_string() + ' ' + port_description)
+			.arg(device_data.name)
+			.arg(device_data.serial_number)
+			.arg(QString::fromStdString(request))
+			.toStdString();
+	throw std::runtime_error{error_message};
 }
 
 void SCPIProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
@@ -218,14 +235,17 @@ bool SCPIProtocol::is_correct_protocol() {
 
 void SCPIProtocol::send_string(std::string data) {
 	Utility::promised_thread_call(device, [device = this->device, &data] {
+		if (not device->isConnected()) {
+			throw std::runtime_error{QObject::tr("SCPI Error: Tried sending data to closed device").toStdString()};
+		}
         std::string display_data = QString::fromStdString(data).trimmed().toStdString();
         std::vector<unsigned char> data_vec{data.begin(), data.end()};
         std::vector<unsigned char> disp_vec{display_data.begin(), display_data.end()};
         device->send(data_vec, disp_vec);
-    });
+	});
 }
 
-QString clean_up_regex_with_escape_characters(QString expr) {
+static QString clean_up_regex_with_escape_characters(QString expr) {
     QString result = expr.replace("*", "\\*");
     result = result.replace("?", "\\?");
     result = result.replace("|", "\\|");
@@ -338,14 +358,14 @@ sol::table SCPIProtocol::get_str_param(sol::state &lua, std::string request, std
 
 double SCPIProtocol::get_num_param(std::string request, std::string argument) {
     QList<double> values{};
-    double mean = 0;
     for (int i = 0; i < retries_per_transmission + 1; i++) {
         QStringList sl = get_str_param_raw(request, argument);
-        bool ok = false;
-        double result = 0;
         if (sl.count()) {
             QString s = sl[0];
-            QStringList colon_seperated_list = s.split(":"); //sometimes we receive a "FRQ:10.000E+0" and just want the number
+			QStringList colon_seperated_list = s.split(":");                           //sometimes we receive a "FRQ:10.000E+0" and just want the number
+			if (colon_seperated_list.size() == 1 && colon_seperated_list[0] == "*E") { //SCPI device reported error
+				throw_connection_error(request);
+			}
             s = colon_seperated_list.last().trimmed();
             while (s[0].isLetter()) { //sometimes we receive a "10.00160V" but we just want the number
                 s = s.remove(0, 1);
@@ -354,18 +374,18 @@ double SCPIProtocol::get_num_param(std::string request, std::string argument) {
                 s = s.remove(s.size() - 1, 1);
             }
             s = s.trimmed();
-            result = s.toDouble(&ok);
+			bool ok = false;
+			double result = s.toDouble(&ok);
             if (ok && s.count()) {
                 values.append(result);
-                mean += result;
             }
         }
     }
-    mean /= values.count();
-    double standard_deviation = 0;
     if (values.count() == retries_per_transmission + 1) {
+		double standard_deviation = 0;
+		double mean = std::accumulate(std::begin(values), std::end(values), 0) / values.count();
         for (auto d : values) {
-            standard_deviation += std::pow(d - mean, 2.0);
+			standard_deviation += (d - mean) * (d - mean);
         }
         standard_deviation /= values.count();
         standard_deviation = std::sqrt(standard_deviation);
@@ -373,11 +393,10 @@ double SCPIProtocol::get_num_param(std::string request, std::string argument) {
             //TODO put variance error here
         }
         // qDebug() << "SCPI standard deviation: " << standard_deviation;
-    } else {
-        //TODO put conversion error
-        qDebug() << "SCPI conversion error";
-    }
-    return mean;
+		return mean;
+	}
+	qDebug() << "SCPI conversion error after request" << request.c_str() << "trying to convert result to a number";
+	throw_connection_error(request);
 }
 
 double SCPIProtocol::get_num(std::string request) {

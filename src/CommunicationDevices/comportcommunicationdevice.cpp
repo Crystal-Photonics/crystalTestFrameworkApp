@@ -16,6 +16,16 @@ ComportCommunicationDevice::ComportCommunicationDevice() {
             emit waitReceived(std::chrono::seconds{0}, 0);
         }
     });
+	QObject::connect(&port, &QSerialPort::errorOccurred, [this](const QSerialPort::SerialPortError &error) {
+		if (error == QSerialPort::SerialPortError::NoError) {
+			return;
+		}
+		qDebug() << error;
+		if (port.isOpen()) {
+			port.close();
+			close();
+		}
+	});
 }
 
 bool ComportCommunicationDevice::isConnected() {
@@ -74,9 +84,8 @@ bool ComportCommunicationDevice::waitReceived(Duration timeout, int bytes, bool 
     }
     do {
         try_read();
-    } while (received_bytes < bytes &&
-             std::chrono::high_resolution_clock::now() - now <=
-                 timeout); //we want a <= because if we poll with 0ms we still put a heavy load on cpu(100% for 1ms each 16ms)
+	} while (received_bytes < bytes && std::chrono::high_resolution_clock::now() - now <=
+										   timeout); //we want a <= because if we poll with 0ms we still put a heavy load on cpu(100% for 1ms each 16ms)
     try_read();
     if (!isPolling) {
         currently_in_waitReceived = false;
@@ -162,5 +171,5 @@ void ComportCommunicationDevice::close() {
 }
 
 QString ComportCommunicationDevice::getName() {
-    return port.portName();
+	return port.portName();
 }

@@ -587,9 +587,14 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
             }
             device_worker->connect_to_device_console(console, communication_device);
 			connect(communication_device, &CommunicationDevice::connected,
-					[child] { Utility::thread_call(MainWindow::mw, [child] { child->setForeground(0, Qt::black); }); });
-			connect(communication_device, &CommunicationDevice::disconnected,
-					[child] { Utility::thread_call(MainWindow::mw, [child] { child->setForeground(0, Qt::gray); }); });
+					[child] { Utility::thread_call(MainWindow::mw, [child] { child->setForeground(GUI::Devices::name, Qt::black); }); });
+			connect(communication_device, &CommunicationDevice::disconnected, [child] {
+				Utility::thread_call(MainWindow::mw, [child] {
+					child->setForeground(GUI::Devices::description, Qt::gray);
+					child->setText(GUI::Devices::protocol, "");
+					child->setText(GUI::Devices::name, "");
+				});
+			});
 		}
 	});
 }
@@ -1015,14 +1020,14 @@ void MainWindow::on_tests_advanced_view_itemSelectionChanged() {
 			auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
 			if (test == nullptr) {
 				return;
-			}
+            }
 			if (dynamic_cast<UI_container *>(ui->test_tabs->widget(0))) {
 				//There is a script running, don't hide it
 				ui->test_tabs->insertTab(0, test->console.get(), test->get_name());
 			} else {
 				//There is no script running, replace widget
 				Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
-            }
+			}
 			ui->test_tabs->setCurrentIndex(0);
 		}
 	}

@@ -84,6 +84,7 @@ class SCPIProtocol : public Protocol {
     QStringList get_str_param_raw(std::string request, std::string argument);
     QStringList parse_scpi_answers();
     QString parse_last_scpi_answer();
+	[[noreturn]] void throw_connection_error(const std::string &request);
 
     void send_string(std::string data);
     QMetaObject::Connection connection;

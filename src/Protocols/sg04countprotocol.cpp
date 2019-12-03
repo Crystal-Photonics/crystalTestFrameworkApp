@@ -125,6 +125,9 @@ uint SG04CountProtocol::accumulate_counts(ScriptEngine *script_engine, uint time
     int timeout_interval = time_ms / SG04_COUNT_INTERVAL_MS;
 
     while (timeout_interval > 0) {
+		if (not device->isConnected()) {
+			throw std::runtime_error{"SG04 Device Error: Tried waiting on closed device"};
+		}
         script_engine->await_timeout(std::chrono::milliseconds{SG04_COUNT_INTERVAL_MS} * 2);
 		std::unique_lock received_lock{received_counts_mutex};
 		for (auto i : received_count_packages) {
