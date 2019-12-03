@@ -56,13 +56,13 @@ typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type almost_
            || std::abs(x - y) < std::numeric_limits<T>::min();
 }
 
-bool is_comment_key(const QString &keyname) {
+static bool is_comment_key(const QString &keyname) {
     return keyname.startsWith("_");
 }
 
 constexpr auto unavailable_value = "/";
 
-bool have_entries_equal_desired_values(QList<const DataEngineDataEntry *> entries) {
+static bool have_entries_equal_desired_values(QList<const DataEngineDataEntry *> entries) {
     if (entries.count() == 0) {
         return false;
     }
@@ -545,7 +545,7 @@ void DataEngineSection::delete_unmatched_variants(const QMap<QString, QList<QVar
 void DataEngineSection::delete_all_but_biggest_variants() {
     int instance_index = 0;
     for (auto &instance : instances) {
-        assert((bool)instance_count);
+		assert(instance_count);
         instance.delete_all_but_biggest_variants();
         instance_index++;
     }
@@ -665,7 +665,7 @@ bool DataEngineSection::all_values_in_range() const {
     return result;
 }
 
-QString jsonTypeToString(const QJsonValue &val) {
+static QString jsonTypeToString(const QJsonValue &val) {
     switch (val.type()) {
         case QJsonValue::Null:
             return "Null";
@@ -838,7 +838,7 @@ QStringList DataEngineSection::get_instance_captions() const {
 }
 
 bool DataEngineSection::is_section_instance_defined() const {
-    return (bool)instance_count;
+	return static_cast<bool>(instance_count);
 }
 
 bool DataEngineSection::set_instance_count_if_name_matches(QString instance_count_name, uint instance_count) {

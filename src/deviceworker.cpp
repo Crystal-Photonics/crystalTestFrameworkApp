@@ -306,8 +306,7 @@ void DeviceWorker::refresh_devices(QTreeWidgetItem *root, bool dut_only) {
 	}
 	QList<QTreeWidgetItem *> device_items = MainWindow::mw->get_devices_to_forget_by_root_treewidget(root);
 
-	int j = 0;
-	while (j < device_items.count()) {
+	for (int j = 0; j < device_items.count(); j++) {
 		auto item = device_items[j];
 		bool forget = true;
 		bool remove_from_gui = false;
@@ -330,7 +329,6 @@ void DeviceWorker::refresh_devices(QTreeWidgetItem *root, bool dut_only) {
 			j--;
 			//qDebug() << "inuse:" << item->text(0);
 		}
-		j++;
 	}
 
 	Utility::thread_call(this, [this, device_items] {

@@ -32,6 +32,7 @@
 #include "qt_util.h"
 #include "scriptengine.h"
 #include "sol.hpp"
+#include "testrunner.h"
 #include "ui_container.h"
 
 #include <QDateTime>
@@ -261,6 +262,64 @@ static auto overloaded_function(Functions_head &&functions_head, Functions_tail 
 	};
 }
 
+template <class Return_type, class Class, class... Args>
+auto wrap(Return_type (Class::*function)(Args... args)) { //wrapping member function
+	return [function](Class *object, Args... args) {
+		abort_check();
+		return (object->*function)(std::forward<Args>(args)...);
+	};
+}
+
+template <class Return_type, class Class, class... Args>
+auto wrap(Return_type (Class::*function)(Args... args) const) { //wrapping const member function
+	return [function](const Class *object, Args... args) {
+		abort_check();
+		return (object->*function)(std::forward<Args>(args)...);
+	};
+}
+
+template <class Return_type, class... Args>
+auto wrap(Return_type (*function)(Args... args)) { //wrapping non-member function
+	return [function](Args... args) {
+		abort_check();
+		return function(std::forward<Args>(args)...);
+	};
+}
+
+template <class Function>
+static auto try_call(ScriptEngine *se, Function &&function) {
+	for (;;) {
+		abort_check();
+		try {
+			return function();
+		} catch (const std::exception &exception) {
+			if (Utility::promised_thread_call(se->runner->get_lua_ui_container(), [error_description = exception.what(), se] {
+					return QMessageBox::critical(MainWindow::mw, QObject::tr("CrystalTestFramework - Script Error in %1").arg(se->runner->get_name()),
+												 QObject::tr("The following error occured: %1\n\n").arg(error_description),
+												 QMessageBox::Retry | QMessageBox::Abort);
+				}) == QMessageBox::Retry) {
+				continue;
+			}
+			throw;
+		}
+	}
+}
+
+template <class Return_type, class Class, class... Args>
+auto exception_wrap(ScriptEngine *se, Return_type (Class::*function)(Args... args)) { //wrapping member function
+	return [function, se](Class *object, Args... args) { return try_call(se, [&] { return (object->*function)(args...); }); };
+}
+
+template <class Return_type, class Class, class... Args>
+auto exception_wrap(ScriptEngine *se, Return_type (Class::*function)(Args... args) const) { //wrapping const member function
+	return [function, se](const Class *object, Args... args) { return try_call(se, [&] { return (object->*function)(args...); }); };
+}
+
+template <class Return_type, class... Args>
+auto exception_wrap(ScriptEngine *se, Return_type (*function)(Args... args)) { //wrapping non-member function
+	return [function, se](Args... args) { return try_call([&] { return function(args...); }); };
+}
+
 void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script_engine) {
     //load the standard libs
     lua.open_libraries();
@@ -299,14 +358,8 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             abort_check();
 			sleep_ms(&script_engine, duration_ms, 0);
         };
-		lua["pc_speaker_beep"] = +[] {
-            abort_check();
-            pc_speaker_beep();
-        };
-        lua["current_date_time_ms"] = +[] {
-            abort_check();
-            return current_date_time_ms();
-        };
+		lua["pc_speaker_beep"] = wrap(pc_speaker_beep);
+		lua["current_date_time_ms"] = wrap(current_date_time_ms);
         lua["round"] = +[](const double value, const unsigned int precision = 0) {
             abort_check();
             return round_double(value, precision);
@@ -403,36 +456,17 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             abort_check();
             return table_load_from_file(console, lua, get_absolute_file_path(QString::fromStdString(path), file_name));
         };
-		lua["table_sum"] = +[](sol::table table) {
-            abort_check();
-            return table_sum(table);
-        };
-		lua["table_find_string"] = +[](sol::table table, std::string search_text) {
-            abort_check();
-            return table_find_string(table, search_text);
-        };
-
+		lua["table_sum"] = wrap(&table_sum);
+		lua["table_find_string"] = wrap(&table_find_string);
         lua["table_crc16"] = [console = script_engine.console.get_plaintext_edit()](sol::table table) {
             abort_check();
             return table_crc16(console, table);
         };
 
-		lua["table_mean"] = +[](sol::table table) {
-            abort_check();
-            return table_mean(table);
-        };
-
-		lua["table_variance"] = +[](sol::table table) {
-            abort_check();
-            return table_variance(table);
-        };
-
-		lua["table_standard_deviation"] = +[](sol::table table) {
-            abort_check();
-            return table_standard_deviation(table);
-        };
-
-        lua["table_set_constant"] = [&lua](sol::table input_values, double constant) {
+		lua["table_mean"] = wrap(&table_mean);
+		lua["table_variance"] = wrap(&table_variance);
+		lua["table_standard_deviation"] = wrap(&table_standard_deviation);
+		lua["table_set_constant"] = [&lua](sol::table input_values, double constant) {
             abort_check();
             return table_set_constant(lua, input_values, constant);
         };
@@ -492,36 +526,12 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
             return table_mid(lua, input_values, start, length);
         };
 
-		lua["table_equal_constant"] = +[](sol::table input_values_a, double input_const_val) {
-            abort_check();
-            return table_equal_constant(input_values_a, input_const_val);
-        };
-
-		lua["table_equal_table"] = +[](sol::table input_values_a, sol::table input_values_b) {
-            abort_check();
-            return table_equal_table(input_values_a, input_values_b);
-        };
-
-		lua["table_max"] = +[](sol::table input_values) {
-            abort_check();
-            return table_max(input_values);
-        };
-
-		lua["table_min"] = +[](sol::table input_values) {
-            abort_check();
-            return table_min(input_values);
-        };
-
-		lua["table_max_abs"] = +[](sol::table input_values) {
-            abort_check();
-            return table_max_abs(input_values);
-        };
-
-		lua["table_min_abs"] = +[](sol::table input_values) {
-            abort_check();
-            return table_min_abs(input_values);
-        };
-
+		lua["table_equal_constant"] = wrap(&table_equal_constant);
+		lua["table_equal_table"] = wrap(&table_equal_table);
+		lua["table_max"] = wrap(&table_max);
+		lua["table_min"] = wrap(&table_min);
+		lua["table_max_abs"] = wrap(&table_max_abs);
+		lua["table_min_abs"] = wrap(&table_min_abs);
         lua["table_max_by_field"] = [&lua](sol::table input_values, const std::string field_name) {
             abort_check();
             return table_max_by_field(lua, input_values, field_name);
@@ -552,23 +562,10 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 
 #endif
 
-		lua["get_framework_git_hash"] = +[] {
-            abort_check();
-            return get_framework_git_hash();
-        };
-		lua["get_framework_git_date_unix"] = +[] {
-            abort_check();
-            return get_framework_git_date_unix();
-        };
-		lua["get_framework_git_date_text"] = +[] {
-            abort_check();
-            return get_framework_git_date_text();
-        };
-
-		lua["get_os_username"] = +[] {
-            abort_check();
-            return get_os_username();
-        };
+		lua["get_framework_git_hash"] = wrap(get_framework_git_hash);
+		lua["get_framework_git_date_unix"] = wrap(get_framework_git_date_unix);
+		lua["get_framework_git_date_text"] = wrap(get_framework_git_date_text);
+		lua["get_os_username"] = wrap(get_os_username);
     }
     //noise level
     {
@@ -586,16 +583,9 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                 abort_check();
                 return DataLogger{console, get_absolute_file_path(QString::fromStdString(path), file_name), seperating_character, field_names, over_write_file};
             }),
-            "append_data",
-			+[](DataLogger &handle, const sol::table &data_record) {
-                abort_check();
-                return handle.append_data(data_record);
-            },
-            "save",
-			+[](DataLogger &handle) {
-                abort_check();
-                handle.save();
-            });
+			"append_data", wrap(&DataLogger::append_data), //
+			"save", wrap(&DataLogger::save)                //
+		);
     }
     //bind charge counter
     {
@@ -606,22 +596,14 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                 return ChargeCounter{};
             }), //
 
-            "add_current",
-			+[](ChargeCounter &handle, const double current) {
-                abort_check();
-                return handle.add_current(current);
-            }, //
+			"add_current", wrap(&ChargeCounter::add_current), //
             "reset",
 			+[](ChargeCounter &handle, const double current) {
                 abort_check();
                 (void)current;
                 handle.reset();
-            }, //
-            "get_current_hours",
-			+[](ChargeCounter &handle) {
-                abort_check();
-                return handle.get_current_hours();
-            } //
+			},                                                           //
+			"get_current_hours", wrap(&ChargeCounter::get_current_hours) //
         );
     }
     //bind data engine
@@ -887,8 +869,9 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
         ui_table.new_usertype<Lua_UI_Wrapper<Curve>>(
             "Curve",                                                                               //
             sol::meta_function::construct, sol::no_constructor,                                    //
-            "append_point", thread_call_wrapper_non_waiting(&script_engine, &Curve::append_point), //
-            "add_spectrum",
+			"append_point", thread_call_wrapper_non_waiting(&script_engine, &Curve::append_point), //
+			"append", thread_call_wrapper_non_waiting(&script_engine, &Curve::append),             //
+			"add_spectrum",
             [&script_engine](Lua_UI_Wrapper<Curve> &curve, sol::table table) {
                 abort_check();
                 std::vector<double> data;
@@ -1264,170 +1247,57 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
 
                                                         "load_from_cache", non_gui_call_wrapper(&LineEdit::load_from_cache) //
         );
-    }
-    //bind SPI
+	}
+	//bind SCPI
     {
-        lua.new_usertype<SCPIDevice>(
-            "SCPIDevice",                                       //
-            sol::meta_function::construct, sol::no_constructor, //
-            "get_protocol_name",
-			+[](SCPIDevice &protocol) {
-                abort_check();
-                return protocol.get_protocol_name();
-            }, //
-            "get_device_descriptor",
-			+[](SCPIDevice &protocol) {
-                abort_check();
-                return protocol.get_device_descriptor();
-            }, //
-            "get_str",
-			+[](SCPIDevice &protocol, std::string request) {
-                abort_check();
-                return protocol.get_str(request);
-            }, //
-            "get_str_param",
-			+[](SCPIDevice &protocol, std::string request, std::string argument) {
-                abort_check();
-                return protocol.get_str_param(request, argument);
-            }, //
-            "get_num",
-			+[](SCPIDevice &protocol, std::string request) {
-                abort_check();
-                return protocol.get_num(request);
-            }, //
-            "get_num_param",
-			+[](SCPIDevice &protocol, std::string request, std::string argument) {
-                abort_check();
-                return protocol.get_num_param(request, argument);
-            }, //
-            "get_name",
-			+[](SCPIDevice &protocol) {
-                abort_check();
-                return protocol.get_name();
-            }, //
-            "get_serial_number",
-			+[](SCPIDevice &protocol) {
-                abort_check();
-                return protocol.get_serial_number();
-            }, //
-            "get_manufacturer",
-			+[](SCPIDevice &protocol) {
-                abort_check();
-                return protocol.get_manufacturer();
-            }, //
-            "get_calibration",
-			+[](SCPIDevice &protocol) {
-                abort_check();
-                return protocol.get_calibration();
-            }, //
-            "is_event_received",
-			+[](SCPIDevice &protocol, std::string event_name) {
-                abort_check();
-                return protocol.is_event_received(event_name);
-            }, //
-            "clear_event_list",
-			+[](SCPIDevice &protocol) {
-                abort_check();
-                return protocol.clear_event_list();
-            }, //
-            "get_event_list",
-			+[](SCPIDevice &protocol) {
-                abort_check();
-                return protocol.get_event_list();
-            }, //
-            "set_validation_max_standard_deviation",
-			+[](SCPIDevice &protocoll, double max_std_dev) {
-                abort_check();
-                return protocoll.set_validation_max_standard_deviation(max_std_dev);
-            }, //
-            "set_validation_retries",
-			+[](SCPIDevice &protocoll, unsigned int retries) {
-                abort_check();
-                return protocoll.set_validation_retries(retries);
-            }, //
-            "send_command",
-			+[](SCPIDevice &protocoll, std::string request) {
-                abort_check();
-                return protocoll.send_command(request);
-            } //
-
+		lua.new_usertype<SCPIDevice>("SCPIDevice",                                                                                      //
+									 sol::meta_function::construct, sol::no_constructor,                                                //
+									 "get_protocol_name", wrap(&SCPIDevice::get_protocol_name),                                         //
+									 "get_device_descriptor", wrap(&SCPIDevice::get_device_descriptor),                                 //
+									 "get_str", wrap(&SCPIDevice::get_str),                                                             //
+									 "get_str_param", wrap(&SCPIDevice::get_str_param),                                                 //
+									 "get_num", exception_wrap(&script_engine, &SCPIDevice::get_num),                                   //
+									 "get_num_param", exception_wrap(&script_engine, &SCPIDevice::get_num_param),                       //
+									 "get_name", wrap(&SCPIDevice::get_name),                                                           //
+									 "get_serial_number", wrap(&SCPIDevice::get_serial_number),                                         //
+									 "get_manufacturer", wrap(&SCPIDevice::get_manufacturer),                                           //
+									 "get_calibration", wrap(&SCPIDevice::get_calibration),                                             //
+									 "is_event_received", wrap(&SCPIDevice::is_event_received),                                         //
+									 "clear_event_list", wrap(&SCPIDevice::clear_event_list),                                           //
+									 "get_event_list", wrap(&SCPIDevice::get_event_list),                                               //
+									 "set_validation_max_standard_deviation", wrap(&SCPIDevice::set_validation_max_standard_deviation), //
+									 "set_validation_retries", wrap(&SCPIDevice::set_validation_retries),                               //
+									 "send_command", wrap(&SCPIDevice::send_command)                                                    //
         );
     }
     //bind SG04
     {
         lua.new_usertype<SG04CountDevice>(
-            "SG04CountDevice",                                  //
-            sol::meta_function::construct, sol::no_constructor, //
-            "get_protocol_name",
-			+[](SG04CountDevice &protocol) {
-                abort_check();
-                return protocol.get_protocol_name();
-            }, //
+			"SG04CountDevice",                                              //
+			sol::meta_function::construct, sol::no_constructor,             //
+			"get_protocol_name", wrap(&SG04CountDevice::get_protocol_name), //
             "get_name",
 			+[](SG04CountDevice &protocol) {
                 abort_check();
                 (void)protocol;
                 return "SG04";
-            }, //
-            "get_sg04_counts",
-			+[](SG04CountDevice &protocol, bool clear_on_read) {
-                abort_check();
-                return protocol.get_sg04_counts(clear_on_read);
-            }, //
-            "accumulate_counts",
-			+[](SG04CountDevice &protocol, uint time_ms) {
-                abort_check();
-                return protocol.accumulate_counts(time_ms);
-            } //
+			},                                                             //
+			"get_sg04_counts", wrap(&SG04CountDevice::get_sg04_counts),    //
+			"accumulate_counts", wrap(&SG04CountDevice::accumulate_counts) //
         );
     }
     //bind manual device
     {
-        lua.new_usertype<ManualDevice>(
-            "ManualDevice",                                     //
-            sol::meta_function::construct, sol::no_constructor, //
-            "get_protocol_name",
-			+[](ManualDevice &protocol) {
-                abort_check();
-                return protocol.get_protocol_name();
-            }, //
-            "get_name",
-			+[](ManualDevice &protocol) {
-                abort_check();
-                return protocol.get_name();
-            }, //
-            "get_manufacturer",
-			+[](ManualDevice &protocol) {
-                abort_check();
-                return protocol.get_manufacturer();
-            }, //
-            "get_description",
-			+[](ManualDevice &protocol) {
-                abort_check();
-                return protocol.get_description();
-            }, //
-            "get_serial_number",
-			+[](ManualDevice &protocol) {
-                abort_check();
-                return protocol.get_serial_number();
-            }, //
-            "get_notes",
-			+[](ManualDevice &protocol) {
-                abort_check();
-                return protocol.get_notes();
-            }, //
-            "get_calibration",
-			+[](ManualDevice &protocol) {
-                abort_check();
-                return protocol.get_calibration();
-            }, //
-
-            "get_summary",
-			+[](ManualDevice &protocol) {
-                abort_check();
-                return protocol.get_summary();
-            } //
-
+		lua.new_usertype<ManualDevice>("ManualDevice",                                              //
+									   sol::meta_function::construct, sol::no_constructor,          //
+									   "get_protocol_name", wrap(&ManualDevice::get_protocol_name), //
+									   "get_name", wrap(&ManualDevice::get_name),                   //
+									   "get_manufacturer", wrap(&ManualDevice::get_manufacturer),   //
+									   "get_description", wrap(&ManualDevice::get_description),     //
+									   "get_serial_number", wrap(&ManualDevice::get_serial_number), //
+									   "get_notes", wrap(&ManualDevice::get_notes),                 //
+									   "get_calibration", wrap(&ManualDevice::get_calibration),     //
+									   "get_summary", wrap(&ManualDevice::get_summary)              //
         );
     }
     //set up import functionality

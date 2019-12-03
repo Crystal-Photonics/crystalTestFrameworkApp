@@ -16,7 +16,7 @@ QString CommunicationDevice::get_identifier_display_string() const {
     if (portinfo.contains(HOST_NAME_TAG)) {
         QString result = portinfo[HOST_NAME_TAG].toString();
         if (result == "manual") {
-            result = portinfo[DEVICE_MANUAL_NAME_TAG].toString() + "(" + portinfo[DEVICE_MANUAL_SN_TAG].toString() + ")";
+			result = portinfo[DEVICE_MANUAL_NAME_TAG].toString() + " (" + portinfo[DEVICE_MANUAL_SN_TAG].toString() + ")";
         }
         return result;
     }
