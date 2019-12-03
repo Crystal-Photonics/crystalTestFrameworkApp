@@ -331,7 +331,8 @@ std::vector<std::string> ScriptEngine::get_default_globals() {
     Console console{nullptr};
 	ScriptEngine se{nullptr, console, nullptr, {}};
     script_setup(*se.lua, "", se);
-    for (auto &[key, value] : se.lua->globals()) {
+	for (auto &[key, value] : se.lua->globals()) {
+		(void)value;
         if (key.is<std::string>()) {
             globals.emplace_back(key.as<std::string>());
         }

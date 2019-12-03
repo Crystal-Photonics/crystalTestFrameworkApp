@@ -77,7 +77,7 @@ void Image::set_maximum_height(int height) {
 }
 
 void Image::set_maximum_width(int width) {
-	if (auto pixmap = label->pixmap()) {
+	if (label->pixmap()) {
 		label->setMaximumSize(width, label->heightForWidth(width));
 	} else {
 		qDebug() << "Warning: Setting maximum size for image before loading an image has no effect";

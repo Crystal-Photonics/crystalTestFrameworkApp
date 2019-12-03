@@ -36,7 +36,7 @@ struct Thread_pool {
 	~Thread_pool() {
 		{ //tell each thread to quit
 			std::unique_lock l(worker_queue_mutex);
-			for (const auto &thread : workers) {
+			for ([[maybe_unused]] const auto &thread : workers) {
 				work_queue.emplace_back(); //push empty function that quits a worker thread
 			}
 		}

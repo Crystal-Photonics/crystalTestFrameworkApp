@@ -20,7 +20,7 @@ class UI_widget {
     UI_widget(UI_container *parent_);
     ~UI_widget();
 
-	virtual void resizeMe(QResizeEvent *event) {}
+	virtual void resizeMe([[maybe_unused]] QResizeEvent *event) {}
 
 	UI_container *parent;
 };
