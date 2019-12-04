@@ -293,14 +293,18 @@ static auto try_call(ScriptEngine *se, Function &&function) {
 		try {
 			return function();
 		} catch (const std::exception &exception) {
-			if (Utility::promised_thread_call(se->runner->get_lua_ui_container(), [error_description = exception.what(), se] {
-					return QMessageBox::critical(MainWindow::mw, QObject::tr("CrystalTestFramework - Script Error in %1").arg(se->runner->get_name()),
-												 QObject::tr("The following error occured: %1\n\n").arg(error_description),
-												 QMessageBox::Retry | QMessageBox::Abort);
-				}) == QMessageBox::Retry) {
-				continue;
+			switch (Utility::promised_thread_call(se->runner->get_lua_ui_container(), [error_description = exception.what(), se] {
+				return QMessageBox::critical(MainWindow::mw, QObject::tr("CrystalTestFramework - Script Error in %1").arg(se->runner->get_name()),
+											 QObject::tr("The following error occured: %1\n\n").arg(error_description),
+											 QMessageBox::Retry | QMessageBox::Abort | QMessageBox::Ignore);
+			})) {
+				case QMessageBox::Abort:
+					throw;
+				case QMessageBox::Ignore:
+					return decltype(function()){};
+				default:
+					continue;
 			}
-			throw;
 		}
 	}
 }
