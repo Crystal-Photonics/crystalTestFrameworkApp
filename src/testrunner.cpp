@@ -50,6 +50,7 @@ TestRunner::~TestRunner() {
 }
 
 void TestRunner::interrupt() {
+	assert(currently_in_gui_thread());
 	console.note() << "Script interrupted";
     script.post_interrupt();
     thread.requestInterruption();
@@ -84,6 +85,7 @@ void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &de
 	Utility::thread_call(this, [this, devices = std::move(devices), &device_worker]() mutable {
         for (auto &dev_prot : devices) {
             device_worker.set_currently_running_test(dev_prot.device, name);
+			used_devices.push_back(dev_prot.device);
         }
         try {
 			MainWindow::mw->execute_in_gui_thread([this] { MainWindow::mw->set_testrunner_state(this, TestRunner_State::running); });
@@ -95,12 +97,10 @@ void TestRunner::run_script(std::vector<MatchedDevice> devices, DeviceWorker &de
 			console.error() << Sol_error_message{e.what(), script_path, name};
         }
 		device_worker_pointer = nullptr;
-        for (auto &dev_prot : devices) {
-			device_worker.set_currently_running_test(dev_prot.device, "");
-        }
-		for (auto &extra_device : extra_devices) {
+		for (auto &extra_device : used_devices) {
 			device_worker.set_currently_running_test(extra_device, "");
 		}
+		used_devices.clear();
         moveToThread(MainWindow::gui_thread);
         thread.quit();
 		console.note() << "Script stopped";
@@ -133,8 +133,12 @@ bool TestRunner::adopt_device(const MatchedDevice &device) {
 	const auto dw = device_worker_pointer.load();
 	if (dw) {
 		dw->set_currently_running_test(device.device, name);
-		extra_devices.push_back(device.device);
+		used_devices.push_back(device.device);
 		return true;
 	}
 	return false;
+}
+
+bool TestRunner::uses_device(CommunicationDevice *device) {
+	return std::find(std::begin(used_devices), std::end(used_devices), device) != std::end(used_devices);
 }

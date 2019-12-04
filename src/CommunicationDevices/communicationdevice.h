@@ -40,6 +40,7 @@ class EXPORT CommunicationDevice : public QObject {
     const QMap<QString, QVariant> &get_port_info();
 	virtual bool connect(const QMap<QString, QVariant> &portinfo_) = 0;
     QString proposed_alias{};
+
     signals:
     void connected(const QByteArray &);
     void disconnected(const QByteArray &);
@@ -49,16 +50,14 @@ class EXPORT CommunicationDevice : public QObject {
     void decoded_received(const QByteArray &);
     void message(const QByteArray &);
     void read_ready();
-    public slots:
-    protected:
-    bool currently_in_waitReceived;
-
-    private:
-	std::atomic<bool> in_use{false};
 
     protected:
+	bool currently_in_waitReceived;
     QMap<QString, QVariant> portinfo;
 	friend void device_worker_set_in_use(CommunicationDevice *com_device, bool in_use);
+
+	private:
+	std::atomic<bool> in_use{false};
 };
 
 #endif // COMMUNICATIONDEVICE_H

@@ -45,6 +45,7 @@ class TestRunner : QObject {
 
 	QObject *obj();
 	bool adopt_device(const MatchedDevice &device);
+	bool uses_device(CommunicationDevice *device);
 
     private:
 	std::unique_ptr<Console> console_pointer;
@@ -55,7 +56,7 @@ class TestRunner : QObject {
     QString name{};
 	QString script_path;
 	std::atomic<DeviceWorker *> device_worker_pointer{nullptr};
-	std::vector<CommunicationDevice *> extra_devices;
+	std::vector<CommunicationDevice *> used_devices;
 
 	public:
 	Console &console;

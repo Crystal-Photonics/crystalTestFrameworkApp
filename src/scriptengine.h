@@ -15,7 +15,6 @@
 #include <sol.hpp>
 #include <vector>
 
-class CommunicationDevice;
 class QStringList;
 class QSplitter;
 class QPlainTextEdit;

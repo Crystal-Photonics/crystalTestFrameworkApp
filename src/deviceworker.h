@@ -10,7 +10,6 @@
 
 #include <QSemaphore>
 #include <future>
-#include <list>
 #include <vector>
 
 class CommunicationDevice;
@@ -43,7 +42,7 @@ class DeviceWorker : public QObject {
     void detect_device(QTreeWidgetItem *item);
     void update_devices();
     void detect_devices();
-    std::list<PortDescription> communication_devices;
+	std::vector<PortDescription> communication_devices;
     bool contains_port(QMap<QString, QVariant> port_info);
     void detect_devices(std::vector<PortDescription *> device_list);
     DeviceMetaData device_meta_data;

@@ -535,19 +535,19 @@ void MainWindow::set_enabled_states_for_matchable_scripts(QProgressDialog *dialo
 		}
 		bool is_matchable = device_matcher.is_match_possible(*device_worker, test);
         if (is_matchable) {
-			test.ui_entry->setForeground(0, palette().color(QPalette::Active, QPalette::Text));
-            test.ui_entry->setForeground(1, palette().color(QPalette::Active, QPalette::Text));
-            test.ui_entry->setForeground(3, palette().color(QPalette::Active, QPalette::Text));
+			test.ui_entry->setForeground(GUI::Tests::name, palette().color(QPalette::Active, QPalette::Text));
+			test.ui_entry->setForeground(GUI::Tests::protocol, palette().color(QPalette::Active, QPalette::Text));
+			test.ui_entry->setForeground(GUI::Tests::connectedDevices, palette().color(QPalette::Active, QPalette::Text));
         } else {
-            test.ui_entry->setForeground(0, palette().color(QPalette::Disabled, QPalette::Text));
-            test.ui_entry->setForeground(1, palette().color(QPalette::Disabled, QPalette::Text));
-            test.ui_entry->setForeground(3, palette().color(QPalette::Disabled, QPalette::Text));
+			test.ui_entry->setForeground(GUI::Tests::name, palette().color(QPalette::Disabled, QPalette::Text));
+			test.ui_entry->setForeground(GUI::Tests::protocol, palette().color(QPalette::Disabled, QPalette::Text));
+			test.ui_entry->setForeground(GUI::Tests::connectedDevices, palette().color(QPalette::Disabled, QPalette::Text));
         }
     }
     for (int i = 0; i < ui->test_simple_view->count(); i++) {
         auto item = ui->test_simple_view->item(i);
         QTreeWidgetItem *tree_item = get_treewidgetitem_from_listViewItem(item);
-        if (tree_item->foreground(0) == palette().color(QPalette::Active, QPalette::Text)) {
+		if (tree_item->foreground(GUI::Tests::name) == palette().color(QPalette::Active, QPalette::Text)) {
             item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable);
         } else {
             item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEditable);
@@ -738,6 +738,27 @@ void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name,
 	//called from device worker
 	assert(currently_in_gui_thread() == false);
 	add_device_child_item(nullptr, item, tab_name, communication_device);
+	if (not communication_device) {
+		return;
+	}
+	connect(communication_device, &CommunicationDevice::disconnected, [this, communication_device] {
+		execute_in_gui_thread([this, communication_device] {
+			for (auto &test_runner : test_runners) {
+				if (not test_runner->uses_device(communication_device)) {
+					continue;
+				}
+				if (QMessageBox::critical(
+						this, tr("CrystalTestFramework - Device Error"),
+						tr("The device %1 has been disconnected. Script %2 is running and was using the device. Do you want to abort the script?")
+							.arg(communication_device->getName())
+							.arg(test_runner->get_name()),
+						QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+					abort_script(*test_runner);
+				}
+			}
+			set_enabled_states_for_matchable_scripts();
+		});
+	});
 }
 
 void MainWindow::append_html_to_console(QString text, QPlainTextEdit *console) {
@@ -794,7 +815,7 @@ std::vector<MatchedDevice> MainWindow::discover_devices(ScriptEngine &se, const 
 		if (device_matcher.was_successful()) {
 			for (auto &device : device_matcher.get_matched_devices()) {
 				se.adopt_device(device);
-            }
+			}
 			return device_matcher.get_matched_devices();
 		}
 		return {};
@@ -818,11 +839,11 @@ bool MainWindow::remove_device_item_recursion(QTreeWidgetItem *root_item, QTreeW
 			return true;
 		} else {
 			if (remove_device_item_recursion(itemchild, child_to_remove, remove_if_existing)) {
-                return true;
+				return true;
 			}
 		}
 		j++;
-    }
+	}
 	return false;
 }
 
@@ -882,7 +903,7 @@ void MainWindow::on_actionRunSelectedScript_triggered() {
 	} else if (ui->test_simple_view->isVisible()) {
 		auto item = ui->test_simple_view->selectedItems()[0];
 		test = get_test_from_listViewItem(item);
-    }
+	}
 	if (test) {
 		run_test_script(test);
 	}
@@ -901,7 +922,7 @@ void MainWindow::on_actionedit_script_triggered() {
 	}
 	if (test) {
 		test->launch_editor();
-    }
+	}
 }
 
 void MainWindow::on_actionrefresh_devices_all_triggered() {
@@ -915,7 +936,7 @@ void MainWindow::on_actionrefresh_devices_dut_triggered() {
 TestDescriptionLoader *MainWindow::get_test_from_tree_widget(const QTreeWidgetItem *item) {
 	if (item == nullptr) {
 		item = ui->tests_advanced_view->currentItem();
-    }
+	}
 	assert(item != nullptr);
 	if (item->childCount() > 0) {
 		return nullptr;
@@ -965,7 +986,7 @@ void MainWindow::run_test_script(TestDescriptionLoader *test) {
 		runner.run_script(devices, *device_worker);
 	} else {
 		runner.interrupt();
-    }
+	}
 	enable_abort_button_script();
 }
 
@@ -983,7 +1004,7 @@ bool MainWindow::eventFilter(QObject *target, QEvent *event) {
 				remove_favorite_based_on_simple_view_selection();
 				return true;
             }
-        }
+		}
 	}
 	return QMainWindow::eventFilter(target, event);
 }
@@ -1009,7 +1030,7 @@ void MainWindow::on_tests_advanced_view_itemClicked(QTreeWidgetItem *item, int c
 			}
 			return;
 		}
-    }
+	}
 }
 
 void MainWindow::on_tests_advanced_view_itemSelectionChanged() {
@@ -1173,7 +1194,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 		} else {
 			event->ignore();
         }
-    }
+	}
 }
 
 void MainWindow::close_finished_tests() {
@@ -1197,12 +1218,12 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 								  [tab_widget](const auto &runner) { return runner->get_lua_ui_container() == tab_widget; });
 	if (runner_it == std::end(test_runners)) {
 		return;
-    }
+	}
 	auto &runner = **runner_it;
 	if (runner.is_running() && QMessageBox::question(this, tr("Abort script?"), tr("Selected script %1 is still running. Abort it now?").arg(runner.get_name()),
 													 QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok) {
 		return; //canceled closing the tab
-    }
+	}
 	abort_script(runner);
 	QApplication::processEvents(); //runner may have sent events referencing runner. Need to process all such events before removing runner.
 	test_runners.erase(runner_it);
@@ -1250,7 +1271,7 @@ void MainWindow::on_test_tabs_customContextMenuRequested(const QPoint &pos) {
 		menu.addAction(&action_close_finished);
 
 		menu.exec(ui->test_tabs->mapToGlobal(pos));
-    }
+	}
 }
 
 void MainWindow::on_console_tabs_customContextMenuRequested(const QPoint &pos) {
@@ -1307,7 +1328,7 @@ void MainWindow::on_actionDummy_Data_Creator_for_print_templates_triggered() {
 	DummyDataCreator *dummydatacreator = new DummyDataCreator(this);
 	if (dummydatacreator->get_is_valid_data_engine()) {
 		dummydatacreator->show();
-    }
+	}
 }
 
 void MainWindow::on_actionInfo_triggered() {
@@ -1342,7 +1363,7 @@ void MainWindow::enable_run_test_button_by_script_selection() {
 	if (view_mode_m == ViewMode::AllScripts) {
 		if (ui->tests_advanced_view->currentItem() == nullptr) {
 			enabled = false;
-        } else {
+		} else {
 			if ((ui->tests_advanced_view->currentItem()->childCount() == 0)) {
 				auto item = ui->tests_advanced_view->currentItem();
 				TestDescriptionLoader *test = get_test_from_tree_widget(item);
@@ -1361,12 +1382,12 @@ void MainWindow::enable_run_test_button_by_script_selection() {
 				if (item->flags() & Qt::ItemIsEnabled) {
 					script_matchable = true;
 				}
-                enabled = true;
+				enabled = true;
             }
 		} else {
 			enabled = false;
         }
-    }
+	}
 	if (script_view_is_collapsed) {
 		enabled = false;
 	}
@@ -1385,8 +1406,8 @@ void MainWindow::enable_closed_finished_test_button_script_states() {
 	for (const auto &tr : test_runners) {
 		if (tr->is_running() == false) {
 			enabled = true;
-        }
-    }
+		}
+	}
 	ui->actionClose_finished_Tests->setEnabled(enabled);
 	if (enabled) {
 		ui->actionClose_finished_Tests->setToolTip(tr("Close finished script tabs"));
@@ -1423,12 +1444,12 @@ void MainWindow::set_script_view_collapse_state(bool collapse_state) {
 	QIcon icon;
 	if (collapse_state) {
 		icon = QIcon{"://src/icons/if_bullet_arrow_down_5071.ico"};
-        ui->tbtn_collapse_script_view->setIcon(icon);
+		ui->tbtn_collapse_script_view->setIcon(icon);
 		ui->splitter_script_view->setSizes(QList<int>{1, 50000});
 	} else {
 		icon = QIcon{"://src/icons/if_bullet_arrow_up_5073.ico"};
 		ui->splitter_script_view->setSizes(old_sizes);
-    }
+	}
 
 	//  qDebug() << ui->splitter_script_view->sizes();
 	ui->tbtn_collapse_script_view->setIcon(icon);
@@ -1451,7 +1472,7 @@ void MainWindow::set_console_view_collapse_state(bool collapse_state) {
 	} else {
 		icon = QIcon{"://src/icons/if_bullet_arrow_down_5071.ico"};
 		ui->splitter_devices->setSizes(old_sizes);
-    }
+	}
 
 	ui->tbtn_collapse_console->setIcon(icon);
 	console_view_is_collapsed = collapse_state;
@@ -1498,7 +1519,7 @@ void MainWindow::on_actionactionAbort_triggered() {
 			}
 			enable_abort_button_script();
         }
-    }
+	}
 }
 
 void MainWindow::on_actionQuery_Report_history_triggered() {
