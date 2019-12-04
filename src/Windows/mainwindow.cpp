@@ -556,7 +556,7 @@ void MainWindow::set_enabled_states_for_matchable_scripts(QProgressDialog *dialo
 }
 
 void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *communication_device) {
-	assert(currently_in_gui_thread() == false);
+	assert(not currently_in_gui_thread());
     Utility::promised_thread_call(this, [this, parent, child, tab_name, communication_device] {
         assert(currently_in_gui_thread());
         if (parent) {
@@ -587,7 +587,7 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
             }
             device_worker->connect_to_device_console(console, communication_device);
 			connect(communication_device, &CommunicationDevice::connected,
-					[child] { Utility::thread_call(MainWindow::mw, [child] { child->setForeground(GUI::Devices::name, Qt::black); }); });
+					[child] { Utility::thread_call(MainWindow::mw, [child] { child->setForeground(GUI::Devices::description, Qt::black); }); });
 			connect(communication_device, &CommunicationDevice::disconnected, [child] {
 				Utility::thread_call(MainWindow::mw, [child] {
 					child->setForeground(GUI::Devices::description, Qt::gray);
@@ -709,13 +709,13 @@ QStringList MainWindow::validate_script(const QString &path) {
 	for (const auto &line : output_list) {
 		if (line.isEmpty()) {
 			continue;
-        }
+		}
 		if (line.contains("unused global variable 'device_requirements'")) {
 			continue;
 		}
 		if (line.contains("unused global variable 'run'")) {
 			continue;
-		}
+        }
 		messages << line;
 	}
 	return messages;
@@ -1041,14 +1041,14 @@ void MainWindow::on_tests_advanced_view_itemSelectionChanged() {
 			auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
 			if (test == nullptr) {
 				return;
-            }
+			}
 			if (dynamic_cast<UI_container *>(ui->test_tabs->widget(0))) {
 				//There is a script running, don't hide it
 				ui->test_tabs->insertTab(0, test->console.get(), test->get_name());
 			} else {
 				//There is no script running, replace widget
 				Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
-			}
+            }
 			ui->test_tabs->setCurrentIndex(0);
 		}
 	}
