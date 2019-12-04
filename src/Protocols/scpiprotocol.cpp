@@ -383,7 +383,7 @@ double SCPIProtocol::get_num_param(std::string request, std::string argument) {
     }
     if (values.count() == retries_per_transmission + 1) {
 		double standard_deviation = 0;
-		double mean = std::accumulate(std::begin(values), std::end(values), 0) / values.count();
+		double mean = std::accumulate(std::begin(values), std::end(values), 0.) / values.count();
         for (auto d : values) {
 			standard_deviation += (d - mean) * (d - mean);
         }
