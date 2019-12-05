@@ -352,7 +352,7 @@ static std::string to_string(const RPCDevice &device) {
 
 std::string ScriptEngine::to_string(double d) {
     if (std::fmod(d, 1.) == 0) {
-        return std::to_string(static_cast<int>(d));
+		return std::to_string(static_cast<long long int>(d));
     }
     return std::to_string(d);
 }
