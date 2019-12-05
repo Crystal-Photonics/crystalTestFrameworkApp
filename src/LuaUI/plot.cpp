@@ -23,6 +23,7 @@
 #include <qwt_plot_curve.h>
 #include <qwt_plot_marker.h>
 #include <qwt_plot_picker.h>
+#include <qwt_scale_draw.h>
 
 using namespace std::chrono;
 
@@ -32,7 +33,6 @@ struct Curve_data : QwtSeriesData<QPointF> {
     QRectF boundingRect() const override;
 
     void append(double x, double y);
-	void append(double y);
     void resize(std::size_t size);
     void add(const std::vector<double> &data);
     void add_spectrum(int spectrum_start_channel, const std::vector<double> &data);
@@ -56,6 +56,8 @@ struct Curve_data : QwtSeriesData<QPointF> {
     QRectF bounding_rect{};
     double offset{0};
     double gain{1};
+
+	friend class Curve;
 };
 
 size_t Curve_data::size() const {
@@ -85,14 +87,6 @@ void Curve_data::append(double x, double y) {
     xvalues.push_back(x);
     yvalues_orig.push_back(y);
 	update_bounding_rect_height(y);
-}
-
-void Curve_data::append(double y) {
-	if (xvalues.empty()) {
-		append(0, y);
-	} else {
-		append(xvalues.back() + 1, y);
-	}
 }
 
 void Curve_data::resize(std::size_t size) {
@@ -240,7 +234,15 @@ void Curve::append_point(double x, double y) {
 }
 
 void Curve::append(double y) {
-	curve_data().append(y);
+	if (not plot->scale_start_time.isNull()) {
+		curve_data().append(QDateTime::currentMSecsSinceEpoch() - plot->scale_start_time.toMSecsSinceEpoch(), y);
+	} else {
+		if (curve_data().size()) {
+			curve_data().append(curve_data().xvalues.back() + 1, y);
+		} else {
+			curve_data().append(0, y);
+		}
+	}
 	update();
 }
 
@@ -293,8 +295,9 @@ double Curve::integrate_ci(double integral_start_ci, double integral_end_ci) {
         result += yvalues_plot.at(i);
     }
     return result;
-#endif
+#else
     return 0;
+#endif
 }
 
 sol::table Curve::get_y_values_as_array() {
@@ -307,9 +310,9 @@ sol::table Curve::get_y_values_as_array() {
         retval.add(val);
     }
     return retval;
-
+#else
+	return {};
 #endif
-    return 0;
 }
 
 void Curve::set_median_enable(bool enable) {
@@ -381,11 +384,42 @@ Curve_data &Curve::curve_data() {
     return static_cast<Curve_data &>(*curve->data());
 }
 
+class TimeScaleDraw : public QwtScaleDraw {
+	public:
+	TimeScaleDraw(Plot *parent)
+		: parent{parent} {}
+	QwtText label(double value) const override {
+		return parent->scale_start_time.addMSecs(value).time().toString();
+	}
+	Plot *parent;
+};
+
+class TimePicker : public QwtPlotPicker {
+	public:
+	TimePicker(QWidget *parent, Plot *plot)
+		: QwtPlotPicker{parent}
+		, plot{plot} {}
+	QwtText trackerTextF(const QPointF &point) const override {
+		const auto &time = plot ? plot->scale_start_time : scale_start_time;
+		if (time.isNull()) {
+			return QwtPlotPicker::trackerTextF(point);
+		}
+		return time.addMSecs(point.x()).toString() + ", " + QString::number(point.y());
+	}
+	void detach() {
+		//plot can disappear, but the picker should still work, so we have to make a local copy of the scale start time.
+		scale_start_time = plot->scale_start_time;
+		plot = nullptr;
+	}
+	Plot *plot;
+	QDateTime scale_start_time;
+};
+
 Plot::Plot(UI_container *parent)
     : UI_widget{parent}
     , plot(new QwtPlot)
     , picker(new QwtPlotPicker(plot->canvas()))
-    , track_picker(new QwtPlotPicker(plot->canvas()))
+	, track_picker(new TimePicker(plot->canvas(), this))
     , clicker(new QwtPickerClickPointMachine)
     , tracker(new QwtPickerTrackerMachine) {
 	assert(currently_in_gui_thread());
@@ -395,9 +429,8 @@ Plot::Plot(UI_container *parent)
     set_rightclick_action();
     picker->setStateMachine(clicker);
     picker->setTrackerMode(QwtPicker::ActiveOnly);
-    track_picker->setStateMachine(tracker);
-    track_picker->setTrackerMode(QwtPicker::AlwaysOn);
-    parent->scroll_to_bottom();
+	track_picker->setStateMachine(tracker);
+	track_picker->setTrackerMode(QwtPicker::AlwaysOn);
 }
 
 Plot::~Plot() {
@@ -406,6 +439,7 @@ Plot::~Plot() {
         curve->detach();
         curve->plot = nullptr;
     }
+	track_picker->detach();
     //the plot was using xvalues and yvalues directly, but now they are gone
     //this is to make the plot own the data
 }
@@ -420,6 +454,7 @@ void Plot::clear() {
 }
 
 void Plot::set_x_marker(const std::string &title, double xpos, const Color &color) {
+	assert(currently_in_gui_thread());
     auto marker = new QwtPlotMarker{title.c_str()};
     if (title.empty() == false) {
         marker->setLabel(QString::fromStdString(title));
@@ -429,7 +464,6 @@ void Plot::set_x_marker(const std::string &title, double xpos, const Color &colo
     marker->setLineStyle(QwtPlotMarker::LineStyle::VLine);
     marker->setLabelOrientation(Qt::Orientation::Vertical);
     marker->attach(plot);
-	assert(currently_in_gui_thread());
 #if 0
     const int Y_AXIS_STEP = 10;
     int i = 0;
@@ -457,7 +491,12 @@ void Plot::set_x_marker(const std::string &title, double xpos, const Color &colo
 
 void Plot::set_visible(bool visible) {
 	assert(currently_in_gui_thread());
-    plot->setVisible(visible);
+	plot->setVisible(visible);
+}
+
+void Plot::set_time_scale(double time_offset_ms) {
+	scale_start_time = QDateTime::fromMSecsSinceEpoch(time_offset_ms);
+	plot->setAxisScaleDraw(QwtPlot::xBottom, new TimeScaleDraw{this});
 }
 
 void Plot::update() {
@@ -477,22 +516,23 @@ void Plot::set_rightclick_action() {
 		QObject::connect(save_as_csv_action.get(), &QAction::triggered, [plot = this->plot, curves = std::move(raw_curves)] {
             QString last_dir = QSettings{}.value(Globals::last_csv_saved_directory_key, QDir::currentPath()).toString();
             auto dir = QFileDialog::getExistingDirectory(plot, QObject::tr("Select folder to save data in"), last_dir);
-            if (dir.isEmpty() == false) {
-                QSettings{}.setValue(Globals::last_csv_saved_directory_key, dir);
-				for (auto &curve : curves) {
-                    auto filename = QDir(dir).filePath(curve->title().text() + ".csv");
-                    std::ofstream f{filename.toStdString()};
-                    auto data = curve->data();
-                    auto size = data->size();
-                    for (std::size_t i = 0; i < size; i++) {
-                        const auto &point = data->sample(i);
-                        f << point.x() << ';' << point.y() << '\n';
-                    }
-                    f.flush();
-                    if (!f) {
-                        QMessageBox::critical(plot, QObject::tr("Error"), QObject::tr("Failed writing to file %1").arg(filename));
-                    }
-                }
+			if (dir.isEmpty()) {
+				return;
+			}
+			QSettings{}.setValue(Globals::last_csv_saved_directory_key, dir);
+			for (auto &curve : curves) {
+				auto filename = QDir(dir).filePath(curve->title().text() + ".csv");
+				std::ofstream f{filename.toStdString()};
+				auto data = curve->data();
+				auto size = data->size();
+				for (std::size_t i = 0; i < size; i++) {
+					const auto &point = data->sample(i);
+					f << point.x() << ';' << point.y() << '\n';
+				}
+				f.flush();
+				if (!f) {
+					QMessageBox::critical(plot, QObject::tr("Error"), QObject::tr("Failed writing to file %1").arg(filename));
+				}
             }
         });
     } else {

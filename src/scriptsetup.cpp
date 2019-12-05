@@ -967,8 +967,10 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
                 );
             }, //
             "set_x_marker",
-            thread_call_wrapper(&Plot::set_x_marker), //
-            "set_visible", thread_call_wrapper(&Plot::set_visible));
+			thread_call_wrapper(&Plot::set_x_marker),                    //
+			"set_visible", thread_call_wrapper(&Plot::set_visible),      //
+			"set_time_scale", thread_call_wrapper(&Plot::set_time_scale) //
+		);
     }
     //bind color
     {

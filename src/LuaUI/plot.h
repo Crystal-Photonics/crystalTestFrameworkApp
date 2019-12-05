@@ -2,9 +2,10 @@
 #define PLOT_H
 
 #include "color.h"
-
 #include "scriptengine.h"
 #include "ui_container.h"
+
+#include <QDateTime>
 #include <QObject>
 #include <functional>
 #include <memory>
@@ -25,6 +26,7 @@ class QwtPlotCurve;
 class QwtPlotPicker;
 struct Curve_data;
 class UI_container;
+class TimePicker;
 
 /** \ingroup ui
 \{
@@ -38,7 +40,7 @@ class Curve {
     ///\cond HIDDEN_SYMBOLS
     Curve(UI_container *, ScriptEngine *script_engine, Plot *plot);
     Curve(Curve &&other) = delete;
-    ~Curve();
+	~Curve();
     void add(const std::vector<double> &data);
     ///\endcond
 
@@ -409,7 +411,8 @@ class Plot : public UI_widget {
     Plot(Plot &&other) = delete;
     Plot &operator=(Plot &&other);
     ~Plot();
-    ///\endcond
+	QDateTime scale_start_time;
+	///\endcond
 
 #ifdef DOXYGEN_ONLY
     // this block is just for ducumentation purpose
@@ -499,7 +502,30 @@ class Plot : public UI_widget {
   */
     // clang-format on
 
-    private:
+#ifdef DOXYGEN_ONLY
+	// this block is just for ducumentation purpose
+	set_time_scale(number time_offset_ms);
+#endif
+	/// \cond HIDDEN_SYMBOLS
+	void set_time_scale(double time_offset_ms);
+	/// \endcond
+	// clang-format off
+  /*! \fn  set_time_scale(number time_offset_ms);
+	  \brief Sets a time scale for the x axis instead of numbers.
+	  \param time_offset_ms the time in milliseconds to use as an offset for the x values. It usually makes sense to use the current time.
+	  \par examples:
+	  \code
+		local plot = Ui.Plot.new()
+		plot:set_time_scale(current_date_time_ms())
+		local curve = plot:add_curve()
+		curve:append(11) --using current time as x value
+		curve:append_point(1000, 22) -- 1 second past start
+		curve:append_point(2000, 33) -- 2 seconds past start
+	  \endcode
+  */
+	// clang-format on
+
+	private:
     /// \cond HIDDEN_SYMBOLS
     void update();
     void set_rightclick_action();
@@ -507,7 +533,7 @@ class Plot : public UI_widget {
     QwtPlot *plot{nullptr};
 	std::unique_ptr<QAction> save_as_csv_action;
     QwtPlotPicker *picker{nullptr};
-    QwtPlotPicker *track_picker{nullptr};
+	TimePicker *track_picker{nullptr};
     QwtPickerClickPointMachine *clicker{nullptr};
     QwtPickerTrackerMachine *tracker{nullptr};
     std::vector<Curve *> curves{};
