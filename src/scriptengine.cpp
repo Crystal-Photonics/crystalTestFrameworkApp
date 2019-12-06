@@ -1,5 +1,6 @@
 #include "scriptengine.h"
 #include "LuaUI/color.h"
+#include "LuaUI/dataengineinput_lua.h"
 #include "Protocols/rpcprotocol.h"
 #include "Windows/devicematcher.h"
 #include "Windows/mainwindow.h"
@@ -330,7 +331,7 @@ std::vector<std::string> ScriptEngine::get_default_globals() {
     std::vector<std::string> globals;
     Console console{nullptr};
 	ScriptEngine se{nullptr, console, nullptr, {}};
-    script_setup(*se.lua, "", se);
+	script_setup(*se.lua, "", se, se.parent, se.console.get_plaintext_edit());
 	for (auto &[key, value] : se.lua->globals()) {
 		(void)value;
         if (key.is<std::string>()) {
@@ -466,7 +467,7 @@ void ScriptEngine::load_script(const std::string &path) {
     path_m = QString::fromStdString(path);
 
     try {
-        script_setup(*lua, path, *this);
+		script_setup(*lua, path, *this, parent, console.get_plaintext_edit());
         lua->script_file(path);
     } catch (const sol::error &error) {
         qDebug() << "caught sol::error@load_script";

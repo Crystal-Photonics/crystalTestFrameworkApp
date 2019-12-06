@@ -126,7 +126,8 @@ class ScriptEngine : public QObject {
     std::condition_variable await_condition_variable;
     Event_id::Event_id await_condition = Event_id::invalid;
 
-    friend void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script_engine);
+	friend void bind_dataengineinput(sol::state &lua, sol::table &ui_table, ScriptEngine &script_engine, UI_container *parent, const std::string &path);
+	friend void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string &path, ScriptEngine &script_engine, QPlainTextEdit *console);
 };
 
 template <class ReturnType, class... Arguments>
