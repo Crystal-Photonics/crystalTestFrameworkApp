@@ -68,8 +68,6 @@ namespace GUI {
     }
 } // namespace GUI
 
-using namespace std::chrono_literals;
-
 MainWindow *MainWindow::mw = nullptr;
 
 QThread *MainWindow::gui_thread;
@@ -463,15 +461,16 @@ void MainWindow::load_scripts(QProgressDialog *dialog) {
 	std::optional<Thread_pool> othread_pool{std::in_place};
 	auto &thread_pool = othread_pool.value();
 	std::mutex test_descriptions_mutex;
+	std::vector<TestDescriptionLoader> new_test_descriptions;
 	int tasks = 0;
 	std::atomic<int> tasks_done = 0;
-    while (dit.hasNext()) {
+	while (dit.hasNext()) {
 		auto file_path = dit.next();
-		thread_pool.push([&tasks_done, &test_descriptions_mutex, &dir, this, file_path = std::move(file_path)] {
+		thread_pool.push([&tasks_done, &test_descriptions_mutex, &new_test_descriptions, &dir, this, file_path = std::move(file_path)] {
 			auto return_value = TestDescriptionLoader{ui->tests_advanced_view, file_path, QDir{dir}.relativeFilePath(file_path)};
 			tasks_done++;
 			std::unique_lock l{test_descriptions_mutex};
-			test_descriptions.push_back(std::move(return_value));
+			new_test_descriptions.push_back(std::move(return_value));
 		});
 		tasks++;
 	}
@@ -484,9 +483,10 @@ void MainWindow::load_scripts(QProgressDialog *dialog) {
 			QApplication::processEvents();
 		}
 	}
+	std::swap(test_descriptions, new_test_descriptions);
 	load_favorites(dialog);
 	statusBar()->clearMessage();
-    ui->tbtn_refresh_scripts->setEnabled(enabled_a);
+	ui->tbtn_refresh_scripts->setEnabled(enabled_a);
     ui->actionReload_All_Scripts->setEnabled(enabled_b);
 	dialog->setValue(dialog->value() + 1);
 	QApplication::processEvents();
@@ -709,13 +709,13 @@ QStringList MainWindow::validate_script(const QString &path) {
 	for (const auto &line : output_list) {
 		if (line.isEmpty()) {
 			continue;
-		}
+        }
 		if (line.contains("unused global variable 'device_requirements'")) {
 			continue;
 		}
 		if (line.contains("unused global variable 'run'")) {
 			continue;
-        }
+		}
 		messages << line;
 	}
 	return messages;
