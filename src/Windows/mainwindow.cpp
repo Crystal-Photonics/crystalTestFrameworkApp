@@ -709,13 +709,13 @@ QStringList MainWindow::validate_script(const QString &path) {
 	for (const auto &line : output_list) {
 		if (line.isEmpty()) {
 			continue;
-        }
+		}
 		if (line.contains("unused global variable 'device_requirements'")) {
 			continue;
 		}
 		if (line.contains("unused global variable 'run'")) {
 			continue;
-		}
+        }
 		messages << line;
 	}
 	return messages;
@@ -1041,14 +1041,14 @@ void MainWindow::on_tests_advanced_view_itemSelectionChanged() {
 			auto test = item->data(0, Qt::UserRole).value<TestDescriptionLoader *>();
 			if (test == nullptr) {
 				return;
-			}
+            }
 			if (dynamic_cast<UI_container *>(ui->test_tabs->widget(0))) {
 				//There is a script running, don't hide it
 				ui->test_tabs->insertTab(0, test->console.get(), test->get_name());
 			} else {
 				//There is no script running, replace widget
 				Utility::replace_tab_widget(ui->test_tabs, 0, test->console.get(), test->get_name());
-            }
+			}
 			ui->test_tabs->setCurrentIndex(0);
 		}
 	}
@@ -1566,4 +1566,29 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 	}
 
 	menu.exec(ui->devices_list->mapToGlobal(pos));
+}
+
+void MainWindow::on_devices_list_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous) {
+	const auto &text = current->text(0);
+	for (int i = 0; i < ui->console_tabs->count(); i++) {
+		if (ui->console_tabs->tabText(i) == text) {
+			if (ui->console_tabs->currentIndex() != i) {
+				ui->console_tabs->setCurrentIndex(i);
+				return;
+			}
+		}
+	}
+}
+
+void MainWindow::on_console_tabs_currentChanged(int index) {
+	const auto &text = ui->console_tabs->tabText(index);
+	for (int i = 0; i < ui->devices_list->topLevelItemCount(); i++) {
+		auto item = ui->devices_list->topLevelItem(i);
+		if (item->text(0) == text) {
+			if (ui->devices_list->currentItem() != item) {
+				ui->devices_list->setCurrentItem(item);
+				return;
+			}
+		}
+	}
 }

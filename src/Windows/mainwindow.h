@@ -116,6 +116,8 @@ class EXPORT MainWindow : public QMainWindow {
     void on_actionQuery_Report_history_triggered();
     void on_actionactionAbort_triggered();
 	void on_devices_list_customContextMenuRequested(const QPoint &pos);
+	void on_devices_list_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
+	void on_console_tabs_currentChanged(int index);
 
 	private:
     FavoriteScripts favorite_scripts;
