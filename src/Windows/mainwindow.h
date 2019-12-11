@@ -68,8 +68,8 @@ class EXPORT MainWindow : public QMainWindow {
     QList<QTreeWidgetItem *> get_devices_to_forget_by_root_treewidget(QTreeWidgetItem *root_item);
     void remove_device_item(QTreeWidgetItem *root_item);
     bool device_item_exists(QTreeWidgetItem *child);
-    std::unique_ptr<QTreeWidgetItem> *get_manual_devices_parent_item();
-    std::unique_ptr<QTreeWidgetItem> *create_manual_devices_parent_item();
+	QTreeWidgetItem *get_manual_devices_parent_item();
+	QTreeWidgetItem *create_manual_devices_parent_item();
     void add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *communication_device);
 	void set_testrunner_state(TestRunner *testrunner, TestRunner_State state);
     void adopt_testrunner(TestRunner *testrunner, QString title);
@@ -137,7 +137,7 @@ class EXPORT MainWindow : public QMainWindow {
     void close_finished_tests();
     void get_devices_to_forget_by_root_treewidget_recursion(QList<QTreeWidgetItem *> &list, QTreeWidgetItem *root_item);
     bool remove_device_item_recursion(QTreeWidgetItem *root_item, QTreeWidgetItem *child_to_remove, bool remove_if_existing);
-    std::unique_ptr<QTreeWidgetItem> manual_devices_parent_item;
+	QTreeWidgetItem *manual_devices_parent_item = nullptr;
     QMutex manual_devices_parent_item_mutex;
     void load_default_paths_if_needed();
     void run_test_script(TestDescriptionLoader *test);

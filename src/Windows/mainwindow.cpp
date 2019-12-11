@@ -306,9 +306,6 @@ MainWindow::MainWindow(QWidget *parent)
     mw = this;
     ui->setupUi(this);
 
-    //Utility::add_handle(ui->splitter_script_view);
-    // Utility::add_handle(ui->splitter_3);
-
     load_default_paths_if_needed();
     favorite_scripts.load_from_file(QSettings{}.value(Globals::favorite_script_file_key, "").toString());
     devices_thread.adopt(*device_worker);
@@ -360,6 +357,12 @@ MainWindow::MainWindow(QWidget *parent)
 	enable_abort_button_script();
 	progress_bar.setValue(progress_bar.value() + 5);
 	QApplication::processEvents();
+
+	int ideal_device_list_width = 0;
+	for (int i = 0; i < ui->devices_list->columnCount(); i++) {
+		ideal_device_list_width += ui->devices_list->header()->sectionSize(i);
+	}
+	ui->splitter->setSizes({ideal_device_list_width, ui->splitter->width() - ideal_device_list_width});
 }
 
 MainWindow::~MainWindow() {
@@ -412,16 +415,14 @@ void MainWindow::align_columns() {
     }
 }
 
-std::unique_ptr<QTreeWidgetItem> *MainWindow::create_manual_devices_parent_item() {
-    manual_devices_parent_item = std::make_unique<QTreeWidgetItem>(QStringList{} << "Manual Devices");
-    //if (manual_parent_item->get()) {
-    add_device_item(manual_devices_parent_item.get(), "test", nullptr);
-    //}
-    return &manual_devices_parent_item;
+QTreeWidgetItem *MainWindow::create_manual_devices_parent_item() {
+	manual_devices_parent_item = new QTreeWidgetItem(QStringList{} << "Manual Devices");
+	add_device_item(manual_devices_parent_item, "test", nullptr);
+	return manual_devices_parent_item;
 }
 
-std::unique_ptr<QTreeWidgetItem> *MainWindow::MainWindow::get_manual_devices_parent_item() {
-    return &manual_devices_parent_item;
+QTreeWidgetItem *MainWindow::MainWindow::get_manual_devices_parent_item() {
+	return manual_devices_parent_item;
 }
 
 namespace Script_loading_progress_factors {
@@ -709,13 +710,13 @@ QStringList MainWindow::validate_script(const QString &path) {
 	for (const auto &line : output_list) {
 		if (line.isEmpty()) {
 			continue;
-		}
+        }
 		if (line.contains("unused global variable 'device_requirements'")) {
 			continue;
 		}
 		if (line.contains("unused global variable 'run'")) {
 			continue;
-        }
+		}
 		messages << line;
 	}
 	return messages;
@@ -736,7 +737,7 @@ void MainWindow::link_activated(const QString &path) {
 
 void MainWindow::add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *communication_device) {
 	//called from device worker
-	assert(currently_in_gui_thread() == false);
+	assert(not currently_in_gui_thread());
 	add_device_child_item(nullptr, item, tab_name, communication_device);
 	if (not communication_device) {
 		return;
@@ -1568,27 +1569,33 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
 	menu.exec(ui->devices_list->mapToGlobal(pos));
 }
 
-void MainWindow::on_devices_list_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous) {
+void MainWindow::on_devices_list_currentItemChanged(QTreeWidgetItem *current, [[maybe_unused]] QTreeWidgetItem *previous) {
+	if (not current) {
+		return;
+	}
 	const auto &text = current->text(0);
 	for (int i = 0; i < ui->console_tabs->count(); i++) {
 		if (ui->console_tabs->tabText(i) == text) {
 			if (ui->console_tabs->currentIndex() != i) {
 				ui->console_tabs->setCurrentIndex(i);
-				return;
 			}
+			return;
 		}
 	}
 }
 
 void MainWindow::on_console_tabs_currentChanged(int index) {
 	const auto &text = ui->console_tabs->tabText(index);
+	if (text.isEmpty()) {
+		return;
+	}
 	for (int i = 0; i < ui->devices_list->topLevelItemCount(); i++) {
 		auto item = ui->devices_list->topLevelItem(i);
 		if (item->text(0) == text) {
 			if (ui->devices_list->currentItem() != item) {
 				ui->devices_list->setCurrentItem(item);
-				return;
 			}
+			return;
 		}
 	}
 }
