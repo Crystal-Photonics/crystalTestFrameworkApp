@@ -15,7 +15,6 @@ before_install:
   - which git
   - sudo add-apt-repository --yes ppa:beineri/opt-qt-5.12.3-xenial
   - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
-  - sudo add-apt-repository --yes ppa:jonathonf/binutils
   - sudo apt-get update -qq
 
 install:
