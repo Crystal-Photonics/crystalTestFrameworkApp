@@ -371,7 +371,7 @@ std::string ScriptEngine::to_string(const sol::object &o) {
         case sol::type::none:
             return "nil";
         case sol::type::string:
-            return "\"" + o.as<std::string>() + "\"";
+			return "\"" + o.as<std::string>() + "\"";
         case sol::type::table:
             return to_string(o.as<sol::table>());
         case sol::type::userdata:
@@ -433,9 +433,8 @@ std::string ScriptEngine::to_string(const sol::table &table) {
     if (retval.size() > 1) {
         retval.pop_back();
         retval.back() = '}';
-        return retval;
-    }
-    return "{}";
+	}
+	return retval;
 }
 
 QString ScriptEngine::get_absolute_filename(QString file_to_open) {

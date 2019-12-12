@@ -9,9 +9,7 @@ static QString impl__to_human_readable_binary_data(char c) {
 			return {c};
 		}
 	} else if (c <= '~') {
-		if (c != '%') {
-			return {c};
-		}
+		return {c};
 	}
 	char buffer[8];
 	snprintf(buffer, sizeof buffer, "%%%02X", static_cast<unsigned char>(c));
