@@ -311,7 +311,6 @@ MainWindow::MainWindow(QWidget *parent)
     devices_thread.adopt(*device_worker);
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
 	Console_handle::console = ui->console_edit;
-    // connect(&action_run, &QAction::triggered, [this] { on_run_test_script_button_clicked(); });
 
     ui->test_simple_view->setVisible(false);
     add_clear_button_to_console(ui->console_edit);
@@ -362,7 +361,7 @@ MainWindow::MainWindow(QWidget *parent)
 	for (int i = 0; i < ui->devices_list->columnCount(); i++) {
 		ideal_device_list_width += ui->devices_list->header()->sectionSize(i);
 	}
-	ui->splitter->setSizes({ideal_device_list_width, ui->splitter->width() - ideal_device_list_width});
+	ui->splitter->setSizes({ideal_device_list_width + 2 * ui->devices_list->frameWidth(), ui->splitter->width() - ideal_device_list_width});
 }
 
 MainWindow::~MainWindow() {
