@@ -440,6 +440,7 @@ Plot::~Plot() {
         curve->plot = nullptr;
     }
 	track_picker->detach();
+	save_as_csv_action.release();
     //the plot was using xvalues and yvalues directly, but now they are gone
     //this is to make the plot own the data
 }
