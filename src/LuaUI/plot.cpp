@@ -18,6 +18,8 @@
 #include <QtGlobal>
 #include <chrono>
 #include <fstream>
+#include <qwt_date_scale_draw.h>
+#include <qwt_date_scale_engine.h>
 #include <qwt_picker_machine.h>
 #include <qwt_plot.h>
 #include <qwt_plot_curve.h>
@@ -234,8 +236,8 @@ void Curve::append_point(double x, double y) {
 }
 
 void Curve::append(double y) {
-	if (not plot->scale_start_time.isNull()) {
-		curve_data().append(QDateTime::currentMSecsSinceEpoch() - plot->scale_start_time.toMSecsSinceEpoch(), y);
+	if (plot->using_time_scale) {
+		curve_data().append(QDateTime::currentMSecsSinceEpoch(), y);
 	} else {
 		if (curve_data().size()) {
 			curve_data().append(curve_data().xvalues.back() + 1, y);
@@ -384,43 +386,25 @@ Curve_data &Curve::curve_data() {
     return static_cast<Curve_data &>(*curve->data());
 }
 
-class TimeScaleDraw : public QwtScaleDraw {
-	public:
-	TimeScaleDraw(Plot *parent)
-		: parent{parent} {}
-	QwtText label(double value) const override {
-		return parent->scale_start_time.addMSecs(value).time().toString();
-	}
-	Plot *parent;
-};
-
 class TimePicker : public QwtPlotPicker {
 	public:
-	TimePicker(QWidget *parent, Plot *plot)
-		: QwtPlotPicker{parent}
-		, plot{plot} {}
+	TimePicker(QWidget *parent)
+		: QwtPlotPicker{parent} {}
 	QwtText trackerTextF(const QPointF &point) const override {
-		const auto &time = plot ? plot->scale_start_time : scale_start_time;
-		if (time.isNull()) {
-			return QwtPlotPicker::trackerTextF(point);
+		if (scale_engine) {
+			return scale_engine->toDateTime(point.x()).toString() + "\n" + QString::number(point.y());
 		}
-		return time.addMSecs(point.x()).toString() + ", " + QString::number(point.y());
+		return QString::number(point.x()) + "\n" + QString::number(point.y());
 	}
-	void detach() {
-		//plot can disappear, but the picker should still work, so we have to make a local copy of the scale start time.
-		scale_start_time = plot->scale_start_time;
-		plot = nullptr;
-	}
-	Plot *plot;
-	QDateTime scale_start_time;
+	QwtDateScaleEngine *scale_engine = nullptr;
 };
 
 Plot::Plot(UI_container *parent)
     : UI_widget{parent}
     , plot(new QwtPlot)
-    , picker(new QwtPlotPicker(plot->canvas()))
-	, track_picker(new TimePicker(plot->canvas(), this))
-    , clicker(new QwtPickerClickPointMachine)
+	, picker(new QwtPlotPicker{plot->canvas()})
+	, track_picker(new TimePicker{plot->canvas()})
+	, clicker(new QwtPickerClickPointMachine)
     , tracker(new QwtPickerTrackerMachine) {
 	assert(currently_in_gui_thread());
     clicker->setState(clicker->PointSelection);
@@ -439,7 +423,6 @@ Plot::~Plot() {
         curve->detach();
         curve->plot = nullptr;
     }
-	track_picker->detach();
 	save_as_csv_action.release();
     //the plot was using xvalues and yvalues directly, but now they are gone
     //this is to make the plot own the data
@@ -495,9 +478,13 @@ void Plot::set_visible(bool visible) {
 	plot->setVisible(visible);
 }
 
-void Plot::set_time_scale(double time_offset_ms) {
-	scale_start_time = QDateTime::fromMSecsSinceEpoch(time_offset_ms);
-	plot->setAxisScaleDraw(QwtPlot::xBottom, new TimeScaleDraw{this});
+void Plot::set_time_scale() {
+	auto draw_engine = new QwtDateScaleEngine;
+	plot->setAxisScaleEngine(QwtPlot::Axis::xBottom, draw_engine);
+	plot->setAxisScaleDraw(QwtPlot::Axis::xBottom, new QwtDateScaleDraw);
+	using_time_scale = true;
+	track_picker->scale_engine = draw_engine;
+	plot->replot();
 }
 
 void Plot::update() {
