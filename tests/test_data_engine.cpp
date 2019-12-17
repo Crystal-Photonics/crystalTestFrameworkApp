@@ -291,7 +291,7 @@ void Test_Data_engine::check_non_faulty_field_id() {
 
     QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
-    QCOMPARE(de.get_desired_number("supply-voltage/voltage_test"), 5000);
+    QCOMPARE(de.get_desired_number("supply-voltage/voltage_test"), 5000.0);
     QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_value_as_string("supply-voltage"), DataEngineErrorNumber::faulty_field_id);
 
 #endif
@@ -1906,7 +1906,7 @@ void Test_Data_engine::test_instances_with_references() {
     QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_number("values/voltage_string"), DataEngineErrorNumber::desired_value_is_not_a_number);
     QVERIFY_EXCEPTION_THROWN_error_number(de.get_desired_number("references/voltage_ref_bool"), DataEngineErrorNumber::desired_value_is_not_a_number);
 
-    QCOMPARE(de.get_desired_number("references/voltage_ref_number"), 500);
+    QCOMPARE(de.get_desired_number("references/voltage_ref_number"), 500.0);
 
     de.set_actual_bool("references/voltage_ref_bool", true);
     de.set_actual_text("references/voltage_ref_string", "test123");
