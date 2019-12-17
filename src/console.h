@@ -67,7 +67,7 @@ struct Console_handle {
 		} else {
 			std::stringstream ss;
 			ss << t;
-			s << ss.str().c_str();
+			s << QString::fromStdString(ss.str());
 		}
 	}
 };

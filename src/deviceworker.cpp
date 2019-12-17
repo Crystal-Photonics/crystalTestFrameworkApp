@@ -474,13 +474,11 @@ void DeviceWorker::update_devices() {
 		}
 
 		{
-			auto item_text = QStringList{} << manual_device.commondata.device_name + " (" + manual_device.detail.serial_number + ")";
-
 			bool manual_devices_existing = device_meta_data.get_manual_devices().count() > 0;
 			//Utility::thread_call(MainWindow::mw, [this, manual_device, item_text, port_info, manual_devices_existing] {
 
-			std::unique_ptr<QTreeWidgetItem> *manual_parent_item = MainWindow::mw->get_manual_devices_parent_item();
-			if (manual_parent_item->get() == nullptr) {
+			QTreeWidgetItem *manual_parent_item = MainWindow::mw->get_manual_devices_parent_item();
+			if (manual_parent_item == nullptr) {
 				if (manual_devices_existing) {
 					//manual_parent_item = std::make_unique<QTreeWidgetItem>(QStringList{} << "Manual Devices");
 					//MainWindow::mw->set_manual_devices_parent_item(manual_parent_item);
@@ -488,10 +486,11 @@ void DeviceWorker::update_devices() {
 				}
 			}
 
-			QTreeWidgetItem *parent_item = manual_parent_item->get();
+			QTreeWidgetItem *parent_item = manual_parent_item;
 
+			const auto item_text = QStringList{} << manual_device.commondata.device_name + " (" + manual_device.detail.serial_number + ")";
 			auto ui_entry = std::make_unique<QTreeWidgetItem>(item_text);
-			auto ui_entry_p = ui_entry.release();
+			const auto ui_entry_p = ui_entry.release();
 
 			communication_devices.push_back(
 				PortDescription{std::make_unique<DummyCommunicationDevice>(), port_info, ui_entry_p, nullptr, CommunicationDeviceType::Manual});

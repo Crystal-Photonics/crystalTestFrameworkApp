@@ -16,17 +16,15 @@ namespace Utility {
 }
 class Plot;
 class QAction;
-class QColor;
-class QPointF;
-class QSplitter;
 class QwtPickerClickPointMachine;
 class QwtPickerTrackerMachine;
 class QwtPlot;
 class QwtPlotCurve;
 class QwtPlotPicker;
-struct Curve_data;
+class QwtScaleDraw;
 class UI_container;
-class TimePicker;
+struct Curve_data;
+struct TimePicker;
 
 /** \ingroup ui
 \{
@@ -411,7 +409,6 @@ class Plot : public UI_widget {
     Plot(Plot &&other) = delete;
     Plot &operator=(Plot &&other);
     ~Plot();
-	QDateTime scale_start_time;
 	///\endcond
 
 #ifdef DOXYGEN_ONLY
@@ -504,23 +501,22 @@ class Plot : public UI_widget {
 
 #ifdef DOXYGEN_ONLY
 	// this block is just for ducumentation purpose
-	set_time_scale(number time_offset_ms);
+	set_time_scale();
 #endif
 	/// \cond HIDDEN_SYMBOLS
-	void set_time_scale(double time_offset_ms);
+	void set_time_scale();
 	/// \endcond
 	// clang-format off
-  /*! \fn  set_time_scale(number time_offset_ms);
+  /*! \fn  set_time_scale();
 	  \brief Sets a time scale for the x axis instead of numbers.
-	  \param time_offset_ms the time in milliseconds to use as an offset for the x values. It usually makes sense to use the current time.
 	  \par examples:
 	  \code
 		local plot = Ui.Plot.new()
-		plot:set_time_scale(current_date_time_ms())
+		plot:set_time_scale()
 		local curve = plot:add_curve()
 		curve:append(11) --using current time as x value
-		curve:append_point(1000, 22) -- 1 second past start
-		curve:append_point(2000, 33) -- 2 seconds past start
+		curve:append_point(current_date_time_ms() + 1000, 22) -- 1 second past now
+		curve:append_point(current_date_time_ms() + 2000, 33) -- 2 seconds past now
 	  \endcode
   */
 	// clang-format on
@@ -538,6 +534,7 @@ class Plot : public UI_widget {
     QwtPickerTrackerMachine *tracker{nullptr};
     std::vector<Curve *> curves{};
     int curve_id_counter{0};
+	bool using_time_scale = false;
 
     friend class Curve;
     /// \endcond
