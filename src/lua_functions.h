@@ -31,6 +31,8 @@ void table_save_to_file(QPlainTextEdit *console, const std::string file_name, so
 sol::table table_load_from_file(QPlainTextEdit *console, sol::state &lua, const std::string file_name);
 uint16_t table_crc16(QPlainTextEdit *console, sol::table input_values);
 uint table_find_string(sol::table input_table, std::string search_text);
+bool table_contains_string(sol::table input_table, std::string search_text);
+
 double table_sum(sol::table input_values);
 double table_mean(sol::table input_values);
 double table_variance(sol::table input_values);
@@ -47,8 +49,10 @@ sol::table table_div_table(sol::state &lua, sol::table input_values_a, sol::tabl
 sol::table table_round(sol::state &lua, sol::table input_values, const unsigned int precision);
 sol::table table_abs(sol::state &lua, sol::table input_values);
 sol::table table_mid(sol::state &lua, sol::table input_values, const unsigned int start, const unsigned int length);
+sol::table table_range(sol::state &lua, double start, double stop, double step);
+sol::table table_concat(sol::state &lua, sol::table table1, sol::table table2);
 bool table_equal_constant(sol::table input_values_a, double input_const_val);
-bool table_equal_table(sol::table input_values_a, sol::table input_values_b);
+bool table_equal_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b);
 double table_max(sol::table input_values);
 double table_min(sol::table input_values);
 double table_max_abs(sol::table input_values);
