@@ -408,6 +408,17 @@ bool DeviceWorker::is_device_open(QTreeWidgetItem *item) {
     return false;
 }
 
+bool DeviceWorker::is_device_opening(QTreeWidgetItem *item) {
+    assert(currently_in_devices_thread());
+    for (auto &device : communication_devices) {
+        if (device.ui_entry == item) {
+            return device.device->isConnecting();
+        }
+    }
+    qDebug() << "Warning: Asking if a device is opening that was not found";
+    return false;
+}
+
 void device_worker_set_in_use(CommunicationDevice *com_device, bool in_use) {
     com_device->in_use = in_use;
 }

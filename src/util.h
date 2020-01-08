@@ -47,7 +47,7 @@ namespace Utility {
 			F f_;
 			bool canceled;
 		};
-	}
+	} // namespace impl
 	template <class F>
 	impl::RAII_Helper<F> RAII_do(F &&f) {
 		return impl::RAII_Helper<F>(std::forward<F>(f));
@@ -84,7 +84,7 @@ namespace Utility {
 
 	template <class... Args>
 	constexpr Overload_picker<Args...> pick_overload = {};
-}
+} // namespace Utility
 
 #ifdef __GNUC__
 #define PRETTY_FUNCTION __PRETTY_FUNCTION__
@@ -95,7 +95,7 @@ namespace Utility {
 #endif
 
 #define LOG()                                                                                                                                                  \
-	auto log_printer = Utility::RAII_do([ now = std::chrono::high_resolution_clock::now(), function = PRETTY_FUNCTION ] {                                                         \
+	auto log_printer = Utility::RAII_do([now = std::chrono::high_resolution_clock::now(), function = PRETTY_FUNCTION] {                                        \
 		static std::chrono::nanoseconds sum;                                                                                                                   \
 		const auto diff = std::chrono::high_resolution_clock::now() - now;                                                                                     \
 		sum += diff;                                                                                                                                           \

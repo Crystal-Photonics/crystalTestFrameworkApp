@@ -27,18 +27,21 @@ class EXPORT CommunicationDevice : public QObject {
     virtual ~CommunicationDevice() = default;
 
     virtual bool isConnected() = 0;
+    virtual bool isConnecting() {
+        return false;
+    }
     virtual bool waitReceived(Duration timeout = std::chrono::seconds(1), int bytes = 1, bool isPolling = false) = 0;
     virtual bool waitReceived(Duration timeout, std::string escape_characters, std::string leading_pattern_indicating_skip_line) = 0;
     virtual void send(const QByteArray &data, const QByteArray &displayed_data = {}) = 0;
     void send(const std::vector<unsigned char> &data, const std::vector<unsigned char> &displayed_data = {});
     virtual void close() = 0;
-	QString get_identifier_display_string() const;
+    QString get_identifier_display_string() const;
     bool is_waiting_for_message() const;
     void set_currently_in_wait_received(bool in_wait_received);
     virtual QString getName() = 0;
-	bool is_in_use() const;
+    bool is_in_use() const;
     const QMap<QString, QVariant> &get_port_info();
-	virtual bool connect(const QMap<QString, QVariant> &portinfo_) = 0;
+    virtual bool connect(const QMap<QString, QVariant> &portinfo_) = 0;
     QString proposed_alias{};
 
     signals:
@@ -52,12 +55,12 @@ class EXPORT CommunicationDevice : public QObject {
     void read_ready();
 
     protected:
-	bool currently_in_waitReceived;
+    bool currently_in_waitReceived;
     QMap<QString, QVariant> portinfo;
-	friend void device_worker_set_in_use(CommunicationDevice *com_device, bool in_use);
+    friend void device_worker_set_in_use(CommunicationDevice *com_device, bool in_use);
 
-	private:
-	std::atomic<bool> in_use{false};
+    private:
+    std::atomic<bool> in_use{false};
 };
 
 #endif // COMMUNICATIONDEVICE_H

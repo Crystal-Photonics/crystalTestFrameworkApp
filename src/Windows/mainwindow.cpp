@@ -586,9 +586,7 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
                 console = dynamic_cast<PlainTextEdit *>(ui->console_tabs->widget(index));
             }
             device_worker->connect_to_device_console(console, communication_device);
-            child->setForeground(GUI::Devices::description, Qt::red);
-            connect(communication_device, &CommunicationDevice::connected,
-                    [child] { Utility::thread_call(MainWindow::mw, [child] { child->setForeground(GUI::Devices::description, Qt::yellow); }); });
+            child->setForeground(GUI::Devices::description, Qt::darkBlue);
             connect(communication_device, &CommunicationDevice::read_ready,
                     [child] { Utility::thread_call(MainWindow::mw, [child] { child->setForeground(GUI::Devices::description, Qt::black); }); });
             connect(communication_device, &CommunicationDevice::disconnected, [child] {
@@ -1565,7 +1563,11 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
     if (Utility::promised_thread_call(device_worker.get(), [this, item] { return device_worker->is_device_open(item); })) {
         menu.addAction(&action_close_device);
     } else {
-        menu.addAction(&action_open_device);
+        if (not Utility::promised_thread_call(device_worker.get(), [this, item] { return device_worker->is_device_opening(item); })) {
+            menu.addAction(&action_open_device);
+        } else {
+            return;
+        }
     }
 
     menu.exec(ui->devices_list->mapToGlobal(pos));

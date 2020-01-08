@@ -32,6 +32,10 @@ bool ComportCommunicationDevice::isConnected() {
     return Utility::promised_thread_call(this, [this] { return port.isOpen(); });
 }
 
+bool ComportCommunicationDevice::isConnecting() {
+    return port.thread() != QThread::currentThread();
+}
+
 bool ComportCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo_) {
     return Utility::promised_thread_call(this, [this, portinfo_] {
         this->portinfo = portinfo_;
