@@ -15,7 +15,6 @@ namespace Utility {
     class Event_filter;
 }
 class Plot;
-class QAction;
 class QwtPickerClickPointMachine;
 class QwtPickerTrackerMachine;
 class QwtPlot;
@@ -25,6 +24,7 @@ class QwtScaleDraw;
 class UI_container;
 struct Curve_data;
 struct TimePicker;
+struct Zoomer_controller;
 
 /** \ingroup ui
 \{
@@ -38,7 +38,7 @@ class Curve {
     ///\cond HIDDEN_SYMBOLS
     Curve(UI_container *, ScriptEngine *script_engine, Plot *plot);
     Curve(Curve &&other) = delete;
-	~Curve();
+    ~Curve();
     void add(const std::vector<double> &data);
     ///\endcond
 
@@ -67,14 +67,14 @@ class Curve {
   */
     // clang-format on
 
-	///\cond HIDDEN_SYMBOLS
-	void append(double y);
-	///\endcond
+    ///\cond HIDDEN_SYMBOLS
+    void append(double y);
+    ///\endcond
 #ifdef DOXYGEN_ONLY
-	// this block is just for ducumentation purpose
-	append(double y);
+    // this block is just for ducumentation purpose
+    append(double y);
 #endif
-	// clang-format off
+    // clang-format off
   /*! \fn  append(double y);
 	\brief Appends a point to a curve. The y coordinate of the point is given via parameter. The x coordinate of the point is 1 more than the previous point or 0 if the curve is empty.
 	\param y Double value of the y position.
@@ -90,9 +90,9 @@ class Curve {
 		-- plots a horizontal line with points (0,1) and (1,1)
 	\endcode
   */
-	// clang-format on
+    // clang-format on
 
-	///\cond HIDDEN_SYMBOLS
+    ///\cond HIDDEN_SYMBOLS
     void add_spectrum_at(const unsigned int spectrum_start_channel, const std::vector<double> &data);
     ///\endcond
 #ifdef DOXYGEN_ONLY
@@ -398,7 +398,7 @@ class Curve {
 
 /** \ingroup ui
     \class  Plot
-    \brief  An interface to a plot object.
+    \brief  An interface to a plot object. Use mouse drag, mouse wheel, +, -, page up/down and shift+drag to navigate the plot. Use the home, end or middle mouse button to reset to view the whole graph.
     \sa Curve
 */
 
@@ -409,7 +409,7 @@ class Plot : public UI_widget {
     Plot(Plot &&other) = delete;
     Plot &operator=(Plot &&other);
     ~Plot();
-	///\endcond
+    ///\endcond
 
 #ifdef DOXYGEN_ONLY
     // this block is just for ducumentation purpose
@@ -500,13 +500,13 @@ class Plot : public UI_widget {
     // clang-format on
 
 #ifdef DOXYGEN_ONLY
-	// this block is just for ducumentation purpose
-	set_time_scale();
+    // this block is just for ducumentation purpose
+    set_time_scale();
 #endif
-	/// \cond HIDDEN_SYMBOLS
-	void set_time_scale();
-	/// \endcond
-	// clang-format off
+    /// \cond HIDDEN_SYMBOLS
+    void set_time_scale();
+    /// \endcond
+    // clang-format off
   /*! \fn  set_time_scale();
 	  \brief Sets a time scale for the x axis instead of numbers.
 	  \par examples:
@@ -519,22 +519,23 @@ class Plot : public UI_widget {
 		curve:append_point(current_date_time_ms() + 2000, 33) -- 2 seconds past now
 	  \endcode
   */
-	// clang-format on
+    // clang-format on
 
-	private:
+    private:
     /// \cond HIDDEN_SYMBOLS
     void update();
-    void set_rightclick_action();
+    void value_added(double x, double y);
+    void curve_added(Curve *curve);
 
     QwtPlot *plot{nullptr};
-	std::unique_ptr<QAction> save_as_csv_action;
     QwtPlotPicker *picker{nullptr};
-	TimePicker *track_picker{nullptr};
+    TimePicker *track_picker{nullptr};
     QwtPickerClickPointMachine *clicker{nullptr};
     QwtPickerTrackerMachine *tracker{nullptr};
     std::vector<Curve *> curves{};
     int curve_id_counter{0};
-	bool using_time_scale = false;
+    bool using_time_scale = false;
+    Zoomer_controller *zoomer_controller;
 
     friend class Curve;
     /// \endcond
