@@ -45,6 +45,14 @@ namespace Utility {
         std::vector<std::function<bool(QEvent *)>> callbacks;
     };
 
+    template <class T>
+    T async_get(std::future<T> &&future) {
+        while (future.wait_for(std::chrono::milliseconds{16}) == std::future_status::timeout) {
+            QApplication::processEvents();
+        }
+        return future.get();
+    }
+
     /*************************************************************************************************************************
        The rest of this header is just the implementation for the templates above, don't read if you are alergic to templates.
      *************************************************************************************************************************/
@@ -78,7 +86,7 @@ namespace Utility {
                 } catch (const std::exception &e) {
                     //qDebug() << e.what();
                     if (script_engine_to_terminate_on_exception__) {
-						interrupt_script_engine(script_engine_to_terminate_on_exception__, QString::fromStdString(e.what()));
+                        interrupt_script_engine(script_engine_to_terminate_on_exception__, QString::fromStdString(e.what()));
                         //assert(!"Must not leak exceptions to qt message queue");
                         //std::terminate();
                     } else {
@@ -108,7 +116,6 @@ namespace Utility {
     template <class Fun>
     auto promised_thread_call(QObject *object, Fun &&f) -> decltype(f()) {
         std::promise<decltype(f())> promise;
-        auto future = promise.get_future();
         thread_call(object, [&f, &promise] {
             try {
                 Utility::ValueSetter<decltype(f()), Fun>::set_value(promise, std::forward<Fun>(f));
@@ -116,10 +123,7 @@ namespace Utility {
                 promise.set_exception(std::current_exception());
             }
         });
-        while (future.wait_for(std::chrono::milliseconds{16}) == std::future_status::timeout) {
-            QApplication::processEvents();
-        }
-        return future.get();
+        return async_get(promise.get_future());
     }
     struct Qt_thread : QObject {
         Q_OBJECT
@@ -130,7 +134,7 @@ namespace Utility {
         void adopt(QObject &object);
         void start(QThread::Priority priority = QThread::InheritPriority);
         bool wait(unsigned long time = ULONG_MAX);
-		void message_queue_join();
+        void message_queue_join();
         void requestInterruption();
         bool isRunning() const;
         bool is_current() const;

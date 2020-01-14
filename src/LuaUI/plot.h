@@ -336,10 +336,10 @@ class Curve {
     ///\endcond
 #ifdef DOXYGEN_ONLY
     // this block is just for ducumentation purpose
-    double user_pick_x_coord();
+    double pick_x_coord();
 #endif
     // clang-format off
-  /*! \fn double user_pick_x_coord();
+  /*! \fn double pick_x_coord();
     \brief waits until the user has clicked on the plot. Then it returns the x value of the
     point the user has clicked at. This function can be used to let the user identify e.g.
     a peak inside a \glos{spectrum}.
@@ -348,7 +348,7 @@ class Curve {
         local plot = Ui.Plot.new()
         local curve = plot:add_curve()
         curve:add_spectrum({1,2,3,4,5,6,7,8,9,10,1}) -- plots a sawtooth
-        local result = curve:user_pick_x_coord() --waits until user clicks at the plot
+        local result = curve:pick_x_coord() --waits until user clicks at the plot
         print("x-value: "..result)
     \endcode
   */
