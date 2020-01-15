@@ -484,6 +484,7 @@ struct Zoomer_controller : QObject {
                 }
                 if (mouse_event->buttons() == Qt::MouseButton::MiddleButton) {
                     zoom_to_home();
+                    return true;
                 }
             } break;
             case QEvent::MouseButtonRelease: {
@@ -516,6 +517,11 @@ struct Zoomer_controller : QObject {
                     });
                     menu.addAction(&action_run);
                     menu.exec(mouse_event->globalPos());
+                    return true;
+                }
+                if (mouse_event->button() == Qt::MouseButton::MiddleButton) {
+                    //Doesn't do anything, but is important to return true, otherwise the event is handled by other event handlers and we scroll wrong
+                    return true;
                 }
             } break;
             case QEvent::MouseMove: {
@@ -593,7 +599,6 @@ Plot::Plot(UI_container *parent)
     auto zoomer = new QwtPlotZoomer{plot->canvas()};
     zoomer->setMousePattern(QwtEventPattern::MouseSelect1, Qt::MouseButton::LeftButton, Qt::ShiftModifier);
     plot->canvas()->installEventFilter(zoomer_controller = new Zoomer_controller(zoomer));
-    plot->addAction(new QAction{});
 }
 
 Plot::~Plot() {
