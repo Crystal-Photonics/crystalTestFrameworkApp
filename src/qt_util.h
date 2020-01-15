@@ -17,6 +17,7 @@ class ScriptEngine;
 class QTabWidget;
 
 void interrupt_script_engine(ScriptEngine *script_engine, QString message = {});
+bool in_closing_gui_thread();
 
 namespace Utility {
     QFrame *add_handle(QSplitter *splitter);
@@ -48,6 +49,9 @@ namespace Utility {
     template <class T>
     T async_get(std::future<T> &&future) {
         while (future.wait_for(std::chrono::milliseconds{16}) == std::future_status::timeout) {
+            if (QThread::currentThread()->isInterruptionRequested() || in_closing_gui_thread()) {
+                throw std::runtime_error{"Interrupted"};
+            }
             QApplication::processEvents();
         }
         return future.get();
@@ -75,8 +79,8 @@ namespace Utility {
 
         struct Event : public QEvent {
             ScriptEngine *script_engine_to_terminate_on_exception__ = nullptr;
-            std::function<void()> fun;
-            Event(std::function<void()> fun, ScriptEngine *script_engine_to_terminate_on_exception_)
+            Fun fun;
+            Event(Fun fun, ScriptEngine *script_engine_to_terminate_on_exception_)
                 : QEvent(QEvent::User)
                 , script_engine_to_terminate_on_exception__{script_engine_to_terminate_on_exception_}
                 , fun{std::move(fun)} {}
@@ -100,30 +104,22 @@ namespace Utility {
     }
 
     template <class Fun>
-    struct ValueSetter<void, Fun> {
-        static void set_value(std::promise<void> &p, Fun &&f) {
-            std::forward<Fun>(f)();
-            p.set_value();
-        }
-    };
-    template <class T, class Fun>
-    struct ValueSetter {
-        static void set_value(std::promise<T> &p, Fun &&f) {
-            p.set_value(std::forward<Fun>(f)());
-        }
-    };
-
-    template <class Fun>
     auto promised_thread_call(QObject *object, Fun &&f) -> decltype(f()) {
         std::promise<decltype(f())> promise;
-        thread_call(object, [&f, &promise] {
+        auto future = promise.get_future();
+        thread_call(object, [f = std::move(f), promise = std::move(promise)]() mutable {
             try {
-                Utility::ValueSetter<decltype(f()), Fun>::set_value(promise, std::forward<Fun>(f));
+                if constexpr (std::is_same_v<decltype(f()), void>) {
+                    f();
+                    promise.set_value();
+                } else {
+                    promise.set_value(f());
+                }
             } catch (...) {
                 promise.set_exception(std::current_exception());
             }
         });
-        return async_get(promise.get_future());
+        return async_get(std::move(future));
     }
     struct Qt_thread : QObject {
         Q_OBJECT

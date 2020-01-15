@@ -291,6 +291,9 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
     }
     for (auto &thread : threads) {
         while (thread.wait_for(std::chrono::milliseconds{16}) == std::future_status::timeout) {
+            if (QThread::currentThread()->isInterruptionRequested()) {
+                throw sol::error("interrupted");
+            }
             QApplication::processEvents();
         }
     }
