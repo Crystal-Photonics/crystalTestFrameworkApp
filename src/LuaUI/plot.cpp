@@ -19,6 +19,7 @@
 #include <QtGlobal>
 #include <chrono>
 #include <fstream>
+#include <iomanip>
 #include <qwt_date_scale_draw.h>
 #include <qwt_date_scale_engine.h>
 #include <qwt_picker_machine.h>
@@ -33,9 +34,10 @@ using namespace std::chrono;
 
 struct Curve_data : QwtSeriesData<QPointF> {
     size_t size() const override;
-    QPointF sample(size_t i) const override;
+    QPointF sample(std::size_t i) const override;
     QRectF boundingRect() const override;
 
+    std::pair<double, double> point_at(std::size_t i) const;
     void append(double x, double y);
     void resize(std::size_t size);
     void add(const std::vector<double> &data);
@@ -77,6 +79,13 @@ QPointF Curve_data::sample(size_t i) const {
 
 QRectF Curve_data::boundingRect() const {
     return bounding_rect;
+}
+
+std::pair<double, double> Curve_data::point_at(std::size_t i) const {
+    assert(i < xvalues.size());
+    assert(i < yvalues_plot.size());
+    assert(i < yvalues_orig.size());
+    return {xvalues[i], yvalues_orig[i]};
 }
 
 void Curve_data::append(double x, double y) {
@@ -493,27 +502,51 @@ struct Zoomer_controller : QObject {
                     QMenu menu;
                     QAction action_run(tr("Save as .csv"));
                     connect(&action_run, &QAction::triggered, [this] {
-                        const QString last_dir = QSettings{}.value(Globals::last_csv_saved_directory_key, QDir::currentPath()).toString();
-                        auto dir = QFileDialog::getExistingDirectory(plot(), QObject::tr("Select folder to save data in"), last_dir);
-                        if (dir.isEmpty()) {
-                            return true;
+                        const auto last_dir = QDir{QSettings{}.value(Globals::last_csv_saved_directory_key, QDir::currentPath()).toString()};
+                        qDebug() << "Last dir:" << QSettings{}.value(Globals::last_csv_saved_directory_key, QDir::currentPath()).toString();
+                        const auto filename = QFileDialog::getSaveFileName(MainWindow::mw, tr("Select file to save plot data in"),
+                                                                           last_dir.filePath(curves.front()->title().text() + ".csv"), "CSV (*.csv)");
+                        if (filename.isEmpty()) {
+                            return;
                         }
-                        QSettings{}.setValue(Globals::last_csv_saved_directory_key, dir);
+                        auto new_dir = QDir{filename};
+                        new_dir.cdUp();
+                        qDebug() << "New dir:" << new_dir.path();
+                        QSettings{}.setValue(Globals::last_csv_saved_directory_key, new_dir.path());
+                        std::ofstream f{filename.toStdString()};
+                        std::size_t elements = 0;
+
+                        //formatting constants
+                        const char separator = ',';
+                        const auto max_precision = 17;
+
                         for (auto &curve : curves) {
-                            auto filename = QDir(dir).filePath(curve->title().text() + ".csv");
-                            std::ofstream f{filename.toStdString()};
-                            auto data = curve->data();
-                            auto size = data->size();
-                            for (std::size_t i = 0; i < size; i++) {
-                                const auto &point = data->sample(i);
-                                f << point.x() << ';' << point.y() << '\n';
-                            }
-                            f.flush();
-                            if (!f) {
-                                QMessageBox::critical(plot(), QObject::tr("Error"), QObject::tr("Failed writing to file %1").arg(filename));
-                            }
+                            elements = std::max(elements, curve->data()->size());
+                            f << curve->title().text().toStdString() << separator << Color(curve->pen().color().rgb()).name() << separator;
                         }
-                        return true;
+                        f << '\n' << std::fixed << std::setprecision(max_precision);
+                        for (std::size_t i = 0; i < elements; i++) {
+                            for (auto &curve : curves) {
+                                const auto data = dynamic_cast<Curve_data *>(curve->data());
+                                assert(data);
+                                const auto size = data->size();
+                                if (i < size) {
+                                    const auto [x, y] = data->point_at(i);
+                                    if (using_time_scale) {
+                                        f << std::setprecision(3) << x / 1000. << std::setprecision(max_precision) << separator << y << separator;
+                                    } else {
+                                        f << x << separator << y << separator;
+                                    }
+                                } else {
+                                    f << separator << separator;
+                                }
+                            }
+                            f << '\n';
+                        }
+                        f.flush();
+                        if (not f) {
+                            QMessageBox::critical(plot(), QObject::tr("Error"), QObject::tr("Failed writing to file %1").arg(filename));
+                        }
                     });
                     menu.addAction(&action_run);
                     menu.exec(mouse_event->globalPos());
@@ -561,6 +594,7 @@ struct Zoomer_controller : QObject {
     }
 
     std::vector<QwtPlotCurve *> curves;
+    bool using_time_scale = false;
 
     private:
     QwtPlot *plot() const {
@@ -664,7 +698,7 @@ void Plot::set_time_scale() {
     auto draw_engine = new QwtDateScaleEngine;
     plot->setAxisScaleEngine(QwtPlot::Axis::xBottom, draw_engine);
     plot->setAxisScaleDraw(QwtPlot::Axis::xBottom, new QwtDateScaleDraw);
-    using_time_scale = true;
+    using_time_scale = zoomer_controller->using_time_scale = true;
     track_picker->scale_engine = draw_engine;
     plot->replot();
 }

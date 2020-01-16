@@ -27,8 +27,8 @@ struct Color {
 /*! \fn Color(string name)
     \brief Creates a color by name.
     \param name Name as string of the color.
-    Names are described in:<br>
-    <a href="https://www.w3.org/wiki/CSS/Properties/color/keywords">www.w3.org/wiki/CSS/Properties/color/keywords</a><br>
+    The color names are listed in section "Extended colors" of:<br>
+    <a href="https://www.w3.org/wiki/CSS/Properties/color/keywords#Extended_colors">www.w3.org/wiki/CSS/Properties/color/keywords</a><br>
      \sa Curve::set_color()
      \sa Plot::set_x_marker()
      \par examples:
@@ -44,13 +44,13 @@ struct Color {
     // clang-format on
 #ifdef DOXYGEN_ONLY
     // this block is just for ducumentation purpose
-    Color(int r, int g, int b);
+    Color(number r, number g, number b);
 #endif
     /// \cond HIDDEN_SYMBOLS
-    Color(int r, int g, int b);
+    Color(unsigned int r, unsigned int g, unsigned int b);
     /// \endcond
     // clang-format off
-/*! \fn Color(int r, int g, int b)
+/*! \fn Color(number r, number g, number b)
     \brief Creates a color by rgb values.
     \param r Red integer value(0-255).
     \param g Green integer value(0-255).
@@ -71,13 +71,13 @@ struct Color {
     // clang-format on
 #ifdef DOXYGEN_ONLY
     // this block is just for ducumentation purpose
-    Color(int rgb);
+    Color(number rgb);
 #endif
     /// \cond HIDDEN_SYMBOLS
-    Color(int rgb);
+    Color(unsigned int rgb);
     /// \endcond
     // clang-format off
-/*! \fn Color(int rgb)
+/*! \fn Color(number rgb)
     \brief Creates a color by rgb values.
     \param rgb Integer value of the usual rgb color bitmask.
     \sa set_color_by_name()
@@ -94,7 +94,8 @@ struct Color {
     \endcode
 */
   ///\cond HIDDEN_SYMBOLS
-  int rgb{};
+  unsigned int rgb{};
+  std::string name() const;
   ///\endcond
 };
 /** \} */ // end of group ui

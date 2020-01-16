@@ -1300,7 +1300,6 @@ void MainWindow::on_console_tabs_customContextMenuRequested(const QPoint &pos) {
 }
 
 void MainWindow::poll_sg04_counts() {
-#if 1
     assert(currently_in_gui_thread());
     QString sg04_prot_string = "SG04Count";
 
@@ -1322,7 +1321,6 @@ void MainWindow::poll_sg04_counts() {
     }
 
     QTimer::singleShot(500, this, &MainWindow::poll_sg04_counts);
-#endif
 }
 
 void MainWindow::on_actionDummy_Data_Creator_for_print_templates_triggered() {

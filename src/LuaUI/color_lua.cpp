@@ -32,11 +32,11 @@ void bind_color(sol::table &ui_table, ScriptEngine &script_engine, UI_container 
             abort_check();
             return Color{name};
         },
-        +[](int r, int g, int b) {
+        +[](unsigned int r, unsigned int g, unsigned int b) {
             abort_check();
             return Color{r, g, b};
         }, //
-        +[](int rgb) {
+        +[](unsigned int rgb) {
             abort_check();
             return Color{rgb};
         } //
