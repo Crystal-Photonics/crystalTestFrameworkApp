@@ -50,7 +50,7 @@ void bind_plot(sol::table &ui_table, ScriptEngine &script_engine, UI_container *
         "set_x_axis_offset", thread_call_wrapper(&Curve::set_x_axis_offset),           //
         "get_y_values_as_array", non_gui_call_wrapper(&Curve::get_y_values_as_array),  //
         "set_color", thread_call_wrapper(&Curve::set_color),                           //
-        "pick_x_coord", thread_call_wrapper(&Curve::pick_x_coord)                      //
+        "pick_x_coord", non_gui_call_wrapper(&Curve::pick_x_coord)                     //
     );
     ui_table.new_usertype<Lua_UI_Wrapper<Plot>>(
         "Plot", //

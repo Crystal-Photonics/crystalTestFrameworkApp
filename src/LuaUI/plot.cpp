@@ -212,7 +212,7 @@ Curve::Curve(UI_container *, ScriptEngine *script_engine, Plot *plot)
     : plot(plot)
     , curve(new QwtPlotCurve)
     , event_filter(new Utility::Event_filter(plot->plot->canvas()))
-    , script_engine_{script_engine} {
+    , script_engine{script_engine} {
     assert(currently_in_gui_thread());
     curve->attach(plot->plot);
     curve->setTitle("curve" + QString::number(plot->curve_id_counter++));
@@ -234,7 +234,13 @@ Curve::~Curve() {
 }
 
 void Curve::add(const std::vector<double> &data) {
+    if (data.empty()) {
+        return;
+    }
     curve_data().add(data);
+    //TODO: This is a hack. value_added exists so we scroll correctly, so adding the front and back only is fine. If it starts getting used for something else this will become wrong.
+    plot->value_added(curve_data().xvalues.front(), curve_data().yvalues_orig.front());
+    plot->value_added(curve_data().xvalues.back(), curve_data().yvalues_orig.back());
     update();
 }
 
@@ -258,6 +264,9 @@ void Curve::append(double y) {
 
 void Curve::add_spectrum_at(const unsigned int spectrum_start_channel, const std::vector<double> &data) {
     curve_data().add_spectrum(spectrum_start_channel, data);
+    //TODO: This is a hack. value_added exists so we scroll correctly, so adding the front and back only is fine. If it starts getting used for something else this will become wrong.
+    plot->value_added(curve_data().xvalues.front(), curve_data().yvalues_orig.front());
+    plot->value_added(curve_data().xvalues.back(), curve_data().yvalues_orig.back());
     update();
 }
 
@@ -311,18 +320,13 @@ double Curve::integrate_ci(double integral_start_ci, double integral_end_ci) {
 }
 
 sol::table Curve::get_y_values_as_array() {
-#if 1
-
     const auto &yvalues_plot = curve_data().get_plot_data();
 
-    auto retval = script_engine_->create_table();
+    auto retval = script_engine->create_table();
     for (auto val : yvalues_plot) {
         retval.add(val);
     }
     return retval;
-#else
-    return {};
-#endif
 }
 
 void Curve::set_median_enable(bool enable) {
@@ -344,24 +348,28 @@ void Curve::set_color(const Color &color) {
 }
 
 double Curve::pick_x_coord() {
-    std::promise<double> x_selection_promise;
-    set_onetime_click_callback([&x_selection_promise](double x, [[maybe_unused]] double y) { x_selection_promise.set_value(x); });
-    return Utility::async_get(x_selection_promise.get_future());
-}
-
-void Curve::set_onetime_click_callback(std::function<void(double, double)> click_callback) {
-    event_filter->add_callback([callback = std::move(click_callback), this](QEvent *event) {
-        if (event->type() == QEvent::MouseButtonPress) {
-            auto mouse_event = static_cast<QMouseEvent *>(event);
-            const auto &pixel_pos = mouse_event->pos();
-            auto x_pos = plot->plot->invTransform(QwtPlot::xBottom, pixel_pos.x());
-            auto y_pos = plot->plot->invTransform(QwtPlot::yLeft, pixel_pos.y());
-            callback(x_pos, y_pos);
-            event_filter->clear();
-            return true;
+    assert(not currently_in_gui_thread());
+    QMetaObject::Connection callback_connection;
+    double xcoord;
+    bool clicked = false;
+    auto connector = Utility::RAII_do(
+        [&callback_connection, this, &xcoord, &clicked] {
+            callback_connection = QObject::connect(plot, &Plot::point_clicked, [this, &xcoord, &clicked](QPointF point) {
+                clicked = true;
+                xcoord = point.x();
+                script_engine->post_ui_event();
+            });
+        },
+        [&callback_connection] { QObject::disconnect(callback_connection); });
+    while (true) {
+        const auto event = script_engine->await_ui_event();
+        if (clicked) {
+            return xcoord;
         }
-        return false;
-    });
+        if (event == Event_id::interrupted) {
+            throw std::runtime_error{"interrupted"};
+        }
+    }
 }
 
 void Curve::update() {
@@ -412,8 +420,9 @@ static QRectF &operator/=(QRectF &rect, double value) {
 }
 
 struct Zoomer_controller : QObject {
-    Zoomer_controller(QwtPlotZoomer *zoomer)
+    Zoomer_controller(QwtPlotZoomer *zoomer, Plot *parent_plot)
         : QObject{zoomer->plot()}
+        , parent_plot{parent_plot}
         , zoomer{zoomer} {}
     bool eventFilter(QObject *watched, QEvent *event) override final {
         const auto zoom_factor = 1.25;
@@ -488,6 +497,9 @@ struct Zoomer_controller : QObject {
                         const auto mouse_drag_start_coordinate = mouse_event->globalPos();
                         plot_drag_start_coordinate = mouse_coords_to_plot_coords(mouse_drag_start_coordinate);
                         plot_start_coordinate = zoomer->zoomRect().topLeft();
+                        if (parent_plot) {
+                            parent_plot->point_clicked(plot_drag_start_coordinate);
+                        }
                         return true;
                     }
                 }
@@ -594,6 +606,7 @@ struct Zoomer_controller : QObject {
     }
 
     std::vector<QwtPlotCurve *> curves;
+    Plot *parent_plot; //Note: This becomes nullptr after the script stops, do not rely on this pointer to be valid.
     bool using_time_scale = false;
 
     private:
@@ -632,7 +645,7 @@ Plot::Plot(UI_container *parent)
     track_picker->setTrackerMode(QwtPicker::AlwaysOn);
     auto zoomer = new QwtPlotZoomer{plot->canvas()};
     zoomer->setMousePattern(QwtEventPattern::MouseSelect1, Qt::MouseButton::LeftButton, Qt::ShiftModifier);
-    plot->canvas()->installEventFilter(zoomer_controller = new Zoomer_controller(zoomer));
+    plot->canvas()->installEventFilter(zoomer_controller = new Zoomer_controller(zoomer, this));
 }
 
 Plot::~Plot() {
@@ -642,6 +655,7 @@ Plot::~Plot() {
         curve->detach();
         curve->plot = nullptr;
     }
+    zoomer_controller->parent_plot = nullptr;
 }
 
 void Plot::clear() {

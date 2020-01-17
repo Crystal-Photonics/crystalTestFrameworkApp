@@ -376,9 +376,6 @@ class Curve {
   */
     // clang-format on
 
-    ///\cond HIDDEN_SYMBOLS
-    void set_onetime_click_callback(std::function<void(double, double)> click_callback);
-    ///\endcond
     private:
     ///\cond HIDDEN_SYMBOLS
 
@@ -392,7 +389,7 @@ class Curve {
     Utility::Event_filter *event_filter{nullptr};
     ///\endcond
     friend class Plot;
-    ScriptEngine *script_engine_;
+    ScriptEngine *script_engine;
 };
 /** \} */ // end of group ui
 
@@ -402,7 +399,9 @@ class Curve {
     \sa Curve
 */
 
-class Plot : public UI_widget {
+class Plot : public QObject, public UI_widget {
+    Q_OBJECT
+
     public:
     ///\cond HIDDEN_SYMBOLS
     Plot(UI_container *parent);
@@ -520,6 +519,9 @@ class Plot : public UI_widget {
 	  \endcode
   */
     // clang-format on
+
+    signals:
+    void point_clicked(QPointF point);
 
     private:
     /// \cond HIDDEN_SYMBOLS
