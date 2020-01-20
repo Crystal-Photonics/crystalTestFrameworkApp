@@ -587,7 +587,7 @@ void MainWindow::add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem 
             }
             device_worker->connect_to_device_console(console, communication_device);
             child->setForeground(GUI::Devices::description, Qt::darkBlue);
-            connect(communication_device, &CommunicationDevice::read_ready,
+            connect(communication_device, &CommunicationDevice::connected,
                     [child] { Utility::thread_call(MainWindow::mw, [child] { child->setForeground(GUI::Devices::description, Qt::black); }); });
             connect(communication_device, &CommunicationDevice::disconnected, [child] {
                 Utility::thread_call(MainWindow::mw, [child] {
