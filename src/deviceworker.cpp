@@ -444,7 +444,7 @@ QString DeviceWorker::get_manual(QTreeWidgetItem *item) {
     assert(currently_in_devices_thread());
     for (auto &device : communication_devices) {
         if (device.ui_entry == item) {
-            return device.protocol->get_manual();
+            return device.protocol ? device.protocol->get_manual() : QString{};
         }
     }
     qDebug() << "Warning: Failed to find Device for item" << item;

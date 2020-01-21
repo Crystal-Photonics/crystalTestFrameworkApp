@@ -102,9 +102,7 @@ SCPIProtocol::SCPIProtocol(CommunicationDevice &device, DeviceProtocolSetting se
 }
 
 SCPIProtocol::~SCPIProtocol() {
-    assert(connection);
-    auto result = QObject::disconnect(connection);
-    assert(result);
+    QObject::disconnect(connection);
 }
 
 QStringList SCPIProtocol::parse_scpi_answers() {

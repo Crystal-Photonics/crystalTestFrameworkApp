@@ -1561,7 +1561,6 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
     QAction manual_action(tr("Open Manual"));
     QString manual = Utility::promised_thread_call(device_worker.get(), [this, item] { return device_worker->get_manual(item); });
     if (not manual.isEmpty()) {
-        qDebug() << "opening manual" << QFileInfo(manual).absoluteFilePath();
         connect(&manual_action, &QAction::triggered, [this, &manual] {
             const auto file_info = QFileInfo(manual);
             const auto file_name = file_info.absoluteFilePath();
