@@ -43,7 +43,7 @@ QString DeviceMetaDataDetail::get_approved_state_str() {
         case DeviceMetaDataApprovedState::Expired:
             return "calibration expired";
     }
-	return "Error";
+    return "Error";
 }
 
 void DeviceMetaData::reload(QString file_name) {
@@ -51,14 +51,9 @@ void DeviceMetaData::reload(QString file_name) {
 }
 
 DeviceMetaDataGroup DeviceMetaData::query(QString serial_number, QString device_name) const {
-    bool look_for_serial;
+    const bool look_for_serial = serial_number.count();
     DeviceMetaDataGroup result{};
 
-    if (serial_number.count()) {
-        look_for_serial = true;
-    } else {
-        look_for_serial = false;
-    }
     for (auto t : device_types) {
         if (look_for_serial) {
             for (auto d : t.devices) {
@@ -67,14 +62,14 @@ DeviceMetaDataGroup DeviceMetaData::query(QString serial_number, QString device_
                         result = t;
                         result.devices.clear();
                         result.devices.append(d);
-                        break;
+                        return result;
                     }
                 }
             }
         } else {
             if (t.commondata.device_name == device_name) {
                 result = t;
-                break;
+                return result;
             }
         }
     }
@@ -102,19 +97,19 @@ void DeviceMetaData::parse_meta_data_file(QString file_name) {
 
     QFile file;
 
-	if ((file_name == "") || (QFile::exists(file_name) == false)) {
-		Utility::thread_call(MainWindow::mw, [file_name] {
-			QMessageBox::warning(MainWindow::mw, "Can't open measurement equipment meta data file",
-								 "Can't open measurement equipment meta data file: " + file_name);
+    if ((file_name == "") || (QFile::exists(file_name) == false)) {
+        Utility::thread_call(MainWindow::mw, [file_name] {
+            QMessageBox::warning(MainWindow::mw, "Can't open measurement equipment meta data file",
+                                 "Can't open measurement equipment meta data file: " + file_name);
         });
         return;
     }
     file.setFileName(file_name);
 
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-		Utility::thread_call(MainWindow::mw, [file_name] {
-			QMessageBox::warning(MainWindow::mw, "Can't open measurement equipment meta data file",
-								 "Can't open measurement equipment meta data file: " + file_name);
+        Utility::thread_call(MainWindow::mw, [file_name] {
+            QMessageBox::warning(MainWindow::mw, "Can't open measurement equipment meta data file",
+                                 "Can't open measurement equipment meta data file: " + file_name);
         });
         return;
     }
@@ -122,7 +117,7 @@ void DeviceMetaData::parse_meta_data_file(QString file_name) {
     file.close();
     QJsonDocument j_doc = QJsonDocument::fromJson(json_string.toUtf8());
     if (j_doc.isNull()) {
-		Utility::thread_call(MainWindow::mw, [file_name] {
+        Utility::thread_call(MainWindow::mw, [file_name] {
             QMessageBox::warning(MainWindow::mw, "measurement equipment meta data parse error",
                                  "could not parse measurement equipment meta data file: " + file_name);
         });
@@ -140,7 +135,7 @@ void DeviceMetaData::parse_meta_data_file(QString file_name) {
         device_type.commondata.device_name = obj["device_name"].toString();
         if (device_names.contains(device_type.commondata.device_name.toLower() + proto_type.toLower())) {
             QMessageBox::critical(nullptr, "Device meta data error",
-								  QString("The device meta data table contains more than one device-group with the equal name \"%1\". This is not allowed. "
+                                  QString("The device meta data table contains more than one device-group with the equal name \"%1\". This is not allowed. "
                                           "You can use the \"devices\" array to insert more devices of the same type.")
                                       .arg(device_type.commondata.device_name));
             throw; //
@@ -168,10 +163,11 @@ void DeviceMetaData::parse_meta_data_file(QString file_name) {
             QJsonObject obj = js_device.toObject();
             device.serial_number = obj["serial_number"].toString();
             if (serial_numbers.contains(device.serial_number.toLower())) {
-				QMessageBox::critical(nullptr, "Device meta data error", QString("The device meta data table contains more than one device with the equal name "
-																				 "\"%1\" and the equal serialnumber \"%2\". This is not allowed.")
-																			 .arg(device_type.commondata.device_name)
-																			 .arg(device.serial_number));
+                QMessageBox::critical(nullptr, "Device meta data error",
+                                      QString("The device meta data table contains more than one device with the equal name "
+                                              "\"%1\" and the equal serialnumber \"%2\". This is not allowed.")
+                                          .arg(device_type.commondata.device_name)
+                                          .arg(device.serial_number));
                 throw; //
                 //should not contain more than one device with the same name
             }

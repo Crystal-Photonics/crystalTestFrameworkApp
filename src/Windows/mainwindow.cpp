@@ -1558,13 +1558,33 @@ void MainWindow::on_devices_list_customContextMenuRequested(const QPoint &pos) {
         set_enabled_states_for_matchable_scripts();
     });
 
+    QAction manual_action(tr("Open Manual"));
+    QString manual = Utility::promised_thread_call(device_worker.get(), [this, item] { return device_worker->get_manual(item); });
+    if (not manual.isEmpty()) {
+        qDebug() << "opening manual" << QFileInfo(manual).absoluteFilePath();
+        connect(&manual_action, &QAction::triggered, [this, &manual] {
+            const auto file_info = QFileInfo(manual);
+            const auto file_name = file_info.absoluteFilePath();
+            if (not file_info.exists()) {
+                QMessageBox::critical(this, tr("CrystalTestFramework - Error"),
+                                      tr("The manual for this device is specified by settings file\n%1\n"
+                                         "to be in \n%2\n"
+                                         "However, the manual file could not be found. Please change the settings file to contain a valid file path to the "
+                                         "manual and restart for the changes to take effect.")
+                                          .arg(QSettings{}.value(Globals::measurement_equipment_meta_data_path_key, "").toString())
+                                          .arg(file_name));
+                return;
+            }
+            QDesktopServices::openUrl(QUrl::fromLocalFile(file_name));
+        });
+        menu.addAction(&manual_action);
+    }
+
     if (Utility::promised_thread_call(device_worker.get(), [this, item] { return device_worker->is_device_open(item); })) {
         menu.addAction(&action_close_device);
     } else {
         if (not Utility::promised_thread_call(device_worker.get(), [this, item] { return device_worker->is_device_opening(item); })) {
             menu.addAction(&action_open_device);
-        } else {
-            return;
         }
     }
 

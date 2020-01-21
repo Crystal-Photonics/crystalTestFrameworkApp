@@ -37,6 +37,7 @@ class DeviceWorker : public QObject {
     bool is_device_opening(QTreeWidgetItem *item);
     void close_device(QTreeWidgetItem *item);
     void open_device(QTreeWidgetItem *item);
+    QString get_manual(QTreeWidgetItem *item);
 
     private:
     void forget_device(QTreeWidgetItem *item);

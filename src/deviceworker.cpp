@@ -440,6 +440,17 @@ void DeviceWorker::open_device(QTreeWidgetItem *item) {
     detect_device(item);
 }
 
+QString DeviceWorker::get_manual(QTreeWidgetItem *item) {
+    assert(currently_in_devices_thread());
+    for (auto &device : communication_devices) {
+        if (device.ui_entry == item) {
+            return device.protocol->get_manual();
+        }
+    }
+    qDebug() << "Warning: Failed to find Device for item" << item;
+    return {};
+}
+
 bool DeviceWorker::is_device_in_use(QTreeWidgetItem *item) {
     return Utility::promised_thread_call(this, [this, item] {
         assert(currently_in_gui_thread() == false);

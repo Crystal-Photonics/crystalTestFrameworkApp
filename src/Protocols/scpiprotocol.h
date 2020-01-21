@@ -24,8 +24,8 @@ struct SCPI_Device_Data {
     QString calibration_certificate_path;
     QString note;
 
-	QString get_summary();
-	void get_lua_data(sol::table &t);
+    QString get_summary();
+    void get_lua_data(sol::table &t);
 
     DeviceMetaDataApprovedState get_approved_state();
     QString get_approved_state_str();
@@ -40,14 +40,14 @@ struct SCPI_Device_Data {
     };
     DeviceMetaDataApprovedState approved_state;
     QString approved_str;
-	std::vector<Description_source> get_description_source();
+    std::vector<Description_source> get_description_source();
 };
 
 class SCPIProtocol : public Protocol {
     using Duration = std::chrono::steady_clock::duration;
 
     public:
-	SCPIProtocol(CommunicationDevice &device, DeviceProtocolSetting setting);
+    SCPIProtocol(CommunicationDevice &device, DeviceProtocolSetting setting);
     ~SCPIProtocol();
     SCPIProtocol(const SCPIProtocol &) = delete;
     SCPIProtocol(SCPIProtocol &&other) = delete;
@@ -55,10 +55,10 @@ class SCPIProtocol : public Protocol {
     bool is_correct_protocol();
     void set_ui_description(QTreeWidgetItem *ui_entry);
 
-	void get_lua_device_descriptor(sol::table &t);
+    void get_lua_device_descriptor(sol::table &t);
     DeviceMetaDataApprovedState get_approved_state();
-	QString get_approved_state_str();
-	QString get_device_summary();
+    QString get_approved_state_str();
+    QString get_device_summary();
     void clear();
     void set_scpi_meta_data(DeviceMetaDataGroup scpi_meta_data);
 
@@ -76,6 +76,7 @@ class SCPIProtocol : public Protocol {
     std::string get_name(void);
     std::string get_serial_number(void);
     std::string get_manufacturer(void);
+    QString get_manual() const override;
 
     void set_validation_retries(unsigned int retries);
     void set_validation_max_standard_deviation(double max_std_dev);
@@ -84,7 +85,7 @@ class SCPIProtocol : public Protocol {
     QStringList get_str_param_raw(std::string request, std::string argument);
     QStringList parse_scpi_answers();
     QString parse_last_scpi_answer();
-	[[noreturn]] void throw_connection_error(const std::string &request);
+    [[noreturn]] void throw_connection_error(const std::string &request);
 
     void send_string(std::string data);
     QMetaObject::Connection connection;
