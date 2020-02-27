@@ -85,6 +85,10 @@ void Utility::Qt_thread::requestInterruption() {
     }
 }
 
+bool Utility::Qt_thread::was_interrupted() const {
+    return thread.isInterruptionRequested();
+}
+
 bool Utility::Qt_thread::isRunning() const {
     return thread.isRunning();
 }
@@ -95,8 +99,4 @@ bool Utility::Qt_thread::is_current() const {
 
 QObject &Utility::Qt_thread::qthread_object() {
     return thread;
-}
-
-bool in_closing_gui_thread() {
-    return currently_in_gui_thread() && not MainWindow::mw->isVisible();
 }

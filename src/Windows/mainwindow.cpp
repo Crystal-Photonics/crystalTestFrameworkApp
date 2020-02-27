@@ -1232,6 +1232,9 @@ void MainWindow::on_test_tabs_tabCloseRequested(int index) {
 }
 
 void MainWindow::abort_script(TestRunner &runner) {
+    if (runner.was_interrupted()) {
+        return;
+    }
     runner.interrupt();
     runner.message_queue_join();
 }
