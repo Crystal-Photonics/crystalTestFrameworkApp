@@ -1773,7 +1773,7 @@ std::unique_ptr<QWidget> Data_engine::get_preview() const {
 }
 
 bool Data_engine::generate_pdf(const std::string &form, const std::string &destination) const {
-    return Utility::promised_thread_call(MainWindow::mw, [form, destination, this] {
+    return MainWindow::await_execute_in_gui_thread([form, destination, this] {
         QString db_name = ""; //TODO: find a better temporary name
                               //QDir::homePath()
                               //      AppLocalDataLocation

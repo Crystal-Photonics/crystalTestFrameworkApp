@@ -2909,7 +2909,10 @@ void Test_Data_engine::test_references_if_fails_when_mismatch_in_unit() {
 #include <QSqlQuery>
 #include <QSqlRecord>
 
+#include "../src/Windows/mainwindow.h"
+
 void Test_Data_engine::test_preview() {
+    MainWindow::gui_thread = QThread::currentThread(); //required to make MainWindow::await_execute_in_gui_thread work which is required by generate_pdf
 #if !DISABLE_ALL || 0
     std::stringstream input{R"(
 		{
