@@ -13,19 +13,19 @@ namespace Ui {
 
 class NoEditDelegate : public QStyledItemDelegate {
     public:
-    NoEditDelegate(QObject *parent = 0)
+    NoEditDelegate(QObject *parent = nullptr)
         : QStyledItemDelegate(parent) {}
     virtual QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const {
         (void)parent;
         (void)option;
         (void)index;
-        return 0;
+        return nullptr;
     }
 };
 
 class SpinBoxDelegate : public QStyledItemDelegate {
     public:
-    SpinBoxDelegate(QObject *parent = 0)
+    SpinBoxDelegate(QObject *parent = nullptr)
         : QStyledItemDelegate(parent) {}
 
     QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
@@ -36,7 +36,7 @@ class SpinBoxDelegate : public QStyledItemDelegate {
 
 class ComboBoxDelegate : public QStyledItemDelegate {
     public:
-    ComboBoxDelegate(QStringList items, QObject *parent = 0)
+    ComboBoxDelegate(QStringList items, QObject *parent = nullptr)
         : QStyledItemDelegate(parent)
         , my_items{items} {}
 
@@ -53,7 +53,7 @@ class DummyDataCreator : public QDialog {
     Q_OBJECT
 
     public:
-    explicit DummyDataCreator(QWidget *parent = 0);
+    explicit DummyDataCreator(QWidget *parent = nullptr);
     ~DummyDataCreator();
     bool get_is_valid_data_engine();
 
