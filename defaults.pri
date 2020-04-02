@@ -114,6 +114,7 @@ QMAKE_CXXFLAGS_RELEASE += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-
 unix {
     equals(QMAKE_CXX, g++) {
         QMAKE_CXXFLAGS_DEBUG += -fno-var-tracking-assignments -fno-merge-debug-strings
+		QMAKE_CXXFLAGS_DEBUG += -Wno-deprecated-copy
     }
     eval("SANITIZERS = $$(SANITIZER)")
     message("Using sanitizer $$SANITIZERS")
@@ -124,7 +125,6 @@ unix {
                     QMAKE_CXXFLAGS_DEBUG += -fsanitize=$$SANITIZERS
                     QMAKE_LFLAGS_DEBUG += -fsanitize=$$SANITIZERS
     }
-    QMAKE_LFLAGS_DEBUG += -fuse-ld=gold -L/usr/local/lib
 } else {
     QMAKE_CXXFLAGS_DEBUG += -fsanitize-undefined-trap-on-error
     QMAKE_CXXFLAGS_DEBUG +=  -Wa,-mbig-obj
