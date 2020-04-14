@@ -53,14 +53,14 @@ HEADERS += \
 	LuaUI/button_lua.h \
 	LuaUI/checkbox.h \
 	LuaUI/checkbox_lua.h \
-	LuaUI/color.h \
-	LuaUI/color_lua.h \
+	LuaFunctions/color.h \
+	LuaFunctions/color_lua.h \
 	LuaUI/combobox.h \
 	LuaUI/combobox_lua.h \
 	LuaUI/combofileselector.h \
 	LuaUI/combofileselector_lua.h \
-	LuaUI/dataengineinput.h \
-	LuaUI/dataengineinput_lua.h \
+	LuaFunctions/dataengineinput.h \
+	LuaFunctions/dataengineinput_lua.h \
 	LuaUI/hline.h \
 	LuaUI/hline_lua.h \
 	LuaUI/image.h \
@@ -73,8 +73,8 @@ HEADERS += \
 	LuaUI/lineedit_lua.h \
 	LuaUI/plot.h \
 	LuaUI/plot_lua.h \
-	LuaUI/polldataengine.h \
-	LuaUI/polldataengine_lua.h \
+	LuaFunctions/polldataengine.h \
+	LuaFunctions/polldataengine_lua.h \
 	LuaUI/progressbar.h \
 	LuaUI/progressbar_lua.h \
 	LuaUI/spinbox.h \
@@ -101,16 +101,16 @@ HEADERS += \
 	Windows/reporthistoryquery.h \
 	Windows/scpimetadatadeviceselector.h \
 	Windows/settingsform.h \
-	chargecounter.h \
-	chargecounter_lua.h \
+	LuaFunctions/chargecounter.h \
+	LuaFunctions/chargecounter_lua.h \
 	communication_devices.h \
 	communication_logger/communication_logger.h \
 	config.h \
 	console.h \
 	data_engine/data_engine.h \
 	data_engine/exceptionalapproval.h \
-	datalogger.h \
-	datalogger_lua.h \
+	LuaFunctions/datalogger.h \
+	LuaFunctions/datalogger_lua.h \
 	device_protocols_settings.h \
 	deviceworker.h \
 	environmentvariables.h \
@@ -119,8 +119,8 @@ HEADERS += \
 	favorite_scripts.h \
 	forward_decls.h \
 	identicon/identicon.h \
-	lua_functions.h \
-	lua_functions_lua.h \
+	LuaFunctions/lua_functions.h \
+	LuaFunctions/lua_functions_lua.h \
 	qt_util.h \
 	scpimetadata.h \
 	scriptengine.h \
@@ -150,14 +150,14 @@ SOURCES += \
 	LuaUI/button_lua.cpp \
 	LuaUI/checkbox.cpp \
 	LuaUI/checkbox_lua.cpp \
-	LuaUI/color.cpp \
-	LuaUI/color_lua.cpp \
+	LuaFunctions/color.cpp \
+	LuaFunctions/color_lua.cpp \
 	LuaUI/combobox.cpp \
 	LuaUI/combobox_lua.cpp \
 	LuaUI/combofileselector.cpp \
 	LuaUI/combofileselector_lua.cpp \
-	LuaUI/dataengineinput.cpp \
-	LuaUI/dataengineinput_lua.cpp \
+	LuaFunctions/dataengineinput.cpp \
+	LuaFunctions/dataengineinput_lua.cpp \
 	LuaUI/hline.cpp \
 	LuaUI/hline_lua.cpp \
 	LuaUI/image.cpp \
@@ -170,8 +170,8 @@ SOURCES += \
 	LuaUI/lineedit_lua.cpp \
 	LuaUI/plot.cpp \
 	LuaUI/plot_lua.cpp \
-	LuaUI/polldataengine.cpp \
-	LuaUI/polldataengine_lua.cpp \
+	LuaFunctions/polldataengine.cpp \
+	LuaFunctions/polldataengine_lua.cpp \
 	LuaUI/progressbar.cpp \
 	LuaUI/progressbar_lua.cpp \
 	LuaUI/spinbox.cpp \
@@ -198,16 +198,16 @@ SOURCES += \
 	Windows/reporthistoryquery.cpp \
 	Windows/scpimetadatadeviceselector.cpp \
 	Windows/settingsform.cpp \
-	chargecounter.cpp \
-	chargecounter_lua.cpp \
+	LuaFunctions/chargecounter.cpp \
+	LuaFunctions/chargecounter_lua.cpp \
 	communication_devices.cpp \
 	communication_logger/communication_logger.cpp \
 	config.cpp \
 	console.cpp \
 	data_engine/data_engine.cpp \
 	data_engine/exceptionalapproval.cpp \
-	datalogger.cpp \
-	datalogger_lua.cpp \
+	LuaFunctions/datalogger.cpp \
+	LuaFunctions/datalogger_lua.cpp \
 	device_protocols_settings.cpp \
 	deviceworker.cpp \
 	environmentvariables.cpp \
@@ -215,8 +215,8 @@ SOURCES += \
 	favorite_scripts.cpp \
 	forward_decls.cpp \
 	identicon/identicon.cpp \
-	lua_functions.cpp \
-	lua_functions_lua.cpp \
+	LuaFunctions/lua_functions.cpp \
+	LuaFunctions/lua_functions_lua.cpp \
 	qt_util.cpp \
 	scpimetadata.cpp \
 	scriptengine.cpp \

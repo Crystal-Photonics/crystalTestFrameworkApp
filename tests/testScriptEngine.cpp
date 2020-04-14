@@ -1,8 +1,8 @@
 #include "testScriptEngine.h"
+#include "LuaFunctions/lua_functions.h"
 #include "LuaUI/lineedit.h"
-#include "gmock/gmock.h" // Brings in Google Mock.
-#include "lua_functions.h"
 #include "sol.hpp"
+#include "gmock/gmock.h" // Brings in Google Mock.
 
 #define USETESTS 1
 TestScriptEngine::TestScriptEngine(QObject *parent)

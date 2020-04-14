@@ -1,7 +1,7 @@
 #include "test_data_engine.h"
+#include "LuaFunctions/lua_functions.h"
 #include "data_engine/data_engine.h"
 #include "data_engine/exceptionalapproval.h"
-#include "lua_functions.h"
 
 #include <experimental/optional>
 

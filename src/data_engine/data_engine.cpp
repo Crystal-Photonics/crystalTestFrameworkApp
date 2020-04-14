@@ -3,12 +3,12 @@
 //#if IAM_NOT_LUPDATE
 #include "data_engine_strings.h"
 //#endif
+#include "LuaFunctions/lua_functions.h"
 #include "Windows/devicematcher.h"
 #include "Windows/mainwindow.h"
 #include "communication_logger/communication_logger.h"
 #include "console.h"
 #include "exceptionalapproval.h"
-#include "lua_functions.h"
 #include "util.h"
 #include "vc.h"
 

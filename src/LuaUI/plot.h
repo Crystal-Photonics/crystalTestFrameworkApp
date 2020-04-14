@@ -1,7 +1,7 @@
 #ifndef PLOT_H
 #define PLOT_H
 
-#include "color.h"
+#include "LuaFunctions/color.h"
 #include "scriptengine.h"
 #include "ui_container.h"
 
