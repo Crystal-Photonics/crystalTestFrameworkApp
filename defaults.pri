@@ -125,6 +125,7 @@ unix {
                     QMAKE_CXXFLAGS_DEBUG += -fsanitize=$$SANITIZERS
                     QMAKE_LFLAGS_DEBUG += -fsanitize=$$SANITIZERS
     }
+	QMAKE_LFLAGS_DEBUG += -fuse-ld=gold -L/usr/local/lib
 } else {
     QMAKE_CXXFLAGS_DEBUG += -fsanitize-undefined-trap-on-error
     QMAKE_CXXFLAGS_DEBUG +=  -Wa,-mbig-obj
