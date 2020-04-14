@@ -19,6 +19,7 @@ std::vector<unsigned int> measure_noise_level_distribute_tresholds(const unsigne
 double measure_noise_level_czt(sol::state &lua, sol::table rpc_device, const unsigned int dacs_quantity, const unsigned int max_possible_dac_value);
 void print(QPlainTextEdit *console, const sol::variadic_args &args);
 std::string show_file_save_dialog(const std::string &title, const std::string &path, sol::table filters);
+std::string show_file_open_dialog(const std::string &title, const std::string &path, sol::table filters);
 std::string show_question(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table);
 void show_info(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);
 void show_warning(const QString &path, const sol::optional<std::string> &title, const sol::optional<std::string> &message);

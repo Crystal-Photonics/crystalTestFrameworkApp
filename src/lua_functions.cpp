@@ -302,6 +302,28 @@ std::string show_file_save_dialog(const std::string &title, const std::string &p
 #endif
 /// \endcond
 
+#ifdef DOXYGEN_ONLY
+//this block is just for documentation purpose
+string show_file_open_dialog(string title, string path, string_table filter);
+#endif
+#if 1
+/// \cond HIDDEN_SYMBOLS
+std::string show_file_open_dialog(const std::string &title, const std::string &path, sol::table filters) {
+    QStringList sl;
+    for (auto &i : filters) {
+        sl.append(QString::fromStdString(i.second.as<std::string>()));
+    }
+
+    QString filter = sl.join(";");
+    QString result = Utility::promised_thread_call(MainWindow::mw, [&title, &path, &filter]() {
+        return QFileDialog::getOpenFileName(MainWindow::mw, QString::fromStdString(title), QString::fromStdString(path), filter);
+    });
+
+    return result.toStdString();
+}
+#endif
+/// \endcond
+
 /*! \fn string show_question(string title, string message, string_table button_table);
 \brief Shows a dialog window with different buttons to click.
 \param title             string value which is shown as the title of the window.

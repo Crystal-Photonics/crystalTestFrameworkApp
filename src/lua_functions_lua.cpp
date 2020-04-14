@@ -13,6 +13,11 @@ void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string
             abort_check();
             return show_file_save_dialog(title, get_absolute_file_path(QString::fromStdString(path), preselected_path), filters);
         };
+        lua["show_file_open_dialog"] = [path](const std::string &title, const std::string &preselected_path, sol::table filters) {
+            abort_check();
+            return show_file_open_dialog(title, get_absolute_file_path(QString::fromStdString(path), preselected_path), filters);
+        };
+
         lua["show_question"] = [path](const sol::optional<std::string> &title, const sol::optional<std::string> &message, sol::table button_table) {
             abort_check();
             return show_question(QString::fromStdString(path), title, message, button_table);
