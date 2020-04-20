@@ -1,4 +1,5 @@
 #include "qt_util.h"
+#include "Windows/mainwindow.h"
 
 #include <QEvent>
 #include <QMouseEvent>
@@ -68,20 +69,24 @@ void Utility::Qt_thread::start(QThread::Priority priority) {
 }
 
 bool Utility::Qt_thread::wait(unsigned long time) {
-	return thread.wait(time);
+    return thread.wait(time);
 }
 
 void Utility::Qt_thread::message_queue_join() {
-	while (not thread.wait(16)) {
-		QApplication::processEvents();
-	}
+    while (not thread.wait(16)) {
+        QApplication::processEvents();
+    }
 }
 
 void Utility::Qt_thread::requestInterruption() {
-	if (thread.isRunning()) {
-		thread.requestInterruption();
-		thread.exit();
-	}
+    if (thread.isRunning()) {
+        thread.requestInterruption();
+        thread.exit();
+    }
+}
+
+bool Utility::Qt_thread::was_interrupted() const {
+    return thread.isInterruptionRequested();
 }
 
 bool Utility::Qt_thread::isRunning() const {

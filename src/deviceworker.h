@@ -10,7 +10,6 @@
 
 #include <QSemaphore>
 #include <future>
-#include <list>
 #include <vector>
 
 class CommunicationDevice;
@@ -34,25 +33,29 @@ class DeviceWorker : public QObject {
     bool is_dut_device(QTreeWidgetItem *item);
     bool is_device_in_use(QTreeWidgetItem *item);
     bool is_connected_to_device(QTreeWidgetItem *item);
+    bool is_device_open(QTreeWidgetItem *item);
+    bool is_device_opening(QTreeWidgetItem *item);
+    void close_device(QTreeWidgetItem *item);
+    void open_device(QTreeWidgetItem *item);
+    QString get_manual(QTreeWidgetItem *item);
 
     private:
     void forget_device(QTreeWidgetItem *item);
     void detect_device(QTreeWidgetItem *item);
     void update_devices();
     void detect_devices();
-    std::list<PortDescription> communication_devices;
+    std::vector<PortDescription> communication_devices;
     bool contains_port(QMap<QString, QVariant> port_info);
     void detect_devices(std::vector<PortDescription *> device_list);
     DeviceMetaData device_meta_data;
     LIBUSBScan usbtmc_scan;
-	QSemaphore refresh_semaphore{1};
+    QSemaphore refresh_semaphore{1};
     bool is_dut_device_(QTreeWidgetItem *item);
     bool is_device_in_use_(QTreeWidgetItem *item);
-    void forget_device_(QTreeWidgetItem *item);
 
     bool is_connected_to_device_(QTreeWidgetItem *item);
-	signals:
-	void device_discovery_done();
+    signals:
+    void device_discovery_done();
 };
 
 #endif // DEVICEWORKER_H

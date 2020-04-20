@@ -269,8 +269,7 @@ void DataEngineInput::save_to_data_engine() {
 }
 
 void DataEngineInput::sleep_ms(uint timeout_ms) {
-	assert(MainWindow::gui_thread != QThread::currentThread()); // event_queue_run_ must not be started by the
-																// GUI-thread because it would freeze the GUI
+	assert(not currently_in_gui_thread());
 	is_waiting = true;
 	set_ui_visibility();
 	Utility::promised_thread_call(MainWindow::mw, [this] {
@@ -290,7 +289,7 @@ void DataEngineInput::sleep_ms(uint timeout_ms) {
 }
 
 void DataEngineInput::await_event() {
-	assert(MainWindow::gui_thread != QThread::currentThread());
+	assert(not currently_in_gui_thread());
 	dont_save_result_to_de = false;
 	Utility::promised_thread_call(MainWindow::mw, [this] {
 		is_waiting = true;
@@ -337,7 +336,7 @@ void DataEngineInput::await_event() {
 }
 
 void DataEngineInput::set_explanation_text(const std::string &extra_explanation) {
-	assert(MainWindow::gui_thread == QThread::currentThread());
+	assert(currently_in_gui_thread());
 	this->extra_explanation = QString::fromStdString(extra_explanation);
 	label_extra_explanation->setText(this->extra_explanation);
 }
@@ -352,7 +351,7 @@ void DataEngineInput::set_visible(bool visible) {
 }
 
 void DataEngineInput::set_enabled(bool enabled) {
-	assert(MainWindow::gui_thread == QThread::currentThread());
+	assert(currently_in_gui_thread());
 	this->is_enabled = enabled;
 
 	set_ui_visibility();

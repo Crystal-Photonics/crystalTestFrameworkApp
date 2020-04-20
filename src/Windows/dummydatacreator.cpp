@@ -139,13 +139,6 @@ void DummyDataCreator::on_pushButton_clicked() {
     dialog.setAcceptMode(QFileDialog::AcceptSave);
     if (dialog.exec()) {
         const auto db_name = dialog.selectedFiles()[0] + ".db";
-        if (QFile::exists(db_name)) {
-            auto result = QMessageBox::question(this, QString("File already exists"),
-                                                QString("The file %1 already exists. Do you want to overwrite this file?").arg(db_name));
-            if (result == QMessageBox::No) {
-                return;
-            }
-        }
         save_gui_to_json();
         const auto report_title = ui->edt_title->text();
         const auto image_footer_path = ui->edt_image_footer->text();

@@ -122,7 +122,7 @@ std::vector<Device_data::Description_source> Device_data::get_description_source
 RPCProtocol::RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting setting)
     : Protocol{"RPC"}
     , communication_wrapper(device)
-	, device_protocol_setting(std::move(setting)) {
+    , device_protocol_setting(std::move(setting)) {
     rpc_runtime_protocol = std::make_unique<RPCRuntimeProtocol>(communication_wrapper, device_protocol_setting.timeout);
 #if 1
     console_message_connection =
@@ -158,10 +158,10 @@ bool RPCProtocol::is_correct_protocol() {
                     device_data = get_description_data(*descriptor_answer);
                 }
             } else {
-				Console_handle::note() << "RPC-function \"get_device_descriptor\" requires unknown parameters";
+                Console_handle::note() << "RPC-function \"get_device_descriptor\" requires unknown parameters";
             }
         } else {
-			Console_handle::note() << "No RPC-function \"get_device_descriptor\" available";
+            Console_handle::note() << "No RPC-function \"get_device_descriptor\" available";
         }
         return true;
     }
@@ -174,14 +174,14 @@ std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const 
 }
 
 std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration) {
-	auto result = rpc_runtime_protocol.get()->call_and_wait(call, duration);
-	switch (result.error) {
-		case RPCError::success:
-			return std::move(result.decoded_function_call_reply);
-		case RPCError::timeout_happened:
-			throw RPCTimeoutException{QObject::tr("Timeout in RPC function %1.").arg(call.get_description()->get_function_name().c_str()).toStdString()};
-	}
-	throw std::runtime_error("Invalid result value");
+    auto result = rpc_runtime_protocol.get()->call_and_wait(call, duration);
+    switch (result.error) {
+        case RPCError::success:
+            return std::move(result.decoded_function_call_reply);
+        case RPCError::timeout_happened:
+            throw RPCTimeoutException{QObject::tr("Timeout in RPC function %1.").arg(call.get_description()->get_function_name().c_str()).toStdString()};
+    }
+    throw std::runtime_error("Invalid result value");
 }
 
 const RPCRunTimeProtocolDescription &RPCProtocol::get_description() {
@@ -192,22 +192,26 @@ QString RPCProtocol::get_device_summary() {
     return device_data.get_summary();
 }
 
+QString RPCProtocol::get_manual() const {
+    return QString::fromStdString(rpc_runtime_protocol->get_xml_file_path());
+}
+
 void RPCProtocol::console_message(RPCConsoleLevel level, QString message) {
     switch (level) {
         case RPCConsoleLevel::note:
-			Console_handle::note() << message;
+            Console_handle::note() << message;
             break;
 
         case RPCConsoleLevel::error:
-			Console_handle::error() << message;
+            Console_handle::error() << message;
             break;
 
         case RPCConsoleLevel::debug:
-			Console_handle::debug() << message;
+            Console_handle::debug() << message;
             break;
 
         case RPCConsoleLevel::warning:
-			Console_handle::warning() << message;
+            Console_handle::warning() << message;
             break;
     }
 }
@@ -220,39 +224,39 @@ void RPCProtocol::set_ui_description(QTreeWidgetItem *ui_entry) {
         ui_entry->setText(2, data.name);
         set_display_data(ui_entry, data);
     } else {
-		Console_handle::note() << "RPC-function \"get_device_descriptor\" did not answer";
+        Console_handle::note() << "RPC-function \"get_device_descriptor\" did not answer";
         //TODO: add a rightclick action to resend the descriptor request
         //ui_entry->
     }
 }
 
 void RPCProtocol::get_lua_device_descriptor(sol::table &t) const {
-	assert(not currently_in_gui_thread());
+    assert(not currently_in_gui_thread());
     return device_data.get_lua_data(t);
 }
 
 RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const std::string &name) const {
-	return rpc_runtime_protocol->encode_function(name);
+    return rpc_runtime_protocol->encode_function(name);
 }
 
 bool RPCProtocol::has_function(const std::string &name) const {
-	return rpc_runtime_protocol->function_exists_for_encoding(name);
+    return rpc_runtime_protocol->function_exists_for_encoding(name);
 }
 
 RPCFunctionCallResult RPCProtocol::call_get_hash_function() const {
-	return rpc_runtime_protocol->call_get_hash_function();
+    return rpc_runtime_protocol->call_get_hash_function();
 }
 
 RPCFunctionCallResult RPCProtocol::call_get_hash_function(int retries) const {
-	return rpc_runtime_protocol->call_get_hash_function(retries);
+    return rpc_runtime_protocol->call_get_hash_function(retries);
 }
 
 RPCRuntimeEncodedFunctionCall RPCProtocol::encode_function(const int request_id) const {
-	return rpc_runtime_protocol->encode_function(request_id);
+    return rpc_runtime_protocol->encode_function(request_id);
 }
 
 void RPCProtocol::clear() {
-	rpc_runtime_protocol->clear();
+    rpc_runtime_protocol->clear();
 }
 
 std::string RPCProtocol::get_name() {
@@ -261,9 +265,9 @@ std::string RPCProtocol::get_name() {
 
 CommunicationDeviceWrapper::CommunicationDeviceWrapper(CommunicationDevice &device)
     : com_device(device) {
-	connect(this, &CommunicationDeviceWrapper::decoded_received, &com_device, &CommunicationDevice::decoded_received);
-	connect(this, &CommunicationDeviceWrapper::message, &com_device, &CommunicationDevice::message);
-	connect(&com_device, &CommunicationDevice::received, this, &CommunicationDeviceWrapper::received);
+    connect(this, &CommunicationDeviceWrapper::decoded_received, &com_device, &CommunicationDevice::decoded_received);
+    connect(this, &CommunicationDeviceWrapper::message, &com_device, &CommunicationDevice::message);
+    connect(&com_device, &CommunicationDevice::received, this, &CommunicationDeviceWrapper::received);
 }
 
 void CommunicationDeviceWrapper::send(std::vector<unsigned char> data, std::vector<unsigned char> pre_encodec_data) {

@@ -45,12 +45,6 @@ class EXPORT MainWindow : public QMainWindow {
     enum class ViewMode { None, AllScripts, FavoriteScripts };
 
     public:
-    signals:
-    void confirm_key_sequence_pressed();
-    void skip_key_sequence_pressed();
-    void cancel_key_sequence_key_pressed();
-
-    public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
     void shutdown();
@@ -58,7 +52,9 @@ class EXPORT MainWindow : public QMainWindow {
     static QThread *gui_thread;
 
     template <class Function, class... Args>
-    void execute_in_gui_thread(Function f, Args &&... args);
+    static void execute_in_gui_thread(Function f, Args &&... args);
+    template <class Function, class... Args>
+    static auto await_execute_in_gui_thread(Function &&f, Args &&... args) -> decltype(f(args...));
 
     template <class Lua_UI_class, class... Args>
     void add_lua_UI_class(int id, UI_container *parent, Args &&... args);
@@ -69,32 +65,32 @@ class EXPORT MainWindow : public QMainWindow {
 
     void show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon);
     void remove_test_runner(TestRunner *runner);
-	static std::vector<struct MatchedDevice> discover_devices(ScriptEngine &se, const struct Sol_table &device_desciption);
+    static std::vector<struct MatchedDevice> discover_devices(ScriptEngine &se, const struct Sol_table &device_desciption);
 
     QList<QTreeWidgetItem *> get_devices_to_forget_by_root_treewidget(QTreeWidgetItem *root_item);
     void remove_device_item(QTreeWidgetItem *root_item);
     bool device_item_exists(QTreeWidgetItem *child);
-    std::unique_ptr<QTreeWidgetItem> *get_manual_devices_parent_item();
-    std::unique_ptr<QTreeWidgetItem> *create_manual_devices_parent_item();
+    QTreeWidgetItem *get_manual_devices_parent_item();
+    QTreeWidgetItem *create_manual_devices_parent_item();
     void add_device_child_item(QTreeWidgetItem *parent, QTreeWidgetItem *child, const QString &tab_name, CommunicationDevice *communication_device);
-	void set_testrunner_state(TestRunner *testrunner, TestRunner_State state);
+    void set_testrunner_state(TestRunner *testrunner, TestRunner_State state);
     void adopt_testrunner(TestRunner *testrunner, QString title);
     void show_status_bar_massage(QString msg, int timeout_ms);
-	static QStringList validate_script(const QString &path);
+    static QStringList validate_script(const QString &path);
 
     public slots:
-	void link_activated(const QString &path);
+    void link_activated(const QString &path);
     void align_columns();
     void add_device_item(QTreeWidgetItem *item, const QString &tab_name, CommunicationDevice *communication_device);
     void append_html_to_console(QString text, QPlainTextEdit *console);
-	void on_actionrefresh_devices_all_triggered();
-	void on_actionrefresh_devices_dut_triggered();
+    void on_actionrefresh_devices_all_triggered();
+    void on_actionrefresh_devices_dut_triggered();
 
     private slots:
     void slot_device_discovery_done();
-	void load_scripts(QProgressDialog *dialog = nullptr);
-	void poll_sg04_counts();
-	void closeEvent(QCloseEvent *event) override;
+    void load_scripts(QProgressDialog *dialog = nullptr);
+    void poll_sg04_counts();
+    void closeEvent(QCloseEvent *event) override;
 
     void on_actionSettings_triggered();
     void on_tests_advanced_view_customContextMenuRequested(const QPoint &pos);
@@ -121,6 +117,9 @@ class EXPORT MainWindow : public QMainWindow {
     void on_tbtn_collapse_console_clicked();
     void on_actionQuery_Report_history_triggered();
     void on_actionactionAbort_triggered();
+    void on_devices_list_customContextMenuRequested(const QPoint &pos);
+    void on_devices_list_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
+    void on_console_tabs_currentChanged(int index);
 
     private:
     FavoriteScripts favorite_scripts;
@@ -140,13 +139,13 @@ class EXPORT MainWindow : public QMainWindow {
     void close_finished_tests();
     void get_devices_to_forget_by_root_treewidget_recursion(QList<QTreeWidgetItem *> &list, QTreeWidgetItem *root_item);
     bool remove_device_item_recursion(QTreeWidgetItem *root_item, QTreeWidgetItem *child_to_remove, bool remove_if_existing);
-    std::unique_ptr<QTreeWidgetItem> manual_devices_parent_item;
+    QTreeWidgetItem *manual_devices_parent_item = nullptr;
     QMutex manual_devices_parent_item_mutex;
     void load_default_paths_if_needed();
     void run_test_script(TestDescriptionLoader *test);
     TestDescriptionLoader *get_test_from_listViewItem(QListWidgetItem *item);
     TestDescriptionLoader *get_test_from_tree_widget(const QTreeWidgetItem *item = nullptr);
-    void load_favorites();
+    void load_favorites(QProgressDialog *dialog = nullptr);
     void enable_favorite_view();
     void enable_all_script_view();
     ViewMode view_mode_m;
@@ -172,11 +171,11 @@ class EXPORT MainWindow : public QMainWindow {
     bool eventFilter(QObject *target, QEvent *event) override;
 
     void remove_favorite_based_on_simple_view_selection();
-    void set_enabled_states_for_matchable_scripts();
+    void set_enabled_states_for_matchable_scripts(QProgressDialog *dialog = nullptr);
     QTreeWidgetItem *get_treewidgetitem_from_listViewItem(QListWidgetItem *item);
     void add_clear_button_to_console(QPlainTextEdit *console);
     void show_in_graphical_shell(const QString &pathIn);
-	void abort_script(TestRunner &runner);
+    void abort_script(TestRunner &runner);
 };
 
 template <class T>
@@ -190,8 +189,14 @@ bool operator==(const T *lhs, const std::unique_ptr<T> &rhs) {
 }
 
 template <class Function, class... Args>
-void MainWindow::execute_in_gui_thread(Function f, Args &&... args) {
-	Utility::thread_call(this, [f = std::move(f), args...]() mutable { f(std::move(args)...); });
+void MainWindow::execute_in_gui_thread(Function f, Args &&... args) { //This forwarding is not correct
+    Utility::thread_call(MainWindow::gui_thread, [f = std::move(f), args...]() mutable { std::invoke(f, std::move(args)...); });
+}
+
+template <class Function, class... Args>
+auto MainWindow::await_execute_in_gui_thread(Function &&f, Args &&... args) -> decltype(f(args...)) { //This forwarding is not correct
+    return Utility::promised_thread_call(
+        MainWindow::gui_thread, [f = std::forward<Function>(f), args...]() mutable { return std::invoke(std::forward<decltype(f)>(f), std::move(args)...); });
 }
 
 template <class Lua_UI_class>
@@ -199,20 +204,20 @@ std::map<int, Lua_UI_class> lua_classes;
 
 template <class Lua_UI_class, class... Args>
 void MainWindow::add_lua_UI_class(int id, UI_container *parent, Args &&... args) {
-	assert(not lua_classes<Lua_UI_class>.count(id));
-	lua_classes<Lua_UI_class>.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(parent, std::forward<Args>(args)...));
+    assert(not lua_classes<Lua_UI_class>.count(id));
+    lua_classes<Lua_UI_class>.emplace(std::piecewise_construct, std::make_tuple(id), std::make_tuple(parent, std::forward<Args>(args)...));
 }
 
 template <class Lua_UI_class>
 void MainWindow::remove_lua_UI_class(int id) {
-	assert(lua_classes<Lua_UI_class>.count(id));
+    assert(lua_classes<Lua_UI_class>.count(id));
     lua_classes<Lua_UI_class>.erase(id);
 }
 
 template <class Lua_UI_class>
 Lua_UI_class &MainWindow::get_lua_UI_class(int id) {
-	assert(lua_classes<Lua_UI_class>.count(id));
-	return lua_classes<Lua_UI_class>.at(id);
+    assert(lua_classes<Lua_UI_class>.count(id));
+    return lua_classes<Lua_UI_class>.at(id);
 }
 
 Q_DECLARE_METATYPE(QTreeWidgetItem *);

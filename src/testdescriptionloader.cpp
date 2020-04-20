@@ -73,6 +73,16 @@ TestDescriptionLoader::TestDescriptionLoader(TestDescriptionLoader &&other)
 	Utility::promised_thread_call(MainWindow::mw, [this] { ui_entry->setData(0, Qt::UserRole, QVariant::fromValue(this)); });
 }
 
+TestDescriptionLoader &TestDescriptionLoader::operator=(TestDescriptionLoader &&other) {
+	console = std::move(other.console);
+	ui_entry = std::move(other.ui_entry);
+	name = std::move(other.name);
+	file_path = std::move(other.file_path);
+	device_requirements = std::move(other.device_requirements);
+	Utility::promised_thread_call(MainWindow::mw, [this] { ui_entry->setData(0, Qt::UserRole, QVariant::fromValue(this)); });
+	return *this;
+}
+
 TestDescriptionLoader::~TestDescriptionLoader() {}
 
 const std::vector<DeviceRequirements> &TestDescriptionLoader::get_device_requirements() const {
@@ -101,7 +111,7 @@ void TestDescriptionLoader::load_description() {
 		console->clear();
 	});
 	Console temp_console{console.get()};
-	ScriptEngine script{nullptr, nullptr, temp_console, nullptr, ""};
+	ScriptEngine script{nullptr, temp_console, nullptr, ""};
 	bool warning_occured = false;
 	bool error_occured = false;
 	for (const auto &message : MainWindow::validate_script(file_path)) {

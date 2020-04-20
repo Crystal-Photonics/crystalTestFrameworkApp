@@ -1,7 +1,9 @@
 #ifndef USERWAITLABEL_H
 #define USERWAITLABEL_H
+
 #include "scriptengine.h"
 #include "ui_container.h"
+
 #include <QMetaObject>
 #include <QString>
 #include <functional>
@@ -16,6 +18,8 @@ class QWidget;
 class QLineEdit;
 class QPushButton;
 class QPushButton;
+class QProgressBar;
+
 /** \ingroup ui
    \{
 
@@ -41,35 +45,96 @@ class UserWaitLabel : public UI_widget {
       \par examples:
       \code
           local uwl = Ui.UserWaitLabel.new("Wait until device is connected..")
-          sleep_ms(1000)
+		  uwl:sleep_ms(1000)
           uwl:set_text("Wait until device is charged..")
-          sleep_ms(1000)
+		  uwl:sleep_ms(1000)
           uwl:set_enabled(false)
       \endcode
   */
     // clang-format on
 
 #ifdef DOXYGEN_ONLY
-    // this block is just for ducumentation purpose
-    set_text(string instruction_text);
+	// this block is just for ducumentation purpose
+	set_text(string instruction_text);
 #endif
-    /// @cond HIDDEN_SYMBOLS
-    void set_text(const std::string &instruction_text);
-    /// @endcond
-    // clang-format off
+	/// @cond HIDDEN_SYMBOLS
+	void set_text(const std::string &instruction_text);
+	/// @endcond
+	// clang-format off
   /*! \fn  set_text(string instruction_text);
-      \brief Overwrites the text of the UserWaitLabel object.
-      \param instruction_text the text
-      \par examples:
-      \code
-          local uwl = Ui.UserWaitLabel.new("Wait until device is connected..")
-          sleep_ms(1000)
-          uwl:set_text("Wait until device is charged..")
-          sleep_ms(1000)
-          uwl:set_enabled(false)
-      \endcode
+	  \brief Overwrites the text of the UserWaitLabel object.
+	  \param instruction_text the text
+	  \par examples:
+	  \code
+		  local uwl = Ui.UserWaitLabel.new("Wait until device is connected..")
+		  uwl:sleep_ms(1000)
+		  uwl:set_text("Wait until device is charged..")
+		  uwl:sleep_ms(1000)
+		  uwl:set_enabled(false)
+	  \endcode
   */
-    // clang-format on
+	// clang-format on
+
+#ifdef DOXYGEN_ONLY
+	// this block is just for ducumentation purpose
+	sleep_ms(number duration_ms);
+#endif
+	/// @cond HIDDEN_SYMBOLS
+	void sleep_ms(int duration_ms);
+	/// @endcond
+	// clang-format off
+  /*! \fn  sleep_ms(number duration_ms);
+	  \brief Sleeps for duration_ms milliseconds.
+	  \param duration_ms the time to sleep in milliseconds
+	  \par example:
+	  \code
+		  local uwl = Ui.UserWaitLabel.new("Wait until device is charged..")
+		  uwl:sleep_ms(1000)
+	  \endcode
+  */
+	// clang-format on
+
+#ifdef DOXYGEN_ONLY
+	// this block is just for ducumentation purpose
+	show_progress_timer_ms(number duration_ms);
+#endif
+	/// @cond HIDDEN_SYMBOLS
+	void show_progress_timer_ms(int duration_ms);
+	/// @endcond
+	// clang-format off
+  /*! \fn  show_progress_timer_ms(number duration_ms);
+	  \brief Displays a progress bar for duration_ms milliseconds.
+	  \param duration_ms the time the progress bar needs to get to 100% in milliseconds
+	  \par example:
+	  \code
+		  local uwl = Ui.UserWaitLabel.new("Wait until device is charged..")
+		  uwl:show_progress_timer_ms(1000)
+		  --do work while progress bar is running
+	  \endcode
+  */
+	// clang-format on
+
+#ifdef DOXYGEN_ONLY
+	// this block is just for ducumentation purpose
+	set_current_progress_ms(number position_ms);
+#endif
+	/// @cond HIDDEN_SYMBOLS
+	void set_current_progress_ms(int position_ms);
+	/// @endcond
+	// clang-format off
+  /*! \fn  set_current_progress_ms(number position_ms);
+	  \brief Moves the progress bar to position_ms milliseconds.
+	  \param position_ms the time the progress bar progresses to
+	  \par example:
+	  \code
+		  local uwl = Ui.UserWaitLabel.new("Wait until device is charged..")
+		  uwl:show_progress_timer_ms(5000)
+		  --do work while progress bar is running
+		  --We got done faster or slower than expected, so jump to the right position
+		  uwl:set_current_progress_ms(3000)
+	  \endcode
+  */
+	// clang-format on
 
 #ifdef DOXYGEN_ONLY
     // this block is just for ducumentation purpose
@@ -113,30 +178,28 @@ class UserWaitLabel : public UI_widget {
             uwl:set_enabled(true)   --  UserWaitLabel object is enabled
       \endcode
   */
-    ///\cond HIDDEN_SYMBOLS
-    void scale_columns();
-    ///\endcond
-    private:
+	// clang-format on
+	private:
     ///\cond HIDDEN_SYMBOLS
     QLabel *label_user_instruction = nullptr;
     QLabel *spinner_label = nullptr;
     QTimer *timer = nullptr;
+	QProgressBar *progress_bar = nullptr;
 
     QHBoxLayout *hlayout = nullptr;
     QString instruction_text;
     uint blink_state = 0;
     bool run_hotkey_loop();
-
     void start_timer();
+	static void disable_progress_bar_and_updater(QProgressBar *progress_bar);
+	void show_progress_timer_ms_impl(int duration_ms, int start);
+	int last_progressbar_duration_ms = 0;
 
     bool is_question_mode = false;
 
     QMetaObject::Connection callback_timer = {};
 
     ScriptEngine *script_engine;
-    int total_width = 10;
-	void resizeMe(QResizeEvent *event) override;
-    bool is_init = false;
     ///\endcond
 };
 /** \} */ // end of group ui

@@ -2,19 +2,19 @@
 #define SCRIPTENGINE_H
 
 #include "qt_util.h"
-#include "sol.hpp"
 
 #include <QEventLoop>
 #include <QList>
 #include <QObject>
 #include <QString>
+#include <chrono>
 #include <condition_variable>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <sol.hpp>
 #include <vector>
 
-class CommunicationDevice;
 class QStringList;
 class QSplitter;
 class QPlainTextEdit;
@@ -56,18 +56,24 @@ namespace Event_id {
     enum Event_id { Hotkey_confirm_pressed, Hotkey_skip_pressed, Hotkey_cancel_pressed, Timer_expired, UI_activated, interrupted = -1, invalid = -2 };
 }
 
-class ScriptEngine {
+class ScriptEngine : public QObject {
+	Q_OBJECT
+
+	signals:
+	void script_interrupted();
+	void script_finished();
+
     public:
     friend class TestRunner;
     friend class TestDescriptionLoader;
     friend class DeviceWorker;
 
-    ScriptEngine(QObject *owner, UI_container *parent, Console &console, TestRunner *runner, QString test_name);
+	ScriptEngine(UI_container *parent, Console &console, TestRunner *runner, QString test_name);
     ScriptEngine(const ScriptEngine &) = delete;
     ScriptEngine(ScriptEngine &&) = delete;
     ~ScriptEngine();
 
-    Event_id::Event_id await_timeout(std::chrono::milliseconds timeout);
+	Event_id::Event_id await_timeout(std::chrono::milliseconds duration, std::chrono::milliseconds start = {});
     Event_id::Event_id await_ui_event();
     Event_id::Event_id await_hotkey_event();
 
@@ -91,14 +97,14 @@ class ScriptEngine {
     sol::table create_table();
     template <class Return_type, class... Args>
     Return_type call_lua_function(const char *lua_function, Args &&... args) {
-        return Utility::promised_thread_call(owner, [this, lua_function, &args...] { return call<Return_type>(lua_function, std::forward<Args>(args)...); });
+		return Utility::promised_thread_call(this, [this, lua_function, &args...] { return call<Return_type>(lua_function, std::forward<Args>(args)...); });
     }
     TestRunner *runner;
     QString test_name;
     std::vector<DeviceRequirements> get_device_requirement_list(const sol::table &device_requirements);
     sol::table get_device_requirements_table(); //The returned table must be destroyed before the script. TODO: Fix or diagnose better
 
-    private: //note: most of these things are private so that the GUI thread does not access anything important. Do not make things public.
+	private: //note: most of these things are private so that the GUI thread does not access anything belonging to the script thread. Do not make things public.
     QStringList get_string_list(const QString &name);
     std::vector<DeviceRequirements> get_device_requirement_list();
     sol::table get_devices(const std::vector<MatchedDevice> &devices);
@@ -120,7 +126,8 @@ class ScriptEngine {
     std::condition_variable await_condition_variable;
     Event_id::Event_id await_condition = Event_id::invalid;
 
-    friend void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script_engine);
+	friend void bind_dataengineinput(sol::state &lua, sol::table &ui_table, ScriptEngine &script_engine, UI_container *parent, const std::string &path);
+	friend void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string &path, ScriptEngine &script_engine, QPlainTextEdit *console);
 };
 
 template <class ReturnType, class... Arguments>

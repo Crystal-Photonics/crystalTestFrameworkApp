@@ -22,21 +22,15 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout_5">
     <item>
-     <widget class="QSplitter" name="splitter_3">
+     <widget class="QSplitter" name="splitter">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
-      <property name="lineWidth">
-       <number>2</number>
-      </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="childrenCollapsible">
-       <bool>false</bool>
       </property>
       <widget class="QSplitter" name="splitter_devices">
        <property name="sizePolicy">
@@ -64,24 +58,15 @@
              <verstretch>3</verstretch>
             </sizepolicy>
            </property>
-           <property name="minimumSize">
-            <size>
-             <width>400</width>
-             <height>0</height>
-            </size>
-           </property>
            <property name="mouseTracking">
             <bool>false</bool>
            </property>
            <property name="contextMenuPolicy">
-            <enum>Qt::ActionsContextMenu</enum>
+            <enum>Qt::CustomContextMenu</enum>
            </property>
            <property name="sortingEnabled">
             <bool>true</bool>
            </property>
-           <attribute name="headerCascadingSectionResizes">
-            <bool>false</bool>
-           </attribute>
            <column>
             <property name="text">
              <string>Device Name</string>
@@ -95,16 +80,6 @@
            <column>
             <property name="text">
              <string>Name</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string>Current Test</string>
-            </property>
-           </column>
-           <column>
-            <property name="text">
-             <string/>
             </property>
            </column>
           </widget>
@@ -644,7 +619,7 @@
      <x>0</x>
      <y>0</y>
      <width>1113</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuTools">

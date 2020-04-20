@@ -1,10 +1,11 @@
 #ifndef PLOT_H
 #define PLOT_H
 
-#include "color.h"
-
+#include "LuaFunctions/color.h"
 #include "scriptengine.h"
 #include "ui_container.h"
+
+#include <QDateTime>
 #include <QObject>
 #include <functional>
 #include <memory>
@@ -14,17 +15,16 @@ namespace Utility {
     class Event_filter;
 }
 class Plot;
-class QAction;
-class QColor;
-class QPointF;
-class QSplitter;
 class QwtPickerClickPointMachine;
 class QwtPickerTrackerMachine;
 class QwtPlot;
 class QwtPlotCurve;
 class QwtPlotPicker;
-struct Curve_data;
+class QwtScaleDraw;
 class UI_container;
+struct Curve_data;
+struct TimePicker;
+struct Zoomer_controller;
 
 /** \ingroup ui
 \{
@@ -54,6 +54,7 @@ class Curve {
     \brief Appends a point to a curve
     \param x Double value of the x  position.
     \param y Double value of the y position.
+	\sa append()
     \sa add_spectrum()
     \sa add_spectrum_at()
     \details \par examples:
@@ -63,6 +64,31 @@ class Curve {
         curve:append_point(1,1)
         curve:append_point(2,1) -- plots a line
     \endcode
+  */
+    // clang-format on
+
+    ///\cond HIDDEN_SYMBOLS
+    void append(double y);
+    ///\endcond
+#ifdef DOXYGEN_ONLY
+    // this block is just for ducumentation purpose
+    append(double y);
+#endif
+    // clang-format off
+  /*! \fn  append(double y);
+	\brief Appends a point to a curve. The y coordinate of the point is given via parameter. The x coordinate of the point is 1 more than the previous point or 0 if the curve is empty.
+	\param y Double value of the y position.
+	\sa append_point()
+	\sa add_spectrum()
+	\sa add_spectrum_at()
+	\details \par examples:
+	\code
+		local plot = Ui.Plot.new()
+		local curve = plot:add_curve()
+		curve:append(1)
+		curve:append(1)
+		-- plots a horizontal line with points (0,1) and (1,1)
+	\endcode
   */
     // clang-format on
 
@@ -310,10 +336,10 @@ class Curve {
     ///\endcond
 #ifdef DOXYGEN_ONLY
     // this block is just for ducumentation purpose
-    double user_pick_x_coord();
+    double pick_x_coord();
 #endif
     // clang-format off
-  /*! \fn double user_pick_x_coord();
+  /*! \fn double pick_x_coord();
     \brief waits until the user has clicked on the plot. Then it returns the x value of the
     point the user has clicked at. This function can be used to let the user identify e.g.
     a peak inside a \glos{spectrum}.
@@ -322,7 +348,7 @@ class Curve {
         local plot = Ui.Plot.new()
         local curve = plot:add_curve()
         curve:add_spectrum({1,2,3,4,5,6,7,8,9,10,1}) -- plots a sawtooth
-        local result = curve:user_pick_x_coord() --waits until user clicks at the plot
+        local result = curve:pick_x_coord() --waits until user clicks at the plot
         print("x-value: "..result)
     \endcode
   */
@@ -350,9 +376,6 @@ class Curve {
   */
     // clang-format on
 
-    ///\cond HIDDEN_SYMBOLS
-    void set_onetime_click_callback(std::function<void(double, double)> click_callback);
-    ///\endcond
     private:
     ///\cond HIDDEN_SYMBOLS
 
@@ -366,17 +389,19 @@ class Curve {
     Utility::Event_filter *event_filter{nullptr};
     ///\endcond
     friend class Plot;
-    ScriptEngine *script_engine_;
+    ScriptEngine *script_engine;
 };
 /** \} */ // end of group ui
 
 /** \ingroup ui
     \class  Plot
-    \brief  An interface to a plot object.
+    \brief  An interface to a plot object. Use mouse drag, mouse wheel, +, -, page up/down and shift+drag to navigate the plot. Use the home, end or middle mouse button to reset to view the whole graph.
     \sa Curve
 */
 
-class Plot : public UI_widget {
+class Plot : public QObject, public UI_widget {
+    Q_OBJECT
+
     public:
     ///\cond HIDDEN_SYMBOLS
     Plot(UI_container *parent);
@@ -473,19 +498,46 @@ class Plot : public UI_widget {
   */
     // clang-format on
 
+#ifdef DOXYGEN_ONLY
+    // this block is just for ducumentation purpose
+    set_time_scale();
+#endif
+    /// \cond HIDDEN_SYMBOLS
+    void set_time_scale();
+    /// \endcond
+    // clang-format off
+  /*! \fn  set_time_scale();
+	  \brief Sets a time scale for the x axis instead of numbers.
+	  \par examples:
+	  \code
+		local plot = Ui.Plot.new()
+		plot:set_time_scale()
+		local curve = plot:add_curve()
+		curve:append(11) --using current time as x value
+		curve:append_point(current_date_time_ms() + 1000, 22) -- 1 second past now
+		curve:append_point(current_date_time_ms() + 2000, 33) -- 2 seconds past now
+	  \endcode
+  */
+    // clang-format on
+
+    signals:
+    void point_clicked(QPointF point);
+
     private:
     /// \cond HIDDEN_SYMBOLS
     void update();
-    void set_rightclick_action();
+    void value_added(double x, double y);
+    void curve_added(Curve *curve);
 
     QwtPlot *plot{nullptr};
-    QAction *save_as_csv_action{nullptr};
     QwtPlotPicker *picker{nullptr};
-    QwtPlotPicker *track_picker{nullptr};
+    TimePicker *track_picker{nullptr};
     QwtPickerClickPointMachine *clicker{nullptr};
     QwtPickerTrackerMachine *tracker{nullptr};
     std::vector<Curve *> curves{};
     int curve_id_counter{0};
+    bool using_time_scale = false;
+    Zoomer_controller *zoomer_controller;
 
     friend class Curve;
     /// \endcond

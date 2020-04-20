@@ -22,7 +22,7 @@ ExceptiontalApprovalDialog::ExceptiontalApprovalDialog(const QList<ExceptionalAp
     ui->tree_failures->setItemDelegateForColumn(3, new NoEditDelegate(this));
     ui->tree_failures->setItemDelegateForColumn(4, new ComboBoxDelegate(approvals_str, this));
 
-    if (failed_fields.count()==0){
+    if (failed_fields.count() == 0) {
         accept();
     }
     for (auto ff : failed_fields) {
@@ -122,16 +122,16 @@ void ExceptiontalApprovalDialog::on_buttonBox_accepted() {
         QMessageBox::critical(this, tr("Exceptional approval"),
                               tr("There are still open fields you need to fill for assigning exceptional approvals:\n\n") + errors.join("\n"));
     } else if (warnings.count()) {
-        int ret = QMessageBox::warning(this, tr("Exceptional approval"), tr("There are still open fields which are not exceptionally approved:\n\n") +
-                                                                             warnings.join("\n") + tr("\n proceed anyway?"),
-                                       QMessageBox::Yes | QMessageBox::No);
+        int ret =
+            QMessageBox::warning(this, tr("Exceptional approval"),
+                                 tr("There are still open fields which are not exceptionally approved:\n\n") + warnings.join("\n") + tr("\n proceed anyway?"),
+                                 QMessageBox::Yes | QMessageBox::No);
         if (ret == QMessageBox::Yes) {
             accept();
         }
     }
 }
 
-void ExceptiontalApprovalDialog::on_ExceptiontalApprovalDialog_rejected()
-{
+void ExceptiontalApprovalDialog::on_ExceptiontalApprovalDialog_rejected() {
     exceptiontal_approval_results.clear();
 }

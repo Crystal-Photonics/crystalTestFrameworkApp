@@ -1,9 +1,12 @@
 #include "ui_container.h"
+#include "config.h"
 
+#include <QAction>
 #include <QDebug>
 #include <QHBoxLayout>
 #include <QResizeEvent>
 #include <QScrollBar>
+#include <QSettings>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <algorithm>
@@ -58,11 +61,14 @@ UI_container::UI_container(QWidget *parent)
     : QScrollArea{parent}
     , layout{new QVBoxLayout} {
     auto widget = std::make_unique<QWidget>();
-    widget->setMinimumSize({100, 100});
+	widget->setMinimumSize({100, 100});
     widget->setLayout(layout);
 	layout->setAlignment(Qt::AlignmentFlag::AlignTop);
     setWidget(widget.release());
 	setWidgetResizable(true);
+	const auto vscrollbar = verticalScrollBar();
+	connect(vscrollbar, &QAbstractSlider::rangeChanged, [vscrollbar](int, int) { vscrollbar->setSliderPosition(vscrollbar->maximum()); });
+	set_actions();
 }
 
 UI_container::~UI_container() {
@@ -74,6 +80,8 @@ void UI_container::add(QWidget *widget, UI_widget *lua_ui_widget) {
         paragraphs.emplace_back(this->layout);
     }
     paragraphs.back().add(widget, lua_ui_widget);
+	QResizeEvent resize_event{size(), {0, 0}};
+	resizeEvent(&resize_event);
 }
 
 void UI_container::add(QLayout *layout, UI_widget *lua_ui_widget) {
@@ -106,6 +114,27 @@ void UI_container::resizeEvent(QResizeEvent *event) {
 	for (auto &p : paragraphs) {
 		p.resizeEvent(event);
 	}
+	scroll_to_bottom();
+}
+
+void UI_container::set_actions() {
+	struct {
+		const char *settings_key;
+		const char *default_settings_key;
+		void (UI_container::*signal)();
+	} actions_data[] = {
+		{Globals::confirm_key_sequence_key, Globals::default_confirm_key_sequence_key, &UI_container::confirm_pressed},
+		{Globals::skip_key_sequence_key, Globals::default_skip_key_sequence_key, &UI_container::skip_pressed},
+		{Globals::cancel_key_sequence_key, Globals::default_cancel_key_sequence_key, &UI_container::cancel_pressed},
+	};
+	for (auto &action_data : actions_data) {
+		const auto index = &action_data - actions_data;
+		auto &action = shortcut_actions[index];
+		action = std::make_unique<QAction>(this);
+		action->setShortcut(QKeySequence::fromString(QSettings{}.value(action_data.settings_key, action_data.default_settings_key).toString()));
+		connect(action.get(), &QAction::triggered, this, action_data.signal);
+		addAction(action.get());
+	}
 }
 
 UI_widget::UI_widget(UI_container *parent_)
@@ -113,8 +142,4 @@ UI_widget::UI_widget(UI_container *parent_)
 
 UI_widget::~UI_widget() {
     parent->remove_me_from_resize_list(this);
-}
-
-void UI_widget::resizeMe(QResizeEvent *event) {
-	parent->resize(event->size());
 }

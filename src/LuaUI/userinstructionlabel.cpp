@@ -177,7 +177,6 @@ void UserInstructionLabel::set_enabled(bool enabled) {
 
 void UserInstructionLabel::resizeMe(QResizeEvent *event) {
     assert(MainWindow::gui_thread == QThread::currentThread());
-	qDebug() << __PRETTY_FUNCTION__ << event->size();
     total_width = event->size().width();
     if (is_init) {
         scale_columns();

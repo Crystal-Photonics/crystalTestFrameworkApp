@@ -1,6 +1,6 @@
 #include "manualprotocol.h"
-#include <QTreeWidgetItem>
 #include "Windows/mainwindow.h"
+#include <QTreeWidgetItem>
 
 ManualProtocol::ManualProtocol()
     : Protocol{"manual"} {}
@@ -27,6 +27,10 @@ DeviceMetaDataApprovedState ManualProtocol::get_approved_state() {
     } else {
         return DeviceMetaDataApprovedState::Unknown;
     }
+}
+
+QString ManualProtocol::get_manual() const {
+    return meta_data.commondata.manual_path;
 }
 
 QString ManualProtocol::get_approved_state_str() {

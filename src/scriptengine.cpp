@@ -1,16 +1,17 @@
 #include "scriptengine.h"
-#include "LuaUI/color.h"
+#include "LuaFunctions/chargecounter.h"
+#include "LuaFunctions/color.h"
+#include "LuaFunctions/dataengineinput_lua.h"
+#include "LuaFunctions/datalogger.h"
+#include "LuaFunctions/lua_functions.h"
 #include "Protocols/rpcprotocol.h"
 #include "Windows/devicematcher.h"
 #include "Windows/mainwindow.h"
-#include "chargecounter.h"
 #include "communication_devices.h"
 #include "config.h"
 #include "console.h"
 #include "data_engine/data_engine.h"
 #include "data_engine/exceptionalapproval.h"
-#include "datalogger.h"
-#include "lua_functions.h"
 #include "qt_util.h"
 #include "rpcruntime_decoded_function_call.h"
 #include "rpcruntime_encoded_function_call.h"
@@ -221,12 +222,11 @@ static void abort_check() {
     }
 }
 
-ScriptEngine::ScriptEngine(QObject *owner, UI_container *parent, Console &console, TestRunner *runner, QString test_name)
+ScriptEngine::ScriptEngine(UI_container *parent, Console &console, TestRunner *runner, QString test_name)
     : runner{runner}
     , test_name{std::move(test_name)}
     , parent{parent}
-    , console(console)
-    , owner{owner} {
+    , console(console) {
     reset_lua_state();
 }
 
@@ -235,12 +235,12 @@ ScriptEngine::~ScriptEngine() { //
     // QThread::currentThread();
 }
 
-Event_id::Event_id ScriptEngine::await_timeout(std::chrono::milliseconds timeout) {
+Event_id::Event_id ScriptEngine::await_timeout(std::chrono::milliseconds duration, std::chrono::milliseconds start) {
     std::unique_lock<std::mutex> lock{await_mutex};
     if (await_condition == Event_id::interrupted) {
         throw std::runtime_error("Interrupted");
     }
-    await_condition_variable.wait_for(lock, timeout, [this] { return await_condition == Event_id::interrupted; });
+    await_condition_variable.wait_for(lock, duration - start, [this] { return await_condition == Event_id::interrupted; });
     if (await_condition == Event_id::interrupted) {
         throw std::runtime_error("Interrupted");
     }
@@ -268,11 +268,10 @@ Event_id::Event_id ScriptEngine::await_hotkey_event() {
     // qDebug() << "eventloop Interruption";
     auto connections = Utility::promised_thread_call(MainWindow::mw, [this] {
         std::array<QMetaObject::Connection, 3> connections;
-        std::array<void (MainWindow::*)(), 3> key_signals = {&MainWindow::confirm_key_sequence_pressed, &MainWindow::cancel_key_sequence_key_pressed,
-                                                             &MainWindow::skip_key_sequence_pressed};
+        std::array<void (UI_container::*)(), 3> key_signals = {&UI_container::confirm_pressed, &UI_container::cancel_pressed, &UI_container::skip_pressed};
         std::array<Event_id::Event_id, 3> event_ids = {Event_id::Hotkey_confirm_pressed, Event_id::Hotkey_cancel_pressed, Event_id::Hotkey_skip_pressed};
         for (std::size_t i = 0; i < 3; i++) {
-            connections[i] = QObject::connect(MainWindow::mw, key_signals[i], [this, event_id = event_ids[i]] {
+            connections[i] = QObject::connect(parent, key_signals[i], [this, event_id = event_ids[i]] {
                 {
                     std::unique_lock<std::mutex> lock{await_mutex};
                     await_condition = event_id;
@@ -319,6 +318,7 @@ void ScriptEngine::post_hotkey_event(Event_id::Event_id event) {
 }
 
 void ScriptEngine::post_interrupt(QString message) {
+    script_interrupted();
     console.error() << "Script interrupted" << (message.isEmpty() ? "" : "because of " + message);
     {
         std::unique_lock<std::mutex> lock{await_mutex};
@@ -330,9 +330,10 @@ void ScriptEngine::post_interrupt(QString message) {
 std::vector<std::string> ScriptEngine::get_default_globals() {
     std::vector<std::string> globals;
     Console console{nullptr};
-    ScriptEngine se{nullptr, nullptr, console, nullptr, {}};
-    script_setup(*se.lua, "", se);
+    ScriptEngine se{nullptr, console, nullptr, {}};
+    script_setup(*se.lua, "", se, se.parent, se.console.get_plaintext_edit());
     for (auto &[key, value] : se.lua->globals()) {
+        (void)value;
         if (key.is<std::string>()) {
             globals.emplace_back(key.as<std::string>());
         }
@@ -352,7 +353,7 @@ static std::string to_string(const RPCDevice &device) {
 
 std::string ScriptEngine::to_string(double d) {
     if (std::fmod(d, 1.) == 0) {
-        return std::to_string(static_cast<int>(d));
+        return std::to_string(static_cast<long long int>(d));
     }
     return std::to_string(d);
 }
@@ -432,9 +433,8 @@ std::string ScriptEngine::to_string(const sol::table &table) {
     if (retval.size() > 1) {
         retval.pop_back();
         retval.back() = '}';
-        return retval;
     }
-    return "{}";
+    return retval;
 }
 
 QString ScriptEngine::get_absolute_filename(QString file_to_open) {
@@ -466,7 +466,7 @@ void ScriptEngine::load_script(const std::string &path) {
     path_m = QString::fromStdString(path);
 
     try {
-        script_setup(*lua, path, *this);
+        script_setup(*lua, path, *this, parent, console.get_plaintext_edit());
         lua->script_file(path);
     } catch (const sol::error &error) {
         qDebug() << "caught sol::error@load_script";
@@ -755,6 +755,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
                 throw error;
             }
         }
+        script_finished();
         reset_lua_state();
     } catch (const sol::error &e) {
         qDebug() << "caught sol::error@run";

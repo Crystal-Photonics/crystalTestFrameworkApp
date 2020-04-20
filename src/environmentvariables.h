@@ -1,10 +1,10 @@
 #ifndef ENVIRONMENTVARIABLES_H
 #define ENVIRONMENTVARIABLES_H
 
-#include "sol.hpp"
+#include <QMap>
 #include <QString>
 #include <QVariant>
-#include <QMap>
+#include <sol.hpp>
 
 class EnvironmentVariables {
     public:
@@ -12,7 +12,7 @@ class EnvironmentVariables {
     void load_to_lua(sol::state *lua);
 
     private:
-    QMap<QString,QVariant> variables;
+	QMap<QString, QVariant> variables;
 };
 
 #endif // ENVIRONMENTVARIABLES_H

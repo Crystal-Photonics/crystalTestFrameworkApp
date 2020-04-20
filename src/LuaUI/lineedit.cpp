@@ -21,8 +21,8 @@ LineEdit::LineEdit(UI_container *parent, ScriptEngine *script_engine)
     , pattern_check_m(PatternCheck::None) {
     QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(label);
-	layout->addWidget(text_edit);
-	layout->addWidget(date_edit);
+    layout->addWidget(text_edit);
+    layout->addWidget(date_edit);
     parent->add(layout, this);
     set_text_mode();
     parent->scroll_to_bottom();
@@ -140,8 +140,21 @@ void LineEdit::set_caption(const std::string &caption) {
 void LineEdit::set_visible(bool visible) {
     assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     label->setVisible(visible);
-    text_edit->setVisible(visible);
-    date_edit->setVisible(visible);
+    if (not visible) {
+        text_edit->setVisible(false);
+        date_edit->setVisible(false);
+        return;
+    }
+    switch (entermode) {
+        case LineEdit_Entermode::DateMode:
+            set_date_mode();
+            break;
+        case LineEdit_Entermode::TextMode:
+            set_text_mode();
+            break;
+        default:
+            qWarning() << "Warning: Missing or invalid LineEdit_Entermode in" << __PRETTY_FUNCTION__ << __LINE__;
+    }
 }
 
 void LineEdit::set_enabled(bool enabled) {

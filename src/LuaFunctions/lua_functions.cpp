@@ -302,6 +302,28 @@ std::string show_file_save_dialog(const std::string &title, const std::string &p
 #endif
 /// \endcond
 
+#ifdef DOXYGEN_ONLY
+//this block is just for documentation purpose
+string show_file_open_dialog(string title, string path, string_table filter);
+#endif
+#if 1
+/// \cond HIDDEN_SYMBOLS
+std::string show_file_open_dialog(const std::string &title, const std::string &path, sol::table filters) {
+    QStringList sl;
+    for (auto &i : filters) {
+        sl.append(QString::fromStdString(i.second.as<std::string>()));
+    }
+
+    QString filter = sl.join(";");
+    QString result = Utility::promised_thread_call(MainWindow::mw, [&title, &path, &filter]() {
+        return QFileDialog::getOpenFileName(MainWindow::mw, QString::fromStdString(title), QString::fromStdString(path), filter);
+    });
+
+    return result.toStdString();
+}
+#endif
+/// \endcond
+
 /*! \fn string show_question(string title, string message, string_table button_table);
 \brief Shows a dialog window with different buttons to click.
 \param title             string value which is shown as the title of the window.
@@ -566,8 +588,8 @@ sleep_ms(int timeout_ms);
 #endif
 
 /// \cond HIDDEN_SYMBOLS
-void sleep_ms(ScriptEngine *scriptengine, const unsigned int timeout_ms) {
-    scriptengine->await_timeout(std::chrono::milliseconds{timeout_ms});
+void sleep_ms(ScriptEngine *scriptengine, const unsigned int duration_ms, const unsigned int starttime_ms) {
+    scriptengine->await_timeout(std::chrono::milliseconds{duration_ms}, std::chrono::milliseconds{starttime_ms});
 #if 0
     QEventLoop event_loop;
     static const auto secret_exit_code = -0xF42F;
@@ -699,6 +721,34 @@ double table_sum(sol::table input_values) {
         retval += i.second.as<double>();
     }
     return retval;
+}
+/// \endcond
+
+/*! \fn bool table_contains_string(string_table input_values, string search_text);
+\brief Returns whether \c input_values contains \c search_text
+\param input_values                 Input table of string values.
+\param search_text                  String to be searched for.
+
+\return                     True if \c input_values contains \c search_text
+
+\details    \par example:
+\code{.lua}
+    local input_values = {"hello", "world", "foo", "bar"}
+    local retval = table_find_string(input_values, "hello")  -- retval is true
+    print(retval)
+    retval = table_find_string(input_values, "test")  -- retval is false
+    print(retval)
+\endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+bool table_contains_string(string_table input_values, string search_text);
+#endif
+
+/// \cond HIDDEN_SYMBOLS
+bool table_contains_string(sol::table input_table, std::string search_text) {
+    return table_find_string(input_table, search_text) > 0;
 }
 /// \endcond
 
@@ -1672,7 +1722,110 @@ sol::table table_mid(sol::state &lua, sol::table input_values, const unsigned in
     }
     return retval;
 }
+/// \endcond
 
+/*! \fn number_table table_range(double start, double stop, double step);
+    \brief Returns a table with evenly spaced values within a given interval.
+    \param start               Start of interval. The interval includes this value.
+    \param stop                End of interval. The interval includes this value.
+    \param step               Spacing between values
+
+    \return
+
+    \details    \par example:
+    \code{.lua}
+        local start = -2
+        local stop = +2
+        local step = 0.5
+        local retval = table_range(start,stop,step) --{-2, -1.5, -1, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0}
+        print(retval)
+        retval = table_range(2,-2,-0.5) --{2, 1.5, 1, 0.5, 0.0, -0.5, -1.0, -1.5, -2.0}
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+number_table table_range(double start, double stop, double step);
+#endif
+/// \cond HIDDEN_SYMBOLS
+sol::table table_range(sol::state &lua, double start, double stop, double step) {
+    sol::table retval = lua.create_table_with();
+    if (step > 0) {
+        if (start >= stop) {
+            throw std::runtime_error(
+                QObject::tr(
+                    "table_range: stop value must be greater than start value if step value is greater than zero. Values are: start=%1, stop=%2, step=%3")
+                    .arg(start)
+                    .arg(stop)
+                    .arg(step)
+                    .toStdString());
+        }
+        double value = start;
+        while (value <= stop) {
+            retval.add(value);
+            value += step;
+        }
+    } else if (step < 0) {
+        if (start <= stop) {
+            throw std::runtime_error(
+                QObject::tr("table_range: start value must be greater than stop value if step value is less than zero. Values are: start=%1, stop=%2, step=%3")
+                    .arg(start)
+                    .arg(stop)
+                    .arg(step)
+                    .toStdString());
+        }
+        double value = start;
+        while (value >= stop) {
+            retval.add(value);
+            value += step;
+        }
+    } else {
+        throw std::runtime_error(
+            QObject::tr("table_range: step value must not be 0. Values are: start=%1, stop=%2, step=%3").arg(start).arg(stop).arg(step).toStdString());
+    }
+    return retval;
+}
+/// \endcond
+
+/*! \fn table table_concat(table table1, table table2);
+    \brief Returns a table joining table1 with table2.
+    \param start              First table
+    \param stop               Second table to be joined with table1
+
+    \return
+
+    \details    \par example:
+    \code{.lua}
+        local table1 = {1,2,3}
+        local table2 = {4,5,6}
+        local retval = table_concat(table1,table2) --{1,2,3,4,5,6}
+        print(retval)
+
+        table1 = {"A","B","C"}
+        table2 = {"D","E","F"}
+        local retval = table_concat(table1,table2) --{"A","B","C","D","E","F"}
+        print(retval)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+//this block is just for ducumentation purpose
+table table_concat(table table1, table table1);
+#endif
+/// \cond HIDDEN_SYMBOLS
+sol::table table_concat(sol::state &lua, sol::table table1, sol::table table2) {
+    sol::table retval = lua.create_table_with();
+    for (size_t i = 1; i <= table1.size(); i++) {
+        auto val_1 = table1[i];
+        retval.add(val_1);
+    }
+    for (size_t i = 1; i <= table2.size(); i++) {
+        auto val = table2[i];
+        retval.add(val);
+    }
+    return retval;
+}
 /// \endcond
 
 /*! \fn bool table_equal_constant(number_table input_values_a, double input_const_val);
@@ -1720,8 +1873,13 @@ bool table_equal_constant(sol::table input_values_a, double input_const_val) {
         local input_values_a = {-20, -40, 2, 30}
         local input_values_b = {-20, -40, 2, 30}
         local input_values_c = {-20, -40, 2, 31}
-        local retval_equ = table_equal_table(input_values_a,input_values_b)  -- true
-        local retval_neq = table_equal_table(input_values_a,input_values_c)  -- false
+        local retval = table_equal_table(input_values_a,input_values_b)  -- true
+        print(retval)
+        local retval = table_equal_table(input_values_a,input_values_b)  -- true
+        print(retval)
+        local retval = table_equal_table({"A","B","C"}, {"D","E","F"})  -- false
+        print(retval)
+        local retval = table_equal_table({"A","B","C"}, {"A","B","C"})  -- true
         print(retval)
     \endcode
 */
@@ -1731,10 +1889,23 @@ bool table_equal_constant(sol::table input_values_a, double input_const_val) {
 bool table_equal_table(number_table input_values_a, number_table input_values_b);
 #endif
 /// \cond HIDDEN_SYMBOLS
-bool table_equal_table(sol::table input_values_a, sol::table input_values_b) {
+bool table_equal_table(sol::state &lua, sol::table input_values_a, sol::table input_values_b) {
     for (size_t i = 1; i <= input_values_a.size(); i++) {
-        if (input_values_a[i].get<double>() != input_values_b[i].get<double>()) { //TODO: fix double comparison
-            return false;
+        if ((input_values_a[i].get_type() == sol::type::number) && (input_values_b[i].get_type() == sol::type::number)) {
+            if (input_values_a[i].get<double>() != input_values_b[i].get<double>()) { //TODO: fix double comparison
+                return false;
+            }
+        } else if ((input_values_a[i].get_type() == sol::type::string) && (input_values_b[i].get_type() == sol::type::string)) {
+            if (input_values_a[i].get<std::string>() != input_values_b[i].get<std::string>()) {
+                return false;
+            }
+        } else {
+            throw std::runtime_error(
+                QObject::tr("table_equal_table: comparison only possible between number or string values but is: A[%3]=\"%1\", B[%3]=\"%2\"")
+                    .arg(QString::fromStdString(sol::type_name(lua, input_values_a[i])))
+                    .arg(QString::fromStdString(sol::type_name(lua, input_values_b[i])))
+                    .arg(i)
+                    .toStdString());
         }
     }
     return true;
@@ -1985,10 +2156,10 @@ QString run_external_tool(const QString &script_path, const QString &execute_dir
     QString program = search_in_search_path(script_path, executable);
 
     if (!QFile::exists(program)) {
-        throw std::runtime_error("Could not find executable at \"" + program.toStdString() + "\"");
+        throw std::runtime_error(QObject::tr("Could not find executable at \"%1\"").arg(program).toStdString());
     }
     if (!QFile::exists(execute_directory)) {
-        throw std::runtime_error("Could not find directory at \"" + QString(execute_directory).toStdString() + "\"");
+        throw std::runtime_error(QObject::tr("Could not find directory at \"%1\"").arg(execute_directory).toStdString());
     }
 
     QProcessEnvironment sys_env = QProcessEnvironment::systemEnvironment();

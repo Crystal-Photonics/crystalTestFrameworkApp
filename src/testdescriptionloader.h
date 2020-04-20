@@ -15,6 +15,7 @@ class TestDescriptionLoader {
 	public:
 	TestDescriptionLoader(QTreeWidget *test_list, const QString &file_path, const QString &display_name);
 	TestDescriptionLoader(TestDescriptionLoader &&other);
+	TestDescriptionLoader &operator=(TestDescriptionLoader &&other);
 	~TestDescriptionLoader();
 
 	const std::vector<DeviceRequirements> &get_device_requirements() const;

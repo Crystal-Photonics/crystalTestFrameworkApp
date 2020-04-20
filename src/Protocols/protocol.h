@@ -1,8 +1,6 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
-//this class should not exist, it is just a worse std::variant, but unfortunately it is 2016
-
 #include <QString>
 
 struct Protocol {
@@ -10,7 +8,10 @@ struct Protocol {
     Protocol(QString type)
         : type(type) {}
     bool operator==(const QString &&type) const {
-		return this->type == type;
+        return this->type == type;
+    }
+    virtual QString get_manual() const {
+        return {};
     }
     virtual ~Protocol() = default;
 };

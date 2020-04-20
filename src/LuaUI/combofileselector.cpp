@@ -107,7 +107,7 @@ void ComboBoxFileSelector::set_order_by(const std::string &field, const bool asc
     assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     QString order_by = QString::fromStdString(field).toLower().trimmed();
     if (order_by == "name") {
-        qSort(file_entries.begin(), file_entries.end(), [ascending](FileEntry &p1, FileEntry &p2) {
+        std::sort(file_entries.begin(), file_entries.end(), [ascending](FileEntry &p1, FileEntry &p2) {
             if (ascending) {
                 return p1.filename.toLower() < p2.filename.toLower();
             } else {
@@ -115,7 +115,7 @@ void ComboBoxFileSelector::set_order_by(const std::string &field, const bool asc
             }
         });
     } else if (order_by == "date") {
-        qSort(file_entries.begin(), file_entries.end(), [ascending](FileEntry &p1, FileEntry &p2) {
+        std::sort(file_entries.begin(), file_entries.end(), [ascending](FileEntry &p1, FileEntry &p2) {
             if (ascending) {
                 return p1.date < p2.date;
             } else {
@@ -149,7 +149,11 @@ void ComboBoxFileSelector::scan_directory() {
         FileEntry fe;
         fe.filename = item.fileName();
         fe.filenpath = item.filePath();
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
         fe.date = item.created();
+#else
+        fe.date = item.birthTime();
+#endif
         file_entries.append(fe);
     }
 }

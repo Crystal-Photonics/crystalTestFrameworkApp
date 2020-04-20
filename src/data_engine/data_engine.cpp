@@ -3,12 +3,12 @@
 //#if IAM_NOT_LUPDATE
 #include "data_engine_strings.h"
 //#endif
+#include "LuaFunctions/lua_functions.h"
 #include "Windows/devicematcher.h"
 #include "Windows/mainwindow.h"
 #include "communication_logger/communication_logger.h"
 #include "console.h"
 #include "exceptionalapproval.h"
-#include "lua_functions.h"
 #include "util.h"
 #include "vc.h"
 
@@ -58,12 +58,13 @@ almost_equal(T x, T y, int ulp) {
          || std::abs(x - y) < std::numeric_limits<T>::min();
 }
 
-bool is_comment_key(const QString &keyname) { return keyname.startsWith("_"); }
+static bool is_comment_key(const QString &keyname) {
+    return keyname.startsWith("_");
+}
 
 constexpr auto unavailable_value = "/";
 
-bool have_entries_equal_desired_values(
-    QList<const DataEngineDataEntry *> entries) {
+static bool have_entries_equal_desired_values(QList<const DataEngineDataEntry *> entries) {
   if (entries.count() == 0) {
     return false;
   }
@@ -626,7 +627,7 @@ void DataEngineSection::delete_unmatched_variants(
 void DataEngineSection::delete_all_but_biggest_variants() {
   int instance_index = 0;
   for (auto &instance : instances) {
-    assert((bool)instance_count);
+        assert(instance_count);
     instance.delete_all_but_biggest_variants();
     instance_index++;
   }
@@ -756,7 +757,7 @@ bool DataEngineSection::all_values_in_range() const {
   return result;
 }
 
-QString jsonTypeToString(const QJsonValue &val) {
+static QString jsonTypeToString(const QJsonValue &val) {
   switch (val.type()) {
   case QJsonValue::Null:
     return "Null";
@@ -950,7 +951,7 @@ QStringList DataEngineSection::get_instance_captions() const {
 }
 
 bool DataEngineSection::is_section_instance_defined() const {
-  return (bool)instance_count;
+    return static_cast<bool>(instance_count);
 }
 
 bool DataEngineSection::set_instance_count_if_name_matches(
@@ -1982,88 +1983,82 @@ std::unique_ptr<QWidget> Data_engine::get_preview() const {
   return nullptr;
 }
 
-bool Data_engine::generate_pdf(const std::string &form,
-                               const std::string &destination) const {
-  QString db_name = ""; // TODO: find a better temporary name
-                        // QDir::homePath()
-                        //      AppLocalDataLocation
+bool Data_engine::generate_pdf(const std::string &form, const std::string &destination) const {
+    return MainWindow::await_execute_in_gui_thread([form, destination, this] {
+        QString db_name = ""; //TODO: find a better temporary name
+                              //QDir::homePath()
+                              //      AppLocalDataLocation
 #if 1
-  QTemporaryFile db_file;
-  if (db_file.open()) {
-    db_name =
-        db_file.fileName(); // returns the unique file name
-                            // The file name of the temporary file can be found
-                            // by calling fileName(). Note that this is only
-                            // defined after the file is first opened; the
-                            // function returns an empty string before this.
-  }
-  db_file.close(); // Reopening a QTemporaryFile after calling close() is safe
-                   // QFile::remove(db_name);
-                   // assert(QFile{db_name}.exists() == false);
+        QTemporaryFile db_file;
+        if (db_file.open()) {
+            db_name = db_file.fileName(); // returns the unique file name
+                                          //The file name of the temporary file can be found by calling fileName().
+                                          //Note that this is only defined after the file is first opened; the
+                                          //function returns an empty string before this.
+        }
+        db_file.close(); //Reopening a QTemporaryFile after calling close() is safe
+                         // QFile::remove(db_name);
+                         // assert(QFile{db_name}.exists() == false);
 #endif
-  QSqlDatabase db;
-  auto db_closer = Utility::RAII_do(
-      [&db, &db_name] { db = QSqlDatabase::addDatabase("QSQLITE", db_name); },
-      [&db, &db_name] {
-        db.close();
-        db = QSqlDatabase();
-        QSqlDatabase::removeDatabase(db_name);
-      });
-  db.setDatabaseName(db_name);
-  bool opend = db.open();
-  if (!opend) {
-    throw std::runtime_error{db.lastError().text().toStdString()};
-  }
+        QSqlDatabase db;
+        auto db_closer = Utility::RAII_do([&db, &db_name] { db = QSqlDatabase::addDatabase("QSQLITE", db_name); },
+                                          [&db, &db_name] {
+                                              db.close();
+                                              db = QSqlDatabase();
+                                              QSqlDatabase::removeDatabase(db_name);
+                                          });
+        db.setDatabaseName(db_name);
+        bool opend = db.open();
+        if (!opend) {
+            throw std::runtime_error{db.lastError().text().toStdString()};
+        }
 
-  if (!QFile{QString::fromStdString(form)}.exists()) {
-    qDebug() << "PDF Template file does not exist: "
-             << QString::fromStdString(form);
-    throw DataEngineError(DataEngineErrorNumber::pdf_template_file_not_existing,
-                          "Dataengine: PDF Template file does not exist: " +
-                              QString::fromStdString(form));
-  }
-  fill_database(db);
-  const auto sourced_form = form + ".tmp.lrxml";
-  replace_database_filename(
-      form, sourced_form, QFileInfo{db_name}.absoluteFilePath().toStdString());
+        if (!QFile{QString::fromStdString(form)}.exists()) {
+            qDebug() << "PDF Template file does not exist: " << QString::fromStdString(form);
+            throw DataEngineError(DataEngineErrorNumber::pdf_template_file_not_existing,
+                                  "Dataengine: PDF Template file does not exist: " + QString::fromStdString(form));
+        }
+        fill_database(db);
+        const auto sourced_form = form + ".tmp.lrxml";
+        replace_database_filename(form, sourced_form, QFileInfo{db_name}.absoluteFilePath().toStdString());
 
-  LimeReport::ReportEngine re;
-  if (re.loadFromFile(QString::fromStdString(sourced_form), false) == false) {
-    return false;
-  }
-  bool result = false;
-  {
-    QString filename = QString::fromStdString(destination);
-    // doing the error checking that LimeReport should do but doesn't.
-    QPrinter printer;
-    printer.setOutputFileName(filename);
-    QPainter painter;
-    if (painter.begin(&printer) == false) {
-      MainWindow::mw->execute_in_gui_thread([filename] {
-        QMessageBox::critical(MainWindow::mw, "Failed printing report",
-                              "Requested to write report to file " + filename +
-                                  " which could not be opened.");
-      });
-    } else {
-      painter.end();
-      result = re.printToPDF(filename);
-    }
-  }
-  if (auto_open_pdf) {
-    QFileInfo fi{QString::fromStdString(destination)};
-    auto p = fi.absoluteFilePath();
-    if (!p.startsWith("/")) {
-      p = "/" + p;
-    }
-    QDesktopServices::openUrl(QUrl("file://" + p));
-  }
-  return result;
+        LimeReport::ReportEngine re;
+        if (re.loadFromFile(QString::fromStdString(sourced_form), false) == false) {
+            return false;
+        }
+        bool result = false;
+        {
+            QString filename = QString::fromStdString(destination);
+            //doing the error checking that LimeReport should do but doesn't.
+            QPrinter printer;
+            printer.setOutputFileName(filename);
+            QPainter painter;
+            if (painter.begin(&printer) == false) {
+                MainWindow::mw->execute_in_gui_thread([filename] {
+                    QMessageBox::critical(MainWindow::mw, "Failed printing report",
+                                          "Requested to write report to file " + filename + " which could not be opened.");
+                });
+            } else {
+                painter.end();
+                result = re.printToPDF(filename);
+            }
+        }
+        if (auto_open_pdf) {
+            QFileInfo fi{QString::fromStdString(destination)};
+            auto p = fi.absoluteFilePath();
+            if (!p.startsWith("/")) {
+                p = "/" + p;
+            }
+            QDesktopServices::openUrl(QUrl("file://" + p));
+        }
+        return result;
+    });
 }
 
 static void db_exec(QSqlDatabase &db, QString query) {
-  //    qDebug() << query;
-  auto instance = db.exec(query);
-  if (instance.lastError().isValid()) {
+    //    qDebug() << query;
+    auto instance = db.exec(query);
+    if (instance.lastError().isValid()) {
     qDebug() << instance.lastError().text();
     throw DataEngineError(
         DataEngineErrorNumber::sql_error,

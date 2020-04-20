@@ -4,15 +4,12 @@
 #include "CommunicationDevices/communicationdevice.h"
 #include "Protocols/protocol.h"
 #include "device_protocols_settings.h"
-#include <QTreeWidgetItem>
 #include "scpimetadata.h"
+#include <QTreeWidgetItem>
 
 class ManualProtocol : public Protocol {
-
-public:
+    public:
     ManualProtocol();
-
-
     ~ManualProtocol();
     ManualProtocol(const ManualProtocol &) = delete;
     ManualProtocol(ManualProtocol &&other) = delete;
@@ -30,10 +27,11 @@ public:
     std::string get_summary();
     QString get_approved_state_str();
     DeviceMetaDataApprovedState get_approved_state();
-private:
+    QString get_manual() const override;
+
+    private:
     DeviceMetaDataGroup meta_data;
     QString get_summary_lcl();
-
 };
 
 #endif // MANUALPROTOCOL_H

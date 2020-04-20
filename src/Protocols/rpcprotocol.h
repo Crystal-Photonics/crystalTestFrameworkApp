@@ -43,20 +43,20 @@ class CommunicationDeviceWrapper : public RPCIODevice {
     CommunicationDeviceWrapper(CommunicationDevice &device);
 
     void send(std::vector<unsigned char> data, std::vector<unsigned char> pre_encodec_data) override;
-	bool waitReceived(std::chrono::steady_clock::duration timeout = std::chrono::seconds(1), int bytes = 1, bool isPolling = false) override;
+    bool waitReceived(std::chrono::steady_clock::duration timeout = std::chrono::seconds(1), int bytes = 1, bool isPolling = false) override;
 
-	private:
+    private:
     CommunicationDevice &com_device;
 };
 
 struct RPCTimeoutException : std::runtime_error {
-	RPCTimeoutException(std::string message)
-		: std::runtime_error{std::move(message)} {}
+    RPCTimeoutException(std::string message)
+        : std::runtime_error{std::move(message)} {}
 };
 
 class RPCProtocol : public Protocol {
     public:
-	RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting setting);
+    RPCProtocol(CommunicationDevice &device, DeviceProtocolSetting setting);
     ~RPCProtocol();
     RPCProtocol(const RPCProtocol &) = delete;
     RPCProtocol(RPCProtocol &&other) = delete;
@@ -69,17 +69,18 @@ class RPCProtocol : public Protocol {
     void get_lua_device_descriptor(sol::table &t) const;
     RPCRuntimeEncodedFunctionCall encode_function(const int request_id) const;
     RPCRuntimeEncodedFunctionCall encode_function(const std::string &name) const;
-	bool has_function(const std::string &name) const;
+    bool has_function(const std::string &name) const;
     RPCFunctionCallResult call_get_hash_function() const;
     RPCFunctionCallResult call_get_hash_function(int retries) const;
     void clear();
     std::string get_name();
     QString get_device_summary();
+    QString get_manual() const override;
 
     private:
     std::unique_ptr<RPCRuntimeProtocol> rpc_runtime_protocol;
 
-	void console_message(RPCConsoleLevel level, QString message);
+    void console_message(RPCConsoleLevel level, QString message);
 
     QMetaObject::Connection console_message_connection;
     std::unique_ptr<RPCRuntimeDecodedFunctionCall> descriptor_answer;
