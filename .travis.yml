@@ -105,7 +105,7 @@ script:
   - cd $TRAVIS_BUILD_DIR
   - export SANITIZER=undefined
   - qmake "CONFIG+=debug"
-  - quietly make -j$(nproc)
+  - quietly make tests -j$(nproc)
   #- tree $TRAVIS_BUILD_DIR
   
   - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/bin/debug/:$LD_LIBRARY_PATH
@@ -128,15 +128,14 @@ script:
   - xvfb-run --auto-servernum gdb -q --return-child-result -ex "set confirm off" -ex "set pagination off" -ex "set print thread-events off" -ex "run" -ex "bt" -ex "quit" ./tests
 
   ## without gdb with asan
-  #- export SANITIZER=undefined,address
-  #- cd $TRAVIS_BUILD_DIR
-  #- make clean
-  #- rm .qmake.stash
-  #- qmake "CONFIG+=debug"
-  #- make -p | grep test
-  #- quietly make -j$(nproc)
-  #- cd $TRAVIS_BUILD_DIR/bin/debug/
-  #- xvfb-run --auto-servernum ./tests
+  - export SANITIZER=undefined,address
+  - cd $TRAVIS_BUILD_DIR
+  - make clean
+  - rm .qmake.stash
+  - qmake "CONFIG+=debug"
+  - quietly make tests -j$(nproc)
+  - cd $TRAVIS_BUILD_DIR/bin/debug/
+  - xvfb-run --auto-servernum ./tests
 
   ## without gdb with tsan
   #- export SANITIZER=thread
