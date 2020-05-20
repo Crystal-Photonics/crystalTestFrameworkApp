@@ -105,7 +105,7 @@ script:
   - cd $TRAVIS_BUILD_DIR
   - export SANITIZER=undefined
   - qmake "CONFIG+=debug"
-  - quietly make tests -j$(nproc)
+  - quietly make -j$(nproc)
   #- tree $TRAVIS_BUILD_DIR
   
   - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/bin/debug/:$LD_LIBRARY_PATH
@@ -133,7 +133,7 @@ script:
   - make clean
   - rm .qmake.stash
   - qmake "CONFIG+=debug"
-  - quietly make tests -j$(nproc)
+  - quietly make -j$(nproc)
   - cd $TRAVIS_BUILD_DIR/bin/debug/
   - xvfb-run --auto-servernum ./tests
 
