@@ -30,10 +30,12 @@ LIBS += -L$$BINDIR
 
 win32 {
     equals(GCC_MACHINE,  x86_64-w64-mingw32){
-        LIBS += -L$$PWD/../libs/googletest/build/win64
+		LIBS += -L$$PWD/../libs/build-googletest-Desktop_Qt_$${QT_MAJOR_VERSION}_$${QT_MINOR_VERSION}_$${QT_PATCH_VERSION}_MinGW_64_bit-Debug/googlemock
+		LIBS += -L$$PWD/../libs/build-googletest-Desktop_Qt_$${QT_MAJOR_VERSION}_$${QT_MINOR_VERSION}_$${QT_PATCH_VERSION}_MinGW_64_bit-Debug/googlemock/gtest
     }
     equals(GCC_MACHINE, i686-w64-mingw32){
-        LIBS += -L$$PWD/../libs/googletest/build/win32
+		LIBS += -L$$PWD/../libs/build-googletest-Desktop_Qt_$${QT_MAJOR_VERSION}_$${QT_MINOR_VERSION}_$${QT_PATCH_VERSION}_MinGW_32_bit-Debug/googlemock
+		LIBS += -L$$PWD/../libs/build-googletest-Desktop_Qt_$${QT_MAJOR_VERSION}_$${QT_MINOR_VERSION}_$${QT_PATCH_VERSION}_MinGW_32_bit-Debug/googlemock/gtest
     }
 
 }else{

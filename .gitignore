@@ -48,3 +48,5 @@ libs/LimeReport/build
 
 /qTestLibRunnerConfig.qtr
 /src/vc.h
+
+libs/build-*
