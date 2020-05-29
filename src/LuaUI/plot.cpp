@@ -266,13 +266,20 @@ void Curve::append(double y) {
 }
 
 void Curve::add_spectrum_at(const unsigned int spectrum_start_channel, const std::vector<double> &data) {
+    if (data.empty()) {
+        return;
+    }
     curve_data().add_spectrum(spectrum_start_channel, data);
-    //TODO: This is a hack. value_added exists so we scroll correctly, so adding the front and back only is fine. If it starts getting used for something else this will become wrong.
-    plot->value_added(curve_data().xvalues.front() + spectrum_start_channel, curve_data().yvalues_orig.front());
-    plot->value_added(curve_data().xvalues.back() + spectrum_start_channel, curve_data().yvalues_orig.back());
-    const auto [min_it, max_it] = std::minmax_element(std::begin(data), std::end(data));
-    plot->value_added(min_it - std::begin(data) + spectrum_start_channel, *min_it);
-    plot->value_added(max_it - std::begin(data) + spectrum_start_channel, *max_it);
+    const auto &curve_y_values = curve_data().use_interpolated_values() ? curve_data().yvalues_plot : curve_data().yvalues_orig;
+    //border x values
+    plot->value_added(curve_data().xvalues.front() + spectrum_start_channel, curve_y_values.back());
+    plot->value_added(curve_data().xvalues.front() + spectrum_start_channel + data.size(), curve_y_values.back());
+    //border y values
+    const auto [min_it, max_it] = std::minmax_element(std::begin(curve_y_values) + spectrum_start_channel, std::end(curve_y_values));
+    const auto minindex = min_it - std::begin(curve_y_values);
+    const auto maxindex = max_it - std::begin(curve_y_values);
+    plot->value_added(curve_data().xvalues[minindex], *min_it);
+    plot->value_added(curve_data().xvalues[maxindex], *max_it);
     update();
 }
 
