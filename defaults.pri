@@ -13,11 +13,10 @@ message($$GCC_MACHINE)
 INCLUDEPATH += $$PWD/src
 QMAKE_CXXFLAGS += -isystem $$PWD/libs/luasol/include
 
-
 win32 {
-	QWT_DIR = $$PWD/libs/qwt/
-	QMAKE_CXXFLAGS += -isystem $$QWT_DIR/include
-	LIBS += -L$$QWT_DIR/lib/$${QT_VERSION}
+	QWT_DIR = $$PWD/libs/qwt
+	QMAKE_CXXFLAGS += -isystem $$QWT_DIR/qwt-6.1.3/src
+	LIBS += -L$$QWT_DIR/build_qwt/lib
 
 	CONFIG(debug, debug|release) {
 		LIBS += -lqwtd
@@ -119,11 +118,11 @@ unix {
     eval("SANITIZERS = $$(SANITIZER)")
     message("Using sanitizer $$SANITIZERS")
     equals(SANITIZERS, "") {
-                    QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
-                    QMAKE_LFLAGS_DEBUG += -fsanitize=undefined,address
+		QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined,address
+		QMAKE_LFLAGS_DEBUG += -fsanitize=undefined,address
     } else {
-                    QMAKE_CXXFLAGS_DEBUG += -fsanitize=$$SANITIZERS
-                    QMAKE_LFLAGS_DEBUG += -fsanitize=$$SANITIZERS
+		QMAKE_CXXFLAGS_DEBUG += -fsanitize=$$SANITIZERS
+		QMAKE_LFLAGS_DEBUG += -fsanitize=$$SANITIZERS
     }
 	QMAKE_LFLAGS_DEBUG += -fuse-ld=gold -L/usr/local/lib
 } else {
