@@ -4,9 +4,9 @@ set CMAKE="cmake"
 
 @rem Testing if qmake, make and cmake work
 
-@%QMAKE% --version || echo Failed finding qmake. Please install Qt 5.12+ and set the path to its qmake in winsetup.bat. && exit 1
-@%MAKE% --version || echo Failed finding make. Please install Qt's Mingw 7.3+ and set the path to mingw32-make in winsetup.bat. && exit 1
-@%CMAKE% --version || echo Failed finding cmake. Please install it from https://cmake.org/download/ and set the path to it in winsetup.bat. && exit 1
+@%QMAKE% --version || echo Failed finding qmake. Please install Qt 5.13+ and set the path to its qmake in setup_windows.bat. && exit 1
+@%MAKE% --version || echo Failed finding make. Please install Qt's Mingw 7.3+ and set the path to mingw32-make in setup_windows.bat. && exit 1
+@%CMAKE% --version || echo Failed finding cmake. Please install it from https://cmake.org/download/ and set the path to it in setup_windows.bat. && exit 1
 
 @rem initializing the submodules
 git submodule update --init --recursive || exit 1
