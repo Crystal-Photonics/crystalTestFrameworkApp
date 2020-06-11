@@ -13,6 +13,9 @@ class QSpinBox;
   \{
 \class  SpinBox
 \brief  A SpinBox is a LineEdit for numbers. It has little buttons (arrow up/down) at the side which can be used to in- or decrement the values in the spinbox.
+  \image html SpinBox.png SpinBox example
+  \image latex SpinBox.png SpinBox example
+  \image rtf SpinBox.png SpinBox example
  */
 class SpinBox : public UI_widget {
     public:

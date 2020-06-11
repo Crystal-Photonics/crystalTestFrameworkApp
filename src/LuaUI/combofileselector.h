@@ -30,6 +30,9 @@ class FileEntry {
     to display a ComboBoxFileSelector to the script-user. It lists all files of a
     predefined directory which match the specified filter entries. The script-user
     can select a file which can be queried by the script using the function get_selected_file().
+  \image html ComboBoxFileSelector.png ComboBoxFileSelector listing all found files and an explore button to open the directory
+  \image latex ComboBoxFileSelector.png ComboBoxFileSelector listing all found files and an explore button to open the directory
+  \image rtf ComboBoxFileSelector.png ComboBoxFileSelector listing all found files and an explore button to open the directory
   */
 class ComboBoxFileSelector : public UI_widget {
 public:

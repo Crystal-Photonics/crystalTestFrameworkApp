@@ -396,6 +396,12 @@ class Curve {
 /** \ingroup ui
     \class  Plot
     \brief  An interface to a plot object. Use mouse drag, mouse wheel, +, -, page up/down and shift+drag to navigate the plot. Use the home, end or middle mouse button to reset to view the whole graph.
+    \image html Plot.png Simple plot with a curve and some data points
+    \image latex Plot.png Simple plot with a curve and some data points
+    \image rtf Plot.png Simple plot with a curve and some data points
+    \image html Plot2.png Time scale plot with 2 curves and specified colors
+    \image latex Plot2.png Time scale plot with 2 curves and specified colors
+    \image rtf Plot2.png Time scale plot with 2 curves and specified colors
     \sa Curve
 */
 
@@ -412,10 +418,10 @@ class Plot : public QObject, public UI_widget {
 
 #ifdef DOXYGEN_ONLY
     // this block is just for ducumentation purpose
-    Plot();
+    Curve add_curve();
 #endif
     // clang-format off
-  /*! \fn  Plot();
+  /*! \fn  add_curve();
     \brief Generates a new curve attached to the plot.
     \return The generated curve.
     \sa Curve
@@ -425,6 +431,19 @@ class Plot : public QObject, public UI_widget {
         local curve = plot:add_curve()
         curve:append_point(1,1)
         curve:append_point(2,1) -- plots a line
+    \endcode
+  */
+#ifdef DOXYGEN_ONLY
+    // this block is just for ducumentation purpose
+    Plot();
+#endif
+    // clang-format off
+  /*! \fn  Plot();
+    \brief Creates a new plot without any curves in it.
+    \return A new empty plot.
+    \par examples:
+    \code
+        local plot = Ui.Plot.new()
     \endcode
   */
     // clang-format on
@@ -438,15 +457,13 @@ class Plot : public QObject, public UI_widget {
 #endif
     // clang-format off
   /*! \fn clear();
-    \brief Deletes all curves from a plot.
+    \brief Deletes all curves from a plot. Note that this invalidates all curves of this plot and accessing the curves after clearing them is an error.
     \par examples:
     \code
         local plot = Ui.Plot.new()
         local curve = plot:add_curve()
         plot.clear(); -- deletes all curves. Plot is empty now
     \endcode
-    TODO: Testen was passiert wenn man auf Kurve zugreift
-    nachdem man clear aufgerufen hat.
   */
     // clang-format on
 

@@ -14,8 +14,10 @@ class QWidget;
 // clang-format off
 /*!
   \class   Label
-  \brief Label Ui-Element. It displays a text in the script-ui area.
-
+  \brief Label Ui-Element. It displays text in the script-ui area. The text is not editable by the script-user directly.
+  \image html Label.png Text label example
+  \image latex Label.png Text label example
+  \image rtf Label.png Text label example
   */
 // clang-format on
 class Label : public UI_widget {

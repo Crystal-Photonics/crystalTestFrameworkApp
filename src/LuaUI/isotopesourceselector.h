@@ -31,7 +31,9 @@ class IsotopeSource {
     serial number, isotope element, the creation date and the activity at the creation date. After
     a certain isotope is selected you can use the IsotopeSourceSelector object to calculate its
     current activity based on its half life.
-
+  \image html IsotopeSourceSelector.png IsotopeSourceSelector with all defined isotopes as values
+  \image latex IsotopeSourceSelector.png IsotopeSourceSelector with all defined isotopes as values
+  \image rtf IsotopeSourceSelector.png IsotopeSourceSelector with all defined isotopes as values
     \sa \ref radioactive_source_database
  */
 class IsotopeSourceSelector : public UI_widget {

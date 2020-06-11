@@ -11,8 +11,13 @@
 // clang-format off
 /*!
   \class   CheckBox
-
-  \brief   Interface to a checkbox Ui-element which the lua-script author can use to display a checkbox to the script-user
+  \brief   A checkbox Ui-element which lets the script-user toggle an option.
+  \image html CheckBox_unchecked.png Checkbox unchecked
+  \image html CheckBox_checked.png Checkbox checked
+  \image latex CheckBox_unchecked.png Checkbox unchecked
+  \image latex CheckBox_checked.png Checkbox checked
+  \image rtf CheckBox_unchecked.png Checkbox unchecked
+  \image rtf CheckBox_checked.png Checkbox checked
   */
 // clang-format on
 

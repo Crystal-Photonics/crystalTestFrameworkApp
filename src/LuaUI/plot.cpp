@@ -237,6 +237,9 @@ void Curve::add(const std::vector<double> &data) {
     if (data.empty()) {
         return;
     }
+    if (not plot) {
+        throw std::runtime_error{"Curve is not associated with a plot"};
+    }
     curve_data().add(data);
     //TODO: This is a hack. value_added exists so we scroll correctly, so adding the front and back only is fine. If it starts getting used for something else this will become wrong.
     plot->value_added(curve_data().xvalues.front(), curve_data().yvalues_orig.front());
@@ -248,12 +251,18 @@ void Curve::add(const std::vector<double> &data) {
 }
 
 void Curve::append_point(double x, double y) {
+    if (not plot) {
+        throw std::runtime_error{"Curve is not associated with a plot"};
+    }
     curve_data().append(x, y);
     plot->value_added(x, y);
     update();
 }
 
 void Curve::append(double y) {
+    if (not plot) {
+        throw std::runtime_error{"Curve is not associated with a plot"};
+    }
     if (plot->using_time_scale) {
         append_point(QDateTime::currentMSecsSinceEpoch(), y);
     } else {
@@ -268,6 +277,9 @@ void Curve::append(double y) {
 void Curve::add_spectrum_at(const unsigned int spectrum_start_channel, const std::vector<double> &data) {
     if (data.empty()) {
         return;
+    }
+    if (not plot) {
+        throw std::runtime_error{"Curve is not associated with a plot"};
     }
     curve_data().add_spectrum(spectrum_start_channel, data);
     const auto &curve_y_values = curve_data().use_interpolated_values() ? curve_data().yvalues_plot : curve_data().yvalues_orig;
@@ -362,6 +374,9 @@ void Curve::set_color(const Color &color) {
 
 double Curve::pick_x_coord() {
     assert(not currently_in_gui_thread());
+    if (not plot) {
+        throw std::runtime_error{"Curve is not associated with a plot"};
+    }
     QMetaObject::Connection callback_connection;
     double xcoord;
     bool clicked = false;
@@ -387,6 +402,9 @@ double Curve::pick_x_coord() {
 
 void Curve::update() {
     assert(currently_in_gui_thread());
+    if (not plot) {
+        throw std::runtime_error{"Curve is not associated with a plot"};
+    }
     curve_data().update();
     plot->update();
 }

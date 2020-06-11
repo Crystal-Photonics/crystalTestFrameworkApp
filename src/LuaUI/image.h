@@ -11,8 +11,10 @@ class Aspect_ratio_label;
 \{
     \class   Image
 
-    \brief Paints an image in the script-ui area. You can use it eg to explain connections the script user has to establish.
-
+    \brief Puts an image in the script-ui area. You can use it as a part of instructions when the user needs to do something.
+  \image html Image.png Image
+  \image latex Image.png Image
+  \image rtf Image.png Image
  */
 class Image : public UI_widget {
     public:
@@ -55,13 +57,13 @@ class Image : public UI_widget {
     // clang-format on
 
 #ifdef DOXYGEN_ONLY
-	// this block is just for ducumentation purpose
-	set_maximum_height(number height_pixels);
+    // this block is just for ducumentation purpose
+    set_maximum_height(number height_pixels);
 #endif
-	/// \cond HIDDEN_SYMBOLS
-	void set_maximum_height(int height);
-	/// \endcond
-	// clang-format off
+    /// \cond HIDDEN_SYMBOLS
+    void set_maximum_height(int height);
+    /// \endcond
+    // clang-format off
   /*! \fn  set_maximum_height(number height_pixels);
 	  \brief Sets the limit of the size of the image by its height. Overwrites previous limit. The default limit is twice the size of the image.
 	  \param height_pixels the desired maximum height of the image in pixels
@@ -71,17 +73,17 @@ class Image : public UI_widget {
 		  ui_image:set_maximum_height(300)
 	  \endcode
   */
-	// clang-format on
+    // clang-format on
 
 #ifdef DOXYGEN_ONLY
-	// this block is just for ducumentation purpose
-	set_maximum_width(number width_pixels);
+    // this block is just for ducumentation purpose
+    set_maximum_width(number width_pixels);
 #endif
-	/// \cond HIDDEN_SYMBOLS
-	void set_maximum_width(int width);
-	/// \endcond
-	// clang-format off
-  /*! \fn  set_maximum_height(number width_pixels);
+    /// \cond HIDDEN_SYMBOLS
+    void set_maximum_width(int width);
+    /// \endcond
+    // clang-format off
+  /*! \fn  set_maximum_width(number width_pixels);
 	  \brief Sets the limit of the size of the image by its width. Overwrites previous limit. The default limit is twice the size of the image.
 	  \param width_pixels the desired maximum width of the image in pixels
 	  \par examples:
@@ -90,7 +92,7 @@ class Image : public UI_widget {
 		  ui_image:set_maximum_width(300)
 	  \endcode
   */
-	// clang-format on
+    // clang-format on
 
 #ifdef DOXYGEN_ONLY
     // this block is just for ducumentation purpose
