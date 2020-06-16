@@ -82,7 +82,7 @@ install:
 script:
  #setup requirements
   - cd $TRAVIS_BUILD_DIR
-  - quietly linuxsetup.sh
+  - quietly sh -e linuxsetup.sh
   
 #build testframework  
   - cd $TRAVIS_BUILD_DIR
