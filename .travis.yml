@@ -1,8 +1,6 @@
 language: cpp
 sudo: required
 dist: xenial
-git:
-  submodules: true
 cache:
   ccache: true
 
@@ -59,19 +57,8 @@ install:
   - sudo dpkg -i liblua5.3-dev_5.3.3-1_amd64.deb
   #- ls /usr/lib/x86_64-linux-gnu/ | grep lua
   - LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH
-    
-    
-    
-    
 
 
-  
-  
-
-  
-  
-  
-  
   - # Install QWT
   - cd $TRAVIS_BUILD_DIR  
   - # on machines with qt5 executing:  `sudo aptitude -f install libqwt-dev` should be enough
@@ -92,14 +79,10 @@ install:
   - #tree LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/qwt
   
 
-
 script:
- # - source /opt/qt512/bin/qt512-env.sh
- #build limereport
-  - cd $TRAVIS_BUILD_DIR/libs/LimeReport/
-  - cp $TRAVIS_BUILD_DIR/libs/travis_limereport.pro limereport.pro || true
-  - quietly qmake "CONFIG+=debug"
-  - quietly make -j$(nproc)
+ #setup requirements
+  - cd $TRAVIS_BUILD_DIR
+  - quietly linuxsetup.sh
   
 #build testframework  
   - cd $TRAVIS_BUILD_DIR
