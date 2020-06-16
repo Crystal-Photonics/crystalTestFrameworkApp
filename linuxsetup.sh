@@ -4,7 +4,7 @@ make --version
 qmake --version
 cmake --version
 
-CORES=3 #${nproc}
+CORES=${nproc}
 
 git submodule update --init --recursive
 
@@ -12,6 +12,9 @@ cd libs
 mkdir -p build_limereport
 cd build_limereport
 qmake ../LimeReport/limereport.pro -spec linux-g++
+make -j$CORES qmake_all
+make -j$CORES
+qmake ../LimeReport/limereport.pro -spec linux-g++ CONFIG+=debug
 make -j$CORES qmake_all
 make -j$CORES
 cd ../..
