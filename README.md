@@ -18,9 +18,15 @@ Typical situations include:
 * Running multiple tests at a time (as long as they don't use the same devices)
 
 ## Installation
+Note that building the dependencies as well as the Crystal Test Framework itself requires about 10GB of RAM if you use parallel jobs. A computer with 16+GB of RAM is recommended. 8GB works too if you reduce the number of parallel jobs to 3 or so at the cost of increased build times. For the dependency build the `CORES` variable is set to however many cores your computer has in line 7 of [linuxsetup.sh](linuxsetup.sh) or [setup_windows.bat](setup_windows.bat). You can set that variable to a lower number should the build run out of memory.
+For the build of the Crystal Test Framework itself go to Qt Creator, on the left side `Projects`, `Build`, open the `Make` details and set the number of parallel jobs accordingly.
+
 ### List of Dependencies
 * C++17
 * Qt 5.13 (slightly older or newer versions should be ok, but require setting the version in the build script)
+  * Qt Script
+  * Qt Serialport
+  * Qt SVG
 * git
 * LibUSB 1.0
 * LimeReport
@@ -41,8 +47,17 @@ Typical situations include:
 1. To get and build dependencies double-click `winsetup.bat`. This will take a couple of minutes.
    1. If everything builds successfully the cmd window will close. If an error happens it will stay open.
    1. If you use a QT version that is not 5.13.0, open [setup_windows.bat](setup_windows.bat) and edit the top line to the version you are using. 
-1. After all dependencies have been built open Qt Creator, select *File* -> *Open File or Project...*, navigate to the *crystalTestFrameworkApp*  folder and select *crystalTestFrameworkApp.pro*.
+1. After all dependencies have been built open Qt Creator, select *File* -> *Open File or Project...*, navigate to the *crystalTestFrameworkApp* folder and select *crystalTestFrameworkApp.pro*.
    1. Press F5 (with debugger) or CTRL+R (without debugger) to build and start the program.
  
-### Linux
-TODO
+### Linux (tested with Ubuntu 20.04)
+1. To obtain the required packages run `sudo apt install g++-8 cmake qtbase5-dev git qtcreator libqwt-qt5-dev libqt5serialport5-dev libqt5svg5-dev qtscript5-dev libusb-1.0.0-0-dev`
+   1. If you use another Linux distribution you may need to swap out `apt` for your system's package manager (`pacman`, `yum`, `rpm`, ...).
+   1. The package names may differ slightly between package managers and versions. Adapt them as needed.
+1. To download the Test Framework open the folder you want to put the Test Framework into and enter `git clone https://github.com/Crystal-Photonics/crystalTestFrameworkApp`
+1. Run [./setup_linux.sh](setup_linux.sh)
+   1. The script will compile dependencies. Should it succeed it ends with printing "Setup complete", otherwise the last lines should be an error description.
+1. After all dependencies have been built open Qt Creator, select *File* -> *Open File or Project...*, navigate to the *crystalTestFrameworkApp* folder and select *crystalTestFrameworkApp.pro*.
+   1. Press F5 (with debugger) or CTRL+R (without debugger) to build and start the program.
+
+Should you use Ubuntu Xenial 16.04 you can look at the [Travis CI build script](.travis.yml) for the commands and the [Travis CI test run](https://travis-ci.org/github/Crystal-Photonics/crystalTestFrameworkApp) for examples of a successful compilation (check previous builds should the current build have failed).
