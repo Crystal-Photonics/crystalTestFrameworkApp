@@ -28,21 +28,7 @@ INCLUDEPATH += $$PWD/../libs/googletest/googlemock/include
 
 LIBS += -L$$BINDIR
 
-win32 {
-    equals(GCC_MACHINE,  x86_64-w64-mingw32){
-		LIBS += -L$$PWD/../libs/googletest/build/googlemock
-		LIBS += -L$$PWD/../libs/googletest/build/googlemock/gtest
-    }
-    equals(GCC_MACHINE, i686-w64-mingw32){
-		LIBS += -L$$PWD/../libs/build-googletest-Desktop_Qt_$${QT_MAJOR_VERSION}_$${QT_MINOR_VERSION}_$${QT_PATCH_VERSION}_MinGW_32_bit-Debug/googlemock
-		LIBS += -L$$PWD/../libs/build-googletest-Desktop_Qt_$${QT_MAJOR_VERSION}_$${QT_MINOR_VERSION}_$${QT_PATCH_VERSION}_MinGW_32_bit-Debug/googlemock/gtest
-    }
-
-}else{
-    LIBS += -L$$PWD/../libs/googletest/build/googlemock
-    LIBS += -L$$PWD/../libs/googletest/build/googlemock/gtest
-}
-
+LIBS += -L$$PWD/../libs/googletest/build/lib
 LIBS += -lgmock
 LIBS += -lgtest
 
