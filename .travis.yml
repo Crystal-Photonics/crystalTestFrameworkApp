@@ -1,6 +1,8 @@
 language: cpp
 sudo: required
 dist: xenial
+git:
+  submodules: true
 cache:
   ccache: true
 
@@ -80,9 +82,11 @@ install:
   
 
 script:
- #setup requirements
-  - cd $TRAVIS_BUILD_DIR
-  - quietly sh -e linuxsetup.sh
+#build limereport
+  - cd $TRAVIS_BUILD_DIR/libs/LimeReport/
+  - cp $TRAVIS_BUILD_DIR/libs/travis_limereport.pro limereport.pro || true
+  - quietly qmake "CONFIG+=debug"
+  - quietly make -j$(nproc)
   
 #build testframework  
   - cd $TRAVIS_BUILD_DIR
