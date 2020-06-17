@@ -319,7 +319,7 @@ void ScriptEngine::post_hotkey_event(Event_id::Event_id event) {
 
 void ScriptEngine::post_interrupt(QString message) {
     script_interrupted();
-    console.error() << "Script interrupted" << (message.isEmpty() ? "" : "because of " + message);
+    console.error() << "Script interrupted" << (message.isEmpty() ? "" : " because of error: " + message);
     {
         std::unique_lock<std::mutex> lock{await_mutex};
         await_condition = Event_id::interrupted;

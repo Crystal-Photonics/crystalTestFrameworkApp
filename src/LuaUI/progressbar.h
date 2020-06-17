@@ -12,6 +12,9 @@ class QProgressBar;
 /** \ingroup ui
     \class  ProgressBar
     \brief  A classic ProgressBar object
+  \image html ProgressBar.png ProgressBar example
+  \image latex ProgressBar.png ProgressBar example
+  \image rtf ProgressBar.png ProgressBar example
 */
 class ProgressBar : public UI_widget {
     public:

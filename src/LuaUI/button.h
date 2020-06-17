@@ -16,7 +16,10 @@
 // clang-format off
 /*!
   \class   Button
-  \brief  Interface to a button Ui-element which the lua-script author can use to display a button to the script-user.
+  \brief Button Ui-element for simple script-user interaction.
+  \image html Button.png Button example
+  \image latex Button.png Button example
+  \image rtf Button.png Button example
   */
 // clang-format on
 

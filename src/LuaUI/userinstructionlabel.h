@@ -22,7 +22,9 @@ class QPushButton;
 \brief  A UserInstructionLabel is used to instruct or ask the user something. It contains a text and buttons depending whether
     it is an instruction or a question. If it is an instruction a button with the caption "next" is displayed and in case
     of a question two buttons with the caption "yes" and "no" are displayed.
-
+  \image html UserInstructionLabel.png UserInstructionLabel example
+  \image latex UserInstructionLabel.png UserInstructionLabel example
+  \image rtf UserInstructionLabel.png UserInstructionLabel example
  */
 class UserInstructionLabel : public UI_widget {
     public:
@@ -184,7 +186,7 @@ class UserInstructionLabel : public UI_widget {
     QMetaObject::Connection callback_button_next = {};
     ScriptEngine *script_engine;
     int total_width = 10;
-	void resizeMe(QResizeEvent *event) override;
+    void resizeMe(QResizeEvent *event) override;
     bool is_init = false;
     ///\endcond
 };

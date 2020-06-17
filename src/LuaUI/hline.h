@@ -13,7 +13,9 @@ class QWidget;
 /*!
   \class   HLine
   \brief HLine Ui-Element. It paints a horizontal line in the script-ui area. You can use it e.g. to separate topics.
-
+  \image html HLine.png HLine seperator
+  \image latex HLine.png HLine seperator
+  \image rtf HLine.png HLine seperator
   */
 // clang-format on
 class HLine : public UI_widget {

@@ -21,7 +21,12 @@ class QWidget;
 /*!
   \class   LineEdit
   \brief LineEdit Ui-Element. It enables the user to enter text or numbers.
-
+  \image html LineEdit.png Simple LineEdit for user input
+  \image latex LineEdit.png Simple LineEdit for user input
+  \image rtf LineEdit.png Simple LineEdit for user input
+  \image html LineEdit2.png LineEdit with label and live input validation
+  \image latex LineEdit2.png LineEdit with label and live input validation
+  \image rtf LineEdit2.png LineEdit with label and live input validation
   */
 // clang-format on
 
@@ -44,7 +49,7 @@ class PatternCheck {
             t = PatternCheck::yyww;
         } else {
             throw std::runtime_error(
-                QObject::tr("The pattern %1 is not valid. Allowd patterns: %2").arg(str).arg(allowed_pattern_names().join("\n")).toStdString());
+                QObject::tr("The pattern %1 is not valid. Allowed patterns: %2").arg(str).arg(allowed_pattern_names().join("\n")).toStdString());
         }
     }
 
@@ -177,7 +182,7 @@ class LineEdit : public UI_widget {
 #endif
     // clang-format off
     /*! \fn  set_input_check(string text);
-    \brief Enables an input check. Only input is accepted which matches the pattern.
+    \brief Enables an input check. Only input is accepted which matches the pattern. Valid patterns are "YY/WW?-", "YY/WW?" and "".
     \par examples:
     \code
         local le = Ui.LineEdit.new()
@@ -246,8 +251,8 @@ class LineEdit : public UI_widget {
     // clang-format off
     /*! \fn  double get_number();
         \brief Returns the string value the user entered converted to a number.
-        \return the umber of line edits value.
-        \details If it is not possible to convert the value to a number a messagebox
+        \return The number represented by the LineEdit's text.
+        \details If it is not possible to convert the text to a number, a messagebox
         is shown asking the user to enter a number. This message box shows also the
         name of the line edit telling the user which line edit has the issue and needs
         a corrected value.

@@ -15,7 +15,13 @@
 /*!
   \class   ComboBox
   \brief
-    Interface to a ComboBox Ui-Element which the lua-script author can use to display a ComboBox to the script-user.
+    A ComboBox Ui-Element to let a script-user choose out of a list of options.
+  \image html ComboBox.png ComboBox closed
+  \image html ComboBox_open.png ComboBox open
+  \image latex ComboBox.png ComboBox closed
+  \image latex ComboBox_open.png ComboBox open
+  \image rtf ComboBox.png ComboBox closed
+  \image rtf ComboBox_open.png ComboBox open
   */
 
 class ComboBox : public UI_widget {
@@ -143,7 +149,7 @@ public:
     \par examples:
     \code
         local combobox = Ui.ComboBox.new({"Hello", "World","Foo"})
-        combobox:set_caption("Bar") -- selects "World"
+        combobox:set_caption("Bar") -- adds label "Bar" above the combobox
         local caption = combobox:get_caption()
         print(caption)           -- prints "Bar"
     \endcode
