@@ -1,10 +1,12 @@
 #include "lua_functions_lua.h"
 #include "Windows/devicematcher.h"
+#include "config.h"
 #include "lua_functions.h"
 #include "scriptsetup_helper.h"
 #include "ui_container.h"
 
 #include <QDir>
+#include <QSettings>
 
 void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string &path, ScriptEngine &script_engine, QPlainTextEdit *console) {
     //General functions
@@ -291,8 +293,10 @@ void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string
 					   return env
 				   end
 				)xx",
-                        "import code");
+                        "import function");
     }
+    //set up require paths
+    { lua.safe_script("package.path = \"" + QSettings{}.value(Globals::test_script_path_settings_key, "").toString().toStdString() + "/?.lua\""); }
     //add generic function
     {
 //TODO: Figure out why the lambda version crashes on Windows and the Require version does not.

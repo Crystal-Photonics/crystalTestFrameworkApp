@@ -43,9 +43,11 @@ struct Console_handle {
         ConsoleProxy(ConsoleProxy &&other);
         ConsoleProxy &operator=(ConsoleProxy &&other);
         ~ConsoleProxy();
+        void linkify_print(std::string line);
 
         ConsoleProxyState state;
     };
+    friend void print_lua_source_link(std::string src, std::string_view line, Console_handle::ConsoleProxy &&proxy);
 
     public:
     static QPlainTextEdit *console;

@@ -16,6 +16,7 @@
 #include <QtSerialPort/QSerialPortInfo>
 #include <map>
 #include <memory>
+#include <string>
 #include <vector>
 
 class CommunicationDevice;
@@ -62,6 +63,9 @@ class EXPORT MainWindow : public QMainWindow {
     void remove_lua_UI_class(int id);
     template <class Lua_UI_class>
     Lua_UI_class &get_lua_UI_class(int id);
+
+    constexpr static auto partial_luafile_path_size = 54;
+    static const std::map<QString, std::vector<QString>> &get_luafiles();
 
     void show_message_box(const QString &title, const QString &message, QMessageBox::Icon icon);
     void remove_test_runner(TestRunner *runner);
@@ -122,6 +126,7 @@ class EXPORT MainWindow : public QMainWindow {
     void on_console_tabs_currentChanged(int index);
 
     private:
+    static std::map<QString, std::vector<QString>> luafiles;
     FavoriteScripts favorite_scripts;
     void refresh_devices(bool only_duts);
     std::vector<TestDescriptionLoader> test_descriptions;

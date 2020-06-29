@@ -68,8 +68,8 @@ namespace GUI {
     }
 } // namespace GUI
 
+std::map<QString, std::vector<QString>> MainWindow::luafiles;
 MainWindow *MainWindow::mw = nullptr;
-
 QThread *MainWindow::gui_thread;
 static Utility::Qt_thread *devices_thread_pointer{};
 
@@ -457,14 +457,19 @@ void MainWindow::load_scripts(QProgressDialog *dialog) {
     test_descriptions.clear();
     dialog->setValue(dialog->value() + 1);
     const auto dir = QSettings{}.value(Globals::test_script_path_settings_key, "").toString();
-    QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories};
     std::optional<Thread_pool> othread_pool{std::in_place};
     auto &thread_pool = othread_pool.value();
     std::mutex test_descriptions_mutex;
     std::vector<TestDescriptionLoader> new_test_descriptions;
     int tasks = 0;
     std::atomic<int> tasks_done = 0;
-    while (dit.hasNext()) {
+    luafiles.clear();
+    for (QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories}; dit.hasNext();) {
+        auto file_path = dit.next();
+        const auto partial_path = file_path.right(partial_luafile_path_size);
+        luafiles[partial_path].push_back(std::move(file_path));
+    }
+    for (QDirIterator dit{dir, QStringList{} << "*.lua", QDir::Files, QDirIterator::Subdirectories}; dit.hasNext();) {
         auto file_path = dit.next();
         thread_pool.push([&tasks_done, &test_descriptions_mutex, &new_test_descriptions, &dir, this, file_path = std::move(file_path)] {
             auto return_value = TestDescriptionLoader{ui->tests_advanced_view, file_path, QDir{dir}.relativeFilePath(file_path)};
@@ -1622,4 +1627,8 @@ void MainWindow::on_console_tabs_currentChanged(int index) {
             return;
         }
     }
+}
+
+const std::map<QString, std::vector<QString>> &MainWindow::get_luafiles() {
+    return luafiles;
 }
