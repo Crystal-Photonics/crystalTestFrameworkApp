@@ -762,7 +762,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
         set_error_line(e);
         reset_lua_state();
         throw;
-    } catch (const RPCTimeoutException &e) {
+    } catch (...) {
         reset_lua_state();
         throw;
     }

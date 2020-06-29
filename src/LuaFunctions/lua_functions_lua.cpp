@@ -287,10 +287,11 @@ void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string
 
 				   function import(name)
 					   local env = env_copy(default_env)
-					   assert(loadfile(assert(find_script(name)), "t", env))()
+					   assert(loadfile(assert(find_script(name)), name, env))()
 					   return env
 				   end
-				)xx");
+				)xx",
+                        "import code");
     }
     //add generic function
     {
