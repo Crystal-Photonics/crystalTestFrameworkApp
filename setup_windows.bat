@@ -7,11 +7,6 @@ set "QMAKE=%QTDIR%\bin\qmake"
 set "MAKE=%TOOLSPATH%\mingw32-make"
 set "CMAKE=cmake"
 
-
-echo %PATH%
-exit
-
-
 @rem Testing if qmake, make and cmake work
 
 @%QMAKE% --version || echo Failed finding qmake. Please install Qt 5.13+ and set the path to its qmake in setup_windows.bat. && exit 1
