@@ -1,10 +1,10 @@
 #!/bin/sh -e
 
+CORES=${nproc}
+
 make --version
 qmake --version
 cmake --version
-
-CORES=${nproc}
 
 git submodule update --init --recursive
 

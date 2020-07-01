@@ -1,10 +1,18 @@
-set QMAKE="\Qt\5.13.0\mingw73_64\bin\qmake"
-set MAKE="\Qt\Tools\mingw730_64\bin\mingw32-make"
-set CMAKE="cmake"
+set "QTDIR=C:\Qt\5.13.0\mingw73_64"
+set "TOOLSPATH=C:\Qt\Tools\mingw730_64\bin"
+set CORES=%NUMBER_OF_PROCESSORS%
+
+set "PATH=%PATH%%TOOLSPATH%;"
+set "QMAKE=%QTDIR%\bin\qmake"
+set "MAKE=%TOOLSPATH%\mingw32-make"
+set "CMAKE=cmake"
+
+
+echo %PATH%
+exit
+
 
 @rem Testing if qmake, make and cmake work
-
-set CORES=%NUMBER_OF_PROCESSORS%
 
 @%QMAKE% --version || echo Failed finding qmake. Please install Qt 5.13+ and set the path to its qmake in setup_windows.bat. && exit 1
 @%MAKE% --version || echo Failed finding make. Please install Qt's Mingw 7.3+ and set the path to mingw32-make in setup_windows.bat. && exit 1
