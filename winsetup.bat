@@ -1,1 +1,1 @@
-@setup_windows || pause
+@cmd /c setup_windows || pause
