@@ -1,7 +1,7 @@
 SET PATH=C:\Qt\Tools\mingw730_64\bin;%PATH%
 
-SET QT_VERSION=5.12.0
-SET MINGW_VERSION=Qt_5_12_0_MinGW_64bit
+SET QT_VERSION=5.12.7
+SET MINGW_VERSION=Qt_5_12_7_MinGW_64_bit
 
 echo %PATH%
 
@@ -13,7 +13,9 @@ set QWT_PATH=libs\qwt
 copy libs\LimeReport\build\%QT_VERSION%\win32\release\lib\limereport.dll %CTFW_RELEASE_PATH_local%\ || goto :FAIL
 copy libs\LimeReport\build\%QT_VERSION%\win32\release\lib\QtZint.dll %CTFW_RELEASE_PATH_local%\ || goto :FAIL
 
-copy %QWT_PATH%\lib\%QT_VERSION%\qwt.dll %CTFW_RELEASE_PATH_local%\ || GOTO :FAIL
+
+
+copy %QWT_PATH%\build_qwt\lib\qwt.dll %CTFW_RELEASE_PATH_local%\ || GOTO :FAIL
 
 C:\Qt\%QT_VERSION%\mingw73_64\bin\windeployqt -network -serialport -sql -opengl -printsupport -script -xml -test %CTFW_RELEASE_PATH_local%\crystalTestFramework.exe  || GOTO :FAIL
 
