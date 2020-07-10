@@ -14,6 +14,8 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QMouseEvent>
+#include <QPixmap>
+#include <QPushButton>
 #include <QSettings>
 #include <QSplitter>
 #include <QtGlobal>
@@ -454,7 +456,8 @@ struct Zoomer_controller : QObject {
     Zoomer_controller(QwtPlotZoomer *zoomer, Plot *parent_plot)
         : QObject{zoomer->plot()}
         , parent_plot{parent_plot}
-        , zoomer{zoomer} {}
+        , zoomer{zoomer}
+        , export_button{parent_plot->export_button} {}
     bool eventFilter(QObject *watched, QEvent *event) override final {
         const auto zoom_factor = 1.25;
         const auto move_factor = .2; //move in [move_factor * size] steps
@@ -610,6 +613,10 @@ struct Zoomer_controller : QObject {
                 }
                 break;
             }
+            case QEvent::Resize: {
+                const auto resize_event = static_cast<QResizeEvent *>(event);
+                export_button->move(resize_event->size().width(), 0);
+            } break;
             default:
                 break;
         }
@@ -655,9 +662,24 @@ struct Zoomer_controller : QObject {
     QwtScaleMap x_scaling, y_scaling;
     QPointF plot_drag_start_coordinate;
     QPointF plot_start_coordinate;
+    QPushButton *export_button;
     bool first = true;
     bool auto_scrolling = true;
 };
+
+static void export_plot(QwtPlot *plot) {
+    const auto proposed_filename = QSettings{}.value(Globals::recent_plot_export_path, WIN32 ? "C:" : "").toString() +
+                                   QString{"/plot-%1.png"}.arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh-mm-ss"));
+    const auto file = QFileDialog::getSaveFileName(plot, QString::fromStdString("CrystalTestFramework - Select file for export"), proposed_filename,
+                                                   QObject::tr("Images (*.png *.jpg)"));
+    if (file.isEmpty()) {
+        return;
+    }
+    QSettings{}.setValue(Globals::recent_plot_export_path, QFileInfo{file}.path());
+    QPixmap pm{plot->size()};
+    plot->render(&pm);
+    pm.save(file);
+}
 
 Plot::Plot(UI_container *parent)
     : UI_widget{parent}
@@ -665,7 +687,11 @@ Plot::Plot(UI_container *parent)
     , picker(new QwtPlotPicker{plot->canvas()})
     , track_picker(new TimePicker{plot->canvas()})
     , clicker(new QwtPickerClickPointMachine)
-    , tracker(new QwtPickerTrackerMachine) {
+    , tracker(new QwtPickerTrackerMachine)
+    , export_button{new QPushButton(plot)} {
+    export_button->setIcon(QIcon::fromTheme("document-save", QIcon{"://src/icons/icons8-save-48.png"}));
+    export_button->raise();
+    connect(export_button, &QPushButton::clicked, [plot = plot] { export_plot(plot); });
     assert(currently_in_gui_thread());
     clicker->setState(clicker->PointSelection);
     parent->add(plot, this);

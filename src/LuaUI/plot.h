@@ -22,6 +22,7 @@ class QwtPlotCurve;
 class QwtPlotPicker;
 class QwtScaleDraw;
 class UI_container;
+class QPushButton;
 struct Curve_data;
 struct TimePicker;
 struct Zoomer_controller;
@@ -555,8 +556,10 @@ class Plot : public QObject, public UI_widget {
     int curve_id_counter{0};
     bool using_time_scale = false;
     Zoomer_controller *zoomer_controller;
+    QPushButton *export_button;
 
     friend class Curve;
+    friend struct Zoomer_controller;
     /// \endcond
 };
 /** \} */ // end of group ui

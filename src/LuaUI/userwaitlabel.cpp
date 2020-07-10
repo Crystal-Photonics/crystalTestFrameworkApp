@@ -17,7 +17,6 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QResizeEvent>
-#include <QSettings>
 #include <QShortcut>
 #include <QSplitter>
 #include <QString>

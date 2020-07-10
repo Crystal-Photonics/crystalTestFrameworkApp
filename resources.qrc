@@ -53,5 +53,6 @@
         <file>examples/scripts/example/data_engine_and_report/1/report_template.lrxml</file>
         <file>src/icons/iconfinder_player_stop_1829.ico</file>
         <file>src/icons/warning-96.png</file>
+        <file>src/icons/icons8-save-48.png</file>
     </qresource>
 </RCC>

@@ -11,14 +11,14 @@ namespace Globals {
     static const auto lua_editor_parameters_settings_key = "lua editor parameters";
     static const auto measurement_equipment_meta_data_path_key = "measurement equipment meta data path";
     static const auto last_csv_saved_directory_key = "last csv saved directory";
-	static const auto confirm_key_sequence_key = "confirm key sequence";
-	static const auto skip_key_sequence_key = "skip key sequence";
-	static const auto cancel_key_sequence_key = "cancel key sequence";
-	static const auto default_confirm_key_sequence_key = "Enter";
-	static const auto default_skip_key_sequence_key = "Space";
-	static const auto default_cancel_key_sequence_key = "Esc";
-	static const auto path_to_environment_variables_key = "path_to_environment_variables";
-	static const auto path_to_luacheck_key = "path to luacheck";
+    static const auto confirm_key_sequence_key = "confirm key sequence";
+    static const auto skip_key_sequence_key = "skip key sequence";
+    static const auto cancel_key_sequence_key = "cancel key sequence";
+    static const auto default_confirm_key_sequence_key = "Enter";
+    static const auto default_skip_key_sequence_key = "Space";
+    static const auto default_cancel_key_sequence_key = "Esc";
+    static const auto path_to_environment_variables_key = "path_to_environment_variables";
+    static const auto path_to_luacheck_key = "path to luacheck";
     static const auto path_to_excpetional_approval_db_key = "path_to_excpetional_approval_db";
     static const auto search_path_key = "search_path";
     static const auto favorite_script_file_key = "favorite_script_file";
@@ -32,6 +32,7 @@ namespace Globals {
     static const auto user_entry_cache_path_key = "user_entry_cache_path_key";
     static const auto report_history_query_path = "report_history_query_path";
     static const auto recent_report_history_query_paths = "recent_report_history_query_paths";
+    static const auto recent_plot_export_path = "recent_plot_export_path";
 
     static const auto ui_blink_ratio = 8;
 } // namespace Globals
