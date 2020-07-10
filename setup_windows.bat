@@ -23,6 +23,11 @@ cd build_limereport
 %QMAKE% ../LimeReport/limereport.pro -spec win32-g++ "CONFIG+=debug" || exit 1
 %MAKE% -j%CORES% qmake_all || exit 1
 %MAKE% -j%CORES% || exit 1
+
+%QMAKE% ../LimeReport/limereport.pro -spec win32-g++ || exit 1
+%MAKE% -j%CORES% qmake_all || exit 1
+%MAKE% -j%CORES% || exit 1
+
 cd ../..
 
 @rem extract qwt
