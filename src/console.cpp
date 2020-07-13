@@ -118,7 +118,6 @@ void Console_handle::ConsoleProxy::linkify_print(std::string line) {
     static std::regex partial_filename_regex{R"((\.\.\.)?((?:(?!\.\.\.)[^:])*):(\d+): (.*))"};
     static std::regex string_source_regex{R"((.*)\[string \"([^\"]*)\"]:(\d+)(.*))"};
     const char *prefix = "";
-    qDebug() << "Handling message line:" << line.c_str();
     std::move(*this) << prefix;
     prefix = "\n";
     std::smatch match;
@@ -135,13 +134,11 @@ void Console_handle::ConsoleProxy::linkify_print(std::string line) {
         const auto post_message = match[4];
         const auto start = static_cast<std::size_t>(match.position());
         const auto pre_message = std::string_view{&*std::begin(line), start};
-        qDebug() << "Found match with rest:" << std::string{post_message}.c_str();
         std::move(*this) << pre_message;
         print_lua_source_link(match[2].str(), line_number, std::move(*this));
         std::move(*this) << ' ';
         linkify_print(post_message);
     } else {
-        qDebug() << "Didn't match regex";
         std::move(*this) << line;
     }
 }
