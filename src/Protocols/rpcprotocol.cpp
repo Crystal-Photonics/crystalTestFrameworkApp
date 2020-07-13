@@ -174,14 +174,19 @@ std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const 
 }
 
 std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration) {
-    auto result = rpc_runtime_protocol.get()->call_and_wait(call, duration);
-    switch (result.error) {
-        case RPCError::success:
+    do {
+        auto result = rpc_runtime_protocol.get()->call_and_wait(call, duration);
+        if (result.error == RPCError::success) {
             return std::move(result.decoded_function_call_reply);
-        case RPCError::timeout_happened:
-            throw RPCTimeoutException{QObject::tr("Timeout in RPC function %1.").arg(call.get_description()->get_function_name().c_str()).toStdString()};
-    }
-    throw std::runtime_error("Invalid result value");
+        }
+    } while (Utility::promised_thread_call(MainWindow::mw, [this, function_name = call.get_description()->get_function_name()] {
+        return QMessageBox::warning(nullptr, QObject::tr("CrystalTestFramework - Timeout error"),
+                                    QObject::tr("The device \"%1\" failed to respond to function \"%2\".\nDo you want to try again?")
+                                        .arg(device_data.name)
+                                        .arg(function_name.c_str()),
+                                    QMessageBox::Retry | QMessageBox::Abort) == QMessageBox::Retry;
+    }));
+    throw RPCTimeoutException{QObject::tr("Timeout in RPC function \"%1\".").arg(call.get_description()->get_function_name().c_str()).toStdString()};
 }
 
 const RPCRunTimeProtocolDescription &RPCProtocol::get_description() {
