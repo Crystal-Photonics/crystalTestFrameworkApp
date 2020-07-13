@@ -668,14 +668,19 @@ struct Zoomer_controller : QObject {
 };
 
 static void export_plot(QwtPlot *plot) {
-    const auto proposed_filename = QSettings{}.value(Globals::recent_plot_export_path, WIN32 ? "C:" : "").toString() +
+#ifdef WIN32
+    constexpr static const char *root_prefix = "C:";
+#else
+    constexpr static const char *root_prefix = "";
+#endif
+    const auto proposed_filename = QSettings{}.value(Globals::recent_plot_export_path, root_prefix).toString() +
                                    QString{"/plot-%1.png"}.arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh-mm-ss"));
     const auto file = QFileDialog::getSaveFileName(plot, QString::fromStdString("CrystalTestFramework - Select file for export"), proposed_filename,
                                                    QObject::tr("Images (*.png *.jpg)"));
     if (file.isEmpty()) {
         return;
     }
-    QSettings{}.setValue(Globals::recent_plot_export_path, QFileInfo{file}.path());
+    QSettings{}.setValue(Globals::recent_plot_export_path, QFileInfo(file).path());
     QPixmap pm{plot->size()};
     plot->render(&pm);
     pm.save(file);

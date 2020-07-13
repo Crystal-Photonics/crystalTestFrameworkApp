@@ -113,7 +113,7 @@ QMAKE_CXXFLAGS_RELEASE += -Wall -Wno-unused-function -Wno-unused-parameter -Wno-
 unix {
     equals(QMAKE_CXX, g++) {
         QMAKE_CXXFLAGS_DEBUG += -fno-var-tracking-assignments -fno-merge-debug-strings
-        QMAKE_CXXFLAGS_DEBUG += -Wno-deprecated-copy
+        #QMAKE_CXXFLAGS_DEBUG += -Wno-deprecated-copy #doesn't work on Travis
     }
     eval("SANITIZERS = $$(SANITIZER)")
     message("Using sanitizer $$SANITIZERS")
