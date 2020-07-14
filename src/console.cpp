@@ -57,10 +57,6 @@ void print_lua_source_link(std::string src, std::string_view line, Console_handl
     const auto luafile_it = luafiles.find(QString::fromStdString(std::string{source}));
     if (luafile_it == std::end(luafiles)) { //unknown file
         std::move(proxy) << "Unknown file <b>" + QString::fromStdString(src + ":" + std::string{line}) + "</b>";
-        qDebug() << "Failed finding partial file:\n" << QString::fromStdString(std::string{source});
-        for (const auto &prefix : luafiles) {
-            qDebug() << prefix.first;
-        }
     } else {                                 //known file
         if (luafile_it->second.size() > 1) { //multiple options
             std::move(proxy) << "Ambiguous file <b>" + QString::fromStdString(std::string{source} + ":" + std::string{line});
@@ -115,11 +111,8 @@ Console_handle::ConsoleProxy::~ConsoleProxy() {
 }
 
 void Console_handle::ConsoleProxy::linkify_print(std::string line) {
-    static std::regex partial_filename_regex{R"((\.\.\.)?((?:(?!\.\.\.)[^:])*):(\d+): (.*))"};
+    static std::regex partial_filename_regex{R"( ?(\.\.\.)?((?:(?!\.\.\.)[^:])*):(\d+): (.*))"};
     static std::regex string_source_regex{R"((.*)\[string \"([^\"]*)\"]:(\d+)(.*))"};
-    const char *prefix = "";
-    std::move(*this) << prefix;
-    prefix = "\n";
     std::smatch match;
     if (std::regex_search(line, match, string_source_regex)) {
         if (match[1].matched) {

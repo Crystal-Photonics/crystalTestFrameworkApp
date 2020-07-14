@@ -21,7 +21,6 @@
 #include <QTreeWidgetItem>
 #include <functional>
 #include <initializer_list>
-#include <regex>
 
 static bool is_valid_baudrate(QSerialPort::BaudRate baudrate) {
     switch (baudrate) {
