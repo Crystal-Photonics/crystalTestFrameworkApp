@@ -411,7 +411,7 @@ class Plot : public QObject, public UI_widget {
 
     public:
     ///\cond HIDDEN_SYMBOLS
-    Plot(UI_container *parent);
+    Plot(UI_container *parent, ScriptEngine *scriptengine);
     Plot(Plot &&other) = delete;
     Plot &operator=(Plot &&other);
     ~Plot();
@@ -538,6 +538,28 @@ class Plot : public QObject, public UI_widget {
   */
     // clang-format on
 
+#ifdef DOXYGEN_ONLY
+    // this block is just for ducumentation purpose
+    set_export_text(string text);
+#endif
+    /// \cond HIDDEN_SYMBOLS
+    void set_export_text(std::string text);
+    /// \endcond
+    // clang-format off
+  /*! \fn  set_export_text(string text);
+      \brief sets the text that will be rendered on top of the plot when it gets exported.
+      \param text the text to be displayed
+	  \par 
+      \par examples:
+      \code
+        local plot = Ui.Plot.new()
+        local curve = plot:add_curve()
+        curve:append_point(1,1)
+        curve:append_point(2,1) -- plots a line
+		plot:set_export_text("Example")
+      \endcode
+  */
+    // clang-format on
     signals:
     void point_clicked(QPointF point);
 
@@ -557,6 +579,8 @@ class Plot : public QObject, public UI_widget {
     bool using_time_scale = false;
     Zoomer_controller *zoomer_controller;
     QPushButton *export_button;
+    std::string *device_string;
+    struct Plot_export_data *plot_data;
 
     friend class Curve;
     friend struct Zoomer_controller;

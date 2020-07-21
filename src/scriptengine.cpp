@@ -231,8 +231,7 @@ ScriptEngine::ScriptEngine(UI_container *parent, Console &console, TestRunner *r
 }
 
 ScriptEngine::~ScriptEngine() { //
-    // qDebug() << "script destruktor " << (QThread::currentThread() == MainWindow::gui_thread ? "(GUI Thread)" : "(Script Thread)") <<
-    // QThread::currentThread();
+    lua_devices = std::nullopt;
 }
 
 Event_id::Event_id ScriptEngine::await_timeout(std::chrono::milliseconds duration, std::chrono::milliseconds start) {
@@ -485,7 +484,11 @@ void ScriptEngine::set_error_line(const sol::error &error) {
 }
 
 void ScriptEngine::reset_lua_state() {
+    if (lua_devices) {
+        lua_devices = std::nullopt;
+    }
     lua = std::make_unique<sol::state>();
+    lua_devices = lua->create_table_with();
 
     //register RPC device type
     auto type_reg = lua->new_usertype<RPCDevice>("RPCDevice");
@@ -658,6 +661,10 @@ sol::table ScriptEngine::get_device_requirements_table() {
     return create_table();
 }
 
+std::string ScriptEngine::device_list_string() const {
+    return to_string(*lua_devices);
+}
+
 std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list() {
     try {
         auto requirements_table = lua->get<sol::optional<sol::table>>("device_requirements");
@@ -720,23 +727,24 @@ sol::table ScriptEngine::get_devices(const std::vector<MatchedDevice> &devices) 
     }
 
     //ordering/grouping devices..
-    auto device_list_sol = lua->create_table_with();
+    lua_devices = lua->create_table_with();
     for (auto sol_device : no_alias_device_list) {
-        device_list_sol.add(sol_device);
+        lua_devices->add(sol_device);
     }
     for (const auto &alias : aliased_devices_result) {
         auto values = alias.second;
         if (values.size() == 1) {
-            device_list_sol[alias.first.toStdString()] = values[0];
+            (*lua_devices)[alias.first.toStdString()] = values[0];
         } else {
             auto devices_with_same_alias = lua->create_table_with();
             for (const auto &value : values) {
                 devices_with_same_alias.add(value);
             }
-            device_list_sol[alias.first.toStdString()] = devices_with_same_alias;
+            (*lua_devices)[alias.first.toStdString()] = devices_with_same_alias;
         }
     }
-    return device_list_sol;
+
+    return *lua_devices;
 }
 
 void ScriptEngine::run(std::vector<MatchedDevice> &devices) {

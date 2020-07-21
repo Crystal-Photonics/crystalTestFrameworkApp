@@ -4,8 +4,7 @@
 
 void bind_plot(sol::table &ui_table, ScriptEngine &script_engine, UI_container *parent) {
     ui_table.new_usertype<Lua_UI_Wrapper<Curve>>(
-        "Curve",                                                                               //
-        sol::meta_function::construct, sol::no_constructor,                                    //
+        "Curve", sol::meta_function::construct, sol::no_constructor,                           //
         "append_point", thread_call_wrapper_non_waiting(&script_engine, &Curve::append_point), //
         "append", thread_call_wrapper_non_waiting(&script_engine, &Curve::append),             //
         "add_spectrum",
@@ -23,7 +22,7 @@ void bind_plot(sol::table &ui_table, ScriptEngine &script_engine, UI_container *
                     curve.add(data);
                 },
                 &script_engine);
-        }, //
+        },
         "add_spectrum_at",
         [&script_engine](Lua_UI_Wrapper<Curve> &curve, const unsigned int spectrum_start_channel, const sol::table &table) {
             abort_check();
@@ -39,10 +38,8 @@ void bind_plot(sol::table &ui_table, ScriptEngine &script_engine, UI_container *
                     curve.add_spectrum_at(spectrum_start_channel, data);
                 },
                 &script_engine);
-        }, //
-
-        "clear",
-        thread_call_wrapper(&Curve::clear),                                            //
+        },
+        "clear", thread_call_wrapper(&Curve::clear),                                   //
         "set_median_enable", thread_call_wrapper(&Curve::set_median_enable),           //
         "set_median_kernel_size", thread_call_wrapper(&Curve::set_median_kernel_size), //
         "integrate_ci", thread_call_wrapper(&Curve::integrate_ci),                     //
@@ -53,27 +50,22 @@ void bind_plot(sol::table &ui_table, ScriptEngine &script_engine, UI_container *
         "pick_x_coord", non_gui_call_wrapper(&Curve::pick_x_coord)                     //
     );
     ui_table.new_usertype<Lua_UI_Wrapper<Plot>>(
-        "Plot", //
-
-        sol::meta_function::construct, sol::factories([parent = parent, &script_engine] {
+        "Plot", sol::meta_function::construct, sol::factories([parent = parent, &script_engine] {
             abort_check();
-            return Lua_UI_Wrapper<Plot>{parent, &script_engine};
-        }), //
-        "clear",
-        thread_call_wrapper(&Plot::clear), //
+            return Lua_UI_Wrapper<Plot>{parent, &script_engine, &script_engine};
+        }),
+        "clear", thread_call_wrapper(&Plot::clear), //
         "add_curve",
         [parent = parent, &script_engine](Lua_UI_Wrapper<Plot> &lua_plot) -> Lua_UI_Wrapper<Curve> {
-            return Utility::promised_thread_call(MainWindow::mw,
-                                                 [parent, &lua_plot, &script_engine] {
-                                                     abort_check();
-                                                     auto &plot = MainWindow::mw->get_lua_UI_class<Plot>(lua_plot.id);
-                                                     return Lua_UI_Wrapper<Curve>{parent, &script_engine, &script_engine, &plot};
-                                                 } //
-            );
-        }, //
-        "set_x_marker",
-        thread_call_wrapper(&Plot::set_x_marker),                    //
-        "set_visible", thread_call_wrapper(&Plot::set_visible),      //
-        "set_time_scale", thread_call_wrapper(&Plot::set_time_scale) //
+            return Utility::promised_thread_call(MainWindow::mw, [parent, &lua_plot, &script_engine] {
+                abort_check();
+                auto &plot = MainWindow::mw->get_lua_UI_class<Plot>(lua_plot.id);
+                return Lua_UI_Wrapper<Curve>{parent, &script_engine, &script_engine, &plot};
+            });
+        },
+        "set_x_marker", thread_call_wrapper(&Plot::set_x_marker),      //
+        "set_visible", thread_call_wrapper(&Plot::set_visible),        //
+        "set_time_scale", thread_call_wrapper(&Plot::set_time_scale),  //
+        "set_export_text", thread_call_wrapper(&Plot::set_export_text) //
     );
 }

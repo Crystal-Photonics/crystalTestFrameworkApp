@@ -1,12 +1,14 @@
 ///\cond HIDDEN_SYMBOLS
 #include "plot.h"
+#include "CommunicationDevices/communicationdevice.h"
+#include "Windows/mainwindow.h"
 #include "config.h"
 #include "qt_util.h"
+#include "scriptengine.h"
+#include "testrunner.h"
 #include "ui_container.h"
 #include "util.h"
 
-#include "Windows/mainwindow.h"
-#include "scriptengine.h"
 #include <QAction>
 #include <QDateTime>
 #include <QDebug>
@@ -667,7 +669,15 @@ struct Zoomer_controller : QObject {
     bool auto_scrolling = true;
 };
 
-static void export_plot(QwtPlot *plot) {
+struct Plot_export_data {
+    std::string plot_text;
+    std::string test_name;
+    std::string device_string;
+    QPushButton *export_button;
+};
+
+static void export_plot(QwtPlot *plot, Plot_export_data &plot_data, QPushButton *export_button) {
+    static const auto font = QFont("Arial", 10);
 #ifdef WIN32
     constexpr static const char *root_prefix = "C:";
 #else
@@ -682,11 +692,22 @@ static void export_plot(QwtPlot *plot) {
     }
     QSettings{}.setValue(Globals::recent_plot_export_path, QFileInfo(file).path());
     QPixmap pm{plot->size()};
+    export_button->hide();
     plot->render(&pm);
+    export_button->show();
+    QPainter p{&pm};
+    p.setFont(font);
+    p.drawText(5, QFontMetrics{font}.height(), QString::fromStdString(plot_data.plot_text));
     pm.save(file);
+    const auto text_filename = QString{file}.replace(QRegularExpression{R"(\.[^\.]{3,4}$)"}, ".txt");
+    std::ofstream f{text_filename.toStdString()};
+    f << "Test: " << plot_data.test_name << '\n';
+    f << "Devices: " << plot_data.device_string << '\n';
+    f << "Curves: "
+      << "\n";
 }
 
-Plot::Plot(UI_container *parent)
+Plot::Plot(UI_container *parent, ScriptEngine *scriptengine)
     : UI_widget{parent}
     , plot(new QwtPlot)
     , picker(new QwtPlotPicker{plot->canvas()})
@@ -696,7 +717,12 @@ Plot::Plot(UI_container *parent)
     , export_button{new QPushButton(plot)} {
     export_button->setIcon(QIcon::fromTheme("document-save", QIcon{"://src/icons/icons8-save-48.png"}));
     export_button->raise();
-    connect(export_button, &QPushButton::clicked, [plot = plot] { export_plot(plot); });
+    auto plot_data_up = std::make_unique<Plot_export_data>();
+    plot_data = plot_data_up.get();
+    plot_data->device_string = scriptengine->device_list_string();
+    plot_data->test_name = scriptengine->test_name.toStdString();
+    connect(export_button, &QPushButton::clicked,
+            [plot = plot, plot_data = std::move(plot_data_up), export_button = export_button] { export_plot(plot, *plot_data, export_button); });
     assert(currently_in_gui_thread());
     clicker->setState(clicker->PointSelection);
     parent->add(plot, this);
@@ -777,6 +803,10 @@ void Plot::set_time_scale() {
     using_time_scale = zoomer_controller->using_time_scale = true;
     track_picker->scale_engine = draw_engine;
     plot->replot();
+}
+
+void Plot::set_export_text(std::string text) {
+    plot_data->plot_text = text;
 }
 
 void Plot::update() {
