@@ -581,6 +581,8 @@ class Plot : public QObject, public UI_widget {
     QPushButton *export_button;
     std::string *device_string;
     struct Plot_export_data *plot_data;
+    ScriptEngine *scriptengine;
+    friend void export_plot(QwtPlot *plot, Plot_export_data &plot_data, QPushButton *export_button);
 
     friend class Curve;
     friend struct Zoomer_controller;

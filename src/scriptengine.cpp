@@ -727,7 +727,9 @@ sol::table ScriptEngine::get_devices(const std::vector<MatchedDevice> &devices) 
     }
 
     //ordering/grouping devices..
-    lua_devices = lua->create_table_with();
+    if (!lua_devices) {
+        lua_devices = lua->create_table_with();
+    }
     for (auto sol_device : no_alias_device_list) {
         lua_devices->add(sol_device);
     }
