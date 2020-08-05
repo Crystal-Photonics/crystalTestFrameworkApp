@@ -34,3 +34,4 @@ OTHER_FILES += examples/settings/equipment_data_base.json
 OTHER_FILES += examples/settings/exceptional_approvals.json
 OTHER_FILES += examples/settings/isotope_sources.json
 OTHER_FILES += README.md
+OTHER_FILES += doxygen.conf
