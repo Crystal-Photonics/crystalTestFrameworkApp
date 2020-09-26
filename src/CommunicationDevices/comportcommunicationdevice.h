@@ -18,6 +18,7 @@ class ComportCommunicationDevice : public CommunicationDevice {
     void close() override;
     QSerialPort port;
     QString getName() override;
+    Duration wait_after_open;
 };
 
 #endif // COMPORTCOMMUNICATIONDEVICE_H

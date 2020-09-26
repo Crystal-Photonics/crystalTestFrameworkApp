@@ -93,6 +93,8 @@ static void detect_device(QObject *device_worker, PortDescription &device, const
             }
             device.port_info.insert(TYPE_NAME_TAG, "rpc");
             device.port_info.insert(BAUD_RATE_TAG, rpc_device.baud); //TODO: crash bei einem ttyUSB0, kubuntu16.04 ??
+            device.port_info.insert(WAIT_AFTER_OPEN_TAG_ms,
+                                    QVariant::fromValue<long>(std::chrono::duration_cast<std::chrono::milliseconds>(rpc_device.wait_after_open).count()));
             if (device.device->connect(device.port_info) == false) {
                 auto display_string = device.device->get_identifier_display_string();
                 Utility::thread_call(MainWindow::mw, [display_string, ui_entry = device.ui_entry] {
@@ -134,6 +136,9 @@ static void detect_device(QObject *device_worker, PortDescription &device, const
                 }
                 device.port_info.insert(TYPE_NAME_TAG, "scpi");
                 device.port_info.insert(BAUD_RATE_TAG, baudrate);
+                device.port_info.insert(
+                    WAIT_AFTER_OPEN_TAG_ms,
+                    QVariant::fromValue<long>(std::chrono::duration_cast<std::chrono::milliseconds>(check_scpi_protocols.wait_after_open).count()));
             }
             if (device.device->connect(device.port_info) == false) {
                 auto display_string = device.device->get_identifier_display_string();
@@ -179,6 +184,9 @@ static void detect_device(QObject *device_worker, PortDescription &device, const
             }
             device.port_info.insert(BAUD_RATE_TAG, baudrate);
             device.port_info.insert(TYPE_NAME_TAG, "sg04");
+            device.port_info.insert(
+                WAIT_AFTER_OPEN_TAG_ms,
+                QVariant::fromValue<long>(std::chrono::duration_cast<std::chrono::milliseconds>(sg04_count_device.wait_after_open).count()));
             if (device.device->connect(device.port_info) == false) {
                 auto display_string = device.device->get_identifier_display_string();
                 Utility::thread_call(MainWindow::mw,
