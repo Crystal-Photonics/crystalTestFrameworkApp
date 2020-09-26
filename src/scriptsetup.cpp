@@ -4,6 +4,7 @@
 #include "LuaFunctions/dataengineinput_lua.h"
 #include "LuaFunctions/datalogger_lua.h"
 #include "LuaFunctions/lua_functions_lua.h"
+#include "LuaFunctions/moving_average_lua.h"
 #include "LuaFunctions/polldataengine_lua.h"
 #include "LuaUI/button_lua.h"
 #include "LuaUI/checkbox_lua.h"
@@ -61,6 +62,7 @@ void script_setup(sol::state &lua, const std::string &path, ScriptEngine &script
     //bind other objects
     bind_chargecounter(lua);
     bind_datalogger(lua, script_engine_console_plaintext, path);
+    bind_moving_average(lua, script_engine_console_plaintext);
     bind_lua_functions(lua, ui_table, path, script_engine, script_engine_console_plaintext);
     //protocols and devices
     bind_scpiprotocol(lua, script_engine);

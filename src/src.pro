@@ -73,8 +73,10 @@ HEADERS += \
 	LuaUI/lineedit_lua.h \
 	LuaUI/plot.h \
 	LuaUI/plot_lua.h \
-	LuaFunctions/polldataengine.h \
-	LuaFunctions/polldataengine_lua.h \
+        LuaFunctions/polldataengine.h \
+        LuaFunctions/polldataengine_lua.h \
+        LuaFunctions/moving_average_lua.h \
+        LuaFunctions/moving_average.h \
 	LuaUI/progressbar.h \
 	LuaUI/progressbar_lua.h \
 	LuaUI/spinbox.h \
@@ -216,7 +218,9 @@ SOURCES += \
 	forward_decls.cpp \
 	identicon/identicon.cpp \
 	LuaFunctions/lua_functions.cpp \
-	LuaFunctions/lua_functions_lua.cpp \
+        LuaFunctions/lua_functions_lua.cpp \
+        LuaFunctions/moving_average_lua.cpp \
+        LuaFunctions/moving_average.cpp \
 	qt_util.cpp \
 	scpimetadata.cpp \
 	scriptengine.cpp \
