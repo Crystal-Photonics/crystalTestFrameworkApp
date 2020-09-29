@@ -376,6 +376,12 @@ void Curve::set_color(const Color &color) {
     curve->setPen(QColor(color.rgb));
 }
 
+void Curve::set_line_width(double pixel) {
+    auto pen = curve->pen();
+    pen.setWidth(pixel);
+    curve->setPen(pen);
+}
+
 double Curve::pick_x_coord() {
     assert(not currently_in_gui_thread());
     if (not plot) {

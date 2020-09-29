@@ -330,6 +330,26 @@ class Curve {
         curve:set_color(color) --turns curve red
     \endcode
   */
+
+    ///\cond HIDDEN_SYMBOLS
+    void set_line_width(double pixel);
+    ///\endcond
+#ifdef DOXYGEN_ONLY
+    // this block is just for ducumentation purpose
+    set_line_width(number pixel);
+#endif
+    // clang-format off
+  /*! \fn set_line_width(number pixel);
+    \brief Sets the width of the curve.
+    \param color Color.
+    \par examples:
+    \code
+        local plot = Ui.Plot.new()
+        local curve = plot:add_curve()
+        curve:set_line_width(2) --turns curve line is 2 pixel wide
+    \endcode
+  */
+
     // clang-format on
 
     ///\cond HIDDEN_SYMBOLS

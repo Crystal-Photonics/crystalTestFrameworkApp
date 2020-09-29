@@ -47,13 +47,16 @@ bool ComportCommunicationDevice::connect(const QMap<QString, QVariant> &portinfo
         //    qDebug() << QString("opening: ") + portinfo_[HOST_NAME_TAG].toString();
         port.setPortName(portinfo_[HOST_NAME_TAG].toString());
         port.setBaudRate(portinfo_[BAUD_RATE_TAG].toInt());
-
+        wait_after_open = std::chrono::milliseconds(portinfo_[WAIT_AFTER_OPEN_TAG_ms].toInt());
         //opening a port can block for 20 seconds, meaning that no devices are serviced for that time, so we spawn a thread
         QThread thread;
         thread.start();
         port.moveToThread(&thread);
-        const bool result = Utility::promised_thread_call(&port, [&, device_thread = QThread::currentThread()] {
+        const bool result = Utility::promised_thread_call(&port, [&, wait_after_open = wait_after_open, device_thread = QThread::currentThread()] {
             const bool result = port.open(QIODevice::ReadWrite);
+            int sleepval_ms = std::chrono::duration_cast<std::chrono::milliseconds>(wait_after_open).count();
+            qDebug() << port.portName() << "WAIT_AFTER_OPEN_TAG_ms" << sleepval_ms;
+            QThread::currentThread()->msleep(sleepval_ms);
             port.moveToThread(device_thread);
             return result;
         });

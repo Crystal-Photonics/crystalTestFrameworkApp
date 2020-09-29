@@ -14,6 +14,7 @@ class QByteArray;
 const QString HOST_NAME_TAG = "host-name";
 const QString TYPE_NAME_TAG = "protocol-name";
 const QString BAUD_RATE_TAG = "baudrate";
+const QString WAIT_AFTER_OPEN_TAG_ms = "wait-after-open-ms";
 const QString DEVICE_MANUAL_NAME_TAG = "manual-name";
 const QString DEVICE_MANUAL_SN_TAG = "sn";
 
