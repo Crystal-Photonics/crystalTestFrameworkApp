@@ -7,7 +7,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-
+///\cond HIDDEN_SYMBOLS
 ExceptionalApprovalDB::ExceptionalApprovalDB(const QString &file_name) {
     QFile loadFile(file_name);
     if (file_name == "") {
@@ -78,3 +78,4 @@ QJsonObject ExceptionalApprovalResult::get_json_dump() const {
     result["description"] = exceptional_approval.description;
     return result;
 }
+/// \endcond

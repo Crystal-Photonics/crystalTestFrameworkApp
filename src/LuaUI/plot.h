@@ -341,7 +341,7 @@ class Curve {
     // clang-format off
   /*! \fn set_line_width(number pixel);
     \brief Sets the width of the curve.
-    \param color Color.
+    \param pixel line width.
     \par examples:
     \code
         local plot = Ui.Plot.new()

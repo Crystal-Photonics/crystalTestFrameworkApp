@@ -1,10 +1,11 @@
 #ifndef EXCEPTIONALAPPROVAL_H
 #define EXCEPTIONALAPPROVAL_H
+#include <QJsonObject>
 #include <QList>
 #include <QString>
-#include <QJsonObject>
 #include <QWidget>
 
+///\cond HIDDEN_SYMBOLS
 class DataEngineDataEntry;
 
 class ExceptionalApproval {
@@ -46,5 +47,5 @@ class ExceptionalApprovalDB {
     QList<ExceptionalApproval> approvals;
     QList<FailedField> failed_fields;
 };
-
+///\endcond
 #endif // EXCEPTIONALAPPROVAL_H

@@ -261,7 +261,7 @@ void bind_dataengineinput(sol::state &lua, sol::table &ui_table, ScriptEngine &s
             "all_values_in_range", +[](Data_engine_handle &handle) { return handle.data_engine->all_values_in_range(); });
     }
 }
-
+///\cond HIDDEN_SYMBOLS
 Data_engine_handle::~Data_engine_handle() {
     if (not data_engine) { //moved from
         return;
@@ -312,3 +312,4 @@ Data_engine_handle::~Data_engine_handle() {
         console->error() << e.what();
     }
 }
+/// \endcond
