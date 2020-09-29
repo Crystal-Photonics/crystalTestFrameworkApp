@@ -186,10 +186,10 @@ class MovingAverage {
 
 #ifdef DOXYGEN_ONLY
     // this block is just for ducumentation purpose
-    number clear();
+    clear();
 #endif
     /// \cond HIDDEN_SYMBOLS
-    double clear();
+    void clear();
     /// \endcond
     // clang-format off
 /*! \fn     clear();
