@@ -296,7 +296,10 @@ void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string
                         "import function");
     }
     //set up require paths
-    { lua.safe_script("package.path = \"" + QSettings{}.value(Globals::test_script_path_settings_key, "").toString().toStdString() + "/?.lua\""); }
+    {
+        lua.safe_script("package.path = \"" + QSettings{}.value(Globals::test_script_path_settings_key, "").toString().replace("\\", "\\\\").toStdString() +
+                        "/?.lua\"");
+    }
     //add generic function
     {
 //TODO: Figure out why the lambda version crashes on Windows and the Require version does not.

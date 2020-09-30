@@ -114,23 +114,29 @@ void TestDescriptionLoader::load_description() {
     ScriptEngine script{nullptr, temp_console, nullptr, ""};
     bool warning_occured = false;
     bool error_occured = false;
-    for (const auto &message : MainWindow::validate_script(file_path)) {
-        QRegExp regex{R"((.*):(\d+):\d+-\d+:(.*))"};
-        if (not regex.exactMatch(message)) {
-            qDebug() << "Failed parsing message" << message;
-            continue;
+    try {
+        for (const auto &message : MainWindow::validate_script(file_path)) {
+            QRegExp regex{R"((.*):(\d+):\d+-\d+:(.*))"};
+            if (not regex.exactMatch(message)) {
+                qDebug() << "Failed parsing message" << message;
+                continue;
+            }
+            auto message_parts = regex.capturedTexts();
+            auto path = std::move(message_parts[1]);
+            auto line = std::move(message_parts[2]);
+            auto diagnostic = std::move(message_parts[3]);
+            if (message.contains("(W")) {
+                temp_console.warning() << Console_Link{path + ':' + line, name + ':' + line} << ':' << std::move(diagnostic);
+                warning_occured = true;
+            } else if (message.contains("(E")) {
+                temp_console.error() << Console_Link{path + ':' + line, name + ':' + line} << ':' << std::move(diagnostic);
+                error_occured = true;
+            }
         }
-        auto message_parts = regex.capturedTexts();
-        auto path = std::move(message_parts[1]);
-        auto line = std::move(message_parts[2]);
-        auto diagnostic = std::move(message_parts[3]);
-        if (message.contains("(W")) {
-            temp_console.warning() << Console_Link{path + ':' + line, name + ':' + line} << ':' << std::move(diagnostic);
-            warning_occured = true;
-        } else if (message.contains("(E")) {
-            temp_console.error() << Console_Link{path + ':' + line, name + ':' + line} << ':' << std::move(diagnostic);
-            error_occured = true;
-        }
+    } catch (const std::exception &e) {
+        Console_handle::error(console.get()) << "Failed validating script: " << Sol_error_message{e.what(), file_path, name};
+        Utility::promised_thread_call(MainWindow::mw, [&] { ui_entry->setIcon(3, QIcon{"://src/icons/if_exclamation_16.ico"}); });
+        return;
     }
 
     try {
