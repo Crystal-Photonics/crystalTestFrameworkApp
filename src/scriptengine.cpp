@@ -432,6 +432,8 @@ std::string ScriptEngine::to_string(const sol::table &table) {
     if (retval.size() > 1) {
         retval.pop_back();
         retval.back() = '}';
+    } else {
+        retval.push_back('}');
     }
     return retval;
 }
@@ -526,6 +528,7 @@ void ScriptEngine::reset_lua_state() {
         abort_check();
         return device.is_protocol_device_available();
     });
+    assert(lua_devices);
 }
 
 void ScriptEngine::launch_editor(QString path, int error_line) {
@@ -661,8 +664,13 @@ sol::table ScriptEngine::get_device_requirements_table() {
     return create_table();
 }
 
-std::string ScriptEngine::device_list_string() const {
-    return to_string(*lua_devices);
+std::string ScriptEngine::device_list_string() {
+    return Utility::promised_thread_call(this, [this] {
+        if (currently_in_gui_thread()) {
+            return final_device_list_string;
+        }
+        return lua_devices.has_value() ? to_string(*lua_devices) : "{}";
+    });
 }
 
 std::vector<DeviceRequirements> ScriptEngine::get_device_requirement_list() {
@@ -750,6 +758,7 @@ sol::table ScriptEngine::get_devices(const std::vector<MatchedDevice> &devices) 
 }
 
 void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
+    assert(lua_devices);
     qDebug() << "ScriptEngine::run";
     assert(not currently_in_gui_thread());
     matched_devices = &devices;
@@ -769,6 +778,7 @@ void ScriptEngine::run(std::vector<MatchedDevice> &devices) {
         reset_lua_state();
     } catch (const sol::error &e) {
         qDebug() << "caught sol::error@run";
+        final_device_list_string = to_string(*lua_devices);
         set_error_line(e);
         reset_lua_state();
         throw;

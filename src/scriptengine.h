@@ -103,7 +103,7 @@ class ScriptEngine : public QObject {
     QString test_name;
     std::vector<DeviceRequirements> get_device_requirement_list(const sol::table &device_requirements);
     sol::table get_device_requirements_table(); //The returned table must be destroyed before the script. TODO: Fix or diagnose better
-    std::string device_list_string() const;
+    std::string device_list_string();
 
     private: //note: most of these things are private so that the GUI thread does not access anything belonging to the script thread. Do not make things public.
     QStringList get_string_list(const QString &name);
@@ -123,6 +123,7 @@ class ScriptEngine : public QObject {
     Console &console;
     QObject *owner;
     std::vector<MatchedDevice> *matched_devices;
+    std::string final_device_list_string;
 
     std::mutex await_mutex;
     std::condition_variable await_condition_variable;
