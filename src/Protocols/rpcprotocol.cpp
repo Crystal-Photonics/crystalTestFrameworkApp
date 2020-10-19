@@ -153,7 +153,7 @@ bool RPCProtocol::is_correct_protocol() {
         if (rpc_runtime_protocol.get()->description.has_function("get_device_descriptor")) {
             auto get_device_descriptor_function = RPCRuntimeEncodedFunctionCall{rpc_runtime_protocol.get()->description.get_function("get_device_descriptor")};
             if (get_device_descriptor_function.are_all_values_set()) {
-                descriptor_answer = call_and_wait(get_device_descriptor_function, device_protocol_setting.timeout);
+                descriptor_answer = call_and_wait(get_device_descriptor_function, device_protocol_setting.timeout, true);
                 if (descriptor_answer) {
                     device_data = get_description_data(*descriptor_answer);
                 }
@@ -169,22 +169,27 @@ bool RPCProtocol::is_correct_protocol() {
     return false;
 }
 
-std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call) {
-    return call_and_wait(call, device_protocol_setting.timeout);
+std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call, bool show_messagebox_when_timeout) {
+    return call_and_wait(call, device_protocol_setting.timeout, show_messagebox_when_timeout);
 }
 
-std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration) {
+std::unique_ptr<RPCRuntimeDecodedFunctionCall> RPCProtocol::call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration,
+                                                                          bool show_messagebox_when_timeout) {
     do {
         auto result = rpc_runtime_protocol.get()->call_and_wait(call, duration);
         if (result.error == RPCError::success) {
             return std::move(result.decoded_function_call_reply);
         }
-    } while (Utility::promised_thread_call(MainWindow::mw, [this, function_name = call.get_description()->get_function_name()] {
-        return QMessageBox::warning(nullptr, QObject::tr("CrystalTestFramework - Timeout error"),
-                                    QObject::tr("The device \"%1\" failed to respond to function \"%2\".\nDo you want to try again?")
-                                        .arg(device_data.name)
-                                        .arg(function_name.c_str()),
-                                    QMessageBox::Retry | QMessageBox::Abort) == QMessageBox::Retry;
+    } while (Utility::promised_thread_call(MainWindow::mw, [this, function_name = call.get_description()->get_function_name(), show_messagebox_when_timeout] {
+        if (show_messagebox_when_timeout) {
+            return QMessageBox::warning(nullptr, QObject::tr("CrystalTestFramework - Timeout error"),
+                                        QObject::tr("The device \"%1\" failed to respond to function \"%2\".\nDo you want to try again?")
+                                            .arg(device_data.name)
+                                            .arg(function_name.c_str()),
+                                        QMessageBox::Retry | QMessageBox::Abort) == QMessageBox::Retry;
+        } else {
+            return false;
+        }
     }));
     throw RPCTimeoutException{QObject::tr("Timeout in RPC function \"%1\".").arg(call.get_description()->get_function_name().c_str()).toStdString()};
 }

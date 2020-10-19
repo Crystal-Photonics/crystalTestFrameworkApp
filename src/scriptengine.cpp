@@ -148,7 +148,7 @@ struct RPCDevice {
         return false;
     }
 
-    sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va) {
+    sol::object call_rpc_function(const std::string &name, const sol::variadic_args &va, bool show_message_box_when_timeout) {
         Console_handle::note() << QString("\"%1\" called").arg(name.c_str());
         auto function = protocol->encode_function(name);
         int param_count = 0;
@@ -159,7 +159,7 @@ struct RPCDevice {
         if (not function.are_all_values_set()) {
             throw sol::error("Failed calling function, missing parameters");
         }
-        auto result = protocol->call_and_wait(function);
+        auto result = protocol->call_and_wait(function, show_message_box_when_timeout);
         if (result) {
             try {
                 auto output_params = result->get_decoded_parameters();
@@ -500,7 +500,7 @@ void ScriptEngine::reset_lua_state() {
         if (device.has_function(name)) {
             return sol::object(*lua, sol::in_place, [function_name = std::move(name)](RPCDevice &device, const sol::variadic_args &va) {
                 abort_check();
-                return device.call_rpc_function(function_name, va);
+                return device.call_rpc_function(function_name, va, true);
             });
         }
         if (device.enums[name].valid()) {
@@ -512,7 +512,7 @@ void ScriptEngine::reset_lua_state() {
         abort_check();
         auto result = create_table();
         try {
-            result["result"] = device.call_rpc_function(function_name, va);
+            result["result"] = device.call_rpc_function(function_name, va, false);
             result["timeout"] = false;
             return result;
         } catch (const RPCTimeoutException &) {
