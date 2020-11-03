@@ -3,7 +3,11 @@
 #include "console.h"
 #include "qt_util.h"
 
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
+#include <QStandardPaths>
+#include <QTemporaryFile>
 #include <QTextStream>
 #include <sol.hpp>
 
@@ -87,9 +91,28 @@ void DataLogger::dump_data_to_file() {
     if (data_to_save.count()) {
         QFile file(filename);
         if (!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
-            const auto &message = QObject::tr("File for saving csv can not be opened: for appending %1").arg(this->filename);
-            Utility::thread_call(MainWindow::mw, [console = console, message = std::move(message)] { Console_handle::error(console) << message; });
-            throw sol::error("Cannot open file");
+            const QString fname = QFileInfo(filename).fileName();
+            auto dot_pos = fname.lastIndexOf('.');
+            QString file_template;
+            const auto &file_path = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation) + "/CrystalTestFramework Emergency Log";
+            QDir{}.mkdir(file_path);
+            file_template = file_path + '/' + (dot_pos == -1 ? fname + "_XXXXXX" : fname.left(dot_pos) + "_XXXXXX" + fname.mid(dot_pos));
+            QTemporaryFile tempfile{file_template};
+            tempfile.open();
+            tempfile.setAutoRemove(false);
+            tempfile.close();
+            QString new_filename = tempfile.fileName();
+            assert(not new_filename.isEmpty());
+            Utility::thread_call(MainWindow::mw, [old_filename = this->filename, new_filename, console = console] {
+                const auto message =
+                    QString{"Data is supposed to be logged to file\n%1\nHowever, this file is currently not available. The logging will continue in file\n%2"}
+                        .arg(old_filename)
+                        .arg(new_filename);
+                Console_handle::warning(console) << message;
+                QMessageBox::warning(MainWindow::mw, "CrystalTestFramework - IO Error", message);
+            });
+            filename = new_filename;
+            return dump_data_to_file();
         }
         QTextStream out(&file);
         for (auto &record : data_to_save) {
