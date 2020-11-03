@@ -61,8 +61,9 @@ class RPCProtocol : public Protocol {
     RPCProtocol(const RPCProtocol &) = delete;
     RPCProtocol(RPCProtocol &&other) = delete;
     bool is_correct_protocol();
-    std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call);
-    std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration);
+    std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call, bool show_messagebox_when_timeout);
+    std::unique_ptr<RPCRuntimeDecodedFunctionCall> call_and_wait(const RPCRuntimeEncodedFunctionCall &call, CommunicationDevice::Duration duration,
+                                                                 bool show_messagebox_when_timeout);
     const RPCRunTimeProtocolDescription &get_description();
     void set_ui_description(QTreeWidgetItem *ui_entry);
     RPCProtocol &operator=(const RPCProtocol &&) = delete;
