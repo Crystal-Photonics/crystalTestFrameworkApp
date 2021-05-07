@@ -238,20 +238,7 @@ Curve::~Curve() {
 }
 
 void Curve::add(const std::vector<double> &data) {
-    if (data.empty()) {
-        return;
-    }
-    if (not plot) {
-        throw std::runtime_error{"Curve is not associated with a plot"};
-    }
-    curve_data().add(data);
-    //TODO: This is a hack. value_added exists so we scroll correctly, so adding the front and back only is fine. If it starts getting used for something else this will become wrong.
-    plot->value_added(curve_data().xvalues.front(), curve_data().yvalues_orig.front());
-    plot->value_added(curve_data().xvalues.back(), curve_data().yvalues_orig.back());
-    const auto [min_it, max_it] = std::minmax_element(std::begin(data), std::end(data));
-    plot->value_added(min_it - std::begin(data), *min_it);
-    plot->value_added(max_it - std::begin(data), *max_it);
-    update();
+    add_spectrum_at(0, data);
 }
 
 void Curve::append_point(double x, double y) {
