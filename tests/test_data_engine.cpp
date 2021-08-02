@@ -970,6 +970,9 @@ void Test_Data_engine::test_dateime_entry_3() {
     }
 }
                             )"};
+
+    // the field "test/date_today" is a text field and cannot be set by datetime.
+
     QMap<QString, QList<QVariant>> tags;
     Data_engine de{input, tags};
     QVERIFY(!de.is_complete());
