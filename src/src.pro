@@ -11,11 +11,7 @@ TEMPLATE = lib
 
 DEFINES += EXPORT_LIBRARY
 
-win32 {
-	QMAKE_PRE_LINK += if not exist $$shell_path($$PWD/../libs/googletest/build) mkdir $$shell_path($$PWD/../libs/googletest/build) && cd $$shell_path($$PWD/../libs/googletest/build) && cmake .. && cmake --build .
-}else{
-	QMAKE_PRE_LINK += mkdir -p $$PWD/../libs/googletest/build && cd $$PWD/../libs/googletest/build && cmake .. && cmake --build .
-}
+
 
 FORMS += \
 	Windows/devicematcher.ui \
