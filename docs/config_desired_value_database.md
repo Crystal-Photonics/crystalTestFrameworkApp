@@ -2,9 +2,10 @@ Desired Value Database {#desired_value_database_content}
 ============
 
 # Introduction
-The desired value database is the base file needed for the data engine and the report generation. Hence, the structure of the file is closely orientated towards the section structure of the report.
+The Testframework uses a concept where desired values+tolerances and acquired values are managed and checked centrally by the Data_engine. To tell the Data_engine about the data it should manage, the desired value database described in this document is used. In this file the structure, the desired values+tolerance and the to be acquired values are defined. When the script ends a report is generated based on the structure given in the *Desired Value Database* and based on the document template. Besides generating a printable document a json file is saved containing all measurements and desired values in a machine readable manner.
 
-The goal of a desired value database is to a have a central place where all measured and acquired values can be stored to. Such a central file is much easier to overview than if each value was defined individually somewhere in the lua script. Using such a database means that you can use the data engine to automatically check whether all values are within the defined tolerances. The structure can be directly used for generating pdf reports and data dumps for being able to analyze the measurements later in the future with e.g. python scripts.
+This means the *desired value database* is the base file needed for the data engine and the report generation. Hence, the structure of the file is closely orientated towards the section structure of the report.
+
 
 ## Sections 
 The pdf report is organized in different sections which contain the single data fields which are defined in this database file and hold the measured or acquired actual values. Each field has 4 columns:
