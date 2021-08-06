@@ -24,7 +24,7 @@ function run(devices)
 	data_engine:set_actual_text("test_version/git_framework",									get_framework_git_hash())
 	data_engine:set_actual_datetime_from_text("test_version/git_framework_date",				get_framework_git_date_text())
 	
-	data_engine:set_actual_datetime("allgemein/datum_today",					os.time(t))
+	data_engine:set_actual_datetime("allgemein/datum_today",					os.time())
 	data_engine:set_actual_text("allgemein/testende_person",					get_os_username())
 	
 	--multimeter = devices["multimeter"]
@@ -46,15 +46,21 @@ function run(devices)
 	data_engine:set_actual_number("gerate_daten/supply_voltage_free_mv",		100)
 	data_engine:set_actual_number("gerate_daten/supply_voltage_free_v",			101)
 	
-	data_engine:set_actual_number("gerate_daten/max_current_1",					102*1000) --the *1000 is due to "gerate_daten/max_current_1"'s si-prefix
-	data_engine:set_actual_number("gerate_daten/max_current_2",					103*1000)
-	data_engine:set_actual_number("gerate_daten/max_current_3",					104*1000)
-	data_engine:set_actual_number("gerate_daten/max_current_4",					105*1000)
+	data_engine:set_actual_number("gerate_daten/max_current_1",					102/1000) --the /1000 is due to "gerate_daten/max_current_1"'s si-prefix
+	data_engine:set_actual_number("gerate_daten/max_current_2",					103/1000)
+	data_engine:set_actual_number("gerate_daten/max_current_3",					104/1000)
+	data_engine:set_actual_number("gerate_daten/max_current_4",					105/1000)
 	data_engine:set_actual_number("gerate_daten/reference_test",				106)
 
 	data_engine:set_actual_number("unprinted_1/unprinted_activity",				107)
 	data_engine:set_actual_number("unprinted_1/git_firmware_date_unix",			1547731917)	
 
+	print(data_engine:get_actual_value("allgemein/datum_today"))
+	print(data_engine:get_actual_value("test_version/git_protokoll_date"))
+	print("acutal_number(gerate_daten/max_current_2): : "..tostring(data_engine:get_actual_number("gerate_daten/max_current_2")))
+	print("desired value(gerate_daten/max_current_2): "..data_engine:get_desired_value("gerate_daten/max_current_2"))
+	print("desired value(gerate_daten/max_current_2): "..data_engine:get_desired_value("allgemein/datum_today"))
+	print("desired number(gerate_daten/max_current_2): "..tostring(data_engine:get_desired_number("gerate_daten/max_current_2")))
 
 	
 	if data_engine:all_values_in_range() then
@@ -62,3 +68,4 @@ function run(devices)
 	end
 	
 end
+

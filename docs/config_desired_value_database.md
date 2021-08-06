@@ -175,8 +175,9 @@ A section element may contain the following configuration fields:
 		},
 	}
 	\endcode
-	TODO: 
-	\ref DataEngineSections::use_instance(text section_name, text instance_caption, number instance_index)<br>
+ 
+	\sa Data_engine::use_instance() <br>
+	
 	And the possible Lua script:
 	\code
 	{

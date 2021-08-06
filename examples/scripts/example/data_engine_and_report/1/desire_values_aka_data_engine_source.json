@@ -23,12 +23,12 @@
 			{	"name": "seriennummer",        		"type": "number",																	"nice_name":   "Seriennummer" 								},
 			{	"name": "bool_test1",        		"type": "bool",																		"nice_name":   "Just a Bool test with desired value" 		},
 			{	"name": "bool_test2",        		"value": true,																		"nice_name":   "Just a Bool test" 							},
-			{	"name": "supply_voltage_free_mv",  	"type": "number",	"unit": "mV", 							"si_prefix": 1000, 		"nice_name":    "Freie Versorgungsspannugn mv"   			},
+			{	"name": "supply_voltage_free_mv",  	"type": "number",	"unit": "mV", 							"si_prefix": 1e-3, 		"nice_name":    "Freie Versorgungsspannugn mv"   			},
 			{	"name": "supply_voltage_free_v",  	"type": "number",	"unit": "V", 							"si_prefix": 1, 		"nice_name":    "Freie Versorgungsspannugn V"   			},
-			{	"name": "max_current_1",    		"value": 100,		"unit": "mA", 	"tolerance": "+3/-9",	"si_prefix": 1000, 		"nice_name":    "Fester Strom Toleranz 1"     	},
-			{	"name": "max_current_2",    		"value": 100,		"unit": "mA", 	"tolerance": "+*/-0",	"si_prefix": 1000, 		"nice_name":    "Fester Strom Toleranz 2"     	},
-			{	"name": "max_current_3",    		"value": 100,		"unit": "mA", 	"tolerance": 5,			"si_prefix": 1000, 		"nice_name":    "Fester Strom Toleranz 3"     	},
-			{	"name": "max_current_4",    		"value": 100,		"unit": "mA", 	"tolerance": "10%",		"si_prefix": 1000, 		"nice_name":    "Fester Strom Toleranz 4"     	},
+			{	"name": "max_current_1",    		"value": 100,		"unit": "mA", 	"tolerance": "+3/-9",	"si_prefix": 1e-3, 		"nice_name":    "Fester Strom Toleranz 1"     	},
+			{	"name": "max_current_2",    		"value": 100,		"unit": "mA", 	"tolerance": "+*/-0",	"si_prefix": 1e-3, 		"nice_name":    "Fester Strom Toleranz 2"     	},
+			{	"name": "max_current_3",    		"value": 100,		"unit": "mA", 	"tolerance": 5,			"si_prefix": 1e-3, 		"nice_name":    "Fester Strom Toleranz 3"     	},
+			{	"name": "max_current_4",    		"value": 100,		"unit": "mA", 	"tolerance": "10%",		"si_prefix": 1e-3, 		"nice_name":    "Fester Strom Toleranz 4"     	},
 			{	"name": "reference_test",    		"value": "[unprinted_1/unprinted_activity.actual]",			"tolerance": "10%",		"nice_name":    "Test mit Referenz"     	}
 		]
 	},

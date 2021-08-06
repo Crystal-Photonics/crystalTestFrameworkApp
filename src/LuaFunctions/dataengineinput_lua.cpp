@@ -219,6 +219,11 @@ void bind_dataengineinput(sol::state &lua, sol::table &ui_table, ScriptEngine &s
                 abort_check();
                 return handle.data_engine->is_text(QString::fromStdString(field_id));
             },
+            "is_datetime",
+            +[](Data_engine_handle &handle, const std::string &field_id) {
+                abort_check();
+                return handle.data_engine->is_datetime(QString::fromStdString(field_id));
+            },
             "is_number",
             +[](Data_engine_handle &handle, const std::string &field_id) {
                 abort_check();
