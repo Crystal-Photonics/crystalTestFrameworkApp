@@ -10,10 +10,10 @@ TEMPLATE = subdirs
 
 
 SUBDIRS += src
-SUBDIRS += tests
+#SUBDIRS += tests
 TRAVIS = $$(TRAVIS)
 equals(TRAVIS, true){
-	SUBDIRS += tests
+        #SUBDIRS += tests
 } else{
 	SUBDIRS += app
 }
@@ -21,7 +21,7 @@ equals(TRAVIS, true){
 
 #src.depends = comModules/mocklayer/appPlugin
 app.depends = src
-tests.depends = src
+#tests.depends = src
 
 message($$QMAKESPEC)
 

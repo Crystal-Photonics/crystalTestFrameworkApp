@@ -2,9 +2,10 @@ Desired Value Database {#desired_value_database_content}
 ============
 
 # Introduction
-The desired value database is the base file needed for the data engine and the report generation. Hence, the structure of the file is closely orientated towards the section structure of the report.
+The Testframework uses a concept where desired values+tolerances and acquired values are managed and checked centrally by the Data_engine. To tell the Data_engine about the data it should manage, the desired value database described in this document is used. In this file the structure, the desired values+tolerance and the to be acquired values are defined. When the script ends a report is generated based on the structure given in the *Desired Value Database* and based on the document template. Besides generating a printable document a json file is saved containing all measurements and desired values in a machine readable manner.
 
-The goal of a desired value database is to a have a central place where all measured and acquired values can be stored to. Such a central file is much easier to overview than if each value was defined individually somewhere in the lua script. Using such a database means that you can use the data engine to automatically check whether all values are within the defined tolerances. The structure can be directly used for generating pdf reports and data dumps for being able to analyze the measurements later in the future with e.g. python scripts.
+This means the *desired value database* is the base file needed for the data engine and the report generation. Hence, the structure of the file is closely orientated towards the section structure of the report.
+
 
 ## Sections 
 The pdf report is organized in different sections which contain the single data fields which are defined in this database file and hold the measured or acquired actual values. Each field has 4 columns:
@@ -97,10 +98,10 @@ A section element may contain the following configuration fields:
 	}
 	\endcode
 <br>
-- *data* (required): the data element is an array of multiple data fields. Those contain the single data points acquired by the lua script and are mostly part of the printed pdf report placed under the corresponding section. Those values can be of different types and may contain an expected value with tolerance. The data_engine checks at the end when the report is generated if all fields are completely set and whether all values are within the tolerance.
+- *data* (required): the data element is an array of multiple data fields. Those contain the single data points acquired by the lua script and are mostly part of the printed pdf report placed under the corresponding section. Those values can be of different types and may contain a desired value with tolerance. The data_engine checks at the end when the report is generated if all fields are completely set and whether all values are within the tolerance.
 		\code
 		"documentation_section":{
-			"title":"Section without expected values/tolerances, for documentation purposes",
+			"title":"Section without desired values/tolerances, for documentation purposes",
 			"data":[
 				{	"name": "val_1",    "type": "number",	"unit": "Bq", 			"si_prefix": 1, 	"nice_name":    "Report text 11" },
 				{   "name": "val_2",	"type": "bool",      											"nice_name":   	"Report text 12" },
@@ -108,14 +109,14 @@ A section element may contain the following configuration fields:
 				{   "name": "val_4",	"type": "datetime",     										"nice_name":   	"Report text 14" }
 			]
 		},
-		"expected_value_section":{
-			"title":"Section without expected values/tolerances, for documentation purposes",
+		"desired_value_section":{
+			"title":"Section without desired values/tolerances, for documentation purposes",
 			"data":[
 				{	"name": "val_1",    "value": 2380,	"tolerance": 80, "unit": "mV",				"si_prefix": 1e-3, 	"nice_name":    "Report text 21" },
 				{   "name": "val_2",	"value": "Firmware 1.4",      													"nice_name":   	"Report text 22" },
 				{	"name": "val_3",    "value": true,																 	"nice_name":    "Report text 23" },
 				{   "name": "val_4",	"value": "[documentation_section/val_1.actual]",  	"tolerance": "10%",			"nice_name":   	"Report text 24" },
-				{   "name": "val_5",	"value": "[expected_value_section/val_1.desired]",  "tolerance": "[inherited]",	"nice_name":   	"[inherited]" 	 }
+				{   "name": "val_5",	"value": "[desired_value_section/val_1.desired]",  "tolerance": "[inherited]",	"nice_name":   	"[inherited]" 	 }
 			]
 		}		
 		\endcode
@@ -124,13 +125,13 @@ A section element may contain the following configuration fields:
 	
 	- *name*(required): uniquely identifies the field. Accessing the field from the Lua script follows the syntax "sectionname/fieldname".
 	- *nice_name*(required): contains a descriptive text which will be printed in the pdf report besides the field values or can be used to interact with the script user.
-	- *type* (required if no value): defines the type of the field if not already implicitly set by the expected value. Allowed values:
+	- *type* (required if no value): defines the type of the field if not already implicitly set by the desired value. Allowed values:
 		- number
 		- string
 		- bool
 		- datetime
 		
-	- *value* (required if no type is set): defines the type and the expected value of the field. Examples:
+	- *value* (required if no type is set): defines the type and the desired value of the field. Examples:
 		- 10(for number):
 		- "10" (for string)
 		- true or false (for bool)
@@ -139,8 +140,8 @@ A section element may contain the following configuration fields:
 	
 	- *si_prefix* (required if number): number value defining the the si-prefix of the unit. eg. 1e-3 for mV, 1 for V and 1e+3 for kV.
 	
-	- *tolerance* (required if number and value is set): A string which contains the tolerance of the expected number. Examples:
-			| Expected Value   |      Tolerance String      |  Effective tolerance and printed in report |
+	- *tolerance* (required if number and value is set): A string which contains the tolerance of the desired number. Examples:
+			| Desired Value   |      Tolerance String      |  Effective tolerance and printed in report |
 			|----------|:-------------:|:------|
 			| 1000.5 |	"1.5" 		| 	1000.5 (±1.5) |
 			| 1000.5 |  "5%"   		|   1000.5 (±5%) |
@@ -156,11 +157,11 @@ A section element may contain the following configuration fields:
 			| 1000.5 |  "*/*"   	|   1000.5 (±∞) |
 			| 1000.5 |  "+*/-*"   	|   1000.5 (±∞) |
 	A data field has one of the following types:
-	 - *number*: a number comes always with unit, si-prefix and in case an expected value is defined with the tolerance. The data_engine evaluates the value to be correct if it is within the tolerance or if no expected value is set.
-	 - *string*: The data_engine evaluates a string value to be correct if it no expected value is set or if it matches exactly.
-	 - *bool*: The data_engine evaluates a bool value to be correct if it no expected value is set or if it matches exactly.
-	 - *datetime*: Datetime fields don't have expected values and thus the data_engine evaluates a datetime value always to be correct.	The format printed in the report will be "yyyy-MM-dd hh:mm:ss.zzz", "yyyy-MM-dd", "hh:mm:ss", "yyyy-MM-dd hh:mm" or "yyyy-MM-dd" depending on how the date was set.
-	 - *reference*: is a virtual type pointing to another field and behaves as the type of field pointed to. A reference is defined over the *value* property using the syntax "[section/name.actual]" or "[section/name.desired]". If it points to a desired number value it is possible to inherit also the tolerance and the nice-name by using "[inherited]"
+	 - *number*: a number comes always with unit, si-prefix and in case a desired value is defined with the tolerance. The data_engine evaluates the value to be correct if it is within the tolerance or if no desired value is set.
+	 - *string*: The data_engine evaluates a string value to be correct if it no desired value is set or if it matches exactly.
+	 - *bool*: The data_engine evaluates a bool value to be correct if it no desired value is set or if it matches exactly.
+	 - *datetime*: Datetime fields don't have desired values and thus the data_engine evaluates a datetime value always to be correct.	The format printed in the report will be "yyyy-MM-dd hh:mm:ss.zzz", "yyyy-MM-dd", "hh:mm:ss", "yyyy-MM-dd hh:mm" or "yyyy-MM-dd" depending on how the date was set.
+	 - *reference*: is a virtual type pointing to another field and behaves as the type of the field pointed to. A reference is defined over the *value* property using the syntax "[section/name.actual]" or "[section/name.desired]". If it points to a desired number value it is possible to inherit also the tolerance and the nice-name by using "[inherited]"
 <br><br>
 - *instance_count* (optional): defines how many times this section is repeated. This can be used either to reduce redundancy or to define the repetition count at runtime. e.g if you want to document multiple batteries but you don't know yet how many you are going to test while writing the test script:
 	\code
@@ -194,7 +195,7 @@ A section element may contain the following configuration fields:
 		end
 	}
 	\endcode
-	This Code will repeat the section battery_test 10 times each one with the title "Battery SN: "..v.serial_number". The repetition count is defined at the script's runtime.
+	This Code will repeat the section battery_test 10 times each one titled "Battery SN: "..v.serial_number". The repetition count is defined at the script's runtime.
 <br><br>
 - *variants* (optional): with the variants concept it is possible to choose different sets of data during runtime. Which dataset is chosen by the data_engine is defined by the *apply_if* tag. It contains a list of conditions which all must be matching to the values of the dependency_tags Lua-table passed to the Data_engine constructor in the Lua script. An error is thrown in case of ambiguity if the condition matches to multiple datasets.
 	\par Example:
@@ -273,7 +274,7 @@ A section element may contain the following configuration fields:
 	dependency_tags.charger_fw_version = 1.12
 	dependency_tags.big-cell = false
 	
-	local data_engine = Data_engine.new("path\\to\\form.xml","path\\to\\expected_values.json","path\\where\\acquired_data\\is\\stored\\",dependency_tags)
+	local data_engine = Data_engine.new("path\\to\\form.xml","path\\to\\desired_values.json","path\\where\\acquired_data\\is\\stored\\",dependency_tags)
 	\endcode
 	In this case the section variant with the li-ion battery would be selected.
 	\par Condition definition
@@ -290,7 +291,6 @@ A section element may contain the following configuration fields:
 		- text_condition_multiple_ored matches if the corresponding dependency_tags value is "yellow" or "red"
 		- text_condition_any matches always
 	
-	
 	- number(s):
 	\code
 	"apply_if": {
@@ -306,7 +306,6 @@ A section element may contain the following configuration fields:
 		- number_condition_wildcat matches if the corresponding dependency_tags value is in range 3<=value
 		- number_condition_multiple_ored matches if the corresponding dependency_tags value is in range 1.6<=value<1.7, 2.5 or 2.6
 		- number_condition_any matches always
-	
 	
 	- boolean:
 	\code

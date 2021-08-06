@@ -20,9 +20,9 @@ Button::Button(UI_container *parent, ScriptEngine *script_engine, const std::str
 }
 
 Button::~Button() {
+    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
     QObject::disconnect(pressed_connection);
     button->setEnabled(false);
-    assert(MainWindow::gui_thread == QThread::currentThread()); //event_queue_run_ must not be started by the GUI-thread because it would freeze the GUI
 }
 ///\endcond
 bool Button::has_been_clicked() const {
