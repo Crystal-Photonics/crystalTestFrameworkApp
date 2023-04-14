@@ -308,10 +308,23 @@ void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string
             std::string path;
             sol::state &lua;
             sol::protected_function_result operator()(const std::string &file) const {
+                QDir script_base_path(QString::fromStdString(path));
+                script_base_path.cdUp();
+                qDebug() << script_base_path.absolutePath() << QString::fromStdString(path);
+                auto search_paths = QStringList{script_base_path.absolutePath(),
+                                                QSettings{}.value(Globals::test_script_path_settings_key, "").toString().replace("\\", "\\\\")};
                 abort_check();
-                QDir dir(QString::fromStdString(path));
-                dir.cdUp();
-                return lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
+                QString tried_paths;
+                for (auto &p : search_paths) {
+                    QDir dir(p);
+                    auto abs_path = dir.absoluteFilePath(QString::fromStdString(file) + ".lua");
+                    tried_paths += '\n' + abs_path;
+                    if (QFile::exists(abs_path)) {
+                        return lua.script_file(abs_path.toStdString());
+                    }
+                }
+                throw std::runtime_error("Can not find a path to required module \"" + file + "\" for script: " + path +
+                                         ". Tried paths: " + tried_paths.toStdString());
             }
         };
 
