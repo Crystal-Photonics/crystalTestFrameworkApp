@@ -275,12 +275,12 @@ void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string
 					   obj = obj or _ENV
 					   local res = {}
 					   for k, v in pairs(obj) do
-						   if string.find("boolean number string function table", type(v)) then --not copying "thread" and "userdata"
-							   --print("Copied " .. k .. " of type " .. type(v))
-							   res[k] = v
-						   else
-							   --print("Skipped " .. k .. " of type " .. type(v))
-						   end
+                           if string.find("boolean number string function table", type(v)) then --not copying "thread" and "userdata"
+                               --print( "Copied " .. k .. " of type " .. type(v))
+                               res[k] = v
+                           else
+                               --print( "Skipped " .. k .. " of type " .. type(v))
+                           end
 					   end
 					   return res
 				   end
@@ -307,11 +307,11 @@ void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string
         struct Require {
             std::string path;
             sol::state &lua;
-            void operator()(const std::string &file) const {
+            sol::protected_function_result operator()(const std::string &file) const {
                 abort_check();
                 QDir dir(QString::fromStdString(path));
                 dir.cdUp();
-                lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
+                return lua.script_file(dir.absoluteFilePath(QString::fromStdString(file) + ".lua").toStdString());
             }
         };
 
