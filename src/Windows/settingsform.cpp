@@ -67,7 +67,8 @@ std::vector<std::pair<QLineEdit *, const char *>> SettingsForm::get_config_lines
             {ui->edit_exceptional_approval, Globals::path_to_excpetional_approval_db_key},
             {ui->favorite_script_path, Globals::favorite_script_file_key},
             {ui->report_history_query, Globals::report_history_query_path},
-            {ui->search_path, Globals::search_path_key}};
+            {ui->search_path, Globals::search_path_key},
+            {ui->edit_libpaths, Globals::test_script_library_path_key}};
 }
 
 static void request_user_dir(QLineEdit *text, QString title, const char *key) {
@@ -139,6 +140,22 @@ void SettingsForm::on_search_path_textChanged(const QString &arg1) {
         QToolTip::showText(ui->search_path->mapToGlobal(QPoint(0, 0)), s);
     } else {
         QToolTip::showText(ui->search_path->mapToGlobal(QPoint(0, 0)), "");
+    }
+}
+
+void SettingsForm::on_edit_libpaths_textChanged(const QString &arg1) {
+    QStringList wrong_folders;
+    QStringList sl = arg1.split(";");
+    for (QString s : sl) {
+        if (QDir(s).exists() == false) {
+            wrong_folders.append(s);
+        }
+    }
+    if (wrong_folders.count()) {
+        QString s = "Can not find folders:\n" + wrong_folders.join("\n");
+        QToolTip::showText(ui->edit_libpaths->mapToGlobal(QPoint(0, 0)), s);
+    } else {
+        QToolTip::showText(ui->edit_libpaths->mapToGlobal(QPoint(0, 0)), "");
     }
 }
 

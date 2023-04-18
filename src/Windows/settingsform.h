@@ -15,7 +15,7 @@ class SettingsForm : public QDialog {
     Q_OBJECT
 
     public:
-	explicit SettingsForm(QWidget *parent = nullptr);
+    explicit SettingsForm(QWidget *parent = nullptr);
     ~SettingsForm();
 
     private slots:
@@ -37,9 +37,11 @@ class SettingsForm : public QDialog {
     void on_skip_keySequenceEdit_clear_button_clicked();
     void on_cancel_keySequenceEdit_clear_button_clicked();
     void on_report_history_query_selector_clicked();
-	void on_luacheck_path_button_clicked();
+    void on_luacheck_path_button_clicked();
 
-	private:
+    void on_edit_libpaths_textChanged(const QString &arg1);
+
+    private:
     Ui::SettingsForm *ui;
     std::vector<std::pair<QLineEdit *, const char *>> get_config_lines() const;
     void write_ui_to_settings(QSettings &q_settings);

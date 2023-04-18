@@ -313,6 +313,9 @@ void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string
                 qDebug() << script_base_path.absolutePath() << QString::fromStdString(path);
                 auto search_paths = QStringList{script_base_path.absolutePath(),
                                                 QSettings{}.value(Globals::test_script_path_settings_key, "").toString().replace("\\", "\\\\")};
+                auto libbaths = QSettings{}.value(Globals::test_script_library_path_key, "").toString().replace("\\", "\\\\");
+                auto libbaths_list = libbaths.split(";");
+                search_paths.append(libbaths_list);
                 abort_check();
                 QString tried_paths;
                 for (auto &p : search_paths) {

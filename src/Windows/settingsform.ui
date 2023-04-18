@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>797</width>
-    <height>456</height>
+    <height>492</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -629,7 +629,7 @@
          <item>
           <widget class="QLabel" name="label_15">
            <property name="text">
-            <string>Searchpath</string>
+            <string>Searchpath for external Tools</string>
            </property>
           </widget>
          </item>
@@ -709,6 +709,20 @@
             </widget>
            </item>
           </layout>
+         </item>
+        </layout>
+       </item>
+       <item row="6" column="1">
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QLabel" name="label_18">
+           <property name="text">
+            <string>Searchpath for libraries included by the require statement(seperated by ;):</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="edit_libpaths"/>
          </item>
         </layout>
        </item>
