@@ -2568,7 +2568,7 @@ QStringList get_lua_lib_search_paths_for_lua(const QString &script_path, const Q
         result.append(s.replace("\\", "\\\\") + lua_search_pattern);
         //result.append(s + lua_search_pattern);
     }
-    qDebug() << result;
+    //qDebug() << result;
     return result;
 }
 QStringList get_search_path_entries(QString search_path) {
