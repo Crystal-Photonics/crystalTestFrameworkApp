@@ -296,11 +296,16 @@ void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string
                         "import function");
     }
     //set up require paths
+#if 0
     {
         lua.safe_script("package.path = \"" + QSettings{}.value(Globals::test_script_path_settings_key, "").toString().replace("\\", "\\\\").toStdString() +
                         "/?.lua\"");
     }
-    //add generic function
+#endif
+    //set up require paths
+    {
+        lua.safe_script("package.path = \"" + get_lua_lib_search_paths_for_lua("", "/?.lua").join(";").toStdString() + std::string("\""));
+    } //add generic function
     {
 //TODO: Figure out why the lambda version crashes on Windows and the Require version does not.
 #if 1
@@ -308,15 +313,7 @@ void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string
             std::string path;
             sol::state &lua;
             sol::protected_function_result operator()(const std::string &file) const {
-                QDir script_base_path(QString::fromStdString(path));
-                script_base_path.cdUp();
-                qDebug() << script_base_path.absolutePath() << QString::fromStdString(path);
-                auto search_paths = QStringList{script_base_path.absolutePath(),
-                                                QSettings{}.value(Globals::test_script_path_settings_key, "").toString().replace("\\", "\\\\")};
-                auto libbaths = QSettings{}.value(Globals::test_script_library_path_key, "").toString().replace("\\", "\\\\");
-                auto libbaths_list = libbaths.split(";");
-                search_paths.append(libbaths_list);
-                abort_check();
+                auto search_paths = get_lua_lib_search_paths_for_lua(QString::fromStdString(path), "");
                 QString tried_paths;
                 for (auto &p : search_paths) {
                     QDir dir(p);

@@ -5,7 +5,7 @@
 #include "config.h"
 #include "console.h"
 #include "scriptengine.h"
-#include "util.h"
+//#include "util.h"
 #include "vc.h"
 #include <QApplication>
 #include <QDateTime>
@@ -19,9 +19,10 @@
 #include <QPlainTextEdit>
 #include <QProcess>
 #include <QSettings>
+#include <QString>
+#include <QStringList>
 #include <QTimer>
 #include <cmath>
-
 #if defined(Q_OS_WIN)
 #include <lmcons.h>
 #include <windows.h>
@@ -2538,6 +2539,38 @@ QString get_search_paths(const QString &script_path) {
     return search_path;
 }
 
+QStringList get_lua_lib_search_paths(const QString &script_path) {
+    auto search_paths = QStringList{QSettings{}.value(Globals::test_script_path_settings_key, "").toString().replace("\\", "\\\\")};
+    if (script_path != "") {
+        QDir script_base_path(script_path);
+        script_base_path.cdUp();
+        //qDebug() << script_base_path.absolutePath() << QString::fromStdString(path);
+        search_paths.append(script_base_path.absolutePath());
+    }
+
+    //auto libbaths = QSettings{}.value(Globals::test_script_library_path_key, "").toString().replace("\\", "\\\\");
+    auto libbaths = QSettings{}.value(Globals::test_script_library_path_key, "").toString();
+    auto libbaths_list = libbaths.split(";");
+    search_paths.append(libbaths_list);
+
+    QStringList result;
+    for (auto &s : search_paths) {
+        result.append(get_clean_file_path(s));
+    }
+    return result;
+}
+
+QStringList get_lua_lib_search_paths_for_lua(const QString &script_path, const QString &lua_search_pattern) {
+    //eg "/?.lua"
+    auto sl = get_lua_lib_search_paths(script_path);
+    QStringList result;
+    for (auto &s : sl) {
+        result.append(s.replace("\\", "\\\\") + lua_search_pattern);
+        //result.append(s + lua_search_pattern);
+    }
+    qDebug() << result;
+    return result;
+}
 QStringList get_search_path_entries(QString search_path) {
     QStringList sl = search_path.split(get_search_path_delimiter()); // match at asasda:asfsdf but not
                                                                      // windows-like C:/asdasdas

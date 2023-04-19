@@ -9,6 +9,8 @@
 
 class QPlainTextEdit;
 
+QStringList get_lua_lib_search_paths_for_lua(const QString &script_path, const QString &lua_search_pattern);
+
 QString create_path(QString filename);
 QString get_clean_file_path(QString filename);
 QString append_separator_to_path(QString path);
