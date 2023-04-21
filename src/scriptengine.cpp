@@ -206,9 +206,15 @@ static void add_enum_type(const RPCRuntimeParameterDescription &param, sol::stat
         device[enum_description.enum_name] = std::move(table);
     } else if (param.get_type() == RPCRuntimeParameterDescription::Type::array) {
         auto array = param.as_array();
+
         if ((array.type.get_type() == RPCRuntimeParameterDescription::Type::enumeration)) {
             //&& (array.number_of_elements == 1)
             add_enum_type(array.type, lua, device);
+        } else if ((array.type.get_type() == RPCRuntimeParameterDescription::Type::structure)) {
+            auto structure = array.type.as_structure();
+            for (auto &member : structure.members) {
+                add_enum_type(member, lua, device);
+            }
         }
     }
 }
