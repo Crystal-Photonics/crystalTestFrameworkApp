@@ -35,7 +35,7 @@ namespace Globals {
     static const auto recent_report_history_query_paths = "recent_report_history_query_paths";
     static const auto recent_plot_export_path = "recent_plot_export_path";
 
-    static const auto ui_blink_ratio = 8;
+    static const auto ui_blink_ratio = 16777215;
 } // namespace Globals
 
 #endif // CONFIG_H
