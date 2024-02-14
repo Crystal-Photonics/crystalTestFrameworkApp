@@ -70,4 +70,5 @@ std::string get_framework_git_hash();
 double get_framework_git_date_unix();
 std::string get_framework_git_date_text();
 std::string get_os_username();
+void mk_link(std::string link_pointing_to, std::string link_name);
 #endif // LUA_FUNCTIONS_H

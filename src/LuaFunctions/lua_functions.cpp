@@ -2406,6 +2406,42 @@ double get_framework_git_date_unix() {
     return GITUNIX;
 }
 /// \endcond
+
+/*! \fn void mk_link(string link_pointing_to, string link_name)
+    \brief Creates a file or a directory link
+    \param link_pointing_to         The string of the file/directory the link points to
+    \param link_name                The name for the link. ON windows this is a .lnk file
+
+
+    \details    \par example:
+    \code{.lua}
+        mk_link("file1","link_to_file.lnk")
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+// this block is just for ducumentation purpose
+void mk_link(string link_pointing_to, string link_name);
+#endif
+
+/// \cond HIDDEN_SYMBOLS
+void mk_link(std::string link_pointing_to, std::string link_name) {
+    QFile file_link(QString::fromStdString(link_pointing_to));
+    auto link_name_q = QString::fromStdString(link_name);
+#if defined(Q_OS_WIN)
+
+    if (!link_name_q.endsWith(".lnk")) {
+        link_name_q += ".lnk";
+    }
+
+#endif
+    bool result = file_link.link(link_name_q);
+    if (result == false) {
+        throw std::runtime_error("Can no create link. pointing to: %1 link name: %2");
+    }
+}
+/// \endcond
+
 /*! \fn string get_framework_git_date_text();
     \brief Returns the date of the last commit of this test framework as string.
 
