@@ -186,6 +186,7 @@ void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string
         lua["get_framework_git_date_text"] = wrap(get_framework_git_date_text);
         lua["get_os_username"] = wrap(get_os_username);
         lua["mk_link"] = wrap(mk_link);
+        lua["file_link_points_to"] = wrap(file_link_points_to);
     }
     //noise level
     {

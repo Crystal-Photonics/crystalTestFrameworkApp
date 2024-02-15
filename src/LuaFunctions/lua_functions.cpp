@@ -2407,10 +2407,10 @@ double get_framework_git_date_unix() {
 }
 /// \endcond
 
-/*! \fn void mk_link(string link_pointing_to, string link_name)
+/*! \fn void mk_link(text link_pointing_to, text link_name)
     \brief Creates a file or a directory link
     \param link_pointing_to         The string of the file/directory the link points to
-    \param link_name                The name for the link. ON windows this is a .lnk file
+    \param link_name                The name for the link. On windows this is a .lnk file
 
 
     \details    \par example:
@@ -2421,7 +2421,7 @@ double get_framework_git_date_unix() {
 
 #ifdef DOXYGEN_ONLY
 // this block is just for ducumentation purpose
-void mk_link(string link_pointing_to, string link_name);
+void mk_link(text link_pointing_to, text link_name);
 #endif
 
 /// \cond HIDDEN_SYMBOLS
@@ -2437,8 +2437,44 @@ void mk_link(std::string link_pointing_to, std::string link_name) {
 #endif
     bool result = file_link.link(link_name_q);
     if (result == false) {
-        throw std::runtime_error("Can no create link. pointing to: %1 link name: %2");
+        throw std::runtime_error(
+            QString("Can no create link. pointing to: %1 link name: %2").arg(QString::fromStdString(link_pointing_to)).arg(link_name_q).toStdString());
     }
+}
+/// \endcond
+
+/*! \fn text file_link_points_to(string link_name)
+    \brief returns target of a file or a directory link
+    \param link_name                The name for the link. On windows this is a .lnk file
+    \returns target path of a filesystem link.
+
+    \details    \par example:
+    \code{.lua}
+        local target = file_link_points_to("link_to_file.lnk")
+        print(target)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+// this block is just for ducumentation purpose
+text file_link_points_to(text link_pointing_to);
+#endif
+
+/// \cond HIDDEN_SYMBOLS
+std::string file_link_points_to(std::string link_name) {
+    auto link_name_q = QString::fromStdString(link_name);
+    QFile file_link(link_name_q);
+
+#if defined(Q_OS_WIN)
+    if (!link_name_q.endsWith(".lnk")) {
+        throw std::runtime_error(
+            QString("The link %1 is to be resolved. But under windows file links always end with *.lnk. This is not the case with the given link.")
+                .arg(link_name_q)
+                .toStdString());
+    }
+
+#endif
+    return file_link.symLinkTarget().toStdString();
 }
 /// \endcond
 
