@@ -2479,14 +2479,15 @@ std::string file_link_points_to(std::string link_name) {
 /// \endcond
 
 /*! \fn bool is_file_path_equal(text file_path_a, text file_path_b)
-    \brief returns target of a file or a directory link
-    \param link_pointing_to               The name for the link. On windows this is a .lnk file
-    \returns target path of a filesystem link.
+    \brief returns true if both paths point to the same file or directory. Works with absolute and relative paths
+    \param file_path_a               First path
+    \param file_path_b               Second path
+    \returns true if path is equal
 
     \details    \par example:
     \code{.lua}
-        local target = file_link_points_to("link_to_file.lnk")
-        print(target)
+        local target = print(is_file_path_equal("15_probe_kalibrierung_in_sonde/eeprom_4A767500","15_probe_kalibrierung_in_sonde\\eeprom_4A767500\\" ))
+        print(target) --returns true
     \endcode
 */
 
