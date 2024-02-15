@@ -73,5 +73,6 @@ std::string get_os_username();
 void mk_link(std::string link_pointing_to, std::string link_name);
 std::string file_link_points_to(std::string link_name);
 bool path_exists(std::string path);
+bool is_file_path_equal(std::string file_path_a, std::string file_path_b);
 
 #endif // LUA_FUNCTIONS_H

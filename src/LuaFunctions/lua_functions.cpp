@@ -2478,6 +2478,57 @@ std::string file_link_points_to(std::string link_name) {
 }
 /// \endcond
 
+/*! \fn bool is_file_path_equal(text file_path_a, text file_path_b)
+    \brief returns target of a file or a directory link
+    \param link_pointing_to               The name for the link. On windows this is a .lnk file
+    \returns target path of a filesystem link.
+
+    \details    \par example:
+    \code{.lua}
+        local target = file_link_points_to("link_to_file.lnk")
+        print(target)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+// this block is just for ducumentation purpose
+bool is_file_path_equal(text file_path_a, text file_path_b);
+#endif
+
+/// \cond HIDDEN_SYMBOLS
+bool is_file_path_equal(std::string file_path_a, std::string file_path_b) {
+    auto file_info_a = QFileInfo(QString::fromStdString(file_path_a));
+    auto file_info_b = QFileInfo(QString::fromStdString(file_path_b));
+
+    auto f_a = file_info_a.absoluteFilePath();
+    auto f_b = file_info_b.absoluteFilePath();
+    const auto sep1 = QDir::separator();
+    if ((!f_a.endsWith(sep1)) && f_b.endsWith(sep1)) {
+        f_a += sep1;
+    }
+    if ((!f_b.endsWith(sep1)) && f_a.endsWith(sep1)) {
+        f_b += sep1;
+    }
+
+    const auto sep2 = "\\";
+    if ((!f_a.endsWith(sep2)) && f_b.endsWith(sep2)) {
+        f_a += sep2;
+    }
+    if ((!f_b.endsWith(sep2)) && f_a.endsWith(sep2)) {
+        f_b += sep2;
+    }
+
+    const auto sep3 = "/";
+    if ((!f_a.endsWith(sep3)) && f_b.endsWith(sep3)) {
+        f_a += sep3;
+    }
+    if ((!f_b.endsWith(sep3)) && f_a.endsWith(sep3)) {
+        f_b += sep3;
+    }
+    return f_a == f_b;
+}
+/// \endcond
+
 /*! \fn bool path_exists(text path);
     \brief returns true or false depending whether path exists or not. Works for directories, files an links. If links are inquired it returns false if the link's target is not existing
     \param path               String of the path or link
