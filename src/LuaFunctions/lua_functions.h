@@ -72,4 +72,6 @@ std::string get_framework_git_date_text();
 std::string get_os_username();
 void mk_link(std::string link_pointing_to, std::string link_name);
 std::string file_link_points_to(std::string link_name);
+bool path_exists(std::string path);
+
 #endif // LUA_FUNCTIONS_H

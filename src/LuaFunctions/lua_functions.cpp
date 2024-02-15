@@ -2443,9 +2443,9 @@ void mk_link(std::string link_pointing_to, std::string link_name) {
 }
 /// \endcond
 
-/*! \fn text file_link_points_to(string link_name)
+/*! \fn text file_link_points_to(text link_pointing_to)
     \brief returns target of a file or a directory link
-    \param link_name                The name for the link. On windows this is a .lnk file
+    \param link_pointing_to               The name for the link. On windows this is a .lnk file
     \returns target path of a filesystem link.
 
     \details    \par example:
@@ -2478,6 +2478,35 @@ std::string file_link_points_to(std::string link_name) {
 }
 /// \endcond
 
+/*! \fn bool path_exists(text path);
+    \brief returns true or false depending whether path exists or not. Works for directories, files an links. If links are inquired it returns false if the link's target is not existing
+    \param path               String of the path or link
+    \returns true or false
+
+    \details    \par example:
+    \code{.lua}
+        local target_link = path_exists("link_to_file.lnk") -- true if the link and the target exists
+        print(target_link)
+        local target_dir = path_exists("link_to_directory") -- true if directory exists
+        print(target_dir)
+        local target_file = path_exists("link_to_file") -- true if file exists
+        print(target_file)
+    \endcode
+*/
+
+#ifdef DOXYGEN_ONLY
+// this block is just for ducumentation purpose
+bool path_exists(text path);
+#endif
+
+/// \cond HIDDEN_SYMBOLS
+bool path_exists(std::string path) {
+    auto path_q = QString::fromStdString(path);
+    QFile file_name(path_q);
+    return file_name.exists();
+}
+/// \endcond
+///
 /*! \fn string get_framework_git_date_text();
     \brief Returns the date of the last commit of this test framework as string.
 

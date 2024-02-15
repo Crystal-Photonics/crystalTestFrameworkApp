@@ -187,6 +187,7 @@ void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string
         lua["get_os_username"] = wrap(get_os_username);
         lua["mk_link"] = wrap(mk_link);
         lua["file_link_points_to"] = wrap(file_link_points_to);
+        lua["path_exists"] = wrap(path_exists);
     }
     //noise level
     {
