@@ -14,6 +14,7 @@
 #include "device_protocols_settings.h"
 #include "util.h"
 
+#include "thread_pool.h"
 #include <QChar>
 #include <QDebug>
 #include <QPlainTextEdit>
@@ -287,23 +288,36 @@ void DeviceWorker::detect_devices(std::vector<PortDescription *> device_list) {
         devices_map[device->device.get()].push_back(device);
     }
 
-    std::vector<std::future<void>> threads;
+    // std::optional<Thread_pool> othread_pool{std::in_place, devices_map.size()};
+    // auto &thread_pool = othread_pool.value();
+    Thread_pool thread_pool(devices_map.size());
+    std::mutex devices_mutex;
+
     for (auto &com_devs : devices_map) {
-        threads.push_back(
-            std::async(std::launch::async, [&device_protocol_settings, &device_protocol_settings_file, this, devices = std::move(com_devs.second)] {
-                for (auto &dev : devices) {
-                    ::detect_device(this, *dev, device_protocol_settings, device_protocol_settings_file, device_meta_data);
-                }
-            }));
-    }
-    for (auto &thread : threads) {
-        while (thread.wait_for(std::chrono::milliseconds{16}) == std::future_status::timeout) {
-            if (QThread::currentThread()->isInterruptionRequested()) {
-                throw sol::error("interrupted");
+        thread_pool.push([&devices_mutex, &device_protocol_settings, &device_protocol_settings_file, this, devices = std::move(com_devs.second)] {
+            //std::unique_lock l{devices_mutex};
+            for (auto &dev : devices) {
+                ::detect_device(this, *dev, device_protocol_settings, device_protocol_settings_file, device_meta_data);
             }
-            QApplication::processEvents();
-        }
+        });
     }
+
+    thread_pool.close_workers();
+    while (not thread_pool.workers_closed()) {
+        if (QThread::currentThread()->isInterruptionRequested()) {
+            throw sol::error("interrupted");
+        }
+        QApplication::processEvents();
+    }
+#if 0
+    auto close_threads = std::async(std::launch::async, [&othread_pool] { othread_pool = std::nullopt; });
+    while (close_threads.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout) {
+        if (QThread::currentThread()->isInterruptionRequested()) {
+            throw sol::error("interrupted");
+        }
+        QApplication::processEvents();
+    }
+#endif
 }
 
 DeviceWorker::~DeviceWorker() {}

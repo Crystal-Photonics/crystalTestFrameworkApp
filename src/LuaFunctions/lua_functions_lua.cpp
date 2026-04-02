@@ -6,8 +6,8 @@
 #include "ui_container.h"
 
 #include <QDir>
-#include <thread>
 #include <QSettings>
+#include <thread>
 
 void bind_lua_functions(sol::state &lua, sol::table &ui_table, const std::string &path, ScriptEngine &script_engine, QPlainTextEdit *console) {
     //General functions

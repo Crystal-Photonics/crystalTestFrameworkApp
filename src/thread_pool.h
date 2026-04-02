@@ -1,7 +1,7 @@
 #ifndef THREAD_POOL_H
 #define THREAD_POOL_H
 
-#include <cassert>
+#include <QThread>
 #include <condition_variable>
 #include <deque>
 #include <functional>
@@ -9,55 +9,45 @@
 #include <thread>
 #include <vector>
 
-struct Thread_pool {
-	Thread_pool(unsigned int threads = std::thread::hardware_concurrency())
-		: workers(threads) {
-		// initialize worker threads
-		for (auto &thread : workers) {
-			thread = std::thread{[this] {
-				for (;;) {
-					std::function<void()> work;
-					{ // get work from work queue
-						std::unique_lock l{worker_queue_mutex};
-						condition_variable.wait(l, [this] { return not work_queue.empty(); });
-						work = std::move(work_queue.front());
-						work_queue.pop_front();
-					}
-					if (not work) { //empty function means worker thread should quit
-						return;
-					}
-					work();
-				}
-			}};
-		}
-	}
-	Thread_pool(const Thread_pool &) = delete;
-	Thread_pool &operator=(const Thread_pool &) = delete;
-	~Thread_pool() {
-		{ //tell each thread to quit
-			std::unique_lock l(worker_queue_mutex);
-			for ([[maybe_unused]] const auto &thread : workers) {
-				work_queue.emplace_back(); //push empty function that quits a worker thread
-			}
-		}
-		condition_variable.notify_all();
-		for (auto &thread : workers) { //wait unti threads have finished
-			thread.join();
-		}
-	}
+struct Thread {
+    template <class F, class Arg, class... Args>
+    Thread(F f, Arg arg, Args... args)
+        : Thread{std::make_unique<QThread>([function = std::move(f), arguments = std::tuple{std::move(arg), std::move(args)...}] {
+            call(function, arguments, std::index_sequence_for<Arg, Args...>());
+        })} {}
 
-	void push(std::function<void()> f) {
-		//add work to work queue
-		assert(f); //don't allow users to push empty work which quits a thread
-		std::unique_lock l(worker_queue_mutex);
-		work_queue.push_back(std::move(f));
-		condition_variable.notify_one();
-	}
+    Thread() = default;
+    Thread(Thread &&);
+    Thread &operator=(Thread &&);
+    Thread(std::function<void()> function);
+    ~Thread();
 
-	private:
-	std::mutex worker_queue_mutex;
-	std::deque<std::function<void()>> work_queue;
-	std::vector<std::thread> workers;
-	std::condition_variable condition_variable;
+    void join();
+    [[nodiscard]] bool is_finished() const;
+
+    template <class Function, class Tuple, std::size_t... indexes>
+    static auto call(Function &&function, Tuple &tuple, std::index_sequence<indexes...>) {
+        return std::invoke(function, std::get<indexes>(tuple)...);
+    }
+
+    struct Thread_base;
+    std::unique_ptr<Thread_base> thread_base;
 };
+
+struct Thread_pool {
+    Thread_pool(unsigned int threads = std::thread::hardware_concurrency());
+    Thread_pool(const Thread_pool &) = delete;
+    Thread_pool &operator=(const Thread_pool &) = delete;
+    void close_workers();
+    [[nodiscard]] bool workers_closed();
+    ~Thread_pool();
+    void push(std::function<void()> f);
+
+    private:
+    std::mutex worker_queue_mutex;
+    std::deque<std::function<void()>> work_queue;
+    std::condition_variable condition_variable;
+    std::vector<Thread> workers;
+};
+
 #endif // THREAD_POOL_H

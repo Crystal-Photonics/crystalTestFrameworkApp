@@ -98,7 +98,7 @@ void DataLogger::dump_data_to_file() {
             QDir{}.mkdir(file_path);
             file_template = file_path + '/' + (dot_pos == -1 ? fname + "_XXXXXX" : fname.left(dot_pos) + "_XXXXXX" + fname.mid(dot_pos));
             QTemporaryFile tempfile{file_template};
-            tempfile.open();
+            (void) tempfile.open();
             tempfile.setAutoRemove(false);
             tempfile.close();
             QString new_filename = tempfile.fileName();

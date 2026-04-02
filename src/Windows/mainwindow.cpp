@@ -36,17 +36,16 @@
 #include <QProcess>
 #include <QProgressDialog>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QStatusBar>
 #include <QStringList>
 #include <QTimer>
 #include <QTreeWidgetItem>
-#include <QStandardPaths>
 #include <QUrl>
 #include <QtSerialPort/QSerialPort>
 #include <QtSerialPort/QSerialPortInfo>
 #include <algorithm>
 #include <cassert>
-#include <future>
 #include <iterator>
 #include <memory>
 
@@ -458,8 +457,9 @@ void MainWindow::load_scripts(QProgressDialog *dialog) {
     test_descriptions.clear();
     dialog->setValue(dialog->value() + 1);
     const auto dir = QSettings{}.value(Globals::test_script_path_settings_key, "").toString();
-    std::optional<Thread_pool> othread_pool{std::in_place};
-    auto &thread_pool = othread_pool.value();
+    //    std::optional<Thread_pool> othread_pool{std::in_place};
+    //auto &thread_pool = othread_pool.value();
+    Thread_pool thread_pool;
     std::mutex test_descriptions_mutex;
     std::vector<TestDescriptionLoader> new_test_descriptions;
     int tasks = 0;
@@ -482,6 +482,12 @@ void MainWindow::load_scripts(QProgressDialog *dialog) {
     }
     dialog->setMaximum(4 + tasks * (Script_loading_progress_factors::script_loading + Script_loading_progress_factors::favorite_loading +
                                     Script_loading_progress_factors::set_enable_state));
+    thread_pool.close_workers();
+    while (not thread_pool.workers_closed()) {
+        dialog->setValue(3 + tasks_done * Script_loading_progress_factors::script_loading);
+        QApplication::processEvents();
+    }
+#if 0
     {
         auto close_threads = std::async(std::launch::async, [&othread_pool] { othread_pool = std::nullopt; });
         while (close_threads.wait_for(std::chrono::milliseconds(0)) == std::future_status::timeout) {
@@ -489,6 +495,7 @@ void MainWindow::load_scripts(QProgressDialog *dialog) {
             QApplication::processEvents();
         }
     }
+#endif
     std::swap(test_descriptions, new_test_descriptions);
     load_favorites(dialog);
     statusBar()->clearMessage();

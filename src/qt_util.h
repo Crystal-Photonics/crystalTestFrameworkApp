@@ -11,7 +11,6 @@
 #include <QVariant>
 #include <cassert>
 #include <functional>
-#include <future>
 #include <utility>
 
 class ScriptEngine;

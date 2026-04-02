@@ -1,6 +1,8 @@
 /qTestLibRunnerConfig.qtr
 /src/vc.h
 /tests/vc.h
+/build/
+/docs/
 
 libs/build_limereport
 libs/qwt/build_qwt

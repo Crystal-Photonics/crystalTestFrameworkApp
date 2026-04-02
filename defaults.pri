@@ -14,9 +14,9 @@ INCLUDEPATH += $$PWD/src
 QMAKE_CXXFLAGS += -isystem $$PWD/libs/luasol/include
 
 win32 {
-	QWT_DIR = $$PWD/libs/qwt
-        QMAKE_CXXFLAGS += -isystem $$QWT_DIR/qwt-6.3.0/src
-	LIBS += -L$$QWT_DIR/build_qwt/lib
+        QWT_DIR = $$PWD/libs/qwt-6.3.0/
+	QMAKE_CXXFLAGS += -isystem $$QWT_DIR/src
+	LIBS += -L$$QWT_DIR/build_lib
 
 	CONFIG(debug, debug|release) {
 		LIBS += -lqwtd

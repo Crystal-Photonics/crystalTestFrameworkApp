@@ -13,3 +13,6 @@
 [submodule "libs/LimeReport"]
 	path = libs/LimeReport
 	url = https://github.com/Crystal-Photonics/LimeReport
+[submodule "libs/qwt-6.3.0"]
+	path = libs/qwt-6.3.0
+	url = https://github.com/Crystal-Photonics/qwt-6.3.0.git

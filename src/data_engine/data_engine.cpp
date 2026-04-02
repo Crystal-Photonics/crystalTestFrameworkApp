@@ -2177,7 +2177,7 @@ void Data_engine::generate_template(const QString &destination, const QString &d
                                     QString static_text_page_footer, QString static_text_report_footer_above_signature,
                                     QString static_text_report_footer_beneath_signature, const QList<PrintOrderItem> &print_order) const {
     QFile xml_file{destination};
-    xml_file.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
+    (void)xml_file.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
     XML::state.xml.setDevice(&xml_file);
     auto &xml = XML::state.xml;
 
@@ -3040,11 +3040,11 @@ void Data_engine::generate_table(const DataEngineSection *section) const {
 
 void Data_engine::replace_database_filename(const std::string &source_form_path, const std::string &destination_form_path, const std::string &database_path) {
     QFile xml_file_in{source_form_path.c_str()};
-    xml_file_in.open(QFile::OpenModeFlag::ReadOnly);
+    (void)xml_file_in.open(QFile::OpenModeFlag::ReadOnly);
     assert(xml_file_in.isOpen());
     QXmlStreamReader xml_in{&xml_file_in};
     QFile xml_file_out{destination_form_path.c_str()};
-    xml_file_out.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
+    (void)xml_file_out.open(QFile::OpenModeFlag::WriteOnly | QFile::OpenModeFlag::Truncate);
     assert(xml_file_out.isOpen());
     // qDebug() << "xml_file_in" << xml_file_in.fileName();
     // qDebug() << "xml_file_out" << xml_file_out.fileName();
@@ -4618,7 +4618,7 @@ bool DataEngineActualValueStatisticFile::check_and_create_lock_file() {
     }
 
     QFile lockfile(lock_file_name);
-    lockfile.open(QIODevice::WriteOnly);
+    (void)lockfile.open(QIODevice::WriteOnly);
     lock_file_exists = true;
     return result;
 }
@@ -4699,7 +4699,7 @@ DataEngineDateTime::DataEngineDateTime(QString text) {
 }
 
 DataEngineDateTime::DataEngineDateTime(QDate date) {
-    dt_m = QDateTime(date,QTime(0,0));
+    dt_m = QDateTime(date, QTime(0, 0));
     precision_m = DateTimeFormatPrecision::date;
 }
 
