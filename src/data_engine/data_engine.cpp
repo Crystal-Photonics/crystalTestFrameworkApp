@@ -552,11 +552,11 @@ void DataEngineSection::delete_unmatched_variants(const QMap<QString, QList<QVar
 }
 
 void DataEngineSection::delete_all_but_biggest_variants() {
-   // int instance_index = 0;
+    // int instance_index = 0;
     for (auto &instance : instances) {
         assert(instance_count);
         instance.delete_all_but_biggest_variants();
-   //     instance_index++;
+        //     instance_index++;
     }
 }
 
@@ -1340,13 +1340,13 @@ void DependencyValue::from_string(const QString &str) {
         } else {
             match_style = Match_style::MatchExactly;
         }
-        match_exactly.setValue(str);//<QString>
+        match_exactly.setValue(str); //<QString>
     }
 }
 
 void DependencyValue::from_number(const double &number) {
     match_style = Match_style::MatchExactly;
-    match_exactly.setValue(number);//<double>
+    match_exactly.setValue(number); //<double>
     serialised_string = QString::number(number);
     range_low_including = 0;
     range_high_excluding = 0;
@@ -1354,7 +1354,7 @@ void DependencyValue::from_number(const double &number) {
 
 void DependencyValue::from_bool(const bool &boolean) {
     match_style = Match_style::MatchExactly;
-    match_exactly.setValue(boolean);//<bool>
+    match_exactly.setValue(boolean); //<bool>
     if (boolean) {
         serialised_string = "true";
     } else {
@@ -2043,10 +2043,14 @@ void Data_engine::fill_database(QSqlDatabase &db) const {
                         }
                     }
                 }
+                QString desired_value = entry->get_desired_value_as_string();
+                QString actual_value = entry->get_actual_values();
+                desired_value = desired_value.replace("'", "´");
+                actual_value = actual_value.replace("'", "´");
                 db_exec(db, QString{"INSERT INTO %1 VALUES(%2, '%3', '%4', '%5', '%6', %7, "
                                     "'%8', '%9')"}
                                 .arg(section_table_name, QString::number(id), section.get_section_name() + "/" + entry->field_name, entry->get_description(),
-                                     entry->get_desired_value_as_string(), entry->get_actual_values(), QString::number(instance_id_counter),
+                                     desired_value, actual_value, QString::number(instance_id_counter),
                                      entry->is_in_range() ? QObject::tr("Ok") : failed_string, entry->get_unit()));
                 id++;
             }
@@ -2108,7 +2112,7 @@ bool Data_engine::do_exceptional_approval(ExceptionalApprovalDB &ea_db, QString 
 
 void Data_engine::do_exceptional_approvals(ExceptionalApprovalDB &ea_db, QWidget *parent) {
     QList<FailedField> failed_fields;
-  //  int instance_id_counter = 1;
+    //  int instance_id_counter = 1;
     for (const DataEngineSection &section : sections.sections) {
         for (const DataEngineInstance &instance : section.instances) {
             auto variant = instance.get_variant();
@@ -2122,7 +2126,7 @@ void Data_engine::do_exceptional_approvals(ExceptionalApprovalDB &ea_db, QWidget
                 }
             }
 
-          //  instance_id_counter++;
+            //  instance_id_counter++;
         }
     }
     do_exceptional_approval_(ea_db, failed_fields, parent);
